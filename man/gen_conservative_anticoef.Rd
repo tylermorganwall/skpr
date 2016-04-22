@@ -2,7 +2,7 @@
 % Please edit documentation in R/gen_conservative_anticoef.R
 \name{gen_conservative_anticoef}
 \alias{gen_conservative_anticoef}
-\title{Generates Default Conservative Anticipated Coefficients}
+\title{Generates conservative anticipated coefficients}
 \usage{
 gen_conservative_anticoef(modelmatrix)
 }
@@ -10,13 +10,16 @@ gen_conservative_anticoef(modelmatrix)
 \item{modelmatrix}{The model matrix}
 }
 \value{
-Conservative Anticipated coefficients
+Conservative anticipated coefficients for given model matrix, with first parameter for each catagorical factor's anticipated coefficient set to
+one and the rest set to zero. All continuous parameters' anticipated coefficients are set to one.
 }
 \description{
-Generates Default Conservative Anticipated Coefficients
+Generates conservative anticipated coefficients
 }
 \examples{
-genparammatrix(6,2,1)
-genparammatrix(6,2,1)
+test = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
+                  d=c(-1,1), stringsAsFactors = TRUE)
+de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
+eval_design(de,0.05,gen_conservative_anticoef(de))
 }
 

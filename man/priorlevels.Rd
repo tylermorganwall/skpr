@@ -17,6 +17,7 @@ of levels preceeding each parameter (including the intercept)
 Returns number of levels prior to each parameter
 }
 \examples{
-genparammatrix(6,2,1)
+mean(1)
 }
+\keyword{internal}
 

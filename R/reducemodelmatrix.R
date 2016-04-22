@@ -5,10 +5,8 @@
 #'@param ModelMatrix The model matrix
 #'@param model The formula
 #'@return The reduced model matrix
-#'@export
-#'@examples genparammatrix(6,2,1)
-#'genparammatrix(6,2,1)
-#Generates the parameter vector L to isolate the parameters of interest
+#'@examples mean(1)
+#'@keywords internal
 
 reducemodelmatrix = function(ModelMatrix,model) {
   #save the attributes to reapply them to the reduced matrix

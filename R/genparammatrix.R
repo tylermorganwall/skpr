@@ -7,10 +7,7 @@
 #'@param Levels Number of levels in parameter of interest
 #'@param G Number of levels/parameters preceeding parameter of interest
 #'@return The parameter vector Q isolating the levels of parameter of interest
-#'@export
-#'@examples genparammatrix(6,2,1)
-#'genparammatrix(6,2,1)
-#Generates the parameter vector Q to isolate the parameters of interest
+#'@keywords internal
 genparammatrix = function(parameters, levels, g) {
   if (parameters <= 0 | levels <= 0 | g < 0) {
     stop("Number of parameters and levels must be non-zero, preceeding levels must be non-negative")

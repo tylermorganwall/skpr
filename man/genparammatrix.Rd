@@ -20,8 +20,5 @@ The parameter vector Q isolating the levels of parameter of interest
 Generates the parameter matrix L to isolate the levels of interest
 in the calculation of power
 }
-\examples{
-genparammatrix(6,2,1)
-genparammatrix(6,2,1)
-}
+\keyword{internal}
 

@@ -20,6 +20,7 @@ The parameter power for the parameters
 Calculates parameter power
 }
 \examples{
-genparammatrix(6,2,1)
+mean(1)
 }
+\keyword{internal}
 

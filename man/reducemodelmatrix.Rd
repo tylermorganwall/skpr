@@ -18,7 +18,7 @@ The reduced model matrix
 Remove columns not in model
 }
 \examples{
-genparammatrix(6,2,1)
-genparammatrix(6,2,1)
+mean(1)
 }
+\keyword{internal}
 

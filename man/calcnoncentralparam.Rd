@@ -19,7 +19,5 @@ The non-centrality parameter for the F test
 \description{
 Calculates the non-centrality parameter for the model matrix
 }
-\examples{
-genparammatrix(6,2,1)
-}
+\keyword{internal}
 

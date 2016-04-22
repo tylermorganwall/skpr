@@ -21,7 +21,5 @@ The effect power for the parameters
 \description{
 Calculates the effect power given the anticipated coefficients and the type-I error
 }
-\examples{
-genparammatrix(6,2,1)
-}
+\keyword{internal}
 

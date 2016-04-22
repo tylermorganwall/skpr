@@ -8,9 +8,7 @@
 #'@param anticoef The anticipated coefficients
 #'@param alpha the specified type-I error
 #'@return The effect power for the parameters
-#'@export
-#'@examples
-#'genparammatrix(6,2,1)
+#'@keywords internal
 effectpower = function(X,levelvector,anticoef,alpha,priorcat) {
 
   levelvectoradj = levelvector

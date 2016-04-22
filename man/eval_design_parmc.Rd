@@ -4,7 +4,7 @@
 \alias{eval_design_parmc}
 \title{Evaluates power for model matrix with a parallel Monte Carlo simulation.}
 \usage{
-eval_design_parmc(ModelMatrix, model, alpha, nsim, family, rfunction,
+eval_design_parmc(ModelMatrix, model, alpha, nsim, glmfamily, rfunction,
   rfunctionargs, rlistfuncs, skipintercept = FALSE)
 }
 \arguments{
@@ -16,7 +16,7 @@ eval_design_parmc(ModelMatrix, model, alpha, nsim, family, rfunction,
 
 \item{nsim}{The number of simulations for the Monte Carlo simulation.}
 
-\item{family}{String indicating the family the distribution is from for the glm function (e.g. binomial)}
+\item{glmfamily}{String indicating the family the distribution is from for the glm function (e.g. binomial)}
 
 \item{rfunction}{Random number generator function}
 
@@ -25,9 +25,9 @@ is handled automatically.}
 
 \item{rlistfuncs}{List of functions corresponding (in order) to the arguments listed in the rfunctionargs argument.
 These functions take the column of the model matrix as an input, and output a vector of values used in generating
-the random values in rfunction. For convenience, three helper functions are provided. returnzero (which returns a
-vector of zeros of the correct length), returnone (which returns of vector of ones of the correct length), and
-returncol (which returns the column as is). Examples of the use of these functions and custom functions are provided below.}
+the random values in rfunction.}
+
+\item{skipintercept}{A boolean factor on whether the intercept term should be skipped in calculation. Default is FALSE.}
 }
 \value{
 A data frame consisting of the parameters and their powers
@@ -39,7 +39,7 @@ See \code{\link{eval_design_mc}} for full documentation and examples on usage.
 }
 \examples{
 #See documentation for eval_design_mc. This is just a parallel wrapper around that function.
-#If large number of designs are being evaluated, it might be advisable to parallelize the outer loop and
-#use eval_design_mc rather than eval_design_parmc.
+#If large number of designs are being evaluated, it might be advisable to parallelize the outer loop
+#and use eval_design_mc rather than eval_design_parmc.
 }
 

@@ -6,10 +6,7 @@
 #'@param Levels Number of levels in parameter of interest
 #'@param G Number of levels/parameters preceeding parameter of interest
 #'@return The parameter matrix L isolating the levels of parameter of interest
-#'@export
-#'@examples genparammatrix(6,2,1)
-#'genparammatrix(6,2,1)
-#Generates the parameter vector L to isolate the parameters of interest
+#'@keywords internal
 genhypmatrix = function(parameters, levels, g) {
   if (parameters <= 0 | levels <= 0 | g <= 0) {
     stop("All inputs must be greater than zero")

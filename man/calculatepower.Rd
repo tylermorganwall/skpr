@@ -21,7 +21,5 @@ The power for a given parameter L, given the
 \description{
 Calculates the power of the model given the non-centrality parameter
 }
-\examples{
-genparammatrix(6,2,1)
-}
+\keyword{internal}
 

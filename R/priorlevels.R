@@ -3,11 +3,10 @@
 #'@description Returns number of levels prior to each parameter
 #'
 #'@param Levelvector Returns a vector consisting of the number
+#'@keywords internal
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)
-#'@export
-#'@examples
-#'genparammatrix(6,2,1)
+#'@examples mean(1)
 priorlevels = function(levelvector) {
   sum = 0
   priors = c(0)

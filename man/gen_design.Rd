@@ -7,20 +7,22 @@
 gen_design(factorial, model, trials, optimality, contrastslist, repeats)
 }
 \arguments{
-\item{factorial}{A factorial test matrix generated for all combinations of the factors in the model}
+\item{factorial}{A full factorial test matrix generated for the factors in the model.}
 
-\item{model}{The model used to generate the test design}
+\item{model}{The model used to generate the test design.}
 
-\item{trials}{The number of trials}
+\item{trials}{The number of runs in the design.}
 
 \item{optimality}{The optimality criterion (e.g. "D")}
 
-\item{contrastslist}{A list of the contrasts (e.g. "contr.sum")}
+\item{contrastslist}{A list of the contrasts (e.g. "contr.sum"). If none is provided, all are set
+to "contr.sum").}
 
-\item{repeats}{The number of times to repeat design generation the for best optimal condition}
+\item{repeats}{The number of times to repeat the search for the best optimal condition}
 }
 \value{
-The model matrix for the design, to be passed to eval_design
+The model matrix for the design, to be passed to eval_design. The model matrix
+has various attributes (accessible with the attr function) that aid evaluation.
 }
 \description{
 Creates design given a model and
@@ -38,9 +40,11 @@ designlinear = gen_design(factorial,~a+b+c+d,10,"D",100)
 #generate the design with a quadratic model
 designquadratic = gen_design(factorial,~(a+b+c+d)^2,15,"D",100)
 
-mixedfactorial = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),d=c(-1,1), stringsAsFactors = TRUE)
+mixedfactorial = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
+                            d=c(-1,1), stringsAsFactors = TRUE)
 mixeddesign = gen_design(mixedfactorial,~a+b+c+d,15,"D",100)
 
-#Evaluating the design can be done with eval_design and eval_design_mc (monte carlo)
+#Evaluating the design can be done with eval_design and
+#eval_design_mc/eval_design_parmc (Monte Carlo methods)
 }
 

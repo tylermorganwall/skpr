@@ -15,26 +15,26 @@ eval_design(modelmatrix, alpha, anticoef)
 gen_anticoef}
 }
 \value{
-A data frame with the parameters, the type of power analysis, and the power
+A data frame with the parameters of the model, the type of power analysis, and the power.
 }
 \description{
 Evaluates design given a model matrix and returns
-a data frame of parameter and effect powers.
+a data frame of parameter and effect powers. Currently only works with linear,
+non-interacting models with catagorical variables, or
 }
 \examples{
 #generate the full factorial design for the factors in the model
 factorial = expand.grid(a=c(-1,0,1),b=c(1,2,3,4),c=c(-1,1),d=c(-1,1))
 
 #generate the designs
-designlinear = gen_design(dategc,~a+b+c+d,10,"D",100)
-designquadratic = gen_design(dategc,~(a+b+c+d)^2,15,"D",100)
+designlinear = gen_design(factorial,~a+b+c+d,10,"D",100)
 
 #evaluate the design for a given alpha
 eval_design(designlinear,alpha=0.05)
-eval_design(designquadratic,alpha=0.05)
 
 #generate the full factorial design for the factors in the model (with catagorical)
-factorialmixed = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),d=c(-1,1), stringsAsFactors = TRUE)
+factorialmixed = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
+                            d=c(-1,1), stringsAsFactors = TRUE)
 mixeddesign = gen_design(factorialmixed,~a+b+c+d,18,"D",100)
 
 #evaluate the design, with automatically computed anticipated coefficients (using gen_anticoef)
@@ -42,7 +42,8 @@ eval_design(mixeddesign,alpha=0.05)
 #which is the same as this, but we are now explicitly entering the coefficients
 eval_design(mixeddesign,alpha=0.05,c(1,1,-1,1,-1,1,1,1,-1,1,1))
 
-#evaluate the design, but with custom coeffients set for the most conservative effect power calculation
+#evaluate the design, but with custom coeffients set
+#for the most conservative effect power calculation
 #(setting each level in the catagorical factor to zero except for the first)
 eval_design(mixeddesign,alpha=0.05,c(1,1,0,0,0,0,1,1,0,0,1))
 #which can also be written as:

@@ -19,8 +19,5 @@ The parameter matrix L isolating the levels of parameter of interest
 \description{
 Generates hypothesis matrix for power calculation
 }
-\examples{
-genparammatrix(6,2,1)
-genparammatrix(6,2,1)
-}
+\keyword{internal}
 

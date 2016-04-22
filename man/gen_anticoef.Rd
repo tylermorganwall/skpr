@@ -2,7 +2,7 @@
 % Please edit documentation in R/gen_anticoef.R
 \name{gen_anticoef}
 \alias{gen_anticoef}
-\title{Generates Default Anticipated Coefficients}
+\title{Generates default anticipated coefficients}
 \usage{
 gen_anticoef(modelmatrix)
 }
@@ -10,13 +10,15 @@ gen_anticoef(modelmatrix)
 \item{modelmatrix}{The model matrix}
 }
 \value{
-Anticipated coefficients
+Anticipated coefficients.
 }
 \description{
 Generates Default Anticipated Coefficients
 }
 \examples{
-genparammatrix(6,2,1)
-genparammatrix(6,2,1)
+test = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
+                  d=c(-1,1), stringsAsFactors = TRUE)
+de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
+eval_design(de,0.05,gen_anticoef(de))
 }
 

@@ -6,9 +6,8 @@
 #'@param anticoef The anticipated coefficients
 #'@param alpha the specified type-I error
 #'@return The parameter power for the parameters
-#'@export
-#'@examples
-#'genparammatrix(6,2,1)
+#'@keywords internal
+#'@examples mean(1)
 parameterpower = function(X,anticoef,alpha) {
   #Generating the parameter isolating vectors
   Q = vector("list",dim(X)[2])

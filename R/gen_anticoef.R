@@ -1,12 +1,15 @@
-#'@title Generates Default Anticipated Coefficients
+#'@title Generates default anticipated coefficients
 #'
 #'@description Generates Default Anticipated Coefficients
 #'
 #'@param modelmatrix The model matrix
-#'@return Anticipated coefficients
+#'@return Anticipated coefficients.
 #'@export
-#'@examples genparammatrix(6,2,1)
-#'genparammatrix(6,2,1)
+#'@examples
+#'test = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
+#'                   d=c(-1,1), stringsAsFactors = TRUE)
+#'de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
+#'eval_design(de,0.05,gen_anticoef(de))
 gen_anticoef = function(modelmatrix) {
 
   levels = attr(modelmatrix,"levels")-1

@@ -2,23 +2,26 @@
 % Please edit documentation in R/gen_anticoef.R
 \name{gen_anticoef}
 \alias{gen_anticoef}
-\title{Generates default anticipated coefficients}
+\title{Generates Anticipated Coefficients}
 \usage{
-gen_anticoef(RunMatrix)
+gen_anticoef(RunMatrix, conservative = FALSE)
 }
 \arguments{
-\item{modelmatrix}{The model matrix}
+\item{RunMatrix}{The run matrix}
+
+\item{conservative}{Default FALSE. If true, will generate conservative anticipated coefficients.}
 }
 \value{
 Anticipated coefficients.
 }
 \description{
-Generates Default Anticipated Coefficients
+Generates Anticipated Coefficients
 }
 \examples{
 test = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
                   d=c(-1,1), stringsAsFactors = TRUE)
 de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
 eval_design(de,0.05,gen_anticoef(de))
+eval_design(de,0.05,gen_anticoef(de),conservative=TRUE)
 }
 

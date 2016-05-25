@@ -4,7 +4,7 @@
 \alias{gen_anticoef}
 \title{Generates default anticipated coefficients}
 \usage{
-gen_anticoef(modelmatrix)
+gen_anticoef(RunMatrix)
 }
 \arguments{
 \item{modelmatrix}{The model matrix}

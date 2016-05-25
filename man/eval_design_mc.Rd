@@ -4,12 +4,10 @@
 \alias{eval_design_mc}
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
-eval_design_mc(ModelMatrix, model, alpha, nsim, glmfamily, rfunction,
+eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
   rfunctionargs, rlistfuncs, skipintercept = FALSE)
 }
 \arguments{
-\item{ModelMatrix}{Parameter (column) of the model matrix being evaluated}
-
 \item{model}{The model used in the evaluation.}
 
 \item{alpha}{The type-I error}
@@ -28,6 +26,8 @@ These functions take each column of the model matrix as an input, and output a v
 the random values in rfunction. Examples of these custom functions are provided below.}
 
 \item{skipintercept}{A boolean factor on whether the intercept term should be skipped in calculation. Default is FALSE.}
+
+\item{ModelMatrix}{Parameter (column) of the model matrix being evaluated}
 }
 \value{
 A data frame consisting of the parameters and their powers

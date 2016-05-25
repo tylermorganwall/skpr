@@ -5,13 +5,15 @@
 #'Used with eval_design/eval_design_mc to produce power estimations for designs.
 #'Models with catagorical factors can only be linear and non-interacting.
 #'
-#'@param factorial A full factorial test matrix generated for the factors in the model.
+#'@param factorial A full factorial test matrix generated for the factors in the model. If
+#'the factor is continuous, it should be type numeric. If the factor is catagorical, it should be
+#'a factor.
 #'@param model The model used to generate the test design.
 #'@param trials The number of runs in the design.
 #'@param optimality The optimality criterion (e.g. "D")
 #'@param contrastslist A list of the contrasts (e.g. "contr.sum"). If none is provided, all are set
 #'to "contr.sum").
-#'@param repeats The number of times to repeat the search for the best optimal condition
+#'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.
 #'@return The model matrix for the design, to be passed to eval_design. The model matrix
 #'has various attributes (accessible with the attr function) that aid evaluation.
 #'@import AlgDesign
@@ -33,7 +35,7 @@
 #'#eval_design_mc/eval_design_parmc (Monte Carlo methods)
 
 
-gen_design = function(factorial, model, trials, optimality, contrastslist,repeats) {
+gen_design = function(factorial, model, trials, optimality, repeats,contrastslist) {
   if(missing(repeats)){
     repeats= 100
   }

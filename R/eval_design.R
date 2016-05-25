@@ -8,6 +8,7 @@
 #'@param alpha The type-I error
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be generated with
 #'gen_anticoef
+#'@param conservative Default FALSE. Specifies whether default anticipated coefficents should be conservative or not.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power.
 #'@export
 #'@examples #generate the full factorial design for the factors in the model
@@ -34,9 +35,10 @@
 #'#(setting each level in the catagorical factor to zero except for the first)
 #'eval_design(mixeddesign,alpha=0.05,c(1,1,0,0,0,0,1,1,0,0,1))
 #'#which can also be written as:
-#'eval_design(mixeddesign,alpha=0.05,gen_conservative_anticoef(mixeddesign))
+#'eval_design(mixeddesign,alpha=0.05,conservative=TRUE)
+#'#autogenerating the conservative anticipated coefficients
 
-eval_design = function(RunMatrix, model, alpha, anticoef) {
+eval_design = function(RunMatrix, model, alpha, anticoef,conservative=FALSE) {
   if(is.null(attr(RunMatrix,"modelmatrix"))) {
     contrastslist = list()
     for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
@@ -52,8 +54,7 @@ eval_design = function(RunMatrix, model, alpha, anticoef) {
   #ModelMatrix = reducemodelmatrix(ModelMatrix,model)
 
   if(missing(anticoef)) {
-    #warning("Anticipated coefficients missing, auto-generating")
-    anticoef = gen_anticoef(RunMatrix)
+    anticoef = gen_anticoef(RunMatrix,conservative=conservative)
   }
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && any(sapply(RunMatrix,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

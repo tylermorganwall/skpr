@@ -4,7 +4,7 @@
 \alias{eval_design}
 \title{Evaluates model matrix}
 \usage{
-eval_design(RunMatrix, model, alpha, anticoef)
+eval_design(RunMatrix, model, alpha, anticoef, conservative = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The model matrix being evaluated}
@@ -13,6 +13,8 @@ eval_design(RunMatrix, model, alpha, anticoef)
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be generated with
 gen_anticoef}
+
+\item{conservative}{Default FALSE. Specifies whether default anticipated coefficents should be conservative or not.}
 }
 \value{
 A data frame with the parameters of the model, the type of power analysis, and the power.
@@ -47,6 +49,7 @@ eval_design(mixeddesign,alpha=0.05,c(1,1,-1,1,-1,1,1,1,-1,1,1))
 #(setting each level in the catagorical factor to zero except for the first)
 eval_design(mixeddesign,alpha=0.05,c(1,1,0,0,0,0,1,1,0,0,1))
 #which can also be written as:
-eval_design(mixeddesign,alpha=0.05,gen_conservative_anticoef(mixeddesign))
+eval_design(mixeddesign,alpha=0.05,conservative=TRUE)
+#autogenerating the conservative anticipated coefficients
 }
 

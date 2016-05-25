@@ -5,7 +5,7 @@
 #'@param RunMatrix The run matrix
 #'@param conservative Default FALSE. If true, will generate conservative anticipated coefficients.
 #'@return Anticipated coefficients.
-#'@export
+#'@keywords internal
 #'@examples
 #'test = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
 #'                   d=c(-1,1), stringsAsFactors = TRUE)

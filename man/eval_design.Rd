@@ -4,7 +4,8 @@
 \alias{eval_design}
 \title{Evaluates model matrix}
 \usage{
-eval_design(RunMatrix, model, alpha, anticoef, conservative = FALSE)
+eval_design(RunMatrix, model, alpha, anticoef, snr = 1,
+  conservative = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The model matrix being evaluated}
@@ -13,6 +14,8 @@ eval_design(RunMatrix, model, alpha, anticoef, conservative = FALSE)
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be generated with
 gen_anticoef}
+
+\item{snr}{Signal-to-noise ratio. Used with the anticipated coefficients in power calculation.}
 
 \item{conservative}{Default FALSE. Specifies whether default anticipated coefficents should be conservative or not.}
 }
@@ -39,9 +42,9 @@ factorialmixed = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor
                             d=c(-1,1), stringsAsFactors = TRUE)
 mixeddesign = gen_design(factorialmixed,~a+b+c+d,18,"D",100)
 
-#evaluate the design, with automatically computed anticipated coefficients (using gen_anticoef)
-eval_design(mixeddesign,alpha=0.05)
-#which is the same as this, but we are now explicitly entering the coefficients
+#evaluate the design, with automatically computed anticipated coefficients
+eval_design(mixeddesign,alpha=0.05,conservative=FALSE)
+#which is the same as this, but now explicitly entering the coefficients
 eval_design(mixeddesign,alpha=0.05,c(1,1,-1,1,-1,1,1,1,-1,1,1))
 
 #evaluate the design, but with custom coeffients set

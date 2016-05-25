@@ -22,28 +22,32 @@
 #'@examples #See documentation for eval_design_mc. This is just a parallel wrapper around that function.
 #'#If large number of designs are being evaluated, it might be advisable to parallelize the outer loop
 #'#and use eval_design_mc rather than eval_design_parmc.
-eval_design_parmc = function(ModelMatrix, model, alpha, nsim, glmfamily, rfunction,
+eval_design_parmc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
                              rfunctionargs,rlistfuncs,skipintercept=FALSE) {
 
+  if(is.null(attr(RunMatrix,"modelmatrix"))) {
+    contrastslist = list()
+    for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
+      contrastslist[x] = "contr.sum"
+    }
+    if(length(contrastslist) == 0) {
+      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix))
+    } else {
+      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix,contrasts.arg=contrastslist))
+    }
+  }
   #remove columns from variables not used in the model
-  ModelMatrix = reducemodelmatrix(ModelMatrix,model)
+  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
+  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
 
-  # if(length(attr(ModelMatrix,"Design"))!=0) {
-  #   RunMatrix = attr(ModelMatrix,"Design")
-  # } else {
-  #   RunMatrix = data.frame(ModelMatrix[,-1])
-  #   colnames(RunMatrix) = names(attr(ModelMatrix,"type"))
-  #   attr(ModelMatrix,"Design") = data.frame(ModelMatrix[,-1])
-  # }
-
-  RunMatrix = attr(ModelMatrix,"Design")
-  RunMatrix$Y = 1
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)
+  RunMatrixReduced$Y = 1
+  power_values = rep(0, nparam)
   rfunctionargslist = vector("list",length(rlistfuncs)+1)
   names(rfunctionargslist) = c("n",rfunctionargs)
-  rfunctionargslist$n = nrow(RunMatrix)
-  contrastlist = attr(ModelMatrix,"contrasts")
+  rfunctionargslist$n = nrow(RunMatrixReduced)
+  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
   start = 1
 
   if (skipintercept) {
@@ -60,12 +64,13 @@ eval_design_parmc = function(ModelMatrix, model, alpha, nsim, glmfamily, rfuncti
     }
     for (j in 1:nsim) {
       #simulate the data.
-      RunMatrix$Y = do.call(rfunction,rfunctionargslist)
-      #fit a model to the simulated data.
-      fit = glm(model_formula, family=glmfamily, data=RunMatrix,contrasts = contrastlist )
+      RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
 
-      #determine whether fit is significant. If so, increment nsignificant
-      pvals = coef(summary(fit))[,4]
+      #fit a model to the simulated data.
+      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+
+      #determine whether beta[i] is significant. If so, increment nsignificant
+      pvals = coef(summary.glm(fit))[,4]
       if (pvals[i] < alpha) {
         nsignificant = nsignificant + 1
       }

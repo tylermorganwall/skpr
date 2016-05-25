@@ -5,7 +5,7 @@
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
-  rfunctionargs, rlistfuncs, skipintercept = FALSE)
+  rfunctionargs, rlistfuncs, parallel = FALSE, skipintercept = FALSE)
 }
 \arguments{
 \item{model}{The model used in the evaluation.}
@@ -22,8 +22,9 @@ eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
 is handled automatically.}
 
 \item{rlistfuncs}{List of functions corresponding (in order) to the arguments listed in the rfunctionargs argument.
-These functions take each column of the model matrix as an input, and output a vector of values used in generating
-the random values in rfunction. Examples of these custom functions are provided below.}
+These functions take each column of the model matrix as an input, and output a vector of values used in generating}
+
+\item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}
 
 \item{skipintercept}{A boolean factor on whether the intercept term should be skipped in calculation. Default is FALSE.}
 

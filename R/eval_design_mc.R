@@ -14,7 +14,7 @@
 #'is handled automatically.
 #'@param rlistfuncs List of functions corresponding (in order) to the arguments listed in the rfunctionargs argument.
 #'These functions take each column of the model matrix as an input, and output a vector of values used in generating
-#'the random values in rfunction. Examples of these custom functions are provided below.
+#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
 #'@param skipintercept A boolean factor on whether the intercept term should be skipped in calculation. Default is FALSE.
 #'@return A data frame consisting of the parameters and their powers
 #'@export
@@ -75,7 +75,7 @@
 #'eval_design_mc(designbinom,~(a+b+c),0.05,100,"binomial",rbinom,c("size","prob"),
 #'               list(returnone,returnprob),skipintercept=TRUE)
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
-                          rfunctionargs,rlistfuncs,skipintercept=FALSE) {
+                          rfunctionargs,rlistfuncs,parallel=FALSE,skipintercept=FALSE) {
 
   if(is.null(attr(RunMatrix,"modelmatrix"))) {
     contrastslist = list()
@@ -106,32 +106,68 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
     start = 2
   }
 
-  for (i in start:nparam) {
-    nsignificant = 0  #will hold the number of times we call parameter[i] significant
-    for (argument in 1:length(rlistfuncs)) {
-      rfunctionargslist[[argument+1]] = rlistfuncs[[argument]](ModelMatrix[,i])
-    }
-    for (j in 1:nsim) {
-
-      #simulate the data.
-      RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
-
-      #fit a model to the simulated data.
-      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
-
-      #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = coef(summary.glm(fit))[,4]
-      if (pvals[i] < alpha) {
-        nsignificant = nsignificant + 1
+  if(!parallel) {
+    for (i in start:nparam) {
+      nsignificant = 0  #will hold the number of times we call parameter[i] significant
+      for (argument in 1:length(rlistfuncs)) {
+        rfunctionargslist[[argument+1]] = rlistfuncs[[argument]](ModelMatrix[,i])
       }
-    }
-    power_values[i] = nsignificant / nsim
-  }
+      for (j in 1:nsim) {
 
-  #output the results
-  if(skipintercept) {
-    data.frame(parameters=colnames(ModelMatrix)[-1],type=rep("parameter.power.mc",length(power_values[-1])), power=power_values[-1])
+        #simulate the data.
+        RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
+
+        #fit a model to the simulated data.
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        pvals = coef(summary.glm(fit))[,4]
+        if (pvals[i] < alpha) {
+          nsignificant = nsignificant + 1
+        }
+      }
+      power_values[i] = nsignificant / nsim
+    }
+
+    #output the results
+    if(skipintercept) {
+      data.frame(parameters=colnames(ModelMatrix)[-1],type=rep("parameter.power.mc",length(power_values[-1])), power=power_values[-1])
+    } else {
+      data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values)
+    }
   } else {
-    data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values)
+    cl <- parallel::makeCluster(parallel::detectCores())
+    doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+    power_values = foreach::foreach (i = start:nparam, .combine = c) %dopar% {
+      nsignificant = 0  #will hold the number of times we call parameter[i] significant
+      for (argument in 1:length(rlistfuncs)) {
+        rfunctionargslist[[argument+1]] = rlistfuncs[[argument]](ModelMatrix[,i])
+      }
+      for (j in 1:nsim) {
+        #simulate the data.
+        RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
+
+        #fit a model to the simulated data.
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        pvals = coef(summary.glm(fit))[,4]
+        if (pvals[i] < alpha) {
+          nsignificant = nsignificant + 1
+        }
+      }
+      #return proportion of significant simulations for each parameter
+      nsignificant / nsim
+    }
+    parallel::stopCluster(cl)
+
+    #output the results
+    if(skipintercept) {
+      data.frame(parameters=colnames(ModelMatrix)[-1],type=rep("parameter.power.mc",length(power_values)), power=power_values)
+    } else {
+      data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values)
+    }
   }
 }
+globalVariables('i')

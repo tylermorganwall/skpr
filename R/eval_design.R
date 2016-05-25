@@ -8,6 +8,7 @@
 #'@param alpha The type-I error
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be generated with
 #'gen_anticoef
+#'@param snr Signal-to-noise ratio. Used with the anticipated coefficients in power calculation.
 #'@param conservative Default FALSE. Specifies whether default anticipated coefficents should be conservative or not.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power.
 #'@export
@@ -25,9 +26,9 @@
 #'                             d=c(-1,1), stringsAsFactors = TRUE)
 #'mixeddesign = gen_design(factorialmixed,~a+b+c+d,18,"D",100)
 #'
-#'#evaluate the design, with automatically computed anticipated coefficients (using gen_anticoef)
-#'eval_design(mixeddesign,alpha=0.05)
-#'#which is the same as this, but we are now explicitly entering the coefficients
+#'#evaluate the design, with automatically computed anticipated coefficients
+#'eval_design(mixeddesign,alpha=0.05,conservative=FALSE)
+#'#which is the same as this, but now explicitly entering the coefficients
 #'eval_design(mixeddesign,alpha=0.05,c(1,1,-1,1,-1,1,1,1,-1,1,1))
 #'
 #'#evaluate the design, but with custom coeffients set
@@ -38,7 +39,7 @@
 #'eval_design(mixeddesign,alpha=0.05,conservative=TRUE)
 #'#autogenerating the conservative anticipated coefficients
 
-eval_design = function(RunMatrix, model, alpha, anticoef,conservative=FALSE) {
+eval_design = function(RunMatrix, model, alpha, anticoef, snr=1, conservative=FALSE) {
   if(is.null(attr(RunMatrix,"modelmatrix"))) {
     contrastslist = list()
     for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
@@ -65,7 +66,7 @@ eval_design = function(RunMatrix, model, alpha, anticoef,conservative=FALSE) {
 
   #This returns if everything is continuous (no catagorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1) ) {
-    effectresults = parameterpower(RunMatrix,anticoef,alpha)
+    effectresults = parameterpower(RunMatrix,anticoef*snr,alpha)
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
     return(data.frame(parameters = namevector, type = typevector, power = effectresults))
@@ -78,8 +79,8 @@ eval_design = function(RunMatrix, model, alpha, anticoef,conservative=FALSE) {
     catornot[sapply(RunMatrix,class) == "factor"] = 1
     priorcat = priorlevels(catornot)
 
-    effectresults = effectpower(RunMatrix,levelvector,anticoef,alpha,priorcat)
-    parameterresults = parameterpower(RunMatrix,anticoef,alpha)
+    effectresults = effectpower(RunMatrix,levelvector,anticoef*snr,alpha,priorcat)
+    parameterresults = parameterpower(RunMatrix,anticoef*snr,alpha)
 
     typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
     powervector = c(effectresults,parameterresults)

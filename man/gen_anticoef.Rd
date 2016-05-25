@@ -24,4 +24,5 @@ de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
 eval_design(de,0.05,gen_anticoef(de))
 eval_design(de,0.05,gen_anticoef(de),conservative=TRUE)
 }
+\keyword{internal}
 

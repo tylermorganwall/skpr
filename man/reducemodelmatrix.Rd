@@ -20,5 +20,5 @@ Remove columns not in model
 \examples{
 mean(1)
 }
-\keyword{blah}
+\keyword{internal}
 

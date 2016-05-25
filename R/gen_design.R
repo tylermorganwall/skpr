@@ -58,28 +58,28 @@ gen_design = function(factorial, model, trials, optimality, repeats,contrastslis
     }
     dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,criterion = optimality,nRepeats = repeats)
 
-    mm = model.matrix(model,dfmodelmatrix$design,contrasts.arg=contrastslist)
-    attr(mm,"type") = sapply(factorial,class)
-    attr(mm,"levels") = sapply(sapply(factorial,unique),length)
+    mm = dfmodelmatrix[["design"]]
+    #attr(mm,"type") = sapply(factorial,class)
+    #attr(mm,"levels") = sapply(sapply(factorial,unique),length)
     attr(mm,"D") = dfmodelmatrix[["D"]]
     attr(mm,"A") = dfmodelmatrix[["A"]]
     attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
     attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-    attr(mm,"Design") = dfmodelmatrix[["design"]]
+    attr(mm,"modelmatrix") = model.matrix(model,dfmodelmatrix$design,contrasts.arg=contrastslist)
 
     return(mm)
   } else {
 
     dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,criterion = optimality,nRepeats = repeats)
 
-    mm = model.matrix(model,dfmodelmatrix$design)
-    attr(mm,"type") = sapply(factorial,class)
-    attr(mm,"levels") = sapply(sapply(factorial,unique),length)
+    mm = dfmodelmatrix[["design"]]
+    #attr(mm,"type") = sapply(factorial,class)
+    #attr(mm,"levels") = sapply(sapply(factorial,unique),length)
     attr(mm,"D") = dfmodelmatrix[["D"]]
     attr(mm,"A") = dfmodelmatrix[["A"]]
     attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
     attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-    attr(mm,"Design") = dfmodelmatrix[["design"]]
+    attr(mm,"modelmatrix") = model.matrix(model,dfmodelmatrix$design)
 
     return(mm)
   }

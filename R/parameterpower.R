@@ -8,18 +8,18 @@
 #'@return The parameter power for the parameters
 #'@keywords internal
 #'@examples mean(1)
-parameterpower = function(X,anticoef,alpha) {
+parameterpower = function(RunMatrix,anticoef,alpha) {
   #Generating the parameter isolating vectors
-  Q = vector("list",dim(X)[2])
+  Q = vector("list",dim(attr(RunMatrix,"modelmatrix"))[2])
   for(i in 1:length(Q)) {
-    vec = rep(0,dim(X)[2])
+    vec = rep(0,dim(attr(RunMatrix,"modelmatrix"))[2])
     vec[i] = 1
     Q[[i]] = t(vec)
   }
 
   power = c(length(Q))
   for(j in 1:length(Q)) {
-    power[j] = calculatepower(X,Q[[j]],calcnoncentralparam(X,Q[[j]],anticoef),alpha)
+    power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),Q[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),Q[[j]],anticoef),alpha)
   }
 
   return(power)

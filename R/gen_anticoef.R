@@ -10,10 +10,10 @@
 #'                   d=c(-1,1), stringsAsFactors = TRUE)
 #'de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
 #'eval_design(de,0.05,gen_anticoef(de))
-gen_anticoef = function(modelmatrix) {
+gen_anticoef = function(RunMatrix) {
 
-  levels = attr(modelmatrix,"levels")-1
-  type = attr(modelmatrix,"type")
+  levels = sapply(sapply(RunMatrix,unique),length)-1
+  type = sapply(RunMatrix,class)
 
   anticoef = c(1)
   for(i in 1:length(levels)) {

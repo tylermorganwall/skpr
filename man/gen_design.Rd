@@ -4,10 +4,12 @@
 \alias{gen_design}
 \title{Generates optimal model matrix from factorial and model}
 \usage{
-gen_design(factorial, model, trials, optimality, contrastslist, repeats)
+gen_design(factorial, model, trials, optimality, repeats, contrastslist)
 }
 \arguments{
-\item{factorial}{A full factorial test matrix generated for the factors in the model.}
+\item{factorial}{A full factorial test matrix generated for the factors in the model. If
+the factor is continuous, it should be type numeric. If the factor is catagorical, it should be
+a factor.}
 
 \item{model}{The model used to generate the test design.}
 
@@ -15,10 +17,10 @@ gen_design(factorial, model, trials, optimality, contrastslist, repeats)
 
 \item{optimality}{The optimality criterion (e.g. "D")}
 
+\item{repeats}{The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.}
+
 \item{contrastslist}{A list of the contrasts (e.g. "contr.sum"). If none is provided, all are set
 to "contr.sum").}
-
-\item{repeats}{The number of times to repeat the search for the best optimal condition}
 }
 \value{
 The model matrix for the design, to be passed to eval_design. The model matrix

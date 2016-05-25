@@ -4,16 +4,16 @@
 \alias{effectpower}
 \title{Calculate Effect Power}
 \usage{
-effectpower(X, levelvector, anticoef, alpha, priorcat)
+effectpower(RunMatrix, levelvector, anticoef, alpha, priorcat)
 }
 \arguments{
-\item{X}{The model matrix}
-
 \item{levelvector}{The number of levels in each parameter (1st is always the intercept)}
 
 \item{anticoef}{The anticipated coefficients}
 
 \item{alpha}{the specified type-I error}
+
+\item{X}{The model matrix}
 }
 \value{
 The effect power for the parameters

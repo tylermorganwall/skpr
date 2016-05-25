@@ -74,29 +74,32 @@
 #'#Plugging everything in, we now evaluate our model and obtain the power calculations.
 #'eval_design_mc(designbinom,~(a+b+c),0.05,100,"binomial",rbinom,c("size","prob"),
 #'               list(returnone,returnprob),skipintercept=TRUE)
-eval_design_mc = function(ModelMatrix, model, alpha, nsim, glmfamily, rfunction,
+eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
                           rfunctionargs,rlistfuncs,skipintercept=FALSE) {
 
+  if(is.null(attr(RunMatrix,"modelmatrix"))) {
+    contrastslist = list()
+    for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
+      contrastslist[x] = "contr.sum"
+    }
+    if(length(contrastslist) == 0) {
+      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix))
+    } else {
+      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix,contrasts.arg=contrastslist))
+    }
+  }
   #remove columns from variables not used in the model
-  ModelMatrix = reducemodelmatrix(ModelMatrix,model)
+  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
+  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
 
-  # if(length(attr(ModelMatrix,"Design"))!=0) {
-  #   RunMatrix = attr(ModelMatrix,"Design")
-  # } else {
-  #   RunMatrix = data.frame(ModelMatrix[,-1])
-  #   colnames(RunMatrix) = names(attr(ModelMatrix,"type"))
-  #   attr(ModelMatrix,"Design") = data.frame(ModelMatrix[,-1])
-  # }
-
-  RunMatrix = attr(ModelMatrix,"Design")
-  RunMatrix$Y = 1
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)
+  RunMatrixReduced$Y = 1
   power_values = rep(0, nparam)
   rfunctionargslist = vector("list",length(rlistfuncs)+1)
   names(rfunctionargslist) = c("n",rfunctionargs)
-  rfunctionargslist$n = nrow(RunMatrix)
-  contrastlist = attr(ModelMatrix,"contrasts")
+  rfunctionargslist$n = nrow(RunMatrixReduced)
+  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
   start = 1
 
   if (skipintercept) {
@@ -111,10 +114,10 @@ eval_design_mc = function(ModelMatrix, model, alpha, nsim, glmfamily, rfunction,
     for (j in 1:nsim) {
 
       #simulate the data.
-      RunMatrix$Y = do.call(rfunction,rfunctionargslist)
+      RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
 
       #fit a model to the simulated data.
-      fit = glm(model_formula, family=glmfamily, data=RunMatrix,contrasts = contrastlist)
+      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = coef(summary.glm(fit))[,4]
@@ -124,6 +127,7 @@ eval_design_mc = function(ModelMatrix, model, alpha, nsim, glmfamily, rfunction,
     }
     power_values[i] = nsignificant / nsim
   }
+
   #output the results
   if(skipintercept) {
     data.frame(parameters=colnames(ModelMatrix)[-1],type=rep("parameter.power.mc",length(power_values[-1])), power=power_values[-1])

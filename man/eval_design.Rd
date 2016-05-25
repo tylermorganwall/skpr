@@ -4,10 +4,10 @@
 \alias{eval_design}
 \title{Evaluates model matrix}
 \usage{
-eval_design(modelmatrix, alpha, anticoef)
+eval_design(RunMatrix, model, alpha, anticoef)
 }
 \arguments{
-\item{modelmatrix}{The model matrix being evaluated}
+\item{RunMatrix}{The model matrix being evaluated}
 
 \item{alpha}{The type-I error}
 

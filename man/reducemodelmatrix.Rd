@@ -4,12 +4,12 @@
 \alias{reducemodelmatrix}
 \title{Remove columns not in model}
 \usage{
-reducemodelmatrix(ModelMatrix, model)
+reducemodelmatrix(RunMatrix, model)
 }
 \arguments{
-\item{ModelMatrix}{The model matrix}
-
 \item{model}{The formula}
+
+\item{ModelMatrix}{The model matrix}
 }
 \value{
 The reduced model matrix
@@ -20,5 +20,5 @@ Remove columns not in model
 \examples{
 mean(1)
 }
-\keyword{internal}
+\keyword{blah}
 

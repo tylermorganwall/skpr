@@ -5,9 +5,8 @@
 #'@param ModelMatrix The model matrix
 #'@param model The formula
 #'@return The reduced model matrix
-#'@export
 #'@examples mean(1)
-#'@keywords blah
+#'@keywords internal
 
 reducemodelmatrix = function(RunMatrix,model) {
   ModelMatrix = attr(RunMatrix,"modelmatrix")

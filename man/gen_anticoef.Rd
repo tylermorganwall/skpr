@@ -17,12 +17,5 @@ Anticipated coefficients.
 \description{
 Generates Anticipated Coefficients
 }
-\examples{
-test = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
-                  d=c(-1,1), stringsAsFactors = TRUE)
-de = gen_design(test,~(a+b+c+d),trials=12,optimality = "D",repeats=100)
-eval_design(de,0.05,gen_anticoef(de))
-eval_design(de,0.05,gen_anticoef(de),conservative=TRUE)
-}
 \keyword{internal}
 

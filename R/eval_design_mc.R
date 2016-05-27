@@ -1,81 +1,132 @@
 #'@title Evaluates power for model matrix with a Monte Carlo simulation
 #'
 #'@description Evaluates design given a model matrix with a monte carlo simulation and returns
-#'a data frame of parameter powers. A parallelized version of this function is \code{\link{eval_design_parmc}}.
-#'Currently only works with linear, non-interacting models.
+#'a data frame of parameter powers. Currently only works with linear, non-interacting models.
 #'
-#'@param ModelMatrix Parameter (column) of the model matrix being evaluated
+#'@param RunMatrix The RunMatrix of the design
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error
 #'@param nsim The number of simulations for the Monte Carlo simulation.
 #'@param glmfamily String indicating the family the distribution is from for the glm function (e.g. binomial)
-#'@param rfunction Random number generator function
-#'@param rfunctionargs List of arguments to be passed to the rfunction function. The n parameter
-#'is handled automatically.
-#'@param rlistfuncs List of functions corresponding (in order) to the arguments listed in the rfunctionargs argument.
-#'These functions take each column of the model matrix as an input, and output a vector of values used in generating
+#'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
+#'model matrix and b are the anticipated coefficients.
+#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
+#'automatically generated.
+#'@param delta Default 2. This specifies the difference between the high and low levels.
+#'Anticipated coefficients will be half of this number.
+#'@param conservative Default FALSE. Specifies whether default method for generating
+#'anticipated coefficents should be conservative or not. TRUE will give the most conservative
+#'estimate of power by setting all but one level in a catagorical factor's anticipated coefficients
+#'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
-#'@param skipintercept A boolean factor on whether the intercept term should be skipped in calculation. Default is FALSE.
 #'@return A data frame consisting of the parameters and their powers
+#'@import AlgDesign foreach doParallel
 #'@export
-#'@examples factorial = expand.grid(a=c(-1,0,1),b=c(1,2,3,4),c=c(-1,1),d=c(-1,1))
-#'designlinear = gen_design(factorial,~a+b+c+d,10,"D",100)
+#'@examples #We first generate a full factorial design using expand.grid:
+#'factorialcoffee = expand.grid(cost=c(1,2),
+#'                              type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
+#'                              size=as.factor(c("Short","Grande","Venti")))
 #'
-#'eval_design(designlinear,alpha=0.05)
+#'#And then generate the 21-run D-optimal design using gen_design.
 #'
-#'factorialmixed = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),
-#'                             c=as.factor(c(1,2,3,4)),d=c(-1,1), stringsAsFactors = TRUE)
-#'mixeddesign = gen_design(factorialmixed,~a+b+c+d,18,"D",100)
+#'designcoffee = gen_design(factorialcoffee,~cost + type + size,21,"D",100)
 #'
-#'#Evaluate the design with a normal approximation
-#'eval_design(mixeddesign,0.05)
+#'#To evaluate this design using a normal approximation, we just use eval_design
+#'#(here using the default settings for contrasts, delta, and the anticipated coefficients):
 #'
-#'#Evaluate the design with a Monte Carlo approach. In this case, we are generating
-#'#random numbers into a vector with a mean given by that entry in the column of the
-#'#model matrix (mean = returncol) and a standard deviation of one (sd = returnone).
-#'#We then fit these data with our model in a glm with a gaussian family 1,000 times,
-#'#and count how many times it was significant (with a 0.05 cutoff for significance).
-#'#The ratio of the number of times that parameter is significant to the total number
-#'#of simulations is the power for that parameter.
-#'returncol = function(column) return(column)
-#'returnone = function(column) return(1)
-#'eval_design_mc(mixeddesign,~(a+b+c+d),0.05,100,"gaussian",rnorm,c("mean","sd"),
-#'               list(returncol,returnone))
-#'#The functions can also be stated as anonymous functions defined in the list:
-#'eval_design_mc(mixeddesign,~(a+b+c+d),0.05,100,"gaussian",rnorm,c("mean","sd"),
-#'               list(function(column) return(column),function(column) return(1)))
-
+#'eval_design(RunMatrix=designcoffee,model=~cost + type + size, 0.05)
 #'
-#'#Evaluate the design with a different model than the one that generated the design.
-#'eval_design_mc(mixeddesign,~(a+d),0.05,100,"gaussian",rnorm,
-#'               c("mean","sd"), list(returncol,returnone))
+#'#We want to evaluate this design with a Monte Carlo approach. In this case, we need
+#'#to create a function that generates random numbers based on our run matrix X and
+#'#our anticipated coefficients (b).
 #'
-#'#Evaluate the design with a different signal-to-noise ratio.
-#'#Here we halve the signal-to-noise ratio by doubling the
-#'#standard deviation of the pool from which random numbers are being drawn.
-#'returntwo = function(col) return(2)
-#'eval_design_mc(mixeddesign,~(a+b+c+d),0.05,100,"gaussian",rnorm,
-#'               c("mean","sd"), list(returncol,returntwo))
-#'#This is the same as evaluating the power with a normal
-#'#approximation using halved anticipated coefficients
-#'eval_design(mixeddesign,0.05,c(1,1,-1,1,-1,1,1,1,-1,1,1)*1/2)
+#'rgen = function(X,b) {
+#'  return(rnorm(n=nrow(X),mean = X %*% b, sd = 1))
+#'}
+#'
+#'#Here we generate our nrow(X) random numbers from a population with a mean that varies depending
+#'#on the design (and is set by multiplying the run matrix X with the anticipated coefficients
+#'#vector b), and has a standard deviation of one. To evaluate this, we enter the same information
+#'#used in eval_design, with the addition of the number of simulations "nsim", the distribution
+#'#family used in fitting for the glm "glmfamily", the custom random generation function "rfunction",
+#'#and whether or not we want the computation to be done with all the cores available "parallel".
+#'
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgen)
+#'
+#'#We see here we generate approximately the same parameter powers as we do
+#'#using the normal approximation in eval_design. Like eval_design, we can also change
+#'#delta to produce a different signal-to-noise ratio:
+#'
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgen,delta=1)
+#'
+#'#However, we could also specify this using a different random generator function by
+#'#doubling the standard deviation of the population we are drawing from:
+#'
+#'rgensnr = function(X,b) {
+#'  return(rnorm(n=nrow(X),mean = X %*% b, sd = 2))
+#'}
+#'
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgensnr)
+#'
+#'#Both methods provide the same end result.
+#'
+#'#Like eval_design, we can also evaluate the design with a different model than
+#'#the one that generated the design.
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type, 0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgen)
+#'
+#'#Here we evaluate the design using conservative anticipated coefficients:
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
+#'
+#'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
+#'#computation.
+#'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgen,parallel=TRUE)}
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design and see
-#'#if we can detect the difference between a 70% and 80% probability of an event
-#'#occuring with a binomial response.
-#'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1),c=c(1,0,-1))
-#'designbinom = gen_design(factorialbinom,~a+b+c,100,"D",100)
+#'#if we can detect the difference between each factor changing whether an event
+#'#70% of the time or 90% of the time.
 #'
-#'#This function translates the low and high values of the column from
-#'#the model matrix into probabilities (70% for low and 80% for high)
-#'returnprob = function(col) return(0.7+0.1*(col - min(col))/(max(col)-min(col)))
+#'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
+#'designbinom = gen_design(factorialbinom,~a+b,90,"D",100)
 #'
-#'#Plugging everything in, we now evaluate our model and obtain the power calculations.
-#'eval_design_mc(designbinom,~(a+b+c),0.05,100,"binomial",rbinom,c("size","prob"),
-#'               list(returnone,returnprob),skipintercept=TRUE)
-eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
-                          rfunctionargs,rlistfuncs,parallel=FALSE,skipintercept=FALSE) {
+#'#Here our random binomial generator simulates a response based on the resulting
+#'#probability from of all the columns in one row influencing the result.
+#'
+#'rgenbinom = function(X,b) {
+#'  rbinom(n=nrow(X),size=1,prob = exp(X %*% b)/(1+exp(X %*% b)))
+#'}
+#'
+#'#Plugging everything in, we now evaluate our model and obtain the binomial power.
+#'#(delta and the anticipated coefficients were determined empircally to set the
+#'#high and low probabilities correctly for each factor)
+#'
+#'eval_design_mc(designbinom,~a+b,0.2,nsim=1000,anticoef=c(2.2,1,1),
+#'               delta=0.7,glmfamily="binomial",rfunction=rgenbinom)
+#'
+#'#We can also use this method to determine power for poisson response variables.
+#'#Assume we have an event that occurs either every half minute, once a minute,
+#'#or once every minute and a half. Our design matrix is as such:
+#'
+#'factorialpois = expand.grid(a=c(0.5,1,1.5),b=c(0.5,1,1.5))
+#'designpois = gen_design(factorialpois,~a+b, 90,"D",1000)
+#'
+#'
+#'#Here we return a random poisson number of events that vary depending
+#'#on the rate in the design.
+#'rrate = function(X,b) {
+#'  return(rpois(n=nrow(X),lambda=X%*%b))
+#'}
+#'eval_design_mc(designpois,~a+b,0.2,nsim=1000,glmfamily="poisson",rfunction=rrate)
+#'#We see here we need about 90 test events to get accurately distinguish the three different
+#'#rates in each factor to 80% power.
+eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
+                          delta=2, conservative=FALSE, parallel=FALSE) {
 
   if(is.null(attr(RunMatrix,"modelmatrix"))) {
     contrastslist = list()
@@ -88,86 +139,75 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
       attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix,contrasts.arg=contrastslist))
     }
   }
+
   #remove columns from variables not used in the model
   RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
   ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
 
+  # autogenerate anticipated coefficients
+  if(missing(anticoef)) {
+    anticoef = gen_anticoef(RunMatrixReduced,conservative=conservative)
+  }
+  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
+    stop("Wrong number of anticipated coefficients")
+  }
+  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
+    anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
+  }
+
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
-  power_values = rep(0, nparam)
-  rfunctionargslist = vector("list",length(rlistfuncs)+1)
-  names(rfunctionargslist) = c("n",rfunctionargs)
-  rfunctionargslist$n = nrow(RunMatrixReduced)
   contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
-  start = 1
-
-  if (skipintercept) {
-    start = 2
-  }
 
   if(!parallel) {
-    for (i in start:nparam) {
-      nsignificant = 0  #will hold the number of times we call parameter[i] significant
-      for (argument in 1:length(rlistfuncs)) {
-        rfunctionargslist[[argument+1]] = rlistfuncs[[argument]](ModelMatrix[,i])
-      }
-      for (j in 1:nsim) {
+    power_values = rep(0, ncol(ModelMatrix))
+    for (j in 1:nsim) {
 
-        #simulate the data.
-        RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
+      #simulate the data.
+      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
 
-        #fit a model to the simulated data.
-        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      #fit a model to the simulated data.
+      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
 
-        #determine whether beta[i] is significant. If so, increment nsignificant
-        pvals = coef(summary.glm(fit))[,4]
+      #determine whether beta[i] is significant. If so, increment nsignificant
+      pvals = coef(summary.glm(fit))[,4]
+      for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
-          nsignificant = nsignificant + 1
+          power_values[i] = power_values[i] + 1
         }
       }
-      power_values[i] = nsignificant / nsim
     }
+    power_values = power_values/nsim
 
     #output the results
-    if(skipintercept) {
-      data.frame(parameters=colnames(ModelMatrix)[-1],type=rep("parameter.power.mc",length(power_values[-1])), power=power_values[-1])
-    } else {
-      data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values)
-    }
+    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (i = start:nparam, .combine = c) %dopar% {
-      nsignificant = 0  #will hold the number of times we call parameter[i] significant
-      for (argument in 1:length(rlistfuncs)) {
-        rfunctionargslist[[argument+1]] = rlistfuncs[[argument]](ModelMatrix[,i])
-      }
-      for (j in 1:nsim) {
-        #simulate the data.
-        RunMatrixReduced$Y = do.call(rfunction,rfunctionargslist)
+    power_values = foreach::foreach (i = 1:nsim, .combine = "+") %dopar% {
+      power_values = rep(0, ncol(ModelMatrix))
+      #simulate the data.
+      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
 
-        #fit a model to the simulated data.
-        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      #fit a model to the simulated data.
+      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
 
-        #determine whether beta[i] is significant. If so, increment nsignificant
-        pvals = coef(summary.glm(fit))[,4]
+      #determine whether beta[i] is significant. If so, increment nsignificant
+      pvals = coef(summary.glm(fit))[,4]
+      for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
-          nsignificant = nsignificant + 1
+          power_values[i] = power_values[i] + 1
         }
       }
-      #return proportion of significant simulations for each parameter
-      nsignificant / nsim
+      power_values
     }
     parallel::stopCluster(cl)
-
+    power_values = power_values/nsim
     #output the results
-    if(skipintercept) {
-      data.frame(parameters=colnames(ModelMatrix)[-1],type=rep("parameter.power.mc",length(power_values)), power=power_values)
-    } else {
-      data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values)
-    }
+
+    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
   }
 }
 globalVariables('i')

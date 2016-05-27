@@ -2,7 +2,8 @@
 % Please edit documentation in R/gen_design.R
 \name{gen_design}
 \alias{gen_design}
-\title{Generates optimal model matrix from factorial and model}
+\title{Generates the optimal run matrix from full factorial, model, optimality criterion,
+and desired number of runs.}
 \usage{
 gen_design(factorial, model, trials, optimality, repeats, contrastslist)
 }
@@ -33,20 +34,45 @@ Used with eval_design/eval_design_mc to produce power estimations for designs.
 Models with catagorical factors can only be linear and non-interacting.
 }
 \examples{
-#generate all combinations of the factors with expand.grid()
-factorial = expand.grid(a=c(-1,0,1),b=c(1,2,3,4),c=c(-1,1),d=c(-1,1))
+#Generate the basic factorial design used in generating the optimal design with
+#expand.grid.
+library(AlgDesign)
+#Generating a basic 2 factor design:
+basicdesign = expand.grid(x1=c(-1,1),x2=c(-1,1))
 
-#generate the design
-designlinear = gen_design(factorial,~a+b+c+d,10,"D",100)
+#We can also generate the factorial using AlgDesign's gen.factorial function.
+design_gf = AlgDesign::gen.factorial(levels=c(2,2),nVars=2,varNames=c("x1","x2"))
 
-#generate the design with a quadratic model
-designquadratic = gen_design(factorial,~(a+b+c+d)^2,15,"D",100)
+#This factorial design is used as an input in the optimal design generation for a
+#"D" optimal design with 11 runs.
+design = gen_design(factorial=basicdesign,model=~x1+x2,trials=11,optimality="D",repeats=100)
 
-mixedfactorial = expand.grid(a=as.factor(c(1,2,3,4,5,6)),b=c(1,0,-1),c=as.factor(c(1,2,3,4)),
-                            d=c(-1,1), stringsAsFactors = TRUE)
-mixeddesign = gen_design(mixedfactorial,~a+b+c+d,15,"D",100)
+#Here we add catagorical factors, specified by using "as.factor" in expand.grid:
+fulldesign = expand.grid(a=c(-1,1),b=as.factor(c("A","B")),c=c("High","Med","Low"))
 
-#Evaluating the design can be done with eval_design and
-#eval_design_mc/eval_design_parmc (Monte Carlo methods)
+#This factorial design is used as an input in the optimal design generation.
+design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",repeats=100)
+
+#We can also decrease the number of repeats searches to increase speed (at the expense of
+#possibly not having the best optimal design)
+design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",repeats=5)
+
+#We can specify different methods of calculating contrasts for each factor in a list.
+#"contr.sum" is the default if none is provided.
+design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",
+                   repeats=100,contrastslist=list(b="contr.sum",c="contr.treatment"))
+
+#The optimality numbers can be accessed as an attribute of the run matrix.
+#See AlgDesign::optFederov documentation for more information.
+attr(design2,"D") #The kth root of the generalized variance.
+attr(design2,"A") #The average coefficient variance.
+attr(design2,"Ge") #The minimax normalized variance.
+attr(design2,"Dea") #A lower bound on D efficiency for approximate theory designs.
+
+#The I optimality number is not calculated unless the design is generated as I optimal:
+design3 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="I",repeats=100)
+attr(design3,"I") #The average prediction variance over X
+
+#Evaluating the design for power can be done with eval_design and eval_design_mc (Monte Carlo)
 }
 

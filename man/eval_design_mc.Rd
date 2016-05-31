@@ -30,7 +30,7 @@ Anticipated coefficients will be half of this number.}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in a catagorical factor's anticipated coefficients
+estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 to zero.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}

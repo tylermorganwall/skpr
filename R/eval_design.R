@@ -2,7 +2,7 @@
 #'
 #'@description Evaluates a design given a run matrix and returns
 #'a data frame of parameter and effect powers. Designs can
-#'consist of both continuous and catagorical factors. Default
+#'consist of both continuous and categorical factors. Default
 #'assumes a signal-to-noise ratio of 2 (can be changed with the
 #'delta parameter). Currently only works with linear, non-interacting models.
 #'
@@ -13,18 +13,20 @@
 #'@param alpha The specified type-I error.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
-#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
+#'@param delta The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
-#'estimate of power by setting all but one level in a catagorical factor's anticipated coefficients
+#'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 #'to zero.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power.
 #'@import AlgDesign
 #'@export
 #'@examples #Generating a simple 2x3 factorial using AlgDesign's gen.factorial function
-#'#to feed into our optimal design generation and and generating a 11-run design.
+#'#to feed into our optimal design generation and generating a 11-run design.
 #'factorial <- AlgDesign::gen.factorial(levels = 2, nVars = 3, varNames = c("A", "B", "C"))
+#'#this can also be generated with expand.grid as:
+#'factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
 #'optdesign = gen_design(factorial=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
 #'
 #'#Now evaluating that design (with default anticipated coefficients and a delta of 2):
@@ -37,7 +39,7 @@
 #'#Halving the signal-to-noise ratio by setting a different delta (default is 2):
 #'eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,delta=1)
 #'
-#'#With 3+ level catagorical factors, the choice of anticipated coefficients directly changes the
+#'#With 3+ level categorical factors, the choice of anticipated coefficients directly changes the
 #'#final power calculation. For the most conservative power calculation, that involves
 #'#setting all anticipated coefficients in a factor to zero except for one. We can specify this
 #'#option with the "conservative" argument.
@@ -86,7 +88,7 @@ eval_design = function(RunMatrix, model, alpha, anticoef, delta=2, conservative=
     anticoef = rep(1,dim(attr(RunMatrix,"modelmatrix"))[2])
   }
 
-  #This returns if everything is continuous (no catagorical)
+  #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
     effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
     typevector = rep("effect.power",length(effectresults))
@@ -95,7 +97,7 @@ eval_design = function(RunMatrix, model, alpha, anticoef, delta=2, conservative=
   } else {
     levelvector = sapply(lapply(RunMatrix,unique),length)
 
-    #generating number of catagorical factors
+    #generating number of categorical factors
 
     catornot = rep(0,length(sapply(RunMatrix,class)))
     catornot[sapply(RunMatrix,class) == "factor"] = 1

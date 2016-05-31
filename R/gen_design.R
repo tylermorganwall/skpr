@@ -4,15 +4,15 @@
 #'@description Creates design given a model and
 #'desired number of runs, returning the model matrix. Currently
 #'Used with eval_design/eval_design_mc to produce power estimations for designs.
-#'Models with catagorical factors can only be linear and non-interacting.
+#'Models with categorical factors can only be linear and non-interacting.
 #'
 #'@param factorial A full factorial test matrix generated for the factors in the model. If
-#'the factor is continuous, it should be type numeric. If the factor is catagorical, it should be
+#'the factor is continuous, it should be type numeric. If the factor is categorical, it should be
 #'set as a factor.
 #'@param model The model used to generate the test design.
 #'@param trials The number of runs in the design.
 #'@param optimality The optimality criterion (e.g. "D")
-#'@param contrastslist A list of the contrasts for catagorical factors (e.g. "contr.sum").
+#'@param contrastslist A list of the contrasts for categorical factors (e.g. "contr.sum").
 #'If none are provided, all are set to "contr.sum".
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.
 #'@return The model matrix for the design, to be passed to eval_design. The model matrix
@@ -32,7 +32,7 @@
 #'#D-optimal design with 11 runs.
 #'design = gen_design(factorial=basicdesign,model=~x1+x2,trials=11,optimality="D",repeats=100)
 #'
-#'#Here we add catagorical factors, specified by using "as.factor" in expand.grid:
+#'#Here we add categorical factors, specified by using "as.factor" in expand.grid:
 #'fulldesign = expand.grid(a=c(-1,1),b=as.factor(c("A","B")),c=as.factor(c("High","Med","Low")))
 #'
 #'#This factorial design is used as an input in the optimal design generation.

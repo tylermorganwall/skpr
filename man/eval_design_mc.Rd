@@ -8,15 +8,16 @@ eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
   delta = 2, conservative = FALSE, parallel = FALSE)
 }
 \arguments{
-\item{RunMatrix}{The RunMatrix of the design}
+\item{RunMatrix}{The run matrix of the design.}
 
 \item{model}{The model used in the evaluation.}
 
-\item{alpha}{The type-I error}
+\item{alpha}{The type-I error.}
 
-\item{nsim}{The number of simulations for the Monte Carlo simulation.}
+\item{nsim}{The number of simulations.}
 
-\item{glmfamily}{String indicating the family the distribution is from for the glm function (e.g. binomial)}
+\item{glmfamily}{String indicating the family the distribution is from for the glm function
+(e.g. gaussian, binomial, poisson)}
 
 \item{rfunction}{Random number generator function. Should be a function of the form f(X,b), where X is the
 model matrix and b are the anticipated coefficients.}
@@ -24,7 +25,7 @@ model matrix and b are the anticipated coefficients.}
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
 automatically generated.}
 
-\item{delta}{Default 2. This specifies the difference between the high and low levels.
+\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 Anticipated coefficients will be half of this number.}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
@@ -123,11 +124,11 @@ rgenbinom = function(X,b) {
 }
 
 #Plugging everything in, we now evaluate our model and obtain the binomial power.
-#(delta and the anticipated coefficients were determined empircally to set the
+#(the anticipated coefficients were determined empircally to set the
 #high and low probabilities correctly for each factor)
 
-eval_design_mc(designbinom,~a+b,0.2,nsim=1000,anticoef=c(2.2,1,1),
-              delta=0.7,glmfamily="binomial",rfunction=rgenbinom)
+eval_design_mc(designbinom,~a+b,0.2,nsim=1000,anticoef=c(1.5,0.7,0.7),
+              glmfamily="binomial",rfunction=rgenbinom)
 
 #We can also use this method to determine power for poisson response variables.
 #Assume we have an event that occurs either every half minute, once a minute,

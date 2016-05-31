@@ -8,12 +8,12 @@
 #'
 #'@param factorial A full factorial test matrix generated for the factors in the model. If
 #'the factor is continuous, it should be type numeric. If the factor is catagorical, it should be
-#'a factor.
+#'set as a factor.
 #'@param model The model used to generate the test design.
 #'@param trials The number of runs in the design.
 #'@param optimality The optimality criterion (e.g. "D")
-#'@param contrastslist A list of the contrasts (e.g. "contr.sum"). If none is provided, all are set
-#'to "contr.sum").
+#'@param contrastslist A list of the contrasts for catagorical factors (e.g. "contr.sum").
+#'If none are provided, all are set to "contr.sum".
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.
 #'@return The model matrix for the design, to be passed to eval_design. The model matrix
 #'has various attributes (accessible with the attr function) that aid evaluation.
@@ -29,11 +29,11 @@
 #'design_gf = AlgDesign::gen.factorial(levels=c(2,2),nVars=2,varNames=c("x1","x2"))
 #'
 #'#This factorial design is used as an input in the optimal design generation for a
-#'#"D" optimal design with 11 runs.
+#'#D-optimal design with 11 runs.
 #'design = gen_design(factorial=basicdesign,model=~x1+x2,trials=11,optimality="D",repeats=100)
 #'
 #'#Here we add catagorical factors, specified by using "as.factor" in expand.grid:
-#'fulldesign = expand.grid(a=c(-1,1),b=as.factor(c("A","B")),c=c("High","Med","Low"))
+#'fulldesign = expand.grid(a=c(-1,1),b=as.factor(c("A","B")),c=as.factor(c("High","Med","Low")))
 #'
 #'#This factorial design is used as an input in the optimal design generation.
 #'design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",repeats=100)
@@ -43,7 +43,6 @@
 #'design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",repeats=5)
 #'
 #'#We can specify different methods of calculating contrasts for each factor in a list.
-#'#"contr.sum" is the default if none is provided.
 #'design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",
 #'                    repeats=100,contrastslist=list(b="contr.sum",c="contr.treatment"))
 #'

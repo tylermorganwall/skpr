@@ -3,16 +3,17 @@
 #'@description Evaluates design given a model matrix with a monte carlo simulation and returns
 #'a data frame of parameter powers. Currently only works with linear, non-interacting models.
 #'
-#'@param RunMatrix The RunMatrix of the design
+#'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
-#'@param alpha The type-I error
-#'@param nsim The number of simulations for the Monte Carlo simulation.
-#'@param glmfamily String indicating the family the distribution is from for the glm function (e.g. binomial)
+#'@param alpha The type-I error.
+#'@param nsim The number of simulations.
+#'@param glmfamily String indicating the family the distribution is from for the glm function
+#'(e.g. gaussian, binomial, poisson)
 #'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
 #'model matrix and b are the anticipated coefficients.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
-#'@param delta Default 2. This specifies the difference between the high and low levels.
+#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
@@ -103,11 +104,11 @@
 #'}
 #'
 #'#Plugging everything in, we now evaluate our model and obtain the binomial power.
-#'#(delta and the anticipated coefficients were determined empircally to set the
+#'#(the anticipated coefficients were determined empircally to set the
 #'#high and low probabilities correctly for each factor)
 #'
-#'eval_design_mc(designbinom,~a+b,0.2,nsim=1000,anticoef=c(2.2,1,1),
-#'               delta=0.7,glmfamily="binomial",rfunction=rgenbinom)
+#'eval_design_mc(designbinom,~a+b,0.2,nsim=1000,anticoef=c(1.5,0.7,0.7),
+#'               glmfamily="binomial",rfunction=rgenbinom)
 #'
 #'#We can also use this method to determine power for poisson response variables.
 #'#Assume we have an event that occurs either every half minute, once a minute,

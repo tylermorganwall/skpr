@@ -19,7 +19,7 @@ generate the design.}
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
 automatically generated.}
 
-\item{delta}{Default 2. This specifies the difference between the high and low levels.
+\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 Anticipated coefficients will be half of this number.}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
@@ -31,13 +31,14 @@ to zero.}
 A data frame with the parameters of the model, the type of power analysis, and the power.
 }
 \description{
-Evaluates design given a run matrix and returns
-a data frame of parameter and effect powers. Functions with designs
-consisting of both continuous and catagorical factors. Currently only works
-with linear, non-interacting models.
+Evaluates a design given a run matrix and returns
+a data frame of parameter and effect powers. Designs can
+consist of both continuous and catagorical factors. Default
+assumes a signal-to-noise ratio of 2 (can be changed with the
+delta parameter). Currently only works with linear, non-interacting models.
 }
 \examples{
-#generating a simple 2x3 factorial using AlgDesign's gen.factorial function
+#Generating a simple 2x3 factorial using AlgDesign's gen.factorial function
 #to feed into our optimal design generation and and generating a 11-run design.
 factorial <- AlgDesign::gen.factorial(levels = 2, nVars = 3, varNames = c("A", "B", "C"))
 optdesign = gen_design(factorial=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)

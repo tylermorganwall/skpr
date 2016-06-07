@@ -44,7 +44,7 @@ a data frame of parameter powers. Currently only works with linear, non-interact
 }
 \examples{
 #We first generate a full factorial design using expand.grid:
-factorialcoffee = expand.grid(cost=c(1,2),
+factorialcoffee = expand.grid(cost=c(-1,1),
                              type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
                              size=as.factor(c("Short","Grande","Venti")))
 

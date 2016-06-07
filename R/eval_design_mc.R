@@ -111,21 +111,24 @@
 #'               glmfamily="binomial",rfunction=rgenbinom)
 #'
 #'#We can also use this method to determine power for poisson response variables.
-#'#Assume we have an event that occurs either every half minute, once a minute,
-#'#or once every minute and a half. Our design matrix is as such:
+#'#We design our test to detect if each factor changes the base rate of 0.2 by
+#'#a factor of 2. We generate the design:
 #'
-#'factorialpois = expand.grid(a=c(0.5,1,1.5),b=c(0.5,1,1.5))
+#'factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
 #'designpois = gen_design(factorialpois,~a+b, 90,"D",1000)
 #'
 #'
 #'#Here we return a random poisson number of events that vary depending
 #'#on the rate in the design.
 #'rrate = function(X,b) {
-#'  return(rpois(n=nrow(X),lambda=X%*%b))
+#'  return(rpois(n=nrow(X),lambda=exp(X%*%b)))
 #'}
-#'eval_design_mc(designpois,~a+b,0.2,nsim=1000,glmfamily="poisson",rfunction=rrate)
+#'eval_design_mc(designpois,~a+b,0.2,nsim=1000,glmfamily="poisson",rfunction=rrate,
+#'               anticoef=c(log(0.2),log(2),log(2)))
+#'#where the anticipated coefficients are chosen to set the base rate at 0.2
+#'(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #'#We see here we need about 90 test events to get accurately distinguish the three different
-#'#rates in each factor to 80% power.
+#'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
                           delta=2, conservative=FALSE, parallel=FALSE) {
 

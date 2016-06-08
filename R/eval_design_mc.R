@@ -83,6 +83,10 @@
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
 #'               nsim=1000,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
 #'
+#'#And here it is evaluated with higher order effects included:
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size+cost*type, 0.05,
+#'               nsim=1000,glmfamily="gaussian",rfunction=rgen)
+#'
 #'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
 #'#computation.
 #'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
@@ -138,9 +142,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       contrastslist[x] = "contr.sum"
     }
     if(length(contrastslist) == 0) {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix))
+      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
     } else {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix,contrasts.arg=contrastslist))
+      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
     }
   }
 
@@ -150,7 +154,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,conservative=conservative)
+    anticoef = gen_anticoef(RunMatrixReduced,model,conservative=conservative)
   }
   if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

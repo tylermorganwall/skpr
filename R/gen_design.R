@@ -1,10 +1,8 @@
 #'@title Generates the optimal run matrix from full factorial, model, optimality criterion,
 #'and desired number of runs.
 #'
-#'@description Creates design given a model and
-#'desired number of runs, returning the model matrix. Currently
+#'@description Creates design given a model and desired number of runs, returning the model matrix. Currently
 #'Used with eval_design/eval_design_mc to produce power estimations for designs.
-#'Models with categorical factors can only be linear and non-interacting.
 #'
 #'@param factorial A full factorial test matrix generated for the factors in the model. If
 #'the factor is continuous, it should be type numeric. If the factor is categorical, it should be
@@ -15,13 +13,13 @@
 #'@param contrastslist A list of the contrasts for categorical factors (e.g. "contr.sum").
 #'If none are provided, all are set to "contr.sum".
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.
+#'@param ... Any additional arguments to be input into AlgDesign's optFederov during design generation.
 #'@return The model matrix for the design, to be passed to eval_design. The model matrix
 #'has various attributes (accessible with the attr function) that aid evaluation.
 #'@import AlgDesign
 #'@export
 #'@examples #Generate the basic factorial design used in generating the optimal design with
 #'#expand.grid.
-#'library(AlgDesign)
 #'#Generating a basic 2 factor design:
 #'basicdesign = expand.grid(x1=c(-1,1),x2=c(-1,1))
 #'
@@ -42,6 +40,9 @@
 #'#possibly not having the best optimal design)
 #'design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",repeats=5)
 #'
+#'#You can also use a higher order model when generating the design:
+#'design2 = gen_design(factorial=fulldesign,model=~a+b+c+a*b*c,trials=19,optimality="D")
+#'
 #'#We can specify different methods of calculating contrasts for each factor in a list.
 #'design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",
 #'                    repeats=100,contrastslist=list(b="contr.sum",c="contr.treatment"))
@@ -60,10 +61,8 @@
 #'#Evaluating the design for power can be done with eval_design and eval_design_mc (Monte Carlo)
 
 
-gen_design = function(factorial, model, trials, optimality, repeats,contrastslist) {
-  if(missing(repeats)){
-    repeats= 100
-  }
+gen_design = function(factorial, model, trials, optimality="D", repeats=100,contrastslist, ...) {
+
   #replicates the pool of design points because AlgDesign samples without replacement
   factorial = do.call("rbind", replicate(trials/nrow(factorial)+1, factorial, simplify = FALSE))
 
@@ -81,7 +80,8 @@ gen_design = function(factorial, model, trials, optimality, repeats,contrastslis
         contrastslist[x] = "contr.sum"
       }
     }
-    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,criterion = optimality,nRepeats = repeats)
+    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,
+                                          criterion = optimality,nRepeats = repeats, ...)
 
     mm = dfmodelmatrix[["design"]]
     attr(mm,"D") = dfmodelmatrix[["D"]]
@@ -89,12 +89,12 @@ gen_design = function(factorial, model, trials, optimality, repeats,contrastslis
     attr(mm,"I") = dfmodelmatrix[["I"]]
     attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
     attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-    attr(mm,"modelmatrix") = model.matrix(model,dfmodelmatrix$design,contrasts.arg=contrastslist)
 
     return(mm)
   } else {
 
-    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,criterion = optimality,nRepeats = repeats)
+    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,
+                                          criterion = optimality,nRepeats = repeats, ...)
 
     mm = dfmodelmatrix[["design"]]
     attr(mm,"D") = dfmodelmatrix[["D"]]
@@ -102,7 +102,6 @@ gen_design = function(factorial, model, trials, optimality, repeats,contrastslis
     attr(mm,"I") = dfmodelmatrix[["I"]]
     attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
     attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-    attr(mm,"modelmatrix") = model.matrix(model,dfmodelmatrix$design)
 
     return(mm)
   }

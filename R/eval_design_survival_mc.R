@@ -89,7 +89,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,conservative=conservative)
+    anticoef = gen_anticoef(RunMatrixReduced,model,conservative=conservative)
   }
   if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

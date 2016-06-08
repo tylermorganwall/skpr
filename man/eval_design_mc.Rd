@@ -103,6 +103,10 @@ eval_design_mc(RunMatrix=designcoffee,model=~cost + type, 0.05,
 eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
               nsim=1000,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
 
+#And here it is evaluated with higher order effects included:
+eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size+cost*type, 0.05,
+              nsim=1000,glmfamily="gaussian",rfunction=rgen)
+
 #We can also set "parallel=TRUE" to turn use all the cores available to speed up
 #computation.
 \dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,

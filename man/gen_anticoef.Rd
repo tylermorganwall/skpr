@@ -4,7 +4,7 @@
 \alias{gen_anticoef}
 \title{Generates Anticipated Coefficients}
 \usage{
-gen_anticoef(RunMatrix, conservative = FALSE)
+gen_anticoef(RunMatrix, model, conservative = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}

@@ -26,11 +26,10 @@ reducemodelmatrix = function(RunMatrix,model) {
       if(!is.null(sapply(RunMatrix,class)[parameter]) && sapply(RunMatrix,class)[parameter] == "numeric") {
         removecols = (removecols & !(parameter == colnames(ModelMatrix)))
       }
-      #attributelist[["levels"]] = attributelist[["levels"]][!(parameter == names(attributelist[["levels"]]))]
-      #attributelist[["type"]] = attributelist[["type"]][!(parameter == names(attributelist[["type"]]))]
       ReduceRM[parameter] = NULL
     }
   }
+
   #return original attributes to new reduced model matrix
   attr(ReduceRM,"modelmatrix") = ModelMatrix[,removecols]
   for(i in 1:length(attributelist)) {

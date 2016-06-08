@@ -5,7 +5,8 @@
 \title{Generates the optimal run matrix from full factorial, model, optimality criterion,
 and desired number of runs.}
 \usage{
-gen_design(factorial, model, trials, optimality, repeats, contrastslist)
+gen_design(factorial, model, trials, optimality = "D", repeats = 100,
+  contrastslist, ...)
 }
 \arguments{
 \item{factorial}{A full factorial test matrix generated for the factors in the model. If
@@ -22,21 +23,20 @@ set as a factor.}
 
 \item{contrastslist}{A list of the contrasts for categorical factors (e.g. "contr.sum").
 If none are provided, all are set to "contr.sum".}
+
+\item{...}{Any additional arguments to be input into AlgDesign's optFederov during design generation.}
 }
 \value{
 The model matrix for the design, to be passed to eval_design. The model matrix
 has various attributes (accessible with the attr function) that aid evaluation.
 }
 \description{
-Creates design given a model and
-desired number of runs, returning the model matrix. Currently
+Creates design given a model and desired number of runs, returning the model matrix. Currently
 Used with eval_design/eval_design_mc to produce power estimations for designs.
-Models with categorical factors can only be linear and non-interacting.
 }
 \examples{
 #Generate the basic factorial design used in generating the optimal design with
 #expand.grid.
-library(AlgDesign)
 #Generating a basic 2 factor design:
 basicdesign = expand.grid(x1=c(-1,1),x2=c(-1,1))
 
@@ -56,6 +56,9 @@ design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",
 #We can also decrease the number of repeats searches to increase speed (at the expense of
 #possibly not having the best optimal design)
 design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",repeats=5)
+
+#You can also use a higher order model when generating the design:
+design2 = gen_design(factorial=fulldesign,model=~a+b+c+a*b*c,trials=19,optimality="D")
 
 #We can specify different methods of calculating contrasts for each factor in a list.
 design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="D",

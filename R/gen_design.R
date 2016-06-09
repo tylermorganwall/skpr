@@ -64,7 +64,7 @@
 gen_design = function(factorial, model, trials, optimality="D", repeats=100,contrastslist, ...) {
 
   #replicates the pool of design points because AlgDesign samples without replacement
-  factorial = do.call("rbind", replicate(trials/nrow(factorial)+1, factorial, simplify = FALSE))
+  factorial = do.call("rbind", replicate(trials, factorial, simplify = FALSE))
 
   if(any(sapply(factorial,class) == "factor")) {
     if(missing(contrastslist)) {

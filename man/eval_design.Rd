@@ -4,8 +4,8 @@
 \alias{eval_design}
 \title{Calculates Power Given a Run Matrix}
 \usage{
-eval_design(RunMatrix, model, alpha, anticoef, delta = 2,
-  conservative = FALSE)
+eval_design(RunMatrix, model, alpha, blockmodel = NULL, anticoef = NULL,
+  delta = 2, contrasts = "contr.sum", conservative = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix being evaluated.}
@@ -20,6 +20,8 @@ automatically generated.}
 
 \item{delta}{The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
 Anticipated coefficients will be half of this number.}
+
+\item{contrasts}{A string specifying how to treat the contrasts in calculating the model matrix.}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative

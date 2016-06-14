@@ -77,9 +77,9 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
       contrastslist[x] = "contr.sum"
     }
     if(length(contrastslist) == 0) {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix))
+      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
     } else {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model.matrix(model,RunMatrix,contrasts.arg=contrastslist))
+      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
     }
   }
 

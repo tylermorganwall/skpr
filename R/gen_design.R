@@ -10,8 +10,6 @@
 #'@param model The model used to generate the test design.
 #'@param trials The number of runs in the design.
 #'@param optimality The optimality criterion (e.g. "D")
-#'@param contrastslist A list of the contrasts for categorical factors (e.g. "contr.sum").
-#'If none are provided, all are set to "contr.sum".
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.
 #'@param ... Any additional arguments to be input into AlgDesign's optFederov during design generation.
 #'@return The model matrix for the design, to be passed to eval_design. The model matrix
@@ -61,48 +59,45 @@
 #'#Evaluating the design for power can be done with eval_design and eval_design_mc (Monte Carlo)
 
 
-gen_design = function(factorial, model, trials, optimality="D", repeats=100,contrastslist, ...) {
+gen_design = function(factorial, model, trials, wholeblock=NULL, blocksize=NULL,
+                       optimality="D",repeats=100, ...) {
+  blocking = FALSE
+
+  if(!missing(wholeblock)) {
+    blocking = TRUE
+    if(missing(blocksize)) {
+      stop("Need blocksize as input for blocked design")
+    }
+  }
+  if(ceiling(trials/blocksize) != nrow(wholeblock) && length(blocksize) == 1) {
+    min = nrow(wholeblock)*(blocksize)-blocksize+1
+    max = nrow(wholeblock)*(blocksize)
+    stop(paste("For given blocking factor(s) and block size, minimum number of runs for this design is:",
+                  min, "and the maximum is:", max))
+  }
+
+  if(length(blocksize) > 1 && length(blocksize) != nrow(wholeblock)) {
+    stop("Custom blocksize vector must be equal in length to number of wholeblock runs")
+  }
 
   #replicates the pool of design points because AlgDesign samples without replacement
   factorial = do.call("rbind", replicate(trials, factorial, simplify = FALSE))
 
-  if(any(sapply(factorial,class) == "factor")) {
-    if(missing(contrastslist)) {
-      contrastslist = list()
-      for(x in names(factorial[sapply(factorial,class) == "factor"])) {
-        contrastslist[x] = "contr.sum"
-      }
-    }
-    if(table(sapply(factorial,class) == "factor")["TRUE"] != length(contrastslist)) {
-      #warning("Not all entries accounted for in contrast list, setting all to contr.sum")
-      contrastslist = list()
-      for(x in names(factorial[sapply(factorial,class) == "factor"])) {
-        contrastslist[x] = "contr.sum"
-      }
-    }
+  if(!blocking) {
     dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,
-                                          criterion = optimality,nRepeats = repeats, ...)
-
-    mm = dfmodelmatrix[["design"]]
-    attr(mm,"D") = dfmodelmatrix[["D"]]
-    attr(mm,"A") = dfmodelmatrix[["A"]]
-    attr(mm,"I") = dfmodelmatrix[["I"]]
-    attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
-    attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-
-    return(mm)
+                                        criterion = optimality,nRepeats = repeats, ...)
   } else {
-
-    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,
-                                          criterion = optimality,nRepeats = repeats, ...)
-
-    mm = dfmodelmatrix[["design"]]
-    attr(mm,"D") = dfmodelmatrix[["D"]]
-    attr(mm,"A") = dfmodelmatrix[["A"]]
-    attr(mm,"I") = dfmodelmatrix[["I"]]
-    attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
-    attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-
-    return(mm)
+    dfmodelmatrix = AlgDesign::optBlock(frml=model,withinData=factorial,
+                                        blocksizes=calcblocksizes(trials,blocksize),
+                                        wholeBlockData=wholeblock,criterion = optimality,
+                                        nRepeats = repeats, ...)
   }
+
+  mm = dfmodelmatrix[["design"]]
+  attr(mm,"D") = dfmodelmatrix[["D"]]
+  attr(mm,"A") = dfmodelmatrix[["A"]]
+  attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
+  attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
+
+  return(mm)
 }

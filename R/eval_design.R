@@ -14,6 +14,7 @@
 #'automatically generated.
 #'@param delta The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
+#'@param contrasts A string specifying how to treat the contrasts in calculating the model matrix.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
@@ -65,11 +66,13 @@
 #'#You can also evaluate the design with higher order effects:
 #'eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 
-eval_design = function(RunMatrix, model, alpha, anticoef, delta=2, conservative=FALSE) {
+eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
+                       delta=2, contrasts="contr.sum", conservative=FALSE) {
+
   if(is.null(attr(RunMatrix,"modelmatrix"))) {
     contrastslist = list()
     for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-      contrastslist[x] = "contr.sum"
+      contrastslist[x] = contrasts
     }
     if(length(contrastslist) == 0) {
       attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
@@ -78,10 +81,32 @@ eval_design = function(RunMatrix, model, alpha, anticoef, delta=2, conservative=
     }
   }
 
+  if(!is.null(blockmodel)) {
+    BlockedRunMatrix = reducemodelmatrix(RunMatrix, blockmodel)
+  }
+
+  if(!is.null(blockmodel)) {
+    BlockDesign = data.frame()
+    block = floor(as.numeric(rownames(BlockedRunMatrix)))
+    blocknumbers = unique(block)
+    indices = c()
+    for(blockstarts in blocknumbers) {
+      indices = c(indices, match(blockstarts,block))
+    }
+    for(ind in indices) {
+      BlockDesign = rbind(BlockDesign,BlockedRunMatrix[ind,])
+    }
+    names(BlockDesign) = all.vars(blockmodel)
+    attr(BlockDesign,"modelmatrix") = model.matrix(blockmodel,BlockDesign)
+  }
+
   RunMatrix = reducemodelmatrix(RunMatrix,model)
 
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrix,model,conservative=conservative)
+    if(!is.null(blockmodel)) {
+      anticoefblocks = gen_anticoef(BlockDesign,blockmodel,conservative=conservative)
+    }
   }
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && any(sapply(RunMatrix,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
@@ -95,6 +120,13 @@ eval_design = function(RunMatrix, model, alpha, anticoef, delta=2, conservative=
     effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
+    if(!is.null(blockmodel)) {
+      blockeffectresults = parameterpower(BlockDesign,anticoefblocks*delta/2,alpha)
+      blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
+      for(i in 1:length(blocknamevector)) {
+        effectresults[namevector == blocknamevector[i]] = blockeffectresults[i]
+      }
+    }
     return(data.frame(parameters = namevector, type = typevector, power = effectresults))
   } else {
     levelvector = sapply(lapply(RunMatrix,unique),length)
@@ -109,10 +141,34 @@ eval_design = function(RunMatrix, model, alpha, anticoef, delta=2, conservative=
     parameterresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
 
     typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
-    powervector = c(effectresults,parameterresults)
-    effectnamevector = c("(intercept)",names(sapply(lapply(RunMatrix,unique),length)))
+    effectnamevector = c("(Intercept)",names(sapply(lapply(RunMatrix,unique),length)))
     parameternamevector = colnames(attr(RunMatrix,"modelmatrix"))
     namevector = c(effectnamevector,parameternamevector)
+
+    if(!is.null(blockmodel)) {
+      if(!any(table(attr(attr(BlockDesign,"modelmatrix"),"assign")[-1])!=1)) {
+        blockeffectresults = parameterpower(BlockDesign,anticoefblocks*delta/2,alpha)
+        blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
+        for(i in 1:length(blocknamevector)) {
+          effectresults[effectnamevector == blocknamevector[i]] = blockeffectresults[i]
+          parameterresults[parameternamevector == blocknamevector[i]] = blockeffectresults[i]
+        }
+      } else {
+        blockedlevelvector = sapply(lapply(BlockDesign,unique),length)
+        blockedcatornot = rep(0,length(lapply(BlockDesign,class)))
+        blockedcatornot[lapply(BlockDesign,class) == "factor"] = 1
+        blockedpriorcat = priorlevels(blockedcatornot)
+        blockeffectresults = effectpower(BlockDesign,blockedlevelvector,anticoefblocks*delta/2,alpha,blockedpriorcat)
+        blockparameterresults = parameterpower(BlockDesign,anticoefblocks*delta/2,alpha)
+        blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
+        for(i in 1:length(blocknamevector)) {
+          effectresults[effectnamevector == blocknamevector[i]] = blockeffectresults[i]
+          parameterresults[parameternamevector == blocknamevector[i]] = blockeffectresults[i]
+        }
+      }
+    }
+
+    powervector = c(effectresults,parameterresults)
 
     if(length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")

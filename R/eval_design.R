@@ -69,17 +69,12 @@
 eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
                        delta=2, contrasts="contr.sum", conservative=FALSE) {
 
-  if(is.null(attr(RunMatrix,"modelmatrix"))) {
-    contrastslist = list()
-    for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-      contrastslist[x] = contrasts
-    }
-    if(length(contrastslist) == 0) {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
-    } else {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-    }
+  contrastslist = list()
+  for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
+    contrastslist[x] = contrasts
   }
+
+  attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
   RunMatrix = reducemodelmatrix(RunMatrix,model)
 
@@ -96,14 +91,20 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     }
     names(BlockDesign) = names(RunMatrix)
     attr(BlockDesign,"modelmatrix") = model.matrix(model,BlockDesign,contrasts.arg=contrastslist)
-    print(BlockDesign)
-    print(attr(BlockDesign,"modelmatrix"))
   }
 
 
   if(!is.null(blockmodel)) {
     BlockedRunMatrix = reducemodelmatrix(RunMatrix, blockmodel)
-    attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix)
+    if(any(lapply(BlockedRunMatrix,class) == "factor")) {
+      blockedcontrastslist = list()
+      for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
+        blockedcontrastslist[x] = contrasts
+      }
+      attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix,contrasts.arg=blockedcontrastslist)
+    } else {
+      attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix)
+    }
     blockedanticoef = gen_anticoef(BlockDesign,model,conservative=conservative)
   }
 
@@ -154,8 +155,6 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
       if(!any(table(attr(attr(BlockDesign,"modelmatrix"),"assign")[-1])!=1)) {
         blockeffectresults = parameterpower(BlockDesign,blockedanticoef*delta/2,alpha)
         blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
-        print(blockeffectresults)
-        print(blocknamevector)
         cols = c()
         for(col in blocknamevector) {
           cols = c(cols, match(col,colnames(attr(BlockDesign, "modelmatrix"))))
@@ -174,17 +173,17 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
         blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
         fullblocknamevector = colnames(attr(BlockDesign, "modelmatrix"))
         effects = colnames(BlockedRunMatrix)
-        print(fullblocknamevector)
-        print(blockparameterresults)
         cols = c()
+
         for(i in 1:length(effects)) {
           results$power[results$parameters == effects[i]] = blockeffectresults[i]
         }
         #substitute parameter results
+
         for(col in blocknamevector) {
           cols = c(cols, match(col,colnames(attr(BlockDesign, "modelmatrix"))))
         }
-        print(cols)
+
         for(i in cols) {
           results$power[results$parameters == fullblocknamevector[i]] = blockparameterresults[i]
         }

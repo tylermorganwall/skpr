@@ -81,32 +81,35 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     }
   }
 
-  if(!is.null(blockmodel)) {
-    BlockedRunMatrix = reducemodelmatrix(RunMatrix, blockmodel)
-  }
+  RunMatrix = reducemodelmatrix(RunMatrix,model)
 
   if(!is.null(blockmodel)) {
     BlockDesign = data.frame()
-    block = floor(as.numeric(rownames(BlockedRunMatrix)))
+    block = floor(as.numeric(rownames(RunMatrix)))
     blocknumbers = unique(block)
     indices = c()
     for(blockstarts in blocknumbers) {
       indices = c(indices, match(blockstarts,block))
     }
     for(ind in indices) {
-      BlockDesign = rbind(BlockDesign,BlockedRunMatrix[ind,])
+      BlockDesign = rbind(BlockDesign,RunMatrix[ind,])
     }
-    names(BlockDesign) = all.vars(blockmodel)
-    attr(BlockDesign,"modelmatrix") = model.matrix(blockmodel,BlockDesign)
+    names(BlockDesign) = names(RunMatrix)
+    attr(BlockDesign,"modelmatrix") = model.matrix(model,BlockDesign,contrasts.arg=contrastslist)
+    print(BlockDesign)
+    print(attr(BlockDesign,"modelmatrix"))
   }
 
-  RunMatrix = reducemodelmatrix(RunMatrix,model)
+  if(!is.null(blockmodel)) {
+    BlockedRunMatrix = reducemodelmatrix(RunMatrix, blockmodel)
+    attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix)
+  }
 
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrix,model,conservative=conservative)
-    if(!is.null(blockmodel)) {
-      anticoefblocks = gen_anticoef(BlockDesign,blockmodel,conservative=conservative)
-    }
+    # if(!is.null(blockmodel)) {
+    #   anticoefblocks = gen_anticoef(BlockDesign,blockmodel,conservative=conservative)
+    # }
   }
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && any(sapply(RunMatrix,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
@@ -121,7 +124,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
     if(!is.null(blockmodel)) {
-      blockeffectresults = parameterpower(BlockDesign,anticoefblocks*delta/2,alpha)
+      blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha)
       blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
       for(i in 1:length(blocknamevector)) {
         effectresults[namevector == blocknamevector[i]] = blockeffectresults[i]
@@ -144,35 +147,50 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     effectnamevector = c("(Intercept)",names(sapply(lapply(RunMatrix,unique),length)))
     parameternamevector = colnames(attr(RunMatrix,"modelmatrix"))
     namevector = c(effectnamevector,parameternamevector)
+    powervector = c(effectresults,parameterresults)
+
+    results = data.frame(parameters = namevector, type = typevector, power = powervector)
 
     if(!is.null(blockmodel)) {
       if(!any(table(attr(attr(BlockDesign,"modelmatrix"),"assign")[-1])!=1)) {
-        blockeffectresults = parameterpower(BlockDesign,anticoefblocks*delta/2,alpha)
-        blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
-        for(i in 1:length(blocknamevector)) {
-          effectresults[effectnamevector == blocknamevector[i]] = blockeffectresults[i]
-          parameterresults[parameternamevector == blocknamevector[i]] = blockeffectresults[i]
+        blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha)
+        blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
+        print(blockeffectresults)
+        print(blocknamevector)
+        cols = c()
+        for(col in blocknamevector) {
+          cols = c(cols, match(col,colnames(attr(BlockDesign, "modelmatrix"))))
+        }
+        for(i in cols) {
+          results$power[results$parameters == blocknamevector[i] && results$type == "effect.power"] = blockeffectresults[i]
+          results$power[results$parameters == blocknamevector[i] && results$type == "parameter.power"] = blockeffectresults[i]
         }
       } else {
         blockedlevelvector = sapply(lapply(BlockDesign,unique),length)
         blockedcatornot = rep(0,length(lapply(BlockDesign,class)))
         blockedcatornot[lapply(BlockDesign,class) == "factor"] = 1
         blockedpriorcat = priorlevels(blockedcatornot)
-        blockeffectresults = effectpower(BlockDesign,blockedlevelvector,anticoefblocks*delta/2,alpha,blockedpriorcat)
-        blockparameterresults = parameterpower(BlockDesign,anticoefblocks*delta/2,alpha)
-        blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
-        for(i in 1:length(blocknamevector)) {
-          effectresults[effectnamevector == blocknamevector[i]] = blockeffectresults[i]
-          parameterresults[parameternamevector == blocknamevector[i]] = blockeffectresults[i]
+        blockeffectresults = effectpower(BlockDesign,blockedlevelvector,anticoef*delta/2,alpha,blockedpriorcat)
+        blockparameterresults = parameterpower(BlockDesign,anticoef*delta/2,alpha)
+        blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
+        fullblocknamevector = colnames(attr(BlockDesign, "modelmatrix"))
+        print(fullblocknamevector)
+        print(blockparameterresults)
+        cols = c()
+        #substitute parameter results
+        for(col in blocknamevector) {
+          cols = c(cols, match(col,colnames(attr(BlockDesign, "modelmatrix"))))
+        }
+        print(cols)
+        for(i in cols) {
+          results$power[results$parameters == fullblocknamevector[i] & results$type == "parameter.power"] = blockparameterresults[i]
         }
       }
     }
 
-    powervector = c(effectresults,parameterresults)
-
     if(length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")
     }
-    return(data.frame(parameters = namevector, type = typevector, power = powervector))
+    return(results)
   }
 }

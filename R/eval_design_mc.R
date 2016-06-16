@@ -136,17 +136,21 @@
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
                           delta=2, conservative=FALSE, parallel=FALSE) {
 
-  if(is.null(attr(RunMatrix,"modelmatrix"))) {
-    contrastslist = list()
-    for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-      contrastslist[x] = "contr.sum"
-    }
-    if(length(contrastslist) == 0) {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
-    } else {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-    }
+  mixedeffects = FALSE
+  modelnorandomeffects = as.formula(gsub(",","",gsub("(\\s\\+?\\s\\(.*\\|.*\\)\\s?\\+?)","",toString(model))))
+  #works for intercept models, need to fix to work with random slope
+  if(modelnorandomeffects != model) {
+    mixedeffects = TRUE
+    randomeffects = strsplit(gsub("\\d"," ",gsub("\\W","",regmatches(toString(model),regexpr("(\\(.*\\|.*\\))",toString(model))))),split=" ")[[1]]
+    randomeffects = randomeffects[grep("\\w",randomeffects)]
+    message("Mixed/Random effects detected, using lmer for gaussian model")
   }
+
+  contrastslist = list()
+  for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
+    contrastslist[x] = "contr.sum"
+  }
+  attr(RunMatrix,"modelmatrix") = model.matrix(modelnorandomeffects,RunMatrix,contrasts.arg=contrastslist)
 
   #remove columns from variables not used in the model
   RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
@@ -175,14 +179,34 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
 
-      #fit a model to the simulated data.
-      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      if(mixedeffects) {
+        if(glmfamily == "gaussian") {
+          fit = lmer(model_formula, data=RunMatrixReduced,contrasts = contrastlist)
+        } else {
+          fit = glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+        }
+      } else {
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      }
 
-      #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = coef(summary.glm(fit))[,4]
-      for(i in 1:length(pvals)) {
-        if (pvals[i] < alpha) {
-          power_values[i] = power_values[i] + 1
+      if(mixedeffects) {
+        coefs <- data.frame(coef(summary(fit)))
+        # use normal distribution to approximate p-value
+        coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
+        pvals = coefs[,4]
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        for(i in 1:length(pvals)) {
+          if (pvals[i] < alpha) {
+            power_values[i] = power_values[i] + 1
+          }
+        }
+      } else {
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        pvals = coef(summary.glm(fit))[,4]
+        for(i in 1:length(pvals)) {
+          if (pvals[i] < alpha) {
+            power_values[i] = power_values[i] + 1
+          }
         }
       }
     }

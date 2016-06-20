@@ -181,7 +181,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
 
       if(mixedeffects) {
         if(glmfamily == "gaussian") {
-          fit = lmer(model_formula, data=RunMatrixReduced,contrasts = contrastlist)
+          fit = lme(model_formula, data=RunMatrixReduced,contrasts = contrastlist)
         } else {
           fit = glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
         }

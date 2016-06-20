@@ -67,7 +67,7 @@
 #'eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 
 eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
-                       delta=2, contrasts="contr.sum", conservative=FALSE) {
+                       delta=2, varianceratio=1, contrasts="contr.sum", conservative=FALSE) {
 
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
@@ -95,7 +95,8 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
 
   if(!is.null(blockmodel)) {
-    BlockedRunMatrix = reducemodelmatrix(RunMatrix, blockmodel)
+    BlockedRunMatrix = reducemodelmatrix(BlockDesign, blockmodel)
+    print(BlockedRunMatrix)
     if(any(lapply(BlockedRunMatrix,class) == "factor")) {
       blockedcontrastslist = list()
       for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
@@ -105,7 +106,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     } else {
       attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix)
     }
-    blockedanticoef = gen_anticoef(BlockDesign,model,conservative=conservative)
+    blockedanticoef = gen_anticoef(BlockedRunMatrix,blockmodel,conservative=conservative)
   }
 
   if(missing(anticoef)) {
@@ -118,13 +119,18 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     anticoef = rep(1,dim(attr(RunMatrix,"modelmatrix"))[2])
   }
 
+  if(!is.null(blockmodel)) {
+    # varratio = c(rep(varianceratio,ncol(attr(BlockedRunMatrix,"modelmatrix"))),rep(0,length(anticoef)-ncol(attr(BlockedRunMatrix,"modelmatrix"))))
+    varratio = c(rep(nrow(BlockedRunMatrix)/nrow(RunMatrix),ncol(attr(BlockedRunMatrix,"modelmatrix"))))
+  }
+
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
     effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
     if(!is.null(blockmodel)) {
-      blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha)
+      blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha,varianceratio=varratio)
       blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
       for(i in 1:length(blocknamevector)) {
         effectresults[namevector == blocknamevector[i]] = blockeffectresults[i]
@@ -153,7 +159,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
     if(!is.null(blockmodel)) {
       if(!any(table(attr(attr(BlockDesign,"modelmatrix"),"assign")[-1])!=1)) {
-        blockeffectresults = parameterpower(BlockDesign,blockedanticoef*delta/2,alpha)
+        blockeffectresults = parameterpower(BlockedRunMatrix,blockedanticoef*delta/2,alpha,varianceratio=varratio)
         blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
         cols = c()
         for(col in blocknamevector) {
@@ -164,14 +170,14 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
           results$power[results$parameters == blocknamevector[i] && results$type == "parameter.power"] = blockeffectresults[i]
         }
       } else {
-        blockedlevelvector = sapply(lapply(BlockDesign,unique),length)
-        blockedcatornot = rep(0,length(lapply(BlockDesign,class)))
-        blockedcatornot[lapply(BlockDesign,class) == "factor"] = 1
+        blockedlevelvector = sapply(lapply(BlockedRunMatrix,unique),length)
+        blockedcatornot = rep(0,length(lapply(BlockedRunMatrix,class)))
+        blockedcatornot[lapply(BlockedRunMatrix,class) == "factor"] = 1
         blockedpriorcat = priorlevels(blockedcatornot)
-        blockeffectresults = effectpower(BlockDesign,blockedlevelvector,blockedanticoef*delta/2,alpha,blockedpriorcat)
-        blockparameterresults = parameterpower(BlockDesign,blockedanticoef*delta/2,alpha)
+        blockeffectresults = effectpower(BlockedRunMatrix,blockedlevelvector,blockedanticoef*delta/2,alpha,blockedpriorcat)
+        blockparameterresults = parameterpower(BlockedRunMatrix,blockedanticoef*delta/2,alpha,varianceratio=varratio)
         blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
-        fullblocknamevector = colnames(attr(BlockDesign, "modelmatrix"))
+        fullblocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
         effects = colnames(BlockedRunMatrix)
         cols = c()
 
@@ -181,7 +187,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
         #substitute parameter results
 
         for(col in blocknamevector) {
-          cols = c(cols, match(col,colnames(attr(BlockDesign, "modelmatrix"))))
+          cols = c(cols, match(col,colnames(attr(BlockedRunMatrix, "modelmatrix"))))
         }
 
         for(i in cols) {

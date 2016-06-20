@@ -134,10 +134,11 @@
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
+                          #randomeffects=NULL,
                           delta=2, conservative=FALSE, parallel=FALSE) {
 
   mixedeffects = FALSE
-  modelnorandomeffects = as.formula(gsub(",","",gsub("(\\s\\+?\\s\\(.*\\|.*\\)\\s?\\+?)","",toString(model))))
+  modelnorandomeffects = as.formula(gsub(",","",gsub("\\s\\+\\s$","",gsub("+  +", "+",gsub("(\\(\\w*\\s\\|\\s\\w*\\))+","",toString(model)),fixed=TRUE))))
   #works for intercept models, need to fix to work with random slope
   if(modelnorandomeffects != model) {
     mixedeffects = TRUE
@@ -145,12 +146,14 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     randomeffects = randomeffects[grep("\\w",randomeffects)]
     message("Mixed/Random effects detected, using lmer for gaussian model")
   }
-
+  modelmatrixformula = reformulate(termlabels = c(attr(terms(modelnorandomeffects),"term.labels"),randomeffects))
+  print(modelmatrixformula)
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
     contrastslist[x] = "contr.sum"
   }
-  attr(RunMatrix,"modelmatrix") = model.matrix(modelnorandomeffects,RunMatrix,contrasts.arg=contrastslist)
+  attr(RunMatrix,"modelmatrix") = model.matrix(modelmatrixformula,RunMatrix,contrasts.arg=contrastslist)
+  # attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
   #remove columns from variables not used in the model
   RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
@@ -179,9 +182,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
 
-      if(mixedeffects) {
+      if(!is.null(randomeffects)) {
         if(glmfamily == "gaussian") {
-          fit = lme(model_formula, data=RunMatrixReduced,contrasts = contrastlist)
+          fit = lmer(fixed=model_formula, data=RunMatrixReduced,contrasts = contrastlist)
         } else {
           fit = glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
         }
@@ -189,7 +192,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
       }
 
-      if(mixedeffects) {
+      if(!is.null(randomeffects)) {
         coefs <- data.frame(coef(summary(fit)))
         # use normal distribution to approximate p-value
         coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))

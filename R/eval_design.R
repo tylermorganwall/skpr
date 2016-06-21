@@ -10,10 +10,12 @@
 #'@param model The model used in evaluating the design. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation.
 #'@param alpha The specified type-I error.
+#'@param blockmodel A formula specifing the blocking factors.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
 #'@param delta The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
+#'@param varianceratio Default 1. The ratio of the whole plot variance to the split plot variance.
 #'@param contrasts A string specifying how to treat the contrasts in calculating the model matrix.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
@@ -96,7 +98,6 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
   if(!is.null(blockmodel)) {
     BlockedRunMatrix = reducemodelmatrix(BlockDesign, blockmodel)
-    print(BlockedRunMatrix)
     if(any(lapply(BlockedRunMatrix,class) == "factor")) {
       blockedcontrastslist = list()
       for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
@@ -174,7 +175,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
         blockedcatornot = rep(0,length(lapply(BlockedRunMatrix,class)))
         blockedcatornot[lapply(BlockedRunMatrix,class) == "factor"] = 1
         blockedpriorcat = priorlevels(blockedcatornot)
-        blockeffectresults = effectpower(BlockedRunMatrix,blockedlevelvector,blockedanticoef*delta/2,alpha,blockedpriorcat)
+        blockeffectresults = effectpower(BlockedRunMatrix,blockedlevelvector,blockedanticoef*delta/2,alpha,blockedpriorcat,varianceratio=varratio)
         blockparameterresults = parameterpower(BlockedRunMatrix,blockedanticoef*delta/2,alpha,varianceratio=varratio)
         blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
         fullblocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))

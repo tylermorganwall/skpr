@@ -13,6 +13,7 @@
 #'model matrix and b are the anticipated coefficients.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
+#'@param randomeffects A formula specifying the model for the blocking effects.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
 #'@param conservative Default FALSE. Specifies whether default method for generating
@@ -130,11 +131,11 @@
 #'eval_design_mc(designpois,~a+b,0.2,nsim=1000,glmfamily="poisson",rfunction=rrate,
 #'               anticoef=c(log(0.2),log(2),log(2)))
 #'#where the anticipated coefficients are chosen to set the base rate at 0.2
-#'(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
+#'#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-                          randomeffects=NULL,delta=2, conservative=FALSE, parallel=FALSE) {
+                          randomeffects=NULL, delta=2, conservative=FALSE, parallel=FALSE) {
 
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
@@ -202,8 +203,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
   RunMatrixReduced$Y = 1
   contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
 
-  # print(anticoef)
-  if(!parallel) {
+    if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
 
     for (j in 1:nsim) {
@@ -217,11 +217,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
 
       if(!is.null(randomeffects)) {
         if(glmfamily == "gaussian") {
-          fit = lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
+          fit = lme4::lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
           fitblock = lm(model_formula_blocked, data=BlockedRunMatrix, contrasts = blockedcontrastslist)
         } else {
-          fit = glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
-          fitblock = glmer(model_formula_blocked, family=glmfamily, data=BlockedRunMatrix,contrasts = blockedcontrastslist)
+          fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+          fitblock = lme4::glmer(model_formula_blocked, family=glmfamily, data=BlockedRunMatrix,contrasts = blockedcontrastslist)
         }
       } else {
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)

@@ -9,7 +9,7 @@
 #'@param alpha the specified type-I error
 #'@return The effect power for the parameters
 #'@keywords internal
-effectpower = function(RunMatrix,levelvector,anticoef,alpha,priorcat) {
+effectpower = function(RunMatrix,levelvector,anticoef,alpha,priorcat,varianceratio=NULL) {
 
   levelvectoradj = levelvector
   levelvectoradj[sapply(RunMatrix,class)=="numeric"] = 2
@@ -23,9 +23,21 @@ effectpower = function(RunMatrix,levelvector,anticoef,alpha,priorcat) {
     L[[i]] = genparammatrix(dim(attr(RunMatrix,"modelmatrix"))[2],levelvectoradj[i],g[i])
   }
 
+  Q = vector("list",dim(attr(RunMatrix,"modelmatrix"))[2])
+
   power = c(length(L))
-  for(j in 1:length(L)) {
-    power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),L[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),L[[j]],anticoef),alpha)
+  if(is.null(varianceratio)) {
+    for(j in 1:length(L)) {
+      power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),L[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),L[[j]],anticoef),alpha)
+    }
+  } else {
+    place = 1
+    for(j in 1:length(L)) {
+      isolate = rep(0,sum(levelvectoradj))
+      isolate[place] = 1
+      power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),L[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),L[[j]],anticoef,V=isolate %*% varianceratio),alpha)
+      place = place + nrow(L[[j]])
+    }
   }
   return(power)
 }

@@ -5,7 +5,8 @@
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-  delta = 2, conservative = FALSE, parallel = FALSE)
+  randomeffects = NULL, delta = 2, conservative = FALSE,
+  parallel = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -24,6 +25,8 @@ model matrix and b are the anticipated coefficients.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
 automatically generated.}
+
+\item{randomeffects}{A formula specifying the model for the blocking effects.}
 
 \item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 Anticipated coefficients will be half of this number.}
@@ -150,7 +153,7 @@ rrate = function(X,b) {
 eval_design_mc(designpois,~a+b,0.2,nsim=1000,glmfamily="poisson",rfunction=rrate,
               anticoef=c(log(0.2),log(2),log(2)))
 #where the anticipated coefficients are chosen to set the base rate at 0.2
-(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
+#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #We see here we need about 90 test events to get accurately distinguish the three different
 #rates in each factor to 90\% power.
 }

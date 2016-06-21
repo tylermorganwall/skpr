@@ -1,6 +1,6 @@
 Package: skpr
 Title: skpr
-Version: 0.4.1.0
+Version: 0.5.1.0
 Authors@R: person("Tyler", "Morgan-Wall", email = "tmorganw@ida.org", role = c("aut", "cre"))
 Description: Generates optimal designs and calculates power for those designs given a model and a factorial design for the given parameters. Evaluation can be done with both normal approximation techniques and Monte Carlo methods, and includes a method to evaluate a censored response variable. A parallel implementation of the Monte Carlo method is also provided.
 Depends:
@@ -11,6 +11,7 @@ RoxygenNote: 5.0.1
 Depends:
   doParallel,
   foreach,
-  survival
+  survival,
+  lme4
 Imports:
   AlgDesign,

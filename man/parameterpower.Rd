@@ -4,7 +4,8 @@
 \alias{parameterpower}
 \title{Calculates parameter power}
 \usage{
-parameterpower(RunMatrix, anticoef, alpha)
+parameterpower(RunMatrix, anticoef, alpha, varianceratio = rep(0,
+  length(anticoef)))
 }
 \arguments{
 \item{anticoef}{The anticipated coefficients}

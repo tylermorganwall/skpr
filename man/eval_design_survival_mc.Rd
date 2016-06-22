@@ -23,11 +23,11 @@ eval_design_survival_mc(RunMatrix, model, alpha, nsim, distribution,
 model matrix and b are the anticipated coefficients. This function should return a Surv object from
 the survival package.}
 
-\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
-automatically generated.}
+\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
+will be automatically generated based on the delta argument.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
-Anticipated coefficients will be half of this number.}
+\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
+and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative

@@ -24,7 +24,7 @@ automatically generated.}
 \item{delta}{The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
 Anticipated coefficients will be half of this number.}
 
-\item{varianceratio}{Default 1. The ratio of the whole plot variance to the split plot variance.}
+\item{varianceratio}{Default 1. The ratio of the whole plot variance to the run-to-run variance.}
 
 \item{contrasts}{A string specifying how to treat the contrasts in calculating the model matrix.}
 
@@ -87,5 +87,21 @@ eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,
 
 #You can also evaluate the design with higher order effects:
 eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
+
+#Blocked designs can also be evaluated by specifying the blocking model.
+
+#Generating blocked design
+coffeeblocks = expand.grid(caffeine=c(1,-1))
+coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
+coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
+                              wholeblock=coffeeblockdesign, blocksize=3)
+
+#Evaluating design
+eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine)
+
+#We can also evaluate the design with a custom ratio between the whole plot error to
+#the run-to-run error.
+eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine,
+           varianceratio=2)
 }
 

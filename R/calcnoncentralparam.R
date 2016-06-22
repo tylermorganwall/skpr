@@ -7,6 +7,6 @@
 #'@param b The anticipated coefficients
 #'@return The non-centrality parameter for the F test
 #'@keywords internal
-calcnoncentralparam = function(X,L,b,V=0) {
-  return((t(L %*% b) %*% solve(L %*% solve(t(X)%*%X) %*% t(L)) %*% L %*% b)/(1+V))
+calcnoncentralparam = function(X,L,b,V=0,varianceratio=1) {
+  return((t(L %*% b) %*% solve(L %*% solve(t(X)%*%X) %*% t(L)) %*% L %*% b)/(varianceratio+V))
 }

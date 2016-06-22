@@ -16,13 +16,14 @@
 #'@param randomeffects A formula specifying the model for the blocking effects.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
+#'@param varianceratio Default 1. The ratio of the whole plot variance to the run-to-run variance.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 #'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
 #'@return A data frame consisting of the parameters and their powers
-#'@import AlgDesign foreach doParallel lme4
+#'@import AlgDesign foreach doParallel
 #'@export
 #'@examples #We first generate a full factorial design using expand.grid:
 #'factorialcoffee = expand.grid(cost=c(-1,1),
@@ -31,7 +32,7 @@
 #'
 #'#And then generate the 21-run D-optimal design using gen_design.
 #'
-#'designcoffee = gen_design(factorialcoffee,~cost + type + size,21,"D",100)
+#'designcoffee = gen_design(factorialcoffee,model=~cost + type + size,trials=21,optimality="D")
 #'
 #'#To evaluate this design using a normal approximation, we just use eval_design
 #'#(here using the default settings for contrasts, delta, and the anticipated coefficients):
@@ -54,14 +55,14 @@
 #'#and whether or not we want the computation to be done with all the cores available "parallel".
 #'
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgen)
+#'               nsim=100,glmfamily="gaussian",rfunction=rgen)
 #'
 #'#We see here we generate approximately the same parameter powers as we do
 #'#using the normal approximation in eval_design. Like eval_design, we can also change
 #'#delta to produce a different signal-to-noise ratio:
 #'
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgen,delta=1)
+#'               nsim=100,glmfamily="gaussian",rfunction=rgen,delta=1)
 #'
 #'#However, we could also specify this using a different random generator function by
 #'#doubling the standard deviation of the population we are drawing from:
@@ -71,27 +72,43 @@
 #'}
 #'
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgensnr)
+#'               nsim=100,glmfamily="gaussian",rfunction=rgensnr)
 #'
 #'#Both methods provide the same end result.
 #'
 #'#Like eval_design, we can also evaluate the design with a different model than
 #'#the one that generated the design.
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type, 0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgen)
+#'               nsim=100,glmfamily="gaussian",rfunction=rgen)
 #'
 #'#Here we evaluate the design using conservative anticipated coefficients:
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
+#'               nsim=100,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
 #'
 #'#And here it is evaluated with higher order effects included:
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size+cost*type, 0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgen)
+#'               nsim=100,glmfamily="gaussian",rfunction=rgen)
 #'
 #'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
 #'#computation.
 #'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
-#'               nsim=1000,glmfamily="gaussian",rfunction=rgen,parallel=TRUE)}
+#'               nsim=100,glmfamily="gaussian",rfunction=rgen,parallel=TRUE)}
+#'
+#'#We can also evaluate split-plot designs by specifying the randomeffects argument.
+#'
+#'blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))
+#'
+#'#5 runs per block
+#'designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
+#'                           wholeblock=blocking, blocksize=5)
+#'
+#'eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)
+#'
+#'#We can also evaluate the design with a custom ratio between the whole plot error to
+#'#the run-to-run error.
+#'eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design and see
@@ -99,7 +116,7 @@
 #'#70% of the time or 90% of the time.
 #'
 #'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
-#'designbinom = gen_design(factorialbinom,~a+b,90,"D",100)
+#'designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
 #'
 #'#Here our random binomial generator simulates a response based on the resulting
 #'#probability from of all the columns in one row influencing the result.
@@ -112,7 +129,7 @@
 #'#(the anticipated coefficients were determined empircally to set the
 #'#high and low probabilities correctly for each factor)
 #'
-#'eval_design_mc(designbinom,~a+b,0.2,nsim=1000,anticoef=c(1.5,0.7,0.7),
+#'eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
 #'               glmfamily="binomial",rfunction=rgenbinom)
 #'
 #'#We can also use this method to determine power for poisson response variables.
@@ -120,7 +137,7 @@
 #'#a factor of 2. We generate the design:
 #'
 #'factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-#'designpois = gen_design(factorialpois,~a+b, 90,"D",1000)
+#'designpois = gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=1000)
 #'
 #'
 #'#Here we return a random poisson number of events that vary depending
@@ -128,18 +145,23 @@
 #'rrate = function(X,b) {
 #'  return(rpois(n=nrow(X),lambda=exp(X%*%b)))
 #'}
-#'eval_design_mc(designpois,~a+b,0.2,nsim=1000,glmfamily="poisson",rfunction=rrate,
+#'eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson",rfunction=rrate,
 #'               anticoef=c(log(0.2),log(2),log(2)))
 #'#where the anticipated coefficients are chosen to set the base rate at 0.2
 #'#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-                          randomeffects=NULL, delta=2, conservative=FALSE, parallel=FALSE) {
+                          randomeffects=NULL, delta=2, varianceratio = 1,
+                          conservative=FALSE, parallel=FALSE) {
 
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
     contrastslist[x] = "contr.sum"
+  }
+
+  if(length(contrastslist) < 1) {
+    contrastslist = NULL
   }
 
   if(!is.null(randomeffects)) {
@@ -170,7 +192,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     if(any(lapply(BlockedRunMatrix,class) == "factor")) {
       blockedcontrastslist = list()
       for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
-        blockedcontrastslist[x] = contrasts
+        blockedcontrastslist[x] = "contr.sum"
       }
       attr(BlockedRunMatrix,"modelmatrix") = model.matrix(reformulate(termlabels = randomvars),BlockedRunMatrix,contrasts.arg=blockedcontrastslist)
     } else {
@@ -212,12 +234,12 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
       if(!is.null(randomeffects)) {
         BlockedRunMatrix$Y = rfunction(attr(BlockedRunMatrix,"modelmatrix"),
-                                       blockedanticoef*delta/sqrt(1+nrow(BlockedRunMatrix)/nrow(RunMatrixReduced))*1/2)
+                                       blockedanticoef*delta/sqrt(varianceratio+nrow(BlockedRunMatrix)/nrow(RunMatrixReduced))*1/2)
       }
 
       if(!is.null(randomeffects)) {
         if(glmfamily == "gaussian") {
-          fit = lme4::lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
+          fit = nlme::lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
           fitblock = lm(model_formula_blocked, data=BlockedRunMatrix, contrasts = blockedcontrastslist)
         } else {
           fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
@@ -234,9 +256,13 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
         } else {
           blockedcoefs = coef(summary.glm(fitblock))[,4]
         }
-        # use normal distribution to approximate p-value
-        # coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
+        #if any NaN in blocked, set all to 1-alpha
+        if(any(is.nan(blockedcoefs[,4]))) {
+          blockedcoefs[,4] = rep(1,length(blockedcoefs[,4]))
+        }
+
         pvals = c(coefs[-1,5],blockedcoefs[,4])
+
         #determine whether beta[i] is significant. If so, increment nsignificant
         for(i in 1:length(pvals)) {
           if (pvals[i] < alpha) {
@@ -269,19 +295,58 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (i = 1:nsim, .combine = "+") %dopar% {
+    power_values = foreach::foreach (j = 1:nsim, .combine = "+") %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
+      if(!is.null(randomeffects)) {
+        BlockedRunMatrix$Y = rfunction(attr(BlockedRunMatrix,"modelmatrix"),
+                                       blockedanticoef*delta/sqrt(varianceratio+nrow(BlockedRunMatrix)/nrow(RunMatrixReduced))*1/2)
+      }
 
-      #fit a model to the simulated data.
-      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      if(!is.null(randomeffects)) {
+        if(glmfamily == "gaussian") {
+          fit = nlme::lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
+          fitblock = lm(model_formula_blocked, data=BlockedRunMatrix, contrasts = blockedcontrastslist)
+        } else {
+          fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+          fitblock = lme4::glmer(model_formula_blocked, family=glmfamily, data=BlockedRunMatrix,contrasts = blockedcontrastslist)
+        }
+      } else {
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      }
 
-      #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = coef(summary.glm(fit))[,4]
-      for(i in 1:length(pvals)) {
-        if (pvals[i] < alpha) {
-          power_values[i] = power_values[i] + 1
+      if(!is.null(randomeffects)) {
+        coefs <- data.frame(coef(summary(fit)))
+        if(glmfamily == "gaussian") {
+          blockedcoefs = data.frame(coef(summary(fitblock)))
+        } else {
+          blockedcoefs = coef(summary.glm(fitblock))[,4]
+        }
+        #if any NaN in blocked, set all to 1-alpha
+        if(any(is.nan(blockedcoefs[,4]))) {
+          blockedcoefs[,4] = rep(1,length(blockedcoefs[,4]))
+        }
+
+        pvals = c(coefs[-1,5],blockedcoefs[,4])
+
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        for(i in 1:length(pvals)) {
+          if (pvals[i] < alpha) {
+            power_values[i] = power_values[i] + 1
+          }
+        }
+
+        if(j == 1) {
+          names = c(rownames(coefs)[-1],rownames(blockedcoefs))
+        }
+      } else {
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        pvals = coef(summary.glm(fit))[,4]
+        for(i in 1:length(pvals)) {
+          if (pvals[i] < alpha) {
+            power_values[i] = power_values[i] + 1
+          }
         }
       }
       power_values

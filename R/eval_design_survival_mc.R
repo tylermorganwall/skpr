@@ -29,7 +29,8 @@
 #'
 #'#We first generate simple 2-level design using expand.grid:
 #'basicdesign = expand.grid(a=c(-1,1))
-#'designcoffee = gen_design(basicdesign,~a,100,"D",100)
+#'design = gen_design(factorial=basicdesign,model=~a,trials=100,
+#'                          optimality="D",repeats=100)
 #'
 #'#We want to evaluate this design with a Monte Carlo approach, taking into account
 #'#that some of the points will be censored. In this case, we need
@@ -48,8 +49,8 @@
 #'
 #'#We can then evaluate the power of the design in the same way as eval_design_mc:
 #'
-#'eval_design_survival_mc(designcoffee,~a,0.05,1000,"exponential",rsurvival,
-#'                        delta=1)
+#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
+#'                        distribution="exponential",rfunctionsurv=rsurvival, delta=1)
 #'
 #'#We can also evaluate different censored distributions by specifying a different
 #'#random generating function and changing the distribution argument. You can also
@@ -63,11 +64,12 @@
 #'  return(Surv(time=Y,event=!censored,type="right"))
 #'}
 #'
-#'eval_design_survival_mc(designcoffee,~a,0.2,1000,"lognormal",rlognorm,
-#'                        anticoef=c(0.184,0.101),delta=2,scale=0.4)
-#'
 #'#The argument "scale" was not specified in eval_design_survival_mc, but it was passed into
 #'#the survreg function call.
+#'
+#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.2,nsim=1000,
+#'                        distribution="lognormal",rfunctionsurv=rlognorm,
+#'                        anticoef=c(0.184,0.101),delta=2,scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,
                           anticoef, delta=2, conservative=FALSE, parallel=FALSE, ...) {
 
@@ -81,6 +83,10 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
     } else {
       attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
     }
+  }
+
+  if(length(contrastslist) < 1) {
+    contrastslist = NULL
   }
 
   #remove columns from variables not used in the model
@@ -147,9 +153,9 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = summary(fit)$table[,4]
 
-      for(i in 1:length(pvals)) {
-        if (pvals[i] < alpha) {
-          power_values[i] = power_values[i] + 1
+      for(j in 1:length(pvals)) {
+        if (pvals[j] < alpha) {
+          power_values[j] = power_values[j] + 1
         }
       }
       power_values

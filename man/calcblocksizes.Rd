@@ -17,8 +17,5 @@ The blocksize vector
 \description{
 Calculate block size vector
 }
-\examples{
-mean(1)
-}
 \keyword{internal}
 

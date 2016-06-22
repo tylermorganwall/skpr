@@ -23,13 +23,13 @@ eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
 \item{rfunction}{Random number generator function. Should be a function of the form f(X,b), where X is the
 model matrix and b are the anticipated coefficients.}
 
-\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
-automatically generated.}
+\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
+will be automatically generated based on the delta argument.}
 
 \item{randomeffects}{A formula specifying the model for the blocking effects.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
-Anticipated coefficients will be half of this number.}
+\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
+and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
 
 \item{varianceratio}{Default 1. The ratio of the whole plot variance to the run-to-run variance.}
 

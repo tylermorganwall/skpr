@@ -11,10 +11,10 @@
 #'@param rfunctionsurv Random number generator function. Should be a function of the form f(X,b), where X is the
 #'model matrix and b are the anticipated coefficients. This function should return a Surv object from
 #'the survival package.
-#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
-#'automatically generated.
-#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
-#'Anticipated coefficients will be half of this number.
+#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
+#'will be automatically generated based on the delta argument.
+#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
+#'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients

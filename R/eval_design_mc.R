@@ -11,11 +11,11 @@
 #'(e.g. gaussian, binomial, poisson)
 #'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
 #'model matrix and b are the anticipated coefficients.
-#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
-#'automatically generated.
+#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
+#'will be automatically generated based on the delta argument.
 #'@param randomeffects A formula specifying the model for the blocking effects.
-#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
-#'Anticipated coefficients will be half of this number.
+#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
+#'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta
 #'@param varianceratio Default 1. The ratio of the whole plot variance to the run-to-run variance.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative

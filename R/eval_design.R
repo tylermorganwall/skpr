@@ -11,10 +11,10 @@
 #'generate the design, or include higher order effects not in the original design generation.
 #'@param alpha The specified type-I error.
 #'@param blockmodel A formula specifing the blocking factors.
-#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
-#'automatically generated.
-#'@param delta The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
-#'Anticipated coefficients will be half of this number.
+#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
+#'will be automatically generated based on the delta argument.
+#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
+#'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta. If you do specify anticoef, leave delta at its default of 2.
 #'@param varianceratio Default 1. The ratio of the whole plot variance to the run-to-run variance.
 #'@param contrasts A string specifying how to treat the contrasts in calculating the model matrix.
 #'@param conservative Default FALSE. Specifies whether default method for generating

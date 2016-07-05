@@ -7,8 +7,7 @@
 #'@param alpha the specified type-I error
 #'@return The parameter power for the parameters
 #'@keywords internal
-#'@examples mean(1)
-parameterpower = function(RunMatrix,anticoef,alpha) {
+parameterpower = function(RunMatrix,anticoef,alpha,blockvar=rep(0,length(anticoef)),varianceratio=1) {
   #Generating the parameter isolating vectors
   Q = vector("list",dim(attr(RunMatrix,"modelmatrix"))[2])
   for(i in 1:length(Q)) {
@@ -19,7 +18,7 @@ parameterpower = function(RunMatrix,anticoef,alpha) {
 
   power = c(length(Q))
   for(j in 1:length(Q)) {
-    power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),Q[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),Q[[j]],anticoef),alpha)
+    power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),Q[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),Q[[j]],anticoef,V=Q[[j]]%*%blockvar,varianceratio=varianceratio),alpha)
   }
 
   return(power)

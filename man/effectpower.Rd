@@ -4,7 +4,8 @@
 \alias{effectpower}
 \title{Calculate Effect Power}
 \usage{
-effectpower(RunMatrix, levelvector, anticoef, alpha, priorcat)
+effectpower(RunMatrix, levelvector, anticoef, alpha, priorcat,
+  blockvar = NULL, varianceratio = 1)
 }
 \arguments{
 \item{levelvector}{The number of levels in each parameter (1st is always the intercept)}

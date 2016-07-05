@@ -6,7 +6,6 @@
 #'@keywords internal
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)
-#'@examples mean(1)
 priorlevels = function(levelvector) {
   sum = 0
   priors = c(0)

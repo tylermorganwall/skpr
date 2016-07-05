@@ -23,11 +23,11 @@ eval_design_survival_mc(RunMatrix, model, alpha, nsim, distribution,
 model matrix and b are the anticipated coefficients. This function should return a Surv object from
 the survival package.}
 
-\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
-automatically generated.}
+\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
+will be automatically generated based on the delta argument.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
-Anticipated coefficients will be half of this number.}
+\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
+and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
@@ -51,7 +51,8 @@ using the survival package and survreg to fit the data.
 
 #We first generate simple 2-level design using expand.grid:
 basicdesign = expand.grid(a=c(-1,1))
-designcoffee = gen_design(basicdesign,~a,100,"D",100)
+design = gen_design(factorial=basicdesign,model=~a,trials=100,
+                         optimality="D",repeats=100)
 
 #We want to evaluate this design with a Monte Carlo approach, taking into account
 #that some of the points will be censored. In this case, we need
@@ -70,8 +71,8 @@ rsurvival = function(X,b) {
 
 #We can then evaluate the power of the design in the same way as eval_design_mc:
 
-eval_design_survival_mc(designcoffee,~a,0.05,1000,"exponential",rsurvival,
-                       delta=1)
+eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
+                       distribution="exponential",rfunctionsurv=rsurvival, delta=1)
 
 #We can also evaluate different censored distributions by specifying a different
 #random generating function and changing the distribution argument. You can also
@@ -85,10 +86,11 @@ rlognorm = function(X,b) {
  return(Surv(time=Y,event=!censored,type="right"))
 }
 
-eval_design_survival_mc(designcoffee,~a,0.2,1000,"lognormal",rlognorm,
-                       anticoef=c(0.184,0.101),delta=2,scale=0.4)
-
 #The argument "scale" was not specified in eval_design_survival_mc, but it was passed into
 #the survreg function call.
+
+eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.2,nsim=1000,
+                       distribution="lognormal",rfunctionsurv=rlognorm,
+                       anticoef=c(0.184,0.101),delta=2,scale=0.4)
 }
 

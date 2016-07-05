@@ -4,7 +4,8 @@
 \alias{parameterpower}
 \title{Calculates parameter power}
 \usage{
-parameterpower(RunMatrix, anticoef, alpha)
+parameterpower(RunMatrix, anticoef, alpha, blockvar = rep(0,
+  length(anticoef)), varianceratio = 1)
 }
 \arguments{
 \item{anticoef}{The anticipated coefficients}
@@ -18,9 +19,6 @@ The parameter power for the parameters
 }
 \description{
 Calculates parameter power
-}
-\examples{
-mean(1)
 }
 \keyword{internal}
 

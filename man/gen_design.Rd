@@ -5,8 +5,8 @@
 \title{Generates the optimal run matrix from full factorial, model, optimality criterion,
 and desired number of runs.}
 \usage{
-gen_design(factorial, model, trials, wholeblock, blocksize, optimality = "D",
-  repeats = 100, ...)
+gen_design(factorial, model, trials, wholeblock = NULL, blocksize = NULL,
+  optimality = "D", repeats = 100, ...)
 }
 \arguments{
 \item{factorial}{A full factorial test matrix generated for the factors in the model. If

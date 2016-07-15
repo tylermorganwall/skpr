@@ -22,12 +22,13 @@
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 #'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
+#'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@return A data frame consisting of the parameters and their powers
 #'@import AlgDesign foreach doParallel
 #'@export
 #'@examples #We first generate a full factorial design using expand.grid:
-eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, fitfunction, rfunction, pvalfunction, anticoef,
-                          delta=2, conservative=FALSE, parallel=FALSE) {
+eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, fitfunction, rfunction, pvalfunction,
+                                 anticoef, delta=2, conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
 
   if(is.null(attr(RunMatrix,"modelmatrix"))) {
     contrastslist = list()
@@ -87,7 +88,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, fitfunction, rfu
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (i = 1:nsim, .combine = "+") %dopar% {
+    power_values = foreach::foreach (i = 1:nsim, .combine = "+",.packages = parallelpackages) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)

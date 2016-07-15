@@ -7,11 +7,11 @@
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations.
+#'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
+#'model matrix and b are the anticipated coefficients.
 #'@param fitfunction Function from library used to evaluate fit. Should be of the form f(formula, X, contrasts)
 #'where X is the model matrix. If contrasts do not need to be specified for the user supplied
 #'library, that argument can be ignored.
-#'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
-#'model matrix and b are the anticipated coefficients.
 #'@param pvalfunction Function that returns a vector of pvals from the object returned from the fitfunction.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
@@ -26,8 +26,63 @@
 #'@return A data frame consisting of the parameters and their powers
 #'@import AlgDesign foreach doParallel
 #'@export
-#'@examples #We first generate a full factorial design using expand.grid:
-eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, fitfunction, rfunction, pvalfunction,
+#'@examples #To demonstrate how a user can use their own libraries for Monte Carlo power generation,
+#'#We will recreate eval_design_survival_mc using the eval_design_custom_mc framework.
+#'#To begin, first let us generate the same design and random generation function shown in the
+#'#eval_design_survival_mc examples:
+#'
+#'basicdesign = expand.grid(a=c(-1,1))
+#'design = gen_design(factorial=basicdesign,model=~a,trials=100,
+#'                          optimality="D",repeats=100)
+#'
+#'#Random number generating function
+#'rsurvival = function(X,b) {
+#'  Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
+#'  censored = Y > 1
+#'  Y[censored] = 1
+#'  return(Surv(time=Y,event=!censored,type="right"))
+#'}
+#'
+#'#We now need to tell the package how we want to fit our data,
+#'#given the formula and the model matrix X (and, if needed, the list of contrasts).
+#'#If the contrasts aren't required, "contrastlist" should be set to NULL.
+#'#This should return some type of fit object.
+#'
+#'fitsurv = function(formula, X, contrastlist=NULL) {
+#'  return(survreg(formula, data=X,dist="exponential"))
+#'}
+#'
+#'
+#'#We now need to tell the package how to extract the p-values from the fit object returned
+#'#from the fitfunction. This is how to extract the p-values from the survreg fit object:
+#'
+#'pvalsurv = function(fit) {
+#'  return(summary(fit)$table[,4])
+#'}
+#'
+#'#And now we evaluate the design, passing the fitting function and p-value extracting function
+#'#in along with the standard inputs for eval_design_mc.
+#'
+#'eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
+#'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1)
+#'
+#'#This has the exact same behavior as eval_design_survival_mc.
+#'
+#'#-----Cookbook of extractor functions for various libraries-----#
+#'
+#'#glm:
+#'
+#'#bbmle (mle2):
+#'
+#'
+#'#fit.f = mle2(Y~,data=RunMatrix)
+#'
+#'#pvals = coef(bbmle::summary(fit.f))[,4]
+#'
+#'#aov
+#'
+#'#fit = aov(y ~ A + B + A:B, data=mydataframe)
+eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, delta=2, conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
 
   if(is.null(attr(RunMatrix,"modelmatrix"))) {

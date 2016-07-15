@@ -108,7 +108,7 @@ gen_design = function(factorial, model, trials, wholeblock=NULL, blocksize=NULL,
   }
 
   #replicates the pool of design points because AlgDesign samples without replacement
-  factorial = do.call("rbind", replicate(trials, factorial, simplify = FALSE))
+  factorial = do.call("rbind", replicate(ceiling(trials/2), factorial, simplify = FALSE))
 
   if(!blocking) {
     dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,

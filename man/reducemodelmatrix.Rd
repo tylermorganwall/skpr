@@ -17,8 +17,5 @@ The reduced model matrix
 \description{
 Remove columns not in model
 }
-\examples{
-mean(1)
-}
 \keyword{internal}
 

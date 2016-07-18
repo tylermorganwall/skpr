@@ -5,7 +5,8 @@
 \title{Calculates Power Given a Run Matrix}
 \usage{
 eval_design(RunMatrix, model, alpha, blockmodel = NULL, anticoef = NULL,
-  delta = 2, contrasts = "contr.sum", conservative = FALSE)
+  delta = 2, varianceratio = 1, contrasts = "contr.sum",
+  conservative = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix being evaluated.}
@@ -15,11 +16,15 @@ generate the design, or include higher order effects not in the original design 
 
 \item{alpha}{The specified type-I error.}
 
-\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients will be
-automatically generated.}
+\item{blockmodel}{A formula specifing the blocking factors.}
 
-\item{delta}{The signal-to-noise ratio.Default 2. This specifies the difference between the high and low levels.
-Anticipated coefficients will be half of this number.}
+\item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
+will be automatically generated based on the delta argument.}
+
+\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
+and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta. If you do specify anticoef, leave delta at its default of 2.}
+
+\item{varianceratio}{Default 1. The ratio of the whole plot variance to the run-to-run variance.}
 
 \item{contrasts}{A string specifying how to treat the contrasts in calculating the model matrix.}
 
@@ -82,5 +87,21 @@ eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,
 
 #You can also evaluate the design with higher order effects:
 eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
+
+#Blocked designs can also be evaluated by specifying the blocking model.
+
+#Generating blocked design
+coffeeblocks = expand.grid(caffeine=c(1,-1))
+coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
+coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
+                              wholeblock=coffeeblockdesign, blocksize=3)
+
+#Evaluating design
+eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine)
+
+#We can also evaluate the design with a custom ratio between the whole plot error to
+#the run-to-run error.
+eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine,
+           varianceratio=2)
 }
 

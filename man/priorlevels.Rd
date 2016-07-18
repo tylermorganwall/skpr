@@ -16,8 +16,5 @@ of levels preceeding each parameter (including the intercept)
 \description{
 Returns number of levels prior to each parameter
 }
-\examples{
-mean(1)
-}
 \keyword{internal}
 

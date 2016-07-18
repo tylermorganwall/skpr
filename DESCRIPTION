@@ -15,4 +15,6 @@ Depends:
 Imports:
   AlgDesign,
   nlme,
-  lme4
+  lme4,
+  Rcpp (>= 0.11.0)
+LinkingTo: Rcpp, RcppArmadillo

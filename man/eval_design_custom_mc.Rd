@@ -58,6 +58,7 @@ basicdesign = expand.grid(a=c(-1,1))
 design = gen_design(factorial=basicdesign,model=~a,trials=100,
                          optimality="D",repeats=100)
 
+#Random number generating function
 rsurvival = function(X,b) {
  Y = rexp(n=nrow(X),rate=exp(-(X \%*\% b)))
  censored = Y > 1
@@ -67,7 +68,9 @@ rsurvival = function(X,b) {
 
 #We now need to tell the package how we want to fit our data,
 #given the formula and the model matrix X (and, if needed, the list of contrasts).
-#This should return some sort of fit object.
+#If the contrasts aren't required, "contrastlist" should be set to NULL.
+#This should return some type of fit object.
+
 fitsurv = function(formula, X, contrastlist=NULL) {
  return(survreg(formula, data=X,dist="exponential"))
 }
@@ -75,13 +78,32 @@ fitsurv = function(formula, X, contrastlist=NULL) {
 
 #We now need to tell the package how to extract the p-values from the fit object returned
 #from the fitfunction. This is how to extract the p-values from the survreg fit object:
+
 pvalsurv = function(fit) {
  return(summary(fit)$table[,4])
 }
 
-#We can then evaluate the power of the design in the same way as eval_design_mc:
+#And now we evaluate the design, passing the fitting function and p-value extracting function
+#in along with the standard inputs for eval_design_mc.
 
 eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1)
+
+#This has the exact same behavior as eval_design_survival_mc.
+
+#-----Cookbook of extractor functions for various libraries-----#
+
+#glm:
+
+#bbmle (mle2):
+
+
+#fit.f = mle2(Y~,data=RunMatrix)
+
+#pvals = coef(bbmle::summary(fit.f))[,4]
+
+#aov
+
+#fit = aov(y ~ A + B + A:B, data=mydataframe)
 }
 

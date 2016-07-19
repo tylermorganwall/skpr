@@ -120,6 +120,7 @@ gen_design = function(factorial, model, trials, wholeblock=NULL, blocksize=NULL,
                                         nRepeats = repeats, ...)
   }
 
+
   mm = dfmodelmatrix[["design"]]
   attr(mm,"D") = dfmodelmatrix[["D"]]
   attr(mm,"A") = dfmodelmatrix[["A"]]
@@ -129,5 +130,9 @@ gen_design = function(factorial, model, trials, wholeblock=NULL, blocksize=NULL,
     attr(mm,"I") = dfmodelmatrix[["I"]]
   }
   attr(mm,"Dp") = dfmodelmatrix[["Dp"]]
+  if(blocking) {
+    rownames(mm) = sprintf("%.1f",as.numeric(rownames(mm)))
+  }
+
   return(mm)
 }

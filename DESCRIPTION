@@ -16,5 +16,6 @@ Imports:
   AlgDesign,
   nlme,
   lme4,
+  RcppArmadillo,
   Rcpp (>= 0.11.0)
 LinkingTo: Rcpp, RcppArmadillo

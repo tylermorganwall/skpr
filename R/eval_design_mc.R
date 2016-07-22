@@ -97,19 +97,19 @@
 #'
 #'#We can also evaluate split-plot designs by specifying the randomeffects argument.
 #'
-#'blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))
+#'\dontrun{blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))}
 #'
 #'#5 runs per block
-#'designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
-#'                           wholeblock=blocking, blocksize=5)
-#'
-#'eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)
+#'\dontrun{designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
+#'                           wholeblock=blocking, blocksize=5)}
+
+#'\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)}
 #'
 #'#We can also evaluate the design with a custom ratio between the whole plot error to
 #'#the run-to-run error.
-#'eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)
+#'\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)}
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design and see
@@ -155,7 +155,7 @@
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
                           blockfunction=NULL, delta=2, blocknoise = NULL,
                           conservative=FALSE, parallel=FALSE) {
-
+  blocking = FALSE
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
     contrastslist[x] = "contr.sum"
@@ -178,13 +178,15 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     listblocknoise = list()
   }
 
-  for(i in 1:length(blockgroups)) {
-    blocktemp = list()
-    for(j in 1:length(blockgroups[[i]])) {
-      row = replicate(nsim,blockfunction(blocknoise[i]))
-      blocktemp[[j]] = do.call(rbind, replicate(blockgroups[[i]][j],row,simplify = FALSE))
+  if(!is.null(blocknoise)) {
+    for(i in 1:length(blockgroups)) {
+      blocktemp = list()
+      for(j in 1:length(blockgroups[[i]])) {
+        row = replicate(nsim,blockfunction(blocknoise[i]))
+        blocktemp[[j]] = do.call(rbind, replicate(blockgroups[[i]][j],row,simplify = FALSE))
+      }
+      listblocknoise[[i]] = do.call(rbind,blocktemp)
     }
-    listblocknoise[[i]] = do.call(rbind,blocktemp)
   }
 
   if(!is.null(blocknoise)) {
@@ -223,8 +225,15 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
 
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
-
-      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      if (blocking) {
+        if(glmfamily == "gaussian") {
+          fit = lme4::lmer(fixed=model_formula, data=RunMatrixReduced, contrasts = contrastlist)
+        } else {
+          fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+        }
+      } else {
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      }
       parameters = rownames(coef(summary.glm(fit)))
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = coef(summary.glm(fit))[,4]

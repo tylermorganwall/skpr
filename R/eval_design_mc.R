@@ -179,7 +179,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
   }
 
   if(!is.null(blocknoise)) {
-    for(i in 1:length(blockgroups)) {
+    for(i in 1:(length(blockgroups)-1)) {
       blocktemp = list()
       for(j in 1:length(blockgroups[[i]])) {
         row = replicate(nsim,blockfunction(blocknoise[i]))
@@ -192,6 +192,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
   if(!is.null(blocknoise)) {
     totalblocknoise = do.call("+",listblocknoise)
   }
+
 
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
@@ -210,14 +211,25 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
   }
 
-  model_formula = update.formula(model, Y ~ .)
-  RunMatrixReduced$Y = 1
   contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
   responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2))
 
+  genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
+
   if(!is.null(blocknoise)) {
+    blockindicators = lapply(blockgroups,genBlockIndicators)
     responses = responses + totalblocknoise
+    blocknumber = length(blockgroups)-1
+    for(i in 1:(length(blockgroups)-1)) {
+      RunMatrixReduced[paste("Block",i,sep="")] = blockindicators[[i]]
+    }
+    #Adding random block variables to formula
+    blockform = paste(c("~. + (1 | ",paste(paste("Block",length(blockgroups)-1, sep=""),collapse=" + "), ")"),collapse="")
+    model = update.formula(model, blockform)
   }
+
+  model_formula = update.formula(model, Y ~ .)
+  RunMatrixReduced$Y = 1
 
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
@@ -227,9 +239,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {
         if(glmfamily == "gaussian") {
-          fit = lme4::lmer(fixed=model_formula, data=RunMatrixReduced, contrasts = contrastlist)
+          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastlist)
         } else {
-          fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastlist)
         }
       } else {
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)

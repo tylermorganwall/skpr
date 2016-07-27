@@ -86,53 +86,72 @@
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#and eval_design_survival_mc (Monte Carlo survival analysis)
-gen_design = function(factorial, model, trials, wholeblock=NULL, blocksize=NULL,
-                       optimality="D",repeats=100, ...) {
-  blocking = FALSE
+gen_design = function(factorial, model, trials, optimality="D",repeats=5, contrast = "contr.sum", ...) {
 
-  if(!missing(wholeblock)) {
-    blocking = TRUE
-    if(missing(blocksize)) {
-      stop("Need blocksize as input for blocked design")
-    }
-  }
-  if(ceiling(trials/blocksize) != nrow(wholeblock) && length(blocksize) == 1) {
-    min = nrow(wholeblock)*(blocksize)-blocksize+1
-    max = nrow(wholeblock)*(blocksize)
-    stop(paste("For given blocking factor(s) and block size, minimum number of runs for this design is:",
-                  min, "and the maximum is:", max))
+  contrastslist = list()
+  for(x in names(factorial[sapply(factorial,class) == "factor"])) {
+    contrastslist[x] = contrast
   }
 
-  if(length(blocksize) > 1 && length(blocksize) != nrow(wholeblock)) {
-    stop("Custom blocksize vector must be equal in length to number of wholeblock runs")
-  }
-
-  #replicates the pool of design points because AlgDesign samples without replacement
-  factorial = do.call("rbind", replicate(ceiling(trials/2), factorial, simplify = FALSE))
-
-  if(!blocking) {
-    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,
-                                        criterion = optimality,nRepeats = repeats, ...)
+  if(length(contrastslist) == 0) {
+    factorialmm = model.matrix(model,factorial)
   } else {
-    dfmodelmatrix = AlgDesign::optBlock(frml=model,withinData=factorial,
-                                        blocksizes=calcblocksizes(trials,blocksize),
-                                        wholeBlockData=wholeblock,criterion = optimality,
-                                        nRepeats = repeats, ...)
+    factorialmm = model.matrix(model,factorial,contrasts.arg=contrastslist)
   }
 
+  factors = colnames(factorialmm)
+  mm = gen_momentsmatrix(factors)
 
-  mm = dfmodelmatrix[["design"]]
-  attr(mm,"D") = dfmodelmatrix[["D"]]
-  attr(mm,"A") = dfmodelmatrix[["A"]]
-  attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
-  attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-  if(!is.null(dfmodelmatrix[["I"]])) {
-    attr(mm,"I") = dfmodelmatrix[["I"]]
-  }
-  attr(mm,"Dp") = dfmodelmatrix[["Dp"]]
-  if(blocking) {
-    rownames(mm) = sprintf("%.1f",as.numeric(rownames(mm)))
+  initialreplace = FALSE
+  if(trials > nrow(factorial)) {
+    initialreplace = TRUE
   }
 
-  return(mm)
+  genOutput = list(repeats)
+
+  for(i in 1:repeats) {
+    randomIndices = sample(nrow(factorialmm), trials, replace = initialreplace)
+    genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                    condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+  }
+
+  designs = list(repeats)
+  rowIndicies = list(repeats)
+
+  for(i in 1:repeats) {
+    designs[i] = genOutput[[i]]["modelmatrix"]
+    rowIndicies[i] = genOutput[[i]]["indices"]
+  }
+
+  if(optimality == "D") {
+    best = which.max(lapply(designs, DOptimality))
+    designmm = designs[[best]]
+    rowindex = rowIndicies[[best]]
+  }
+
+  if(optimality == "A") {
+    best = which.max(lapply(designs, AOptimality))
+    designmm = designs[[best]]
+    rowindex = rowIndicies[[best]]
+  }
+
+  if(optimality == "I") {
+    best = which.max(lapply(designs, IOptimality))
+    designmm = designs[[best]]
+    rowindex = rowIndicies[[best]]
+  }
+  colnames(designmm) = factors
+
+  design = constructRunMatrix(rowIndices = rowindex, candidateList = factorial)
+
+  attr(design,"D-Efficiency") = DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
+  attr(design,"A") = AOptimality(as.matrix(designmm))
+  attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
+  attr(design,"model.matrix") = designmm
+  attr(design,"generating.model") = model
+  attr(design,"generating.criterion") = optimality
+  attr(design,"generating.contrast") = contrast
+  rownames(design) = 1:nrow(design)
+
+  return(design)
 }

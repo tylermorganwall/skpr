@@ -7,20 +7,12 @@ double delta(arma::mat V, arma::mat x, arma::mat y) {
   return(as_scalar(-x*V*x.t() + y*V*y.t() + (y*V*x.t())*(y*V*x.t()) - (x*V*x.t())*(y*V*y.t())));
 }
 
-bool isSingular(arma::mat X) {
-  try {
-    //(X.t()*X).inv_sympd();
-  }
-  catch (exception& e){
-    return(FALSE);
-  }
-  return(TRUE);
-}
 double calculateIOptimality(arma::mat currentDesign, const arma::mat momentsMatrix) {
   double variance = trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix);
   return(variance);
 }
 
+//Function to calculate the A-optimality
 double calculateAOptimality(arma::mat currentDesign) {
   double variance = trace(inv_sympd(currentDesign.t()*currentDesign));
   return(variance);
@@ -41,6 +33,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
   if(nTrials <= candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
+  //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
@@ -51,10 +44,12 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       }
       check++;
     }
+    //If still no non-singular design, throws and error and exits.
     if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
       throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
     }
   }
+  //Generate a D-optimal design
   if(condition == "D") {
     for (int i = 0; i < nTrials; i++) {
       bool found = FALSE;
@@ -79,6 +74,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       }
     }
   }
+  //Generate an I-optimal design
   if(condition == "I") {
     double del = calculateIOptimality(initialdesign,momentsmatrix);
     for (int i = 0; i < nTrials; i++) {
@@ -87,6 +83,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       int entryy = 0;
       arma::mat temp = initialdesign;
       for (int j = 0; j < totalPoints; j++) {
+        //Checks for singularity; If singular, moves to next candidate in the candidate set
         try {
           temp.row(i) = candidatelist.row(j);
           double newdel = calculateIOptimality(temp,momentsmatrix);
@@ -108,6 +105,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       }
     }
   }
+  //Generate an A-optimal design
   if(condition == "A") {
     double del = calculateAOptimality(initialdesign);
     for (int i = 0; i < nTrials; i++) {
@@ -116,6 +114,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       int entryy = 0;
       arma::mat temp = initialdesign;
       for (int j = 0; j < totalPoints; j++) {
+        //Checks for singularity; If singular, moves to next candidate in the candidate set
         try {
           temp.row(i) = candidatelist.row(j);
           double newdel = calculateAOptimality(temp);
@@ -137,5 +136,6 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       }
     }
   }
+  //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign));
 }

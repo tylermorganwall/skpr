@@ -86,7 +86,44 @@
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#and eval_design_survival_mc (Monte Carlo survival analysis)
-gen_design = function(factorial, model, trials, optimality="D",repeats=5, contrast = "contr.sum", ...) {
+gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
+                      optimality="D",repeats=5, contrast = "contr.sum", ...) {
+
+
+  #generate blocked design with replicates
+  if(!is.null(splitplotdesign)) {
+    blocking = TRUE
+    if(is.null(splitplotsizes)) {
+      stop("If split plot design provided, user needs to input split plot sizes as well")
+    }
+    if(trials != sum(splitplotsizes)) {
+      stop("Blocked replicates does not equal the number of trials input")
+    }
+    initialrownames = rownames(splitplotdesign)
+    blocklist = strsplit(initialrownames,".",fixed=TRUE)
+
+    if(any(lapply(blocklist,length) > 1)) {
+      existingBlockStructure = do.call(rbind,blocklist)
+      existingBlockStructure = existingBlockStructure[,-ncol(existingBlockStructure)]
+    }
+    withinBlockRun = function(runs) {return(1:runs)}
+
+    blockIndicators = rep(1:length(splitplotsizes),splitplotsizes)
+
+    blockvars = colnames(splitplotdesign)
+    blocks = list()
+    for(i in 1:length(blockIndicators)) {
+      blocks[[i]] = splitplotdesign[blockIndicators[i],]
+    }
+    blockRuns = c()
+    for(i in 1:length(splitplotsizes)) {
+      blockRuns = c(blockRuns,withinBlockRun(splitplotsizes[i]))
+    }
+
+    splitPlotReplicateDesign = do.call(rbind, blocks)
+    colnames(splitPlotReplicateDesign) = blockvars
+    rownames(splitPlotReplicateDesign) = paste(existingBlockStructure, blockIndicators, blockRuns,sep=".")
+  }
 
   contrastslist = list()
   for(x in names(factorial[sapply(factorial,class) == "factor"])) {
@@ -113,6 +150,10 @@ gen_design = function(factorial, model, trials, optimality="D",repeats=5, contra
     randomIndices = sample(nrow(factorialmm), trials, replace = initialreplace)
     genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
                                     condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+  }
+
+  if(blocking) {
+    return(splitPlotReplicateDesign)
   }
 
   designs = list(repeats)

@@ -41,7 +41,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // genOptimalDesign
-List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, arma::mat momentsmatrix, NumericVector initialRows);
+List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, const NumericVector initialRows);
 RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
@@ -49,8 +49,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type initialdesign(initialdesignSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type candidatelist(candidatelistSEXP);
     Rcpp::traits::input_parameter< const std::string >::type condition(conditionSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type momentsmatrix(momentsmatrixSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type momentsmatrix(momentsmatrixSEXP);
+    Rcpp::traits::input_parameter< const NumericVector >::type initialRows(initialRowsSEXP);
     __result = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows));
     return __result;
 END_RCPP

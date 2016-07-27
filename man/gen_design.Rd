@@ -5,7 +5,8 @@
 \title{Generates the optimal run matrix from full factorial, model, optimality criterion,
 and desired number of runs.}
 \usage{
-gen_design(factorial, model, trials, optimality = "D", repeats = 5,
+gen_design(factorial, model, trials, splitplotdesign = NULL,
+  splitplotsizes = NULL, optimality = "D", repeats = 5,
   contrast = "contr.sum", ...)
 }
 \arguments{

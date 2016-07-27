@@ -6,15 +6,52 @@
 
 using namespace Rcpp;
 
-// federov
-arma::mat federov(arma::mat initialdesign, arma::mat candidatelist);
-RcppExport SEXP skpr_federov(SEXP initialdesignSEXP, SEXP candidatelistSEXP) {
+// AOptimality
+double AOptimality(arma::mat currentDesign);
+RcppExport SEXP skpr_AOptimality(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    __result = Rcpp::wrap(AOptimality(currentDesign));
+    return __result;
+END_RCPP
+}
+// DOptimality
+double DOptimality(arma::mat currentDesign);
+RcppExport SEXP skpr_DOptimality(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    __result = Rcpp::wrap(DOptimality(currentDesign));
+    return __result;
+END_RCPP
+}
+// IOptimality
+double IOptimality(arma::mat currentDesign, const arma::mat momentsMatrix);
+RcppExport SEXP skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type momentsMatrix(momentsMatrixSEXP);
+    __result = Rcpp::wrap(IOptimality(currentDesign, momentsMatrix));
+    return __result;
+END_RCPP
+}
+// genOptimalDesign
+List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, arma::mat momentsmatrix, NumericVector initialRows);
+RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< arma::mat >::type initialdesign(initialdesignSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type candidatelist(candidatelistSEXP);
-    __result = Rcpp::wrap(federov(initialdesign, candidatelist));
+    Rcpp::traits::input_parameter< const std::string >::type condition(conditionSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type momentsmatrix(momentsmatrixSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
+    __result = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows));
     return __result;
 END_RCPP
 }

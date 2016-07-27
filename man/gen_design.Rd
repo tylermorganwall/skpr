@@ -5,8 +5,8 @@
 \title{Generates the optimal run matrix from full factorial, model, optimality criterion,
 and desired number of runs.}
 \usage{
-gen_design(factorial, model, trials, wholeblock = NULL, blocksize = NULL,
-  optimality = "D", repeats = 100, ...)
+gen_design(factorial, model, trials, optimality = "D", repeats = 5,
+  contrast = "contr.sum", ...)
 }
 \arguments{
 \item{factorial}{A full factorial test matrix generated for the factors in the model. If
@@ -17,15 +17,15 @@ set as a factor.}
 
 \item{trials}{The number of runs in the design.}
 
-\item{wholeblock}{A data frame specifying the blocking factors.}
-
-\item{blocksize}{The number of runs in each block.}
-
 \item{optimality}{The optimality criterion (e.g. "D")}
 
 \item{repeats}{The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.}
 
 \item{...}{Any additional arguments to be input into AlgDesign's optFederov during design generation.}
+
+\item{wholeblock}{A data frame specifying the blocking factors.}
+
+\item{blocksize}{The number of runs in each block.}
 }
 \value{
 The model matrix for the design, to be passed to eval_design. The model matrix

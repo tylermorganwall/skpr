@@ -1,5 +1,5 @@
 // [[Rcpp::depends(RcppArmadillo)]]
-
+#define ARMA_DONT_PRINT_ERRORS
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 
@@ -24,9 +24,9 @@ double calculateAOptimality(arma::mat currentDesign) {
 // [[Rcpp::export]]
 List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std::string condition,
                       const arma::mat momentsmatrix, const NumericVector initialRows) {
-  int maxSingularityChecks = 10;
   int check = 0;
   int nTrials = initialdesign.n_rows;
+  int maxSingularityChecks = nTrials;
   int totalPoints = candidatelist.n_rows;
   IntegerVector candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
@@ -35,14 +35,21 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
   }
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
-    std::ostream nullstream(0);
-    arma::set_stream_err2(nullstream);
-    while(!inv_sympd(test,initialdesign.t() * initialdesign) && check < maxSingularityChecks) {
-      arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-      for(int i = 0; i < nTrials; i++) {
-        initialdesign.row(i) = candidatelist.row(randomrows(i));
+    for(int j = 1; j < initialdesign.n_cols; j++) {
+      if(all(initialdesign.col(0) == initialdesign.col(j))) {
+        throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
       }
-      check++;
+    }
+    while(check < maxSingularityChecks) {
+      if(!inv_sympd(test,initialdesign.t() * initialdesign)) {
+        arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
+        for(int i = 0; i < nTrials; i++) {
+          initialdesign.row(i) = candidatelist.row(randomrows(i));
+        }
+        check++;
+      } else {
+        break;
+      }
     }
     //If still no non-singular design, throws and error and exits.
     if (!inv_sympd(test,initialdesign.t() * initialdesign)) {

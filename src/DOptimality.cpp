@@ -5,7 +5,9 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 double DOptimality(arma::mat currentDesign) {
-  double determinant = det(currentDesign.t()*currentDesign);
-  return(determinant);
+  double val;
+  double sign;
+  arma::log_det(val,sign,currentDesign.t()*currentDesign);
+  return(exp(val)*sign);
 }
 

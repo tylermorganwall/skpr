@@ -13,6 +13,10 @@ IOptimality <- function(currentDesign, momentsMatrix) {
     .Call('skpr_IOptimality', PACKAGE = 'skpr', currentDesign, momentsMatrix)
 }
 
+genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows) {
+    .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows)
+}
+
 genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows) {
     .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows)
 }

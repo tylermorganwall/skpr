@@ -8,7 +8,7 @@
 #'of levels preceeding each parameter (including the intercept)
 constructRunMatrix = function(rowIndices, candidateList) {
   trials = length(rowIndices)
-  runMatrix = candidateList[1:trials,]
+  runMatrix = as.data.frame(candidateList[1:trials,])
   colnames(runMatrix) = colnames(candidateList)
   for(i in 1:trials) {
     runMatrix[i,] = candidateList[rowIndices[i],]

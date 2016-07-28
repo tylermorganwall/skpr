@@ -89,7 +89,7 @@
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
                       optimality="D",repeats=5, contrast = "contr.sum", ...) {
 
-
+  blocking=FALSE
   #generate blocked design with replicates
   if(!is.null(splitplotdesign)) {
     blocking = TRUE
@@ -99,12 +99,18 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     if(trials != sum(splitplotsizes)) {
       stop("Blocked replicates does not equal the number of trials input")
     }
+    if(nrow(splitplotdesign) != length(splitplotsizes)) {
+      stop("Need to specify a size for each row in the given split plot design")
+    }
+    alreadyBlocking = FALSE
     initialrownames = rownames(splitplotdesign)
     blocklist = strsplit(initialrownames,".",fixed=TRUE)
 
     if(any(lapply(blocklist,length) > 1)) {
+      alreadyBlocking = TRUE
+      initialrownames = rep(rownames(splitplotdesign),splitplotsizes)
+      blocklist = strsplit(initialrownames,".",fixed=TRUE)
       existingBlockStructure = do.call(rbind,blocklist)
-      existingBlockStructure = existingBlockStructure[,-ncol(existingBlockStructure)]
     }
     withinBlockRun = function(runs) {return(1:runs)}
 
@@ -120,40 +126,58 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
       blockRuns = c(blockRuns,withinBlockRun(splitplotsizes[i]))
     }
 
-    splitPlotReplicateDesign = do.call(rbind, blocks)
+    splitPlotReplicateDesign = as.data.frame(do.call(rbind, blocks))
     colnames(splitPlotReplicateDesign) = blockvars
-    rownames(splitPlotReplicateDesign) = paste(existingBlockStructure, blockIndicators, blockRuns,sep=".")
+    if(alreadyBlocking) {
+      rownames(splitPlotReplicateDesign) = paste(initialrownames, blockRuns,sep=".")
+    } else {
+      rownames(splitPlotReplicateDesign) = paste(blockIndicators, blockRuns,sep=".")
+    }
   }
+
+  initialReplace = FALSE
+  if(trials > nrow(factorial)) {
+    initialReplace = TRUE
+  }
+
+  genOutput = list(repeats)
 
   contrastslist = list()
   for(x in names(factorial[sapply(factorial,class) == "factor"])) {
-    contrastslist[x] = contrast
+    contrastslist[x] = "contr.sum"
   }
-
   if(length(contrastslist) == 0) {
     factorialmm = model.matrix(model,factorial)
   } else {
     factorialmm = model.matrix(model,factorial,contrasts.arg=contrastslist)
   }
 
-  factors = colnames(factorialmm)
-  mm = gen_momentsmatrix(factors)
-
-  initialreplace = FALSE
-  if(trials > nrow(factorial)) {
-    initialreplace = TRUE
-  }
-
-  genOutput = list(repeats)
-
-  for(i in 1:repeats) {
-    randomIndices = sample(nrow(factorialmm), trials, replace = initialreplace)
-    genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                    condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
-  }
-
-  if(blocking) {
-    return(splitPlotReplicateDesign)
+  if(!blocking) {
+    factors = colnames(factorialmm)
+    mm = gen_momentsmatrix(factors)
+    for(i in 1:repeats) {
+      randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+      genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                      condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+    }
+  } else {
+    blockedContrastsList = list()
+    for(x in names(splitPlotReplicateDesign[sapply(splitPlotReplicateDesign,class) == "factor"])) {
+      blockedContrastsList[x] = "contr.sum"
+    }
+    if(length(blockedContrastsList) == 0) {
+      blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign)
+    } else {
+      blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
+    }
+    blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
+    blockedMM = gen_momentsmatrix(blockedFactors)
+    for(i in 1:repeats) {
+      randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+      genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                               candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                               condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+    }
   }
 
   designs = list(repeats)
@@ -168,31 +192,54 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     best = which.max(lapply(designs, DOptimality))
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
+    # lapply(designs,DOptimality)
   }
 
   if(optimality == "A") {
     best = which.max(lapply(designs, AOptimality))
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
+    # lapply(designs,AOptimality)
   }
 
   if(optimality == "I") {
-    best = which.max(lapply(designs, IOptimality))
+    if (!blocking) {
+      best = which.max(lapply(designs, IOptimality, momentsMatrix = mm))
+    } else {
+      best = which.max(lapply(designs, IOptimality, momentsMatrix = blockedMM))
+    }
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
+    #lapply(designs,IOptimality)
   }
-  colnames(designmm) = factors
+
+  if(!blocking) {
+    colnames(designmm) = factors
+  } else {
+    colnames(designmm) = blockedFactors
+  }
 
   design = constructRunMatrix(rowIndices = rowindex, candidateList = factorial)
 
+  if(blocking) {
+    design = cbind(splitPlotReplicateDesign,design)
+  }
   attr(design,"D-Efficiency") = DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
   attr(design,"A") = AOptimality(as.matrix(designmm))
-  attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
+  if(!blocking) {
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
+  } else {
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM)
+  }
   attr(design,"model.matrix") = designmm
   attr(design,"generating.model") = model
   attr(design,"generating.criterion") = optimality
   attr(design,"generating.contrast") = contrast
-  rownames(design) = 1:nrow(design)
+  if(!blocking) {
+    rownames(design) = 1:nrow(design)
+  } else {
+    rownames(design) = rownames(splitPlotReplicateDesign)
+  }
 
   return(design)
 }

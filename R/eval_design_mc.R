@@ -246,9 +246,13 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       } else {
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
       }
-      parameters = rownames(coef(summary.glm(fit)))
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = coef(summary.glm(fit))[,4]
+      if (glmfamily == "gaussian") {
+        coefs = data.frame(coef(summary(fit)))
+        pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
+      } else {
+        pvals = coef(summary.glm(fit))[,4]
+      }
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1
@@ -258,22 +262,33 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     power_values = power_values/nsim
 
     #output the results
-    return(data.frame(parameters=parameters,type=rep("parameter.power.mc",length(power_values)), power=power_values))
+    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (j = 1:nsim, .combine = "+") %dopar% {
+    power_values = foreach::foreach (j = 1:nsim, .combine = "+", .packages = c("lme4")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
-
       RunMatrixReduced$Y = responses[,j]
-
-      fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
-      parameters = rownames(coef(summary.glm(fit)))
-
+      if (blocking) {
+        if(glmfamily == "gaussian") {
+          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastlist)
+        } else {
+          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastlist)
+        }
+      } else {
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+      }
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = coef(summary.glm(fit))[,4]
+      if (glmfamily == "gaussian") {
+        parameters = rownames(coef(summary(fit)))
+        coefs = data.frame(coef(summary(fit)))
+        pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
+      } else {
+        parameters = rownames(coef(summary.glm(fit)))
+        pvals = coef(summary.glm(fit))[,4]
+      }
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1
@@ -285,7 +300,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     power_values = power_values/nsim
     #output the results
 
-    return(data.frame(parameters=parameters,type=rep("parameter.power.mc",length(power_values)), power=power_values))
+    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
   }
 }
 globalVariables('i')

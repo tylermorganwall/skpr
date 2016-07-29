@@ -86,48 +86,196 @@
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#and eval_design_survival_mc (Monte Carlo survival analysis)
-gen_design = function(factorial, model, trials, wholeblock=NULL, blocksize=NULL,
-                       optimality="D",repeats=100, ...) {
-  blocking = FALSE
+gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
+                      optimality="D",repeats=5, contrast = "contr.sum", parallel=FALSE,  ...) {
 
-  if(!missing(wholeblock)) {
+  blocking=FALSE
+  #generate blocked design with replicates
+  if(!is.null(splitplotdesign)) {
     blocking = TRUE
-    if(missing(blocksize)) {
-      stop("Need blocksize as input for blocked design")
+    if(is.null(splitplotsizes)) {
+      stop("If split plot design provided, user needs to input split plot sizes as well")
+    }
+    if(trials != sum(splitplotsizes)) {
+      stop("Blocked replicates does not equal the number of trials input")
+    }
+    if(nrow(splitplotdesign) != length(splitplotsizes)) {
+      stop("Need to specify a size for each row in the given split plot design")
+    }
+    alreadyBlocking = FALSE
+    initialrownames = rownames(splitplotdesign)
+    blocklist = strsplit(initialrownames,".",fixed=TRUE)
+
+    if(any(lapply(blocklist,length) > 1)) {
+      alreadyBlocking = TRUE
+      initialrownames = rep(rownames(splitplotdesign),splitplotsizes)
+      blocklist = strsplit(initialrownames,".",fixed=TRUE)
+      existingBlockStructure = do.call(rbind,blocklist)
+    }
+    withinBlockRun = function(runs) {return(1:runs)}
+
+    blockIndicators = rep(1:length(splitplotsizes),splitplotsizes)
+
+    blockvars = colnames(splitplotdesign)
+    blocks = list()
+    for(i in 1:length(blockIndicators)) {
+      blocks[[i]] = splitplotdesign[blockIndicators[i],]
+    }
+    blockRuns = c()
+    for(i in 1:length(splitplotsizes)) {
+      blockRuns = c(blockRuns,withinBlockRun(splitplotsizes[i]))
+    }
+
+    splitPlotReplicateDesign = as.data.frame(do.call(rbind, blocks))
+    colnames(splitPlotReplicateDesign) = blockvars
+    if(alreadyBlocking) {
+      rownames(splitPlotReplicateDesign) = paste(initialrownames, blockRuns,sep=".")
+    } else {
+      rownames(splitPlotReplicateDesign) = paste(blockIndicators, blockRuns,sep=".")
     }
   }
-  if(ceiling(trials/blocksize) != nrow(wholeblock) && length(blocksize) == 1) {
-    min = nrow(wholeblock)*(blocksize)-blocksize+1
-    max = nrow(wholeblock)*(blocksize)
-    stop(paste("For given blocking factor(s) and block size, minimum number of runs for this design is:",
-                  min, "and the maximum is:", max))
+
+  initialReplace = FALSE
+  if(trials > nrow(factorial)) {
+    initialReplace = TRUE
   }
 
-  if(length(blocksize) > 1 && length(blocksize) != nrow(wholeblock)) {
-    stop("Custom blocksize vector must be equal in length to number of wholeblock runs")
-  }
+  genOutput = list(repeats)
 
-  #replicates the pool of design points because AlgDesign samples without replacement
-  factorial = do.call("rbind", replicate(trials, factorial, simplify = FALSE))
+  contrastslist = list()
+  for(x in names(factorial[sapply(factorial,class) == "factor"])) {
+    contrastslist[x] = "contr.sum"
+  }
+  if(length(contrastslist) == 0) {
+    factorialmm = model.matrix(model,factorial)
+  } else {
+    factorialmm = model.matrix(model,factorial,contrasts.arg=contrastslist)
+  }
 
   if(!blocking) {
-    dfmodelmatrix = AlgDesign::optFederov(model,data=factorial,nTrials=trials,
-                                        criterion = optimality,nRepeats = repeats, ...)
+    factors = colnames(factorialmm)
+    mm = gen_momentsmatrix(factors)
+    if(!parallel) {
+      for(i in 1:repeats) {
+        randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+        genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                        condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+      }
+    } else {
+      cl <- parallel::makeCluster(parallel::detectCores())
+      doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+      genOutput = foreach(i=1:repeats) %dopar% {
+        randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+        genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+      }
+      parallel::stopCluster(cl)
+    }
   } else {
-    dfmodelmatrix = AlgDesign::optBlock(frml=model,withinData=factorial,
-                                        blocksizes=calcblocksizes(trials,blocksize),
-                                        wholeBlockData=wholeblock,criterion = optimality,
-                                        nRepeats = repeats, ...)
+    blockedContrastsList = list()
+    for(x in names(splitPlotReplicateDesign[sapply(splitPlotReplicateDesign,class) == "factor"])) {
+      blockedContrastsList[x] = "contr.sum"
+    }
+    if(length(blockedContrastsList) == 0) {
+      blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign)
+    } else {
+      blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
+    }
+    blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
+    blockedMM = gen_momentsmatrix(blockedFactors)
+    if (!parallel) {
+      for(i in 1:repeats) {
+        randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+        genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                                 candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                                 condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+      }
+    } else {
+      cl <- parallel::makeCluster(parallel::detectCores())
+      doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+      genOutput = foreach(i=1:repeats) %dopar% {
+        randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+        genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+      }
+      parallel::stopCluster(cl)
+    }
   }
 
-  mm = dfmodelmatrix[["design"]]
-  attr(mm,"D") = dfmodelmatrix[["D"]]
-  attr(mm,"A") = dfmodelmatrix[["A"]]
-  attr(mm,"Ge") = dfmodelmatrix[["Ge"]]
-  attr(mm,"Dea") = dfmodelmatrix[["Dea"]]
-  if(!is.null(dfmodelmatrix[["I"]])) {
-    attr(mm,"I") = dfmodelmatrix[["I"]]
+  designs = list(repeats)
+  rowIndicies = list(repeats)
+
+  for(i in 1:repeats) {
+    designs[i] = genOutput[[i]]["modelmatrix"]
+    rowIndicies[i] = genOutput[[i]]["indices"]
   }
-  attr(mm,"Dp") = dfmodelmatrix[["Dp"]]
-  return(mm)
+
+  if(optimality == "D") {
+    best = which.max(lapply(designs, DOptimality))
+    designmm = designs[[best]]
+    rowindex = rowIndicies[[best]]
+    optimalities = as.numeric(lapply(designs,DOptimality))
+    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
+      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
+    }
+  }
+
+  if(optimality == "A") {
+    best = which.max(lapply(designs, AOptimality))
+    designmm = designs[[best]]
+    optimalities = as.numeric(lapply(designs,AOptimality))
+    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
+      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
+    }
+  }
+
+  if(optimality == "I") {
+    if (!blocking) {
+      best = which.max(lapply(designs, IOptimality, momentsMatrix = mm))
+      optimalities = as.numeric(lapply(designs, IOptimality, momentsMatrix = mm))
+    } else {
+      best = which.max(lapply(designs, IOptimality, momentsMatrix = blockedMM))
+      optimalities = as.numeric(lapply(designs, IOptimality, momentsMatrix = blockedMM))
+    }
+    designmm = designs[[best]]
+    rowindex = rowIndicies[[best]]
+    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
+      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
+    }
+  }
+
+  if(!blocking) {
+    colnames(designmm) = factors
+  } else {
+    colnames(designmm) = blockedFactors
+  }
+
+  design = constructRunMatrix(rowIndices = rowindex, candidateList = factorial)
+
+  if(blocking) {
+    design = cbind(splitPlotReplicateDesign,design)
+  }
+  attr(design,"D-Efficiency") = DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
+  attr(design,"A") = AOptimality(as.matrix(designmm))
+  if(!blocking) {
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
+  } else {
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM)
+  }
+  attr(design,"model.matrix") = designmm
+  attr(design,"generating.model") = model
+  attr(design,"generating.criterion") = optimality
+  attr(design,"generating.contrast") = contrast
+  if(!blocking) {
+    rownames(design) = 1:nrow(design)
+  } else {
+    rownames(design) = rownames(splitPlotReplicateDesign)
+  }
+  attr(design,"correlation.matrix") = cov2cor(covarianceMatrix(designmm))
+
+  return(design)
 }
+globalVariables('i')

@@ -83,18 +83,23 @@
 #'
 #'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, delta=2, conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
+                                 anticoef, blockfunction=NULL, blocknoise = NULL,delta=2,
+                                 conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
+  blocking = FALSE
 
-  if(is.null(attr(RunMatrix,"modelmatrix"))) {
-    contrastslist = list()
-    for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-      contrastslist[x] = "contr.sum"
-    }
-    if(length(contrastslist) == 0) {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
-    } else {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-    }
+  contrastslist = list()
+  for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
+    contrastslist[x] = "contr.sum"
+  }
+
+  if(length(contrastslist) < 1) {
+    contrastslist = NULL
+  }
+
+  if(length(contrastslist) == 0) {
+    attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
+  } else {
+    attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
   }
 
   #remove columns from variables not used in the model

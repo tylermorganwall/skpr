@@ -153,9 +153,10 @@
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-                          blockfunction=NULL, delta=2, blocknoise = NULL,
+                          blockfunction=NULL, blocknoise = NULL, delta=2,
                           conservative=FALSE, parallel=FALSE) {
-  blocking = FALSE
+
+  #---------- Generating model matrix ----------#
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
     contrastslist[x] = "contr.sum"
@@ -165,6 +166,30 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     contrastslist = NULL
   }
 
+  attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
+
+  #remove columns from variables not used in the model
+  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
+  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
+
+  #-----Autogenerate Anticipated Coefficients---#
+  if(missing(anticoef)) {
+    anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
+  }
+  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
+    stop("Wrong number of anticipated coefficients")
+  }
+  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
+    anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
+  }
+  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
+
+  #------------ Generate Responses -------------#
+
+  responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2))
+
+  #-------------- Blocking errors --------------#
+  blocking = FALSE
   blocknames = rownames(RunMatrix)
   blocklist = strsplit(blocknames,".",fixed=TRUE)
 
@@ -193,26 +218,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     totalblocknoise = Reduce("+",listblocknoise)
   }
 
-
-  attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-
-  #remove columns from variables not used in the model
-  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
-  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
-
-    # autogenerate anticipated coefficients
-  if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
-  }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
-    stop("Wrong number of anticipated coefficients")
-  }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
-  }
-
-  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
-  responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2))
+  #---------Update formula with random blocks------#
 
   genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
 
@@ -230,9 +236,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     #Adding random block variables to formula
     model = update.formula(model, blockform)
   }
+
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
 
+  #---------------- Run Simulations ---------------#
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
     for (j in 1:nsim) {

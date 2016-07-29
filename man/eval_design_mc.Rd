@@ -5,7 +5,7 @@
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-  blockfunction = NULL, delta = 2, blocknoise = NULL,
+  blockfunction = NULL, blocknoise = NULL, delta = 2,
   conservative = FALSE, parallel = FALSE)
 }
 \arguments{

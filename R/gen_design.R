@@ -87,7 +87,7 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#and eval_design_survival_mc (Monte Carlo survival analysis)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=5, contrast = "contr.sum", ...) {
+                      optimality="D",repeats=5, contrast = "contr.sum", parallel=FALSE,  ...) {
 
   blocking=FALSE
   #generate blocked design with replicates
@@ -172,6 +172,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     }
     blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
     blockedMM = gen_momentsmatrix(blockedFactors)
+    #if not parallel...
     for(i in 1:repeats) {
       randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
       genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
@@ -199,7 +200,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     best = which.max(lapply(designs, AOptimality))
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
-    # lapply(designs,AOptimality)
+    # lapply(designs,AOptimality) look for multiple copies of highest... if only one exists, issue warning
   }
 
   if(optimality == "I") {

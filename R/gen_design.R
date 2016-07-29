@@ -274,6 +274,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   } else {
     rownames(design) = rownames(splitPlotReplicateDesign)
   }
+  attr(design,"correlation.matrix") = cov2cor(covarianceMatrix(designmm))
 
   return(design)
 }

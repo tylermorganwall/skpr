@@ -13,6 +13,10 @@ IOptimality <- function(currentDesign, momentsMatrix) {
     .Call('skpr_IOptimality', PACKAGE = 'skpr', currentDesign, momentsMatrix)
 }
 
+covarianceMatrix <- function(design) {
+    .Call('skpr_covarianceMatrix', PACKAGE = 'skpr', design)
+}
+
 genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows) {
     .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows)
 }

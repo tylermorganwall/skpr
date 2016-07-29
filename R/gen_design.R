@@ -155,10 +155,22 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   if(!blocking) {
     factors = colnames(factorialmm)
     mm = gen_momentsmatrix(factors)
-    for(i in 1:repeats) {
-      randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-      genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                      condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+    if(!parallel) {
+      for(i in 1:repeats) {
+        randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+        genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                        condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+      }
+    } else {
+      cl <- parallel::makeCluster(parallel::detectCores())
+      doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+      genOutput = foreach(i=1:repeats) %dopar% {
+        randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+        genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+      }
+      parallel::stopCluster(cl)
     }
   } else {
     blockedContrastsList = list()
@@ -172,12 +184,24 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     }
     blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
     blockedMM = gen_momentsmatrix(blockedFactors)
-    #if not parallel...
-    for(i in 1:repeats) {
-      randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-      genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                               candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                               condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+    if (!parallel) {
+      for(i in 1:repeats) {
+        randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+        genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                                 candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                                 condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+      }
+    } else {
+      cl <- parallel::makeCluster(parallel::detectCores())
+      doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+      genOutput = foreach(i=1:repeats) %dopar% {
+        randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+        genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+      }
+      parallel::stopCluster(cl)
     }
   }
 
@@ -193,25 +217,34 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     best = which.max(lapply(designs, DOptimality))
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
-    # lapply(designs,DOptimality)
+    optimalities = as.numeric(lapply(designs,DOptimality))
+    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
+      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
+    }
   }
 
   if(optimality == "A") {
     best = which.max(lapply(designs, AOptimality))
     designmm = designs[[best]]
-    rowindex = rowIndicies[[best]]
-    # lapply(designs,AOptimality) look for multiple copies of highest... if only one exists, issue warning
+    optimalities = as.numeric(lapply(designs,AOptimality))
+    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
+      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
+    }
   }
 
   if(optimality == "I") {
     if (!blocking) {
       best = which.max(lapply(designs, IOptimality, momentsMatrix = mm))
+      optimalities = as.numeric(lapply(designs, IOptimality, momentsMatrix = mm))
     } else {
       best = which.max(lapply(designs, IOptimality, momentsMatrix = blockedMM))
+      optimalities = as.numeric(lapply(designs, IOptimality, momentsMatrix = blockedMM))
     }
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
-    #lapply(designs,IOptimality)
+    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
+      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
+    }
   }
 
   if(!blocking) {
@@ -244,3 +277,4 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
   return(design)
 }
+globalVariables('i')

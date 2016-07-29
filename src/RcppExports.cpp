@@ -40,6 +40,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// covarianceMatrix
+arma::mat covarianceMatrix(arma::mat design);
+RcppExport SEXP skpr_covarianceMatrix(SEXP designSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::mat >::type design(designSEXP);
+    __result = Rcpp::wrap(covarianceMatrix(design));
+    return __result;
+END_RCPP
+}
 // genBlockedOptimalDesign
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign, const std::string condition, const arma::mat momentsmatrix, const NumericVector initialRows);
 RcppExport SEXP skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP) {

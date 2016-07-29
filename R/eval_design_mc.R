@@ -220,14 +220,16 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     blockindicators = lapply(blockgroups,genBlockIndicators)
     responses = responses + totalblocknoise
     blocknumber = length(blockgroups)-1
+    randomeffects = c()
     for(i in 1:(length(blockgroups)-1)) {
       RunMatrixReduced[paste("Block",i,sep="")] = blockindicators[[i]]
+      randomeffects = c(randomeffects, paste("( 1 | Block",i, " )", sep=""))
     }
+    randomeffects = paste(randomeffects, collapse=" + ")
+    blockform = paste("~. + ", randomeffects, sep="")
     #Adding random block variables to formula
-    blockform = paste(c("~. + (1 | ",paste(paste("Block",length(blockgroups)-1, sep=""),collapse=" + "), ")"),collapse="")
     model = update.formula(model, blockform)
   }
-
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
 

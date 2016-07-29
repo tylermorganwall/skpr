@@ -3,6 +3,7 @@
 #'@description Evaluates design given a model matrix with a monte carlo simulation and returns
 #'a data frame of parameter powers. Currently only works with linear, non-interacting models.
 #'
+#'
 #'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
@@ -96,19 +97,19 @@
 #'
 #'#We can also evaluate split-plot designs by specifying the randomeffects argument.
 #'
-#'blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))
+#'\dontrun{blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))}
 #'
 #'#5 runs per block
-#'designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
-#'                           wholeblock=blocking, blocksize=5)
-#'
-#'eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)
+#'\dontrun{designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
+#'                           wholeblock=blocking, blocksize=5)}
+
+#'\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)}
 #'
 #'#We can also evaluate the design with a custom ratio between the whole plot error to
 #'#the run-to-run error.
-#'eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)
+#'\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)}
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design and see
@@ -152,9 +153,10 @@
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-                          randomeffects=NULL, delta=2, varianceratio = 1,
+                          blockfunction=NULL, blocknoise = NULL, delta=2,
                           conservative=FALSE, parallel=FALSE) {
 
+  #---------- Generating model matrix ----------#
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
     contrastslist[x] = "contr.sum"
@@ -164,55 +166,15 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     contrastslist = NULL
   }
 
-  if(!is.null(randomeffects)) {
-    randomvars = all.vars(randomeffects)
-    mmrandomcols = suppressWarnings(ncol(model.matrix(reformulate(termlabels = randomvars),RunMatrix,contrasts.arg=contrastslist))-1)
-    allvariablemodel = reformulate(termlabels = c(randomvars,attr(terms(model),"term.labels")))
-  } else {
-    allvariablemodel = model
-  }
-
-  if(!is.null(randomeffects)) {
-    BlockDesign = data.frame()
-    block = floor(as.numeric(rownames(RunMatrix)))
-    blocknumbers = unique(block)
-    indices = c()
-    for(blockstarts in blocknumbers) {
-      indices = c(indices, match(blockstarts,block))
-    }
-    for(ind in indices) {
-      BlockDesign = rbind(BlockDesign,RunMatrix[ind,])
-    }
-    names(BlockDesign) = names(RunMatrix)
-    attr(BlockDesign,"modelmatrix") = model.matrix(model,BlockDesign,contrasts.arg=contrastslist)
-  }
-
-  if(!is.null(randomeffects)) {
-    BlockedRunMatrix = reducemodelmatrix(BlockDesign, reformulate(termlabels = randomvars))
-    if(any(lapply(BlockedRunMatrix,class) == "factor")) {
-      blockedcontrastslist = list()
-      for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
-        blockedcontrastslist[x] = "contr.sum"
-      }
-      attr(BlockedRunMatrix,"modelmatrix") = model.matrix(reformulate(termlabels = randomvars),BlockedRunMatrix,contrasts.arg=blockedcontrastslist)
-    } else {
-      blockedcontrastslist = NULL
-      attr(BlockedRunMatrix,"modelmatrix") = model.matrix(reformulate(termlabels = randomvars),BlockedRunMatrix)
-    }
-    blockedanticoef = gen_anticoef(BlockedRunMatrix,reformulate(termlabels = randomvars),conservative=conservative)
-    model_formula_blocked = update.formula(reformulate(termlabels = randomvars), Y ~.)
-    BlockedRunMatrix$Y = 1
-  }
-
-  attr(RunMatrix,"modelmatrix") = model.matrix(allvariablemodel,RunMatrix,contrasts.arg=contrastslist)
+  attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
   #remove columns from variables not used in the model
-  RunMatrixReduced = reducemodelmatrix(RunMatrix,allvariablemodel)
+  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
   ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
 
-    # autogenerate anticipated coefficients
+  #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, allvariablemodel, conservative=conservative)
+    anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
   }
   if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
@@ -220,133 +182,124 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
   if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
     anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
   }
+  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
+
+  #------------ Generate Responses -------------#
+
+  responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2))
+
+  #-------------- Blocking errors --------------#
+  blocking = FALSE
+  blocknames = rownames(RunMatrix)
+  blocklist = strsplit(blocknames,".",fixed=TRUE)
+
+  if(any(lapply(blocklist,length) > 1)) {
+    if(is.null(blocknoise)) {
+      stop("Error: blocknoise argument missing. If blocking present, need blocknoise vector to generate extra block variance")
+    }
+    blocking = TRUE
+    blockstructure = do.call(rbind,blocklist)
+    blockgroups = apply(blockstructure,2,blockingstructure)
+    listblocknoise = list()
+  }
+
+  if(!is.null(blocknoise)) {
+    for(i in 1:(length(blockgroups)-1)) {
+      blocktemp = list()
+      for(j in 1:length(blockgroups[[i]])) {
+        row = replicate(nsim,blockfunction(blocknoise[i]))
+        blocktemp[[j]] = do.call(rbind, replicate(blockgroups[[i]][j],row,simplify = FALSE))
+      }
+      listblocknoise[[i]] = do.call(rbind,blocktemp)
+    }
+  }
+
+  if(!is.null(blocknoise)) {
+    totalblocknoise = Reduce("+",listblocknoise)
+  }
+
+  #---------Update formula with random blocks------#
+
+  genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
+
+  if(!is.null(blocknoise)) {
+    blockindicators = lapply(blockgroups,genBlockIndicators)
+    responses = responses + totalblocknoise
+    blocknumber = length(blockgroups)-1
+    randomeffects = c()
+    for(i in 1:(length(blockgroups)-1)) {
+      RunMatrixReduced[paste("Block",i,sep="")] = blockindicators[[i]]
+      randomeffects = c(randomeffects, paste("( 1 | Block",i, " )", sep=""))
+    }
+    randomeffects = paste(randomeffects, collapse=" + ")
+    blockform = paste("~. + ", randomeffects, sep="")
+    #Adding random block variables to formula
+    model = update.formula(model, blockform)
+  }
 
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
-  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
 
-    if(!parallel) {
+  #---------------- Run Simulations ---------------#
+  if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
-
     for (j in 1:nsim) {
 
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
-      if(!is.null(randomeffects)) {
-        BlockedRunMatrix$Y = rfunction(attr(BlockedRunMatrix,"modelmatrix"),
-                                       blockedanticoef*delta/sqrt(varianceratio+nrow(BlockedRunMatrix)/nrow(RunMatrixReduced))*1/2)
-      }
-
-      if(!is.null(randomeffects)) {
+      RunMatrixReduced$Y = responses[,j]
+      if (blocking) {
         if(glmfamily == "gaussian") {
-          fit = nlme::lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
-          fitblock = lm(model_formula_blocked, data=BlockedRunMatrix, contrasts = blockedcontrastslist)
+          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastlist)
         } else {
-          fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
-          fitblock = lme4::glmer(model_formula_blocked, family=glmfamily, data=BlockedRunMatrix,contrasts = blockedcontrastslist)
+          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastlist)
         }
       } else {
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
       }
-
-      if(!is.null(randomeffects)) {
-        coefs <- data.frame(coef(summary(fit)))
-        if(glmfamily == "gaussian") {
-          blockedcoefs = data.frame(coef(summary(fitblock)))
-        } else {
-          blockedcoefs = coef(summary.glm(fitblock))[,4]
-        }
-        #if any NaN in blocked, set all to 1-alpha
-        if(any(is.nan(blockedcoefs[,4]))) {
-          blockedcoefs[,4] = rep(1,length(blockedcoefs[,4]))
-        }
-
-        pvals = c(coefs[-1,5],blockedcoefs[,4])
-
-        #determine whether beta[i] is significant. If so, increment nsignificant
-        for(i in 1:length(pvals)) {
-          if (pvals[i] < alpha) {
-            power_values[i] = power_values[i] + 1
-          }
-        }
-
-        if(j == 1) {
-          names = c(rownames(coefs)[-1],rownames(blockedcoefs))
-        }
+      #determine whether beta[i] is significant. If so, increment nsignificant
+      if (glmfamily == "gaussian") {
+        coefs = data.frame(coef(summary(fit)))
+        pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
       } else {
-        #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = coef(summary.glm(fit))[,4]
-        for(i in 1:length(pvals)) {
-          if (pvals[i] < alpha) {
-            power_values[i] = power_values[i] + 1
-          }
+      }
+      for(i in 1:length(pvals)) {
+        if (pvals[i] < alpha) {
+          power_values[i] = power_values[i] + 1
         }
       }
     }
     power_values = power_values/nsim
 
     #output the results
-    if(is.null(randomeffects)) {
-      return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
-    } else {
-      return(data.frame(parameters=names,type=rep("parameter.power.mc",length(power_values)), power=power_values))
-    }
+    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (j = 1:nsim, .combine = "+") %dopar% {
+    power_values = foreach::foreach (j = 1:nsim, .combine = "+", .packages = c("lme4")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
-      if(!is.null(randomeffects)) {
-        BlockedRunMatrix$Y = rfunction(attr(BlockedRunMatrix,"modelmatrix"),
-                                       blockedanticoef*delta/sqrt(varianceratio+nrow(BlockedRunMatrix)/nrow(RunMatrixReduced))*1/2)
-      }
-
-      if(!is.null(randomeffects)) {
+      RunMatrixReduced$Y = responses[,j]
+      if (blocking) {
         if(glmfamily == "gaussian") {
-          fit = nlme::lme(fixed=model_formula, random=randomeffects, data=RunMatrixReduced, contrasts = contrastlist)
-          fitblock = lm(model_formula_blocked, data=BlockedRunMatrix, contrasts = blockedcontrastslist)
+          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastlist)
         } else {
-          fit = lme4::glmer(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
-          fitblock = lme4::glmer(model_formula_blocked, family=glmfamily, data=BlockedRunMatrix,contrasts = blockedcontrastslist)
+          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastlist)
         }
       } else {
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
       }
-
-      if(!is.null(randomeffects)) {
-        coefs <- data.frame(coef(summary(fit)))
-        if(glmfamily == "gaussian") {
-          blockedcoefs = data.frame(coef(summary(fitblock)))
-        } else {
-          blockedcoefs = coef(summary.glm(fitblock))[,4]
-        }
-        #if any NaN in blocked, set all to 1-alpha
-        if(any(is.nan(blockedcoefs[,4]))) {
-          blockedcoefs[,4] = rep(1,length(blockedcoefs[,4]))
-        }
-
-        pvals = c(coefs[-1,5],blockedcoefs[,4])
-
-        #determine whether beta[i] is significant. If so, increment nsignificant
-        for(i in 1:length(pvals)) {
-          if (pvals[i] < alpha) {
-            power_values[i] = power_values[i] + 1
-          }
-        }
-
-        if(j == 1) {
-          names = c(rownames(coefs)[-1],rownames(blockedcoefs))
-        }
+      #determine whether beta[i] is significant. If so, increment nsignificant
+      if (glmfamily == "gaussian") {
+        coefs = data.frame(coef(summary(fit)))
+        pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
       } else {
-        #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = coef(summary.glm(fit))[,4]
-        for(i in 1:length(pvals)) {
-          if (pvals[i] < alpha) {
-            power_values[i] = power_values[i] + 1
-          }
+      }
+      for(i in 1:length(pvals)) {
+        if (pvals[i] < alpha) {
+          power_values[i] = power_values[i] + 1
         }
       }
       power_values

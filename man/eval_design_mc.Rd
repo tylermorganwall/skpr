@@ -5,7 +5,7 @@
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-  randomeffects = NULL, delta = 2, varianceratio = 1,
+  blockfunction = NULL, blocknoise = NULL, delta = 2,
   conservative = FALSE, parallel = FALSE)
 }
 \arguments{
@@ -26,12 +26,8 @@ model matrix and b are the anticipated coefficients.}
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the delta argument.}
 
-\item{randomeffects}{A formula specifying the model for the blocking effects.}
-
 \item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
 and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
-
-\item{varianceratio}{Default 1. The ratio of the whole plot variance to the run-to-run variance.}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
@@ -39,6 +35,10 @@ estimate of power by setting all but one level in a categorical factor's anticip
 to zero.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}
+
+\item{randomeffects}{A formula specifying the model for the blocking effects.}
+
+\item{varianceratio}{Default 1. The ratio of the whole plot variance to the run-to-run variance.}
 }
 \value{
 A data frame consisting of the parameters and their powers
@@ -119,19 +119,18 @@ eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size+cost*type, 0.05,
 
 #We can also evaluate split-plot designs by specifying the randomeffects argument.
 
-blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))
+\dontrun{blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))}
 
 #5 runs per block
-designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
-                          wholeblock=blocking, blocksize=5)
-
-eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-              alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)
+\dontrun{designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
+                          wholeblock=blocking, blocksize=5)}
+\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+              alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)}
 
 #We can also evaluate the design with a custom ratio between the whole plot error to
 #the run-to-run error.
-eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-              alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)
+\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
+              alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)}
 
 #We can also use this method to evaluate designs that cannot be easily
 #evaluated using normal approximations. Here, we evaluate a design and see

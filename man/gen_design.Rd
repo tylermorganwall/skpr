@@ -7,7 +7,7 @@ and desired number of runs.}
 \usage{
 gen_design(factorial, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 5,
-  contrast = "contr.sum", ...)
+  contrast = "contr.sum", parallel = FALSE, ...)
 }
 \arguments{
 \item{factorial}{A full factorial test matrix generated for the factors in the model. If

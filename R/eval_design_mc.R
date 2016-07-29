@@ -190,7 +190,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
   }
 
   if(!is.null(blocknoise)) {
-    totalblocknoise = do.call("+",listblocknoise)
+    totalblocknoise = Reduce("+",listblocknoise)
   }
 
 
@@ -282,11 +282,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       if (glmfamily == "gaussian") {
-        parameters = rownames(coef(summary(fit)))
         coefs = data.frame(coef(summary(fit)))
         pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
       } else {
-        parameters = rownames(coef(summary.glm(fit)))
         pvals = coef(summary.glm(fit))[,4]
       }
       for(i in 1:length(pvals)) {

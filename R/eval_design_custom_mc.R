@@ -83,7 +83,7 @@
 #'
 #'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, blockfunction=NULL, blocknoise = NULL,delta=2,
+                                 anticoef, delta=2,
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
   blocking = FALSE
 

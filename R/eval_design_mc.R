@@ -257,12 +257,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
-      if (glmfamily == "gaussian") {
-        coefs = data.frame(coef(summary(fit)))
-        pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
-      } else {
-        pvals = coef(summary.glm(fit))[,4]
-      }
+      coefs = coef(summary(fit))
+      pvals =  2 * (1 - pnorm(abs(coefs[,3])))
+
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1
@@ -291,12 +288,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
         fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
-      if (glmfamily == "gaussian") {
-        coefs = data.frame(coef(summary(fit)))
-        pvals =  2 * (1 - pnorm(abs(coefs$t.value)))
-      } else {
-        pvals = coef(summary.glm(fit))[,4]
-      }
+      coefs = coef(summary(fit))
+      pvals =  2 * (1 - pnorm(abs(coefs[,3])))
+
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1

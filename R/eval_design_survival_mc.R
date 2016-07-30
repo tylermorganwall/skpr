@@ -71,7 +71,7 @@
 #'                        distribution="lognormal",rfunctionsurv=rlognorm,
 #'                        anticoef=c(0.184,0.101),delta=2,scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,
-                          anticoef, blockfunction=NULL, blocknoise = NULL, delta=2,
+                          anticoef, delta=2,
                           conservative=FALSE, parallel=FALSE, ...) {
 
   if(is.null(attr(RunMatrix,"modelmatrix"))) {

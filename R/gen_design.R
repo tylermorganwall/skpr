@@ -226,6 +226,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   if(optimality == "A") {
     best = which.max(lapply(designs, AOptimality))
     designmm = designs[[best]]
+    rowindex = rowIndicies[[best]]
     optimalities = as.numeric(lapply(designs,AOptimality))
     if(length(optimalities[max(optimalities) == optimalities]) == 1) {
       warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")

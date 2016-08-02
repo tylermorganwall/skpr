@@ -5,8 +5,8 @@
 \title{Evaluate Power for Survival Design}
 \usage{
 eval_design_survival_mc(RunMatrix, model, alpha, nsim, distribution,
-  rfunctionsurv, anticoef, blockfunction = NULL, blocknoise = NULL,
-  delta = 2, conservative = FALSE, parallel = FALSE, ...)
+  rfunctionsurv, anticoef, delta = 2, conservative = FALSE,
+  parallel = FALSE, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}

@@ -78,6 +78,17 @@
 #'attr(design2,"Ge") #The minimax normalized variance.
 #'attr(design2,"Dea") #A lower bound on D efficiency for approximate theory designs.
 #'
+#'#The correlation matrix can be accessed via the "correlation.matrix" attribute:
+#'
+#'correlation.matrix = attr(design2, "correlation.matrix)
+#'
+#'#A correlation color map can be produced with the following call to ggplot2 and reshape2
+#'
+#'\dontrun{melt(correlation.matrix) -> melted.correlation.matrix
+#'ggplot(melted,aes(x=Var1,y=Var2,fill=value)) + geom_tile() +
+#'  scale_fill_gradient2(mid="grey70",high="red", low="blue",midpoint=0.5) +
+#'  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
+#'
 #'#The I optimality number is not calculated unless the design is generated as I optimal
 #'#or when the evaluateI argument (from AlgDesign's optFederov) is set to TRUE:
 #'design3 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,optimality="I")

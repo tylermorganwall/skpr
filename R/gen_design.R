@@ -217,20 +217,12 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     best = which.max(lapply(designs, DOptimality))
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
-    optimalities = as.numeric(lapply(designs,DOptimality))
-    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
-      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
-    }
   }
 
   if(optimality == "A") {
     best = which.max(lapply(designs, AOptimality))
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
-    optimalities = as.numeric(lapply(designs,AOptimality))
-    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
-      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
-    }
   }
 
   if(optimality == "I") {
@@ -243,9 +235,6 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     }
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
-    if(length(optimalities[max(optimalities) == optimalities]) == 1) {
-      warning("Possibly not optimal design: Only one duplicate of best design found. Recommend increasing number of repeats.")
-    }
   }
 
   if(!blocking) {
@@ -259,8 +248,8 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   if(blocking) {
     design = cbind(splitPlotReplicateDesign,design)
   }
-  attr(design,"D-Efficiency") = DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
-  attr(design,"A") = AOptimality(as.matrix(designmm))
+  attr(design,"D-Efficiency") = 100*DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
+  attr(design,"A-Efficiency") = 100*AOptimality(as.matrix(designmm))/ncol(designmm)
   if(!blocking) {
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
   } else {

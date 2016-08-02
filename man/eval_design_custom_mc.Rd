@@ -5,9 +5,8 @@
 \title{Evaluates power for model matrix with a Monte Carlo simulation for a user supplied library}
 \usage{
 eval_design_custom_mc(RunMatrix, model, alpha, nsim, rfunction, fitfunction,
-  pvalfunction, anticoef, blockfunction = NULL, blocknoise = NULL,
-  delta = 2, conservative = FALSE, parallel = FALSE,
-  parallelpackages = NULL)
+  pvalfunction, anticoef, delta = 2, conservative = FALSE,
+  parallel = FALSE, parallelpackages = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}

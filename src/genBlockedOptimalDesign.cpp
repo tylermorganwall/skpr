@@ -23,7 +23,7 @@ double calculateBlockedAOptimality(arma::mat currentDesign) {
 //`@return stufff
 // [[Rcpp::export]]
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
-                      const std::string condition, const arma::mat momentsmatrix, const NumericVector initialRows) {
+                      const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows) {
   //Remove intercept term, as it's now located in the blocked
   candidatelist.shed_col(0);
   initialdesign.shed_col(0);
@@ -61,94 +61,123 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
     }
   }
+  double del = 0;
+  bool found = FALSE;
+  int entryx = 0;
+  int entryy = 0;
+  double newOptimum = 0;
+  double priorOptimum = 0;
+  double minDelta = 10e-5;
+  double newdel;
   //Generate a D-optimal design, fixing the blocking factors
   if(condition == "D") {
-    double del = calculateBlockedDOptimality(combinedDesign);
-    for (int i = 0; i < nTrials; i++) {
-      bool found = FALSE;
-      int entryx = 0;
-      int entryy = 0;
-      arma::mat temp = combinedDesign;
-      for (int j = 0; j < totalPoints; j++) {
-        temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-        double newdel = calculateBlockedDOptimality(temp);
-        if(newdel > del) {
-          found = TRUE;
-          entryx = i;
-          entryy = j;
-          del = newdel;
+    arma::mat temp;
+    newOptimum = calculateBlockedDOptimality(combinedDesign);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedDOptimality(combinedDesign);
+      for (int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          newdel = calculateBlockedDOptimality(temp);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
         }
       }
-      if (found) {
-        combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-        candidateRow[i] = entryy+1;
-      } else {
-        candidateRow[i] = initialRows[i];
-      }
+      newOptimum = calculateBlockedDOptimality(combinedDesign);
     }
   }
   //Generate an I-optimal design, fixing the blocking factors
   if(condition == "I") {
     //Potential issue here: Any interactions between the blocked and regular runs need to be
     //reflected in the moments matrix correctly
-    double del = calculateBlockedIOptimality(combinedDesign,momentsmatrix);
-    for (int i = 0; i < nTrials; i++) {
-      bool found = FALSE;
-      int entryx = 0;
-      int entryy = 0;
-      arma::mat temp = combinedDesign;
-      for (int j = 0; j < totalPoints; j++) {
-        //Checks for singularity; If singular, moves to next candidate in the candidate set
-        try {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-          double newdel = calculateBlockedIOptimality(temp,momentsmatrix);
-          if(newdel < del) {
-            found = TRUE;
-            entryx = i;
-            entryy = j;
-            del = newdel;
+    arma::mat temp;
+    del = calculateBlockedIOptimality(combinedDesign,momentsmatrix);
+    newOptimum = del;
+    priorOptimum = del/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      for (int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (int j = 0; j < totalPoints; j++) {
+          //Checks for singularity; If singular, moves to next candidate in the candidate set
+          try {
+            temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+            newdel = calculateBlockedIOptimality(temp,momentsmatrix);
+            if(newdel < del) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
+          } catch (std::runtime_error& e) {
+            continue;
           }
-        } catch (std::runtime_error& e) {
-          continue;
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
         }
       }
-      if (found) {
-        combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-        candidateRow[i] = entryy+1;
-      } else {
-        candidateRow[i] = initialRows[i];
-      }
+      newOptimum = calculateBlockedIOptimality(combinedDesign,momentsmatrix);
     }
   }
   //Generate an A-optimal design, fixing the blocking factors
   if(condition == "A") {
-    double del = calculateBlockedAOptimality(combinedDesign);
-    for (int i = 0; i < nTrials; i++) {
-      bool found = FALSE;
-      int entryx = 0;
-      int entryy = 0;
-      arma::mat temp = combinedDesign;
-      for (int j = 0; j < totalPoints; j++) {
-        //Checks for singularity; If singular, moves to next candidate in the candidate set
-        try {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-          double newdel = calculateBlockedAOptimality(temp);
-          if(newdel < del) {
-            found = TRUE;
-            entryx = i;
-            entryy = j;
-            del = newdel;
+    arma::mat temp;
+    del = calculateBlockedAOptimality(combinedDesign);
+    newOptimum = del;
+    priorOptimum = del/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      for (int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (int j = 0; j < totalPoints; j++) {
+          //Checks for singularity; If singular, moves to next candidate in the candidate set
+          try {
+            temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+            newdel = calculateBlockedAOptimality(temp);
+            if(newdel < del) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
+          } catch (std::runtime_error& e) {
+            continue;
           }
-        } catch (std::runtime_error& e) {
-          continue;
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
         }
       }
-      if (found) {
-        combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-        candidateRow[i] = entryy+1;
-      } else {
-        candidateRow[i] = initialRows[i];
-      }
+      newOptimum = calculateBlockedAOptimality(combinedDesign);
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix

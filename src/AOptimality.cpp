@@ -5,7 +5,6 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 double AOptimality(arma::mat currentDesign) {
-  double variance = trace(inv_sympd(currentDesign.t()*currentDesign));
-  return(variance);
+  return(100/(currentDesign.n_rows*trace(inv_sympd(currentDesign.t()*currentDesign))/currentDesign.n_cols));
 }
 

@@ -105,8 +105,8 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
     arma::mat temp;
     del = calculateIOptimality(initialdesign,momentsmatrix);
     newOptimum = del;
-    priorOptimum = del/2;
-    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+    priorOptimum = del*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (int i = 0; i < nTrials; i++) {
         found = FALSE;
@@ -143,8 +143,8 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
     arma::mat temp;
     del = calculateAOptimality(initialdesign);
     newOptimum = del;
-    priorOptimum = del/2;
-    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+    priorOptimum = del*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (int i = 0; i < nTrials; i++) {
         found = FALSE;
@@ -177,5 +177,5 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
-  return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign));
+  return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = newOptimum));
 }

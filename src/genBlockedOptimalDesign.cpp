@@ -147,8 +147,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     arma::mat temp;
     del = calculateBlockedAOptimality(combinedDesign);
     newOptimum = del;
-    priorOptimum = del/2;
-    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+    priorOptimum = del*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (int i = 0; i < nTrials; i++) {
         found = FALSE;
@@ -181,5 +181,5 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
-  return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign));
+  return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign, _["criterion"] = newOptimum));
 }

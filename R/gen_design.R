@@ -218,32 +218,22 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
   designs = list(repeats)
   rowIndicies = list(repeats)
+  criteria = list(repeats)
 
   for(i in 1:repeats) {
     designs[i] = genOutput[[i]]["modelmatrix"]
     rowIndicies[i] = genOutput[[i]]["indices"]
+    criteria[i] = genOutput[[i]]["criterion"]
   }
 
   if(optimality == "D") {
-    best = which.max(lapply(designs, DOptimality))
+    best = which.max(criteria)
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
   }
 
-  if(optimality == "A") {
-    best = which.max(lapply(designs, AOptimality))
-    designmm = designs[[best]]
-    rowindex = rowIndicies[[best]]
-  }
-
-  if(optimality == "I") {
-    if (!blocking) {
-      best = which.max(lapply(designs, IOptimality, momentsMatrix = mm))
-      optimalities = as.numeric(lapply(designs, IOptimality, momentsMatrix = mm))
-    } else {
-      best = which.max(lapply(designs, IOptimality, momentsMatrix = blockedMM))
-      optimalities = as.numeric(lapply(designs, IOptimality, momentsMatrix = blockedMM))
-    }
+  if(optimality == "A" || optimality == "I") {
+    best = which.min(criteria)
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
   }
@@ -260,7 +250,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     design = cbind(splitPlotReplicateDesign,design)
   }
   attr(design,"D-Efficiency") = 100*DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
-  attr(design,"A-Efficiency") = 100*AOptimality(as.matrix(designmm))/ncol(designmm)
+  attr(design,"A-Efficiency") = AOptimality(as.matrix(designmm))
   if(!blocking) {
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
   } else {

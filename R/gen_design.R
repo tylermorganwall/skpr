@@ -80,12 +80,12 @@
 #'
 #'#The correlation matrix can be accessed via the "correlation.matrix" attribute:
 #'
-#'correlation.matrix = attr(design2, "correlation.matrix)
+#'correlation.matrix = attr(design2, "correlation.matrix")
 #'
 #'#A correlation color map can be produced with the following call to ggplot2 and reshape2
 #'
 #'\dontrun{melt(correlation.matrix) -> melted.correlation.matrix
-#'ggplot(melted,aes(x=Var1,y=Var2,fill=value)) + geom_tile() +
+#'ggplot(melted.correlation.matrix,aes(x=Var1,y=Var2,fill=value)) + geom_tile() +
 #'  scale_fill_gradient2(mid="grey70",high="red", low="blue",midpoint=0.5) +
 #'  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
 #'
@@ -98,7 +98,7 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#and eval_design_survival_mc (Monte Carlo survival analysis)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=5, contrast = "contr.sum", parallel=FALSE,  ...) {
+                      optimality="D",repeats=5, contrast = "contr.poly", parallel=FALSE,  ...) {
 
   blocking=FALSE
   #generate blocked design with replicates
@@ -155,7 +155,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
   contrastslist = list()
   for(x in names(factorial[sapply(factorial,class) == "factor"])) {
-    contrastslist[x] = "contr.sum"
+    contrastslist[x] = contrast
   }
   if(length(contrastslist) == 0) {
     factorialmm = model.matrix(model,factorial)
@@ -186,7 +186,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   } else {
     blockedContrastsList = list()
     for(x in names(splitPlotReplicateDesign[sapply(splitPlotReplicateDesign,class) == "factor"])) {
-      blockedContrastsList[x] = "contr.sum"
+      blockedContrastsList[x] = contrast
     }
     if(length(blockedContrastsList) == 0) {
       blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign)
@@ -249,8 +249,8 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   if(blocking) {
     design = cbind(splitPlotReplicateDesign,design)
   }
-  attr(design,"D-Efficiency") = 100*DOptimality(as.matrix(designmm))^(1/ncol(designmm))/nrow(designmm)
-  attr(design,"A-Efficiency") = AOptimality(as.matrix(designmm))
+  attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
+  attr(design,"A-Efficiency") = AOptimality(designmm)
   if(!blocking) {
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
   } else {
@@ -260,14 +260,21 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   attr(design,"generating.model") = model
   attr(design,"generating.criterion") = optimality
   attr(design,"generating.contrast") = contrast
+
   if(!blocking) {
     rownames(design) = 1:nrow(design)
+    colnames(mm) = colnames(designmm)
+    rownames(mm) = colnames(designmm)
+    attr(design,"moments.matrix") = mm
   } else {
     rownames(design) = rownames(splitPlotReplicateDesign)
+    colnames(blockedMM) = colnames(designmm)
+    rownames(blockedMM) = colnames(designmm)
+    attr(design,"moments.matrix") = blockedMM
   }
-  correlation.matrix = abs(cov2cor(covarianceMatrix(designmm)))
-  colnames(correlation.matrix) = colnames(designmm)
-  rownames(correlation.matrix) = colnames(designmm)
+  correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1,-1])
+  colnames(correlation.matrix) = colnames(designmm)[-1]
+  rownames(correlation.matrix) = colnames(designmm)[-1]
   attr(design,"correlation.matrix") = correlation.matrix
 
   return(design)

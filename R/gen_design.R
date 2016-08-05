@@ -98,7 +98,7 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#and eval_design_survival_mc (Monte Carlo survival analysis)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=5, contrast = "contr.poly", parallel=FALSE,  ...) {
+                      optimality="D",repeats=5, contrast=contr.simplex, parallel=FALSE,  ...) {
 
   blocking=FALSE
   #generate blocked design with replicates
@@ -155,7 +155,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
   contrastslist = list()
   for(x in names(factorial[sapply(factorial,class) == "factor"])) {
-    contrastslist[x] = contrast
+    contrastslist[[x]] = contrast
   }
   if(length(contrastslist) == 0) {
     factorialmm = model.matrix(model,factorial)

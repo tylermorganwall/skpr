@@ -154,35 +154,31 @@
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
                           blockfunction=NULL, blocknoise = NULL, delta=2,
-                          conservative=FALSE, parallel=FALSE) {
+                          conservative=FALSE, contrasts=contr.sum, parallel=FALSE) {
 
   #---------- Generating model matrix ----------#
   contrastslist = list()
-  for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-    contrastslist[x] = "contr.sum"
+  for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
+    contrastslist[[x]] = contrasts
   }
-
   if(length(contrastslist) < 1) {
     contrastslist = NULL
   }
 
-  attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-
   #remove columns from variables not used in the model
-  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
-  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrasts)
 
   #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
   }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
+  if(length(anticoef) != dim(ModelMatrix)[2] && any(lapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
+  if(length(anticoef) != dim(ModelMatrix)[2] && !any(lapply(RunMatrixReduced,class)=="factor")) {
+    anticoef = rep(1,dim(ModelMatrix)[2])
   }
-  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
 
   #------------ Generate Responses -------------#
 
@@ -249,17 +245,16 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {
         if(glmfamily == "gaussian") {
-          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastlist)
+          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
-          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastlist)
+          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
       } else {
-        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       coefs = coef(summary(fit))
       pvals =  2 * (1 - pnorm(abs(coefs[,3])))
-
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1
@@ -280,15 +275,16 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {
         if(glmfamily == "gaussian") {
-          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastlist)
+          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
-          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastlist)
+          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
       } else {
-        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastlist)
+        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       coefs = coef(summary(fit))
+
       pvals =  2 * (1 - pnorm(abs(coefs[,3])))
 
       for(i in 1:length(pvals)) {

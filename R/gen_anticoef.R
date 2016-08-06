@@ -41,7 +41,7 @@ gen_anticoef = function(RunMatrix,model,conservative=FALSE) {
       if (type[i] == "factor" && levels[i] %% 2 == 1) {
         anticoef = c(anticoef,1,rep(c(-1,1),(levels[i]-1)/2))
       }
-      if (type[i] == "numeric") {
+      if (type[i] == "numeric" || type[i] == "integer") {
         anticoef = c(anticoef,1)
       }
     }

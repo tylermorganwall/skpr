@@ -71,28 +71,21 @@
 #'                        distribution="lognormal",rfunctionsurv=rlognorm,
 #'                        anticoef=c(0.184,0.101),delta=2,scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,
-                          anticoef, delta=2,
+                          anticoef, delta=2, contrasts = contr.simplex,
                           conservative=FALSE, parallel=FALSE, ...) {
 
-  if(is.null(attr(RunMatrix,"modelmatrix"))) {
-    contrastslist = list()
-    for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-      contrastslist[x] = "contr.sum"
-    }
-    if(length(contrastslist) == 0) {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
-    } else {
-      attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-    }
+  #---------- Generating model matrix ----------#
+  contrastslist = list()
+  for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
+    contrastslist[[x]] = contrasts
   }
-
   if(length(contrastslist) < 1) {
     contrastslist = NULL
   }
 
   #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix,model,contrasts)
-  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrasts)
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
@@ -106,7 +99,6 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
   }
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
-  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
 
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))

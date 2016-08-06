@@ -87,34 +87,29 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
   blocking = FALSE
 
+  #---------- Generating model matrix ----------#
   contrastslist = list()
-  for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-    contrastslist[x] = "contr.sum"
+  for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
+    contrastslist[[x]] = contrasts
   }
 
   if(length(contrastslist) < 1) {
     contrastslist = NULL
   }
 
-  if(length(contrastslist) == 0) {
-    attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix)
-  } else {
-    attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-  }
-
   #remove columns from variables not used in the model
-  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
-  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model,contrasts)
+  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrasts)
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced,model,conservative=conservative)
   }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
+  if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
+  if(length(anticoef) != dim(ModelMatrix)[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
+    anticoef = rep(1,dim(ModelMatrix)[2])
   }
 
   model_formula = update.formula(model, Y ~ .)

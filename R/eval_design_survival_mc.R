@@ -91,18 +91,18 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
   }
 
   #remove columns from variables not used in the model
-  RunMatrixReduced = reducemodelmatrix(RunMatrix,model)
-  ModelMatrix = attr(RunMatrixReduced,"modelmatrix")
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model,contrasts)
+  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrasts)
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced,model,conservative=conservative)
   }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
+  if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }
-  if(length(anticoef) != dim(attr(RunMatrixReduced,"modelmatrix"))[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(attr(RunMatrixReduced,"modelmatrix"))[2])
+  if(length(anticoef) != dim(ModelMatrix)[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
+    anticoef = rep(1,dim(ModelMatrix)[2])
   }
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1

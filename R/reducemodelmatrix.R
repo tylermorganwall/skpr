@@ -6,14 +6,12 @@
 #'@param model The formula
 #'@return The reduced model matrix
 #'@keywords internal
-reducemodelmatrix = function(RunMatrix,model) {
-  ModelMatrix = attr(RunMatrix,"modelmatrix")
+reduceRunMatrix = function(RunMatrix,model) {
+  ModelMatrix = model.matrix(model,RunMatrix)
   ReduceRM = RunMatrix
-  #save the attributes to reapply them to the reduced matrix
-  attributelist = attributes(ModelMatrix)
-  attributelist$dim = NULL
-  attributelist$dimnames = NULL
-
+  if(length(as.character(model)) == 2 && as.character(model)[2] == ".") {
+    return(ReduceRM)
+  }
   removecols = rep(TRUE,ncol(ModelMatrix))
   for(parameter in colnames(RunMatrix)) {
     if(!(parameter %in%  attr(terms(model),"term.labels"))) {
@@ -29,9 +27,5 @@ reducemodelmatrix = function(RunMatrix,model) {
   }
 
   #return original attributes to new reduced model matrix
-  attr(ReduceRM,"modelmatrix") = ModelMatrix[,removecols]
-  for(i in 1:length(attributelist)) {
-    attr(attr(ReduceRM,"modelmatrix"), names(attributelist)[i]) = attributelist[[i]]
-  }
   return(ReduceRM)
 }

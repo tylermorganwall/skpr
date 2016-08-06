@@ -83,7 +83,7 @@
 #'
 #'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, delta=2,
+                                 anticoef, delta=2, contrasts = contr.simplex,
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
   blocking = FALSE
 
@@ -98,8 +98,8 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   }
 
   #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix,model,contrasts)
-  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrasts)
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {

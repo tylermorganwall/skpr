@@ -154,7 +154,7 @@
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
                           blockfunction=NULL, blocknoise = NULL, delta=2,
-                          conservative=FALSE, contrasts=contr.sum, parallel=FALSE) {
+                          conservative=FALSE, contrasts=contr.simplex, parallel=FALSE) {
 
   #---------- Generating model matrix ----------#
   contrastslist = list()
@@ -167,9 +167,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
 
   #remove columns from variables not used in the model
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
-  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrasts)
+  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
-  #-----Autogenerate Anticipated Coefficients---#
+    #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
   }
@@ -250,7 +250,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
       } else {
-        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
+        if (glmfamily == "gaussian") {
+          fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
+        } else {
+          fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
+        }
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       coefs = coef(summary(fit))

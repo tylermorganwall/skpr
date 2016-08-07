@@ -28,6 +28,7 @@
 #'@export
 #'@examples #To demonstrate how a user can use their own libraries for Monte Carlo power generation,
 #'#We will recreate eval_design_survival_mc using the eval_design_custom_mc framework.
+#'
 #'#To begin, first let us generate the same design and random generation function shown in the
 #'#eval_design_survival_mc examples:
 #'
@@ -36,6 +37,7 @@
 #'                          optimality="D",repeats=100)
 #'
 #'#Random number generating function
+#'
 #'rsurvival = function(X,b) {
 #'  Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
 #'  censored = Y > 1
@@ -54,7 +56,7 @@
 #'
 #'
 #'#We now need to tell the package how to extract the p-values from the fit object returned
-#'#from the fitfunction. This is how to extract the p-values from the survreg fit object:
+#'#from the fit function. This is how to extract the p-values from the survreg fit object:
 #'
 #'pvalsurv = function(fit) {
 #'  return(summary(fit)$table[,4])

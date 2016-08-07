@@ -87,7 +87,7 @@
 #'               nsim=100,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
 #'
 #'#And here it is evaluated with higher order effects included:
-#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size+cost*type, 0.05,
+#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
 #'               nsim=100,glmfamily="gaussian",rfunction=rgen)
 #'
 #'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
@@ -95,21 +95,34 @@
 #'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
 #'               nsim=100,glmfamily="gaussian",rfunction=rgen,parallel=TRUE)}
 #'
-#'#We can also evaluate split-plot designs by specifying the randomeffects argument.
+#'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
 #'
-#'\dontrun{blocking = data.frame(Temp = c(1,-1,1,-1,1,-1))}
+#'vhtc = expand.grid(Store=as.factor(c("A","B")))
+#'htc = expand.grid(Temp = c(1,-1))
 #'
-#'#5 runs per block
-#'\dontrun{designblocked = gen_design(factorial=designcoffee,model=~cost+ type + size,trials=30,
-#'                           wholeblock=blocking, blocksize=5)}
-
-#'\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen)}
+#'vhtcdesign = gen_design(factorial=vhtc,model=~Store, trials=6)
+#'htcdesign = gen_design(factorial=htc,model=~Temp, trials=18,splitplotdesign=vhtcdesign,splitplotsizes=rep(3,6))
+#'splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size, trials=54,
+#'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18))
 #'
-#'#We can also evaluate the design with a custom ratio between the whole plot error to
-#'#the run-to-run error.
-#'\dontrun{eval_design_mc(RunMatrix=designblocked, model=~cost+type+size, randomeffects= ~1|Temp,
-#'               alpha=0.05, nsim=100, glmfamily="gaussian",rfunction=rgen,varianceratio=2)}
+#'#Each block has an additional noise term associated with it in addition to the normal error term.
+#'#This is specified by an additional random generating function and a vector specifying the input for
+#'#each split-plot level. This function is stating that there is an addition gaussian noise term with each
+#'#block, and the vector is stating it has a standard deviation of one for each level. This is equivalent to
+#'#a variance ratio of one between the whole plots and the sub-plots.
+#'#See the accompanying paper _____ for further technical details.
+#'
+#'rgenblocking = function(v) {
+#'  return(rnorm(n=1,mean = 0, sd = v))
+#'}
+#'
+#'blockvector = c(1,1)
+#'
+#'#Evaluate the design. Note the decreased power for the blocking factors. If
+#'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
+#'               nsim=1000, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
+#'               blocknoise = blockvector)
+#'
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design and see

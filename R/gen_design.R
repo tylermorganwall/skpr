@@ -67,9 +67,9 @@
 #'easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")),Power=c(1,-1))
 #'
 #'#Here, we specify the easy to change factors for the factorial design, and input the hard-to-change design
-#'#along with a vector listing the number of repetitions for each block run for the blocked design. There needs
-#'#to be a size entry for every block and the number of runs specified in the trials argument needs to equal the
-#'#sum of all of the block sizes.
+#'#along with a vector listing the number of repetitions within each block for the blocked design. There should be
+#'#a size entry for every block and the number of runs specified in the trials argument needs to equal the
+#'#sum of all of the block sizes or else the program will throw an error.
 #'
 #'#Since we have 11 runs in our hard-to-change design, we need a vector specifying the size of each 11 runs. Here
 #'#we specify the blocks be three runs each (meaning the final design will be 33 runs):
@@ -93,11 +93,12 @@
 #'gen_design(extremelyhtcfactors, ~Location, trials=6) -> temp
 #'gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp
 #'gen_design(htcfactors, ~Vineyard,48,splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp
-#'gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) ->splitsplitsplitplotdesign
+#'gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) -> splitsplitsplitplotdesign
 #'
+#'A design's diagnostics can be accessed via the following attributes:
 #'
-#'attr(design,"D") #The kth root of the generalized variance.
-#'attr(design,"A") #The average coefficient variance.
+#'attr(design,"D") #D-Efficiency
+#'attr(design,"A") #A-Efficiency
 #'attr(design,"I") #The average prediction variance across the design space
 #'
 #'#The correlation matrix can be accessed via the "correlation.matrix" attribute:
@@ -112,7 +113,7 @@
 #'  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
-#'#and eval_design_survival_mc (Monte Carlo survival analysis)
+#'#eval_design_survival_mc (Monte Carlo survival analysis), and eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
                       optimality="D",repeats=10, contrast=NULL, parallel=FALSE,  ...) {
 

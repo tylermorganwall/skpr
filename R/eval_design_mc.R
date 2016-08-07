@@ -165,11 +165,16 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     contrastslist = NULL
   }
 
-  #remove columns from variables not used in the model
+  #---------- Convert dot formula to terms -----#
+  if((as.character(model)[2] == ".")) {
+    model = as.formula(paste("~",paste(attr(RunMatrix,"names"),collapse=" + "),sep=""))
+  }
+
+  #Remove columns from variables not used in the model
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
-    #-----Autogenerate Anticipated Coefficients---#
+  #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
   }
@@ -214,7 +219,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
     totalblocknoise = Reduce("+",listblocknoise)
   }
 
-  #---------Update formula with random blocks------#
+  #-------Update formula with random blocks------#
 
   genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
 

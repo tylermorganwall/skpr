@@ -97,6 +97,11 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     contrastslist = NULL
   }
 
+  #---------- Convert dot formula to terms -----#
+  if((as.character(model)[2] == ".")) {
+    model = as.formula(paste("~",paste(attr(RunMatrix,"names"),collapse=" + "),sep=""))
+  }
+
   #remove columns from variables not used in the model
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)

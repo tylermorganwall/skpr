@@ -4,53 +4,52 @@
 #'@description Creates design given a model and desired number of runs, returning the model matrix. Currently
 #'Used with eval_design/eval_design_mc to produce power estimations for designs.
 #'
-#'@param factorial A full factorial test matrix generated for the factors in the model. If
+#'@param factorial A data frame of candidate test points. Usually this is a full factorial test matrix
+#'generated for the factors in the model, but if you have disallowed combinations then make sure the candidate list
+#'is consistent with them (e.g. by generating a full factorial and then removing disallowed combinations). If
 #'the factor is continuous, it should be type numeric. If the factor is categorical, it should be
 #'set as a factor.
 #'@param model The model used to generate the test design.
 #'@param trials The number of runs in the design.
 #'@param wholeblock A data frame specifying the blocking factors.
 #'@param blocksize The number of runs in each block.
-#'@param optimality The optimality criterion (e.g. "D")
-#'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 100.
-#'@param ... Any additional arguments to be input into AlgDesign's optFederov during design generation.
+#'@param optimality The optimality criterion (e.g. "D", "I", or "A")
+#'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.
 #'@return The model matrix for the design, to be passed to eval_design. The model matrix
 #'has various attributes (accessible with the attr function) that aid evaluation.
-#'@import AlgDesign
 #'@export
-#'@examples #Generate the basic factorial design used in generating the optimal design with
-#'#expand.grid.
+#'@examples #Generate the basic factorial design used in generating the optimal design with expand.grid.
 #'#Generating a basic 2 factor design:
-#'basicdesign = expand.grid(x1=c(-1,1),x2=c(-1,1))
+#'basicdesign = expand.grid(x1=c(-1,1), x2=c(-1,1))
 #'
 #'#This factorial design is used as an input in the optimal design generation for a
 #'#D-optimal design with 11 runs.
-#'design = gen_design(factorial=basicdesign,model=~x1+x2,trials=11)
+#'design = gen_design(factorial=basicdesign, model=~x1+x2, trials=11)
 #'
 #'#We can also use the dot operator to automatically use all of the terms in the model:
-#'design = gen_design(factorial=basicdesign,model=~.,trials=11)
+#'design = gen_design(factorial=basicdesign, model=~., trials=11)
 #'
 #'#Here we add categorical factors, specified by using "as.factor" in expand.grid:
-#'categoricaldesign = expand.grid(a=c(-1,1),b=as.factor(c("A","B")),c=as.factor(c("High","Med","Low")))
+#'categoricaldesign = expand.grid(a=c(-1,1), b=as.factor(c("A","B")), c=as.factor(c("High","Med","Low")))
 #'
 #'#This factorial design is used as an input in the optimal design generation.
-#'design2 = gen_design(factorial=categoricaldesign,model=~a+b+c,trials=19)
+#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19)
 #'
 #'#We can also increase the number of times the algorithm repeats the search to increase the probability
 #'#that the globally optimal design was found.
-#'design2 = gen_design(factorial=fulldesign,model=~a+b+c,trials=19,repeats=100)
+#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
 #'
 #'#You can also use a higher order model when generating the design:
-#'design2 = gen_design(factorial=fulldesign,model=~a+b+c+a*b*c,trials=19)
+#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=19)
 #'
 #'#To evaluate a response surface design, include center points in the candidate set and do not include
 #'#quadratic effects with categorical factors.
 #'
-#'designquad = expand.grid(a=c(1,0,-1),b=c(-1,0,1),c=c("A","B","C"))
+#'designquad = expand.grid(a=c(1,0,-1), b=c(-1,0,1), c=c("A","B","C"))
 #'
 #'gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20)
 #'
-#'The optimality criterion can also be changed:
+#'#The optimality criterion can also be changed:
 #'gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="I")
 #'gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="A")
 #'
@@ -64,7 +63,7 @@
 #'
 #'#Now we can use the D-optimal blocked design as an input to our full design.
 #'
-#'easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")),Power=c(1,-1))
+#'easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
 #'
 #'#Here, we specify the easy to change factors for the factorial design, and input the hard-to-change design
 #'#along with a vector listing the number of repetitions within each block for the blocked design. There should be
@@ -92,10 +91,10 @@
 #'
 #'gen_design(extremelyhtcfactors, ~Location, trials=6) -> temp
 #'gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp
-#'gen_design(htcfactors, ~Vineyard,48,splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp
+#'gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp
 #'gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) -> splitsplitsplitplotdesign
 #'
-#'A design's diagnostics can be accessed via the following attributes:
+#'#A design's diagnostics can be accessed via the following attributes:
 #'
 #'attr(design,"D") #D-Efficiency
 #'attr(design,"A") #A-Efficiency
@@ -108,8 +107,8 @@
 #'#A correlation color map can be produced with the following call to ggplot2 and reshape2
 #'
 #'\dontrun{melt(correlation.matrix) -> melted.correlation.matrix
-#'ggplot(melted.correlation.matrix,aes(x=Var1,y=Var2,fill=value)) + geom_tile() +
-#'  scale_fill_gradient2(mid="grey70",high="red", low="blue",midpoint=0.5) +
+#'ggplot(melted.correlation.matrix, aes(x=Var1, y=Var2, fill=value)) + geom_tile() +
+#'  scale_fill_gradient2(mid="grey70", high="red", low="blue", midpoint=0.5) +
 #'  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)

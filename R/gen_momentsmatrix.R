@@ -6,10 +6,35 @@
 #'@keywords internal
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)
-gen_momentsmatrix = function(modelfactors) {
+gen_momentsmatrix = function(modelfactors,RunMatrix) {
+
+  levelvector = sapply(lapply(RunMatrix,unique),length)
+  classvector = sapply(lapply(RunMatrix,unique),class) == "factor"
+  levelvector[!classvector] = 1
+  isfactor = c()
+  for(i in 1:length(classvector)) {
+    if(classvector[i]) {
+      isfactor = c(isfactor,rep(classvector[i],levelvector[i] - 1))
+    } else {
+      isfactor = c(isfactor,FALSE)
+    }
+  }
+
+  isfactor = c(FALSE,isfactor)
+  linearfactors = c()
+  for(i in 1:length(isfactor)) {
+    if(isfactor[i]) {
+      linearfactors = c(linearfactors,modelfactors[i])
+    }
+  }
+
   isintercept = modelfactors == "(Intercept)"
   ishigherorder = lapply(strsplit(modelfactors,split="^",fixed=TRUE),length) > 1
   isinteraction = lapply(strsplit(modelfactors,split=":",fixed=TRUE),length) > 1
+  isfullfactor = c(isfactor,rep(FALSE,length(modelfactors)-length(isfactor)))
+  for(i in linearfactors) {
+    isfullfactor[grep(paste0("\\b",i,"\\b"),modelfactors)] = TRUE
+  }
   islinear = rep(TRUE,length(modelfactors)) & !isintercept & !ishigherorder & !isinteraction
   linearterms = modelfactors[islinear]
   ordermatrix = matrix(0,nrow=length(linearterms),ncol = length(modelfactors))
@@ -37,6 +62,18 @@ gen_momentsmatrix = function(modelfactors) {
         momentsmatrix[i,j] = 0
       } else {
         momentsmatrixresults[i,j] = prod(1/(momentsmatrix[i,j][[1]]+1))
+      }
+    }
+  }
+  for(i in 1:length(modelfactors)) {
+    for(j in 1:length(modelfactors)) {
+      if((isfullfactor[j] || isfullfactor[i]) && !(isinteraction[i] || isinteraction[j])) {
+        momentsmatrixresults[i,j] = 3*momentsmatrixresults[i,j]
+      }
+      if((isfullfactor[j] || isfullfactor[i]) && (isinteraction[i] || isinteraction[j])) {
+        term = strsplit(modelfactors[i],split=":",fixed=TRUE)[[1]]
+        catterms = sum(term %in% linearfactors)
+        momentsmatrixresults[i,j] = 3^catterms*momentsmatrixresults[i,j]
       }
     }
   }

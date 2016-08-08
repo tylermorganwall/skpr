@@ -192,7 +192,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
   if(!blocking) {
     factors = colnames(factorialmm)
-    mm = gen_momentsmatrix(factors)
+    mm = gen_momentsmatrix(factors,factorial)
     if(!parallel) {
       for(i in 1:repeats) {
         randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
@@ -221,7 +221,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
       blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
     }
     blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
-    blockedMM = gen_momentsmatrix(blockedFactors)
+    blockedMM = gen_momentsmatrix(blockedFactors,splitPlotReplicateDesign)
     if (!parallel) {
       for(i in 1:repeats) {
         randomIndices = sample(nrow(factorial), trials, replace = initialReplace)

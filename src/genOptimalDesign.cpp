@@ -34,6 +34,15 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
   int totalPoints = candidatelist.n_rows;
   IntegerVector candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
+  //Check to see if the design could be a full factorial or replicated full factorial
+  if(nTrials % totalPoints == 0) {
+    for(int i = 0; i < nTrials; i++) {
+      initialdesign.row(i) = candidatelist.row(i % totalPoints);
+      candidateRow[i] = i % totalPoints+1;
+    }
+    std::random_shuffle(candidateRow.begin(),candidateRow.end());
+    return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = 0));
+  }
   if(nTrials <= candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }

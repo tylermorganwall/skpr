@@ -95,7 +95,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
   }
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
-  RunMatrix = reducemodelmatrix(RunMatrix,model)
+  RunMatrix = reduceRunMatrix(RunMatrix,model)
 
   if(!is.null(blockmodel)) {
     BlockDesign = data.frame()

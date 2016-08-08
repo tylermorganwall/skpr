@@ -1,51 +1,55 @@
 #'@title Evaluates power for model matrix with a Monte Carlo simulation
 #'
-#'@description Evaluates design given a model matrix with a monte carlo simulation and returns
-#'a data frame of parameter powers. Currently only works with linear, non-interacting models.
+#'@description Evaluates design, given a run matrix, with a monte carlo simulation and returns
+#'a data frame of parameter and effect powers.
 #'
 #'
 #'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations.
-#'@param glmfamily String indicating the family the distribution is from for the glm function
-#'(e.g. gaussian, binomial, poisson)
-#'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
+#'@param glmfamily String indicating the family of distribution for the glm function
+#'(e.g. "gaussian", "binomial", "poisson")
+#'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X,b), where X is the
 #'model matrix and b are the anticipated coefficients.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
-#'@param randomeffects A formula specifying the model for the blocking effects.
+#'
+#'@param blockfuntion Random number generator for the noise due to blocks. See examples for details.
+#'
+#'@param blocknoise Vector of noise levels for each block, one element per blocking level. See examples for details.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
-#'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta
-#'@param varianceratio Default 1. The ratio of the whole plot variance to the run-to-run variance.
+#'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 #'to zero.
-#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
-#'@return A data frame consisting of the parameters and their powers
-#'@import AlgDesign foreach doParallel
+#'@param contrasts The contrasts to use for categorical factors. Defaults to contr.sum.
+#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation.
+#'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
+#'stored in the 'estimates' attribute.
+#'@import foreach doParallel
 #'@export
 #'@examples #We first generate a full factorial design using expand.grid:
-#'factorialcoffee = expand.grid(cost=c(-1,1),
-#'                              type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
-#'                              size=as.factor(c("Short","Grande","Venti")))
+#'factorialcoffee = expand.grid(cost=c(-1, 1),
+#'                              type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                              size=as.factor(c("Short", "Grande", "Venti")))
 #'
 #'#And then generate the 21-run D-optimal design using gen_design.
 #'
-#'designcoffee = gen_design(factorialcoffee,model=~cost + type + size,trials=21,optimality="D")
+#'designcoffee = gen_design(factorialcoffee, model=~cost + type + size, trials=21, optimality="D")
 #'
 #'#To evaluate this design using a normal approximation, we just use eval_design
 #'#(here using the default settings for contrasts, delta, and the anticipated coefficients):
 #'
-#'eval_design(RunMatrix=designcoffee,model=~cost + type + size, 0.05)
+#'eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 #'
 #'#We want to evaluate this design with a Monte Carlo approach. In this case, we need
 #'#to create a function that generates random numbers based on our run matrix X and
 #'#our anticipated coefficients (b).
 #'
 #'rgen = function(X,b) {
-#'  return(rnorm(n=nrow(X),mean = X %*% b, sd = 1))
+#'  return(rnorm(n=nrow(X), mean = X %*% b, sd = 1))
 #'}
 #'
 #'#Here we generate our nrow(X) random numbers from a population with a mean that varies depending
@@ -55,36 +59,36 @@
 #'#family used in fitting for the glm "glmfamily", the custom random generation function "rfunction",
 #'#and whether or not we want the computation to be done with all the cores available "parallel".
 #'
-#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgen)
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
+#'               nsim=1000, glmfamily="gaussian", rfunction=rgen)
 #'
 #'#We see here we generate approximately the same parameter powers as we do
 #'#using the normal approximation in eval_design. Like eval_design, we can also change
 #'#delta to produce a different signal-to-noise ratio:
 #'
-#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgen,delta=1)
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
+#'               nsim=100, glmfamily="gaussian", rfunction=rgen, delta=1)
 #'
 #'#However, we could also specify this using a different random generator function by
 #'#doubling the standard deviation of the population we are drawing from:
 #'
 #'rgensnr = function(X,b) {
-#'  return(rnorm(n=nrow(X),mean = X %*% b, sd = 2))
+#'  return(rnorm(n=nrow(X), mean = X %*% b, sd = 2))
 #'}
 #'
-#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, alpha=0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgensnr)
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
+#'               nsim=100, glmfamily="gaussian", rfunction=rgensnr)
 #'
 #'#Both methods provide the same end result.
 #'
 #'#Like eval_design, we can also evaluate the design with a different model than
 #'#the one that generated the design.
-#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type, 0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgen)
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
+#'               nsim=100, glmfamily="gaussian", rfunction=rgen)
 #'
 #'#Here we evaluate the design using conservative anticipated coefficients:
-#'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgen,conservative=TRUE)
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
+#'               nsim=100, glmfamily="gaussian", rfunction=rgen, conservative=TRUE)
 #'
 #'#And here it is evaluated with higher order effects included:
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
@@ -100,9 +104,9 @@
 #'vhtc = expand.grid(Store=as.factor(c("A","B")))
 #'htc = expand.grid(Temp = c(1,-1))
 #'
-#'vhtcdesign = gen_design(factorial=vhtc,model=~Store, trials=6)
-#'htcdesign = gen_design(factorial=htc,model=~Temp, trials=18,splitplotdesign=vhtcdesign,splitplotsizes=rep(3,6))
-#'splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size, trials=54,
+#'vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6)
+#'htcdesign = gen_design(factorial=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6))
+#'splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size+size*Store, trials=54,
 #'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18))
 #'
 #'#Each block has an additional noise term associated with it in addition to the normal error term.
@@ -113,14 +117,14 @@
 #'#See the accompanying paper _____ for further technical details.
 #'
 #'rgenblocking = function(v) {
-#'  return(rnorm(n=1,mean = 0, sd = v))
+#'  return(rnorm(n=1, mean = 0, sd = v))
 #'}
 #'
 #'blockvector = c(1,1)
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors. If
 #'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-#'               nsim=1000, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
+#'               nsim=100, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
 #'               blocknoise = blockvector)
 #'
 #'

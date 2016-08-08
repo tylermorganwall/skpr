@@ -17,7 +17,6 @@ reduceRunMatrix = function(RunMatrix,model) {
     if(!(parameter %in%  attr(terms(model),"term.labels"))) {
       if(!is.null(sapply(RunMatrix,class)[parameter]) && sapply(RunMatrix,class)[parameter] == "factor") {
         removecols = (removecols & !(parameter == substr(colnames(ModelMatrix), 1, nchar(colnames(ModelMatrix))-1)))
-        attributelist[["contrasts"]][[parameter]] = NULL
       }
       if(!is.null(sapply(RunMatrix,class)[parameter]) && sapply(RunMatrix,class)[parameter] == "numeric") {
         removecols = (removecols & !(parameter == colnames(ModelMatrix)))

@@ -60,7 +60,7 @@
 #'#and whether or not we want the computation to be done with all the cores available "parallel".
 #'
 #'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-#'               nsim=1000, glmfamily="gaussian", rfunction=rgen)
+#'               nsim=100, glmfamily="gaussian", rfunction=rgen)
 #'
 #'#We see here we generate approximately the same parameter powers as we do
 #'#using the normal approximation in eval_design. Like eval_design, we can also change

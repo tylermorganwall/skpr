@@ -42,8 +42,9 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
   momentsmatrixresults = matrix(0,nrow=length(modelfactors),ncol=length(modelfactors))
 
   for(i in 1:length(linearterms)) {
-    ordermatrix[i,strsplit(modelfactors, split=linearterms[i],fixed=TRUE) != modelfactors] = 1
+    ordermatrix[i,modelfactors[i+1] == modelfactors] = 1
   }
+
   for(i in 1:length(linearterms)) {
     if(any(lapply(strsplit(modelfactors[-1], split=paste(linearterms[i],"^",sep=""),fixed=TRUE),length) > 1)) {
       for(j in 2:ncol(ordermatrix)) {
@@ -54,6 +55,7 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
     }
   }
   ordermatrix[,1] = 0
+
   for(i in 1:length(modelfactors)) {
     for(j in 1:length(modelfactors)) {
       momentsmatrix[i,j] = list(ordermatrix[,i]+ordermatrix[,j])
@@ -65,6 +67,7 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
       }
     }
   }
+
   for(i in 1:length(modelfactors)) {
     for(j in 1:length(modelfactors)) {
       if((isfullfactor[j] || isfullfactor[i]) && !(isinteraction[i] || isinteraction[j])) {

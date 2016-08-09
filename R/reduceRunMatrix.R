@@ -7,24 +7,9 @@
 #'@return The reduced model matrix
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix,model) {
-  ModelMatrix = model.matrix(model,RunMatrix)
   ReduceRM = RunMatrix
   if(length(as.character(model)) == 2 && as.character(model)[2] == ".") {
     return(ReduceRM)
   }
-  removecols = rep(TRUE,ncol(ModelMatrix))
-  for(parameter in colnames(RunMatrix)) {
-    if(!(parameter %in%  attr(terms(model),"term.labels"))) {
-      if(!is.null(sapply(RunMatrix,class)[parameter]) && sapply(RunMatrix,class)[parameter] == "factor") {
-        removecols = (removecols & !(parameter == substr(colnames(ModelMatrix), 1, nchar(colnames(ModelMatrix))-1)))
-      }
-      if(!is.null(sapply(RunMatrix,class)[parameter]) && sapply(RunMatrix,class)[parameter] == "numeric") {
-        removecols = (removecols & !(parameter == colnames(ModelMatrix)))
-      }
-      ReduceRM[parameter] = NULL
-    }
-  }
-
-  #return original attributes to new reduced model matrix
-  return(ReduceRM)
+  return(ReduceRM[colnames(ReduceRM) %in% all.vars(model)])
 }

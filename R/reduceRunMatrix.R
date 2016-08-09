@@ -11,5 +11,8 @@ reduceRunMatrix = function(RunMatrix,model) {
   if(length(as.character(model)) == 2 && as.character(model)[2] == ".") {
     return(ReduceRM)
   }
-  return(ReduceRM[colnames(ReduceRM) %in% all.vars(model)])
+  ats = attributes(ReduceRM)
+  ReduceRM = ReduceRM[colnames(ReduceRM) %in% all.vars(model)]
+  attributes(ReduceRM) = ats
+  ReduceRM
 }

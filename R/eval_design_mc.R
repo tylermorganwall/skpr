@@ -174,8 +174,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
                           conservative=FALSE, contrasts=contr.simplex, parallel=FALSE) {
 
   #---------- Generating model matrix ----------#
+  #Remove columns from variables not used in the model
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+
   contrastslist = list()
-  for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
+  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) == "factor"])) {
     contrastslist[[x]] = contrasts
   }
   if(length(contrastslist) < 1) {
@@ -184,11 +187,9 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
 
   #---------- Convert dot formula to terms -----#
   if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~",paste(attr(RunMatrix,"names"),collapse=" + "),sep=""))
+    model = as.formula(paste("~", paste(attr(RunMatrixReduced, "names"), collapse=" + "), sep=""))
   }
 
-  #Remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
   #-----Autogenerate Anticipated Coefficients---#

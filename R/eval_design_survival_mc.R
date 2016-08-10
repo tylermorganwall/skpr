@@ -49,7 +49,7 @@
 #'
 #'#We can then evaluate the power of the design in the same way as eval_design_mc:
 #'
-#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
+#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
 #'                        distribution="exponential",rfunctionsurv=rsurvival, delta=1)
 #'
 #'#We can also evaluate different censored distributions by specifying a different
@@ -67,7 +67,7 @@
 #'#The argument "scale" was not specified in eval_design_survival_mc, but it was passed into
 #'#the survreg function call.
 #'
-#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.2,nsim=1000,
+#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.2,nsim=100,
 #'                        distribution="lognormal",rfunctionsurv=rlognorm,
 #'                        anticoef=c(0.184,0.101),delta=2,scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,

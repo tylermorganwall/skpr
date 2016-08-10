@@ -121,7 +121,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
       fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution,...)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = summary(fit)$table[,4]
+      pvals = extractPvalues(fit)
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1

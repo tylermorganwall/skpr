@@ -5,17 +5,16 @@ Authors@R: c(person("Tyler", "Morgan-Wall", email = "tmorganw@ida.org", role = c
              person("George", "Khoury", email = "george.m.khoury@gmail.com", role = c("aut")))
 Description: Generates optimal designs and calculates power for those designs given a model and a factorial design for the given parameters. Evaluation can be done with both normal approximation techniques and Monte Carlo methods, and includes a method to evaluate a censored response variable. A parallel implementation of the Monte Carlo method is also provided.
 Depends:
-    R (>= 3.2.1)
-License: GPL-3
-LazyData: true
-RoxygenNote: 5.0.1
-Depends:
   doParallel,
   foreach,
   survival
+License: GPL-3
+LazyData: true
+RoxygenNote: 5.0.1
 Imports:
   nlme,
   lme4,
   RcppArmadillo,
   Rcpp (>= 0.11.0)
 LinkingTo: Rcpp, RcppArmadillo
+Suggests: testthat

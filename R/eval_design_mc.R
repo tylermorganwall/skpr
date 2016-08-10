@@ -280,8 +280,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
         }
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
-      coefs = coef(summary(fit))
-      pvals =  2 * (1 - pnorm(abs(coefs[,3])))
+      pvals = extractPvalues(fit)
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {
           power_values[i] = power_values[i] + 1
@@ -314,9 +313,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
         }
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
-      coefs = coef(summary(fit))
-
-      pvals =  2 * (1 - pnorm(abs(coefs[,3])))
+      pvals = extractPvalues(fit)
 
       for(i in 1:length(pvals)) {
         if (pvals[i] < alpha) {

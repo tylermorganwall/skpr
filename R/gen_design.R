@@ -114,7 +114,7 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=10, contrast=NULL, parallel=FALSE,  ...) {
+                      optimality="D",repeats=10, contrast=NULL, parallel=FALSE, timer=FALSE) {
 
   factorial = reduceRunMatrix(factorial, model)
 
@@ -195,21 +195,55 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     factors = colnames(factorialmm)
     mm = gen_momentsmatrix(factors,factorial)
     if(!parallel) {
-      for(i in 1:repeats) {
+      if(!timer) {
+        for(i in 1:repeats) {
+          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+          genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        }
+      } else {
+        cat("Estimated time to completion ... ")
+        ptm = proc.time()
         randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-        genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                        condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        genOutput[[1]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
+        for(i in 2:repeats) {
+          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+          genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        }
       }
     } else {
-      cl <- parallel::makeCluster(parallel::detectCores())
-      doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+      if(!timer) {
+        cl <- parallel::makeCluster(parallel::detectCores())
+        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-      genOutput = foreach(i=1:repeats) %dopar% {
+        genOutput = foreach(i=1:repeats) %dopar% {
+          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+          genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        }
+        parallel::stopCluster(cl)
+      } else {
+        cl <- parallel::makeCluster(parallel::detectCores())
+        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+        cat("Estimated time to completion ... ")
+        ptm = proc.time()
         randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-        genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        genOutputOne = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
+
+        genOutput = foreach(i=2:repeats) %dopar% {
+          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
+          genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+        }
+        genOutput = c(genOutputOne,genOutput)
+        parallel::stopCluster(cl)
       }
-      parallel::stopCluster(cl)
     }
   } else {
     blockedContrastsList = list()
@@ -224,23 +258,61 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
     blockedMM = gen_momentsmatrix(blockedFactors,splitPlotReplicateDesign)
     if (!parallel) {
-      for(i in 1:repeats) {
+      if(!timer) {
+        for(i in 1:repeats) {
+          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        }
+      } else {
+        cat("Estimated time to completion ... ")
+        ptm = proc.time()
         randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-        genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+        genOutput[[1]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
+        for(i in 2:repeats) {
+          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        }
       }
     } else {
-      cl <- parallel::makeCluster(parallel::detectCores())
-      doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+      if(!timer) {
+        cl <- parallel::makeCluster(parallel::detectCores())
+        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-      genOutput = foreach(i=1:repeats) %dopar% {
+        genOutput = foreach(i=1:repeats) %dopar% {
+          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+          genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        }
+        parallel::stopCluster(cl)
+      } else {
+        cl <- parallel::makeCluster(parallel::detectCores())
+        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+
+        cat("Estimated time to completion ... ")
+        ptm = proc.time()
         randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-        genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        genOutputOne = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                                 candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                                 condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
+
+        genOutput = foreach(i=2:repeats) %dopar% {
+          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
+          genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
+                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+        }
+        genOutput = c(genOutputOne,genOutput)
+        parallel::stopCluster(cl)
       }
-      parallel::stopCluster(cl)
     }
   }
 

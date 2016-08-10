@@ -169,8 +169,8 @@
 #'#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
-eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, anticoef,
-                          blockfunction=NULL, blocknoise = NULL, delta=2,
+eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
+                          blockfunction=NULL, blocknoise = NULL, anticoef, delta=2,
                           conservative=FALSE, contrasts=contr.simplex, parallel=FALSE) {
 
   #---------- Generating model matrix ----------#
@@ -307,7 +307,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction, a
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
       } else {
-        fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)
+        if (glmfamily == "gaussian") {
+          fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
+        } else {
+          fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)
+        }
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       coefs = coef(summary(fit))

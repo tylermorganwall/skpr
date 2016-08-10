@@ -46,28 +46,26 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
   if(nTrials <= candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
+  for(int j = 1; j < candidatelist.n_cols; j++) {
+    if(all(candidatelist.col(0) == candidatelist.col(j))) {
+      throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
+    }
+  }
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
+  while(check < maxSingularityChecks) {
+    if(!inv_sympd(test,initialdesign.t() * initialdesign)) {
+      arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
+      for(int i = 0; i < nTrials; i++) {
+        initialdesign.row(i) = candidatelist.row(randomrows(i));
+      }
+      check++;
+    } else {
+      break;
+    }
+  }
+  //If still no non-singular design, throws and error and exits.
   if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
-    for(int j = 1; j < initialdesign.n_cols; j++) {
-      if(all(initialdesign.col(0) == initialdesign.col(j))) {
-        throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
-      }
-    }
-    while(check < maxSingularityChecks) {
-      if(!inv_sympd(test,initialdesign.t() * initialdesign)) {
-        arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-        for(int i = 0; i < nTrials; i++) {
-          initialdesign.row(i) = candidatelist.row(randomrows(i));
-        }
-        check++;
-      } else {
-        break;
-      }
-    }
-    //If still no non-singular design, throws and error and exits.
-    if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
-      throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
-    }
+    throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
   }
   bool found = FALSE;
   double del = 0;

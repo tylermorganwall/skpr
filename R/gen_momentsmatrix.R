@@ -36,6 +36,7 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
     isfullfactor[grep(paste0("\\b",i,"\\b"),modelfactors)] = TRUE
   }
   islinear = rep(TRUE,length(modelfactors)) & !isintercept & !ishigherorder & !isinteraction
+
   linearterms = modelfactors[islinear]
   ordermatrix = matrix(0,nrow=length(linearterms),ncol = length(modelfactors))
   momentsmatrix = matrix(list(2),nrow=length(modelfactors),ncol=length(modelfactors))

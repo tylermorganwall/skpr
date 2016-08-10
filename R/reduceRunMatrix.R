@@ -4,15 +4,15 @@
 #'
 #'@param ModelMatrix The model matrix
 #'@param model The formula
-#'@return The reduced model matrix
+#'@return The reduced model matrix.
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix,model) {
   ReduceRM = RunMatrix
   if(length(as.character(model)) == 2 && as.character(model)[2] == ".") {
     return(ReduceRM)
   }
-  ats = attributes(ReduceRM)
-  ReduceRM = ReduceRM[colnames(ReduceRM) %in% all.vars(model)]
-  attributes(ReduceRM) = ats
+  for (var in colnames(ReduceRM)) {
+    if (!(var %in% all.vars(model))) ReduceRM[var] = NULL
+  }
   ReduceRM
 }

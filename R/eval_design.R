@@ -86,6 +86,8 @@
 eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
                        delta=2, varianceratio=1, contrasts="contr.sum", conservative=FALSE) {
 
+  RunMatrix = reduceRunMatrix(RunMatrix,model)
+
   contrastslist = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
     contrastslist[x] = contrasts
@@ -95,7 +97,6 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
   }
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
-  RunMatrix = reduceRunMatrix(RunMatrix,model)
 
   if(!is.null(blockmodel)) {
     BlockDesign = data.frame()

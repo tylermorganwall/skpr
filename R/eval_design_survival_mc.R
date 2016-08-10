@@ -75,8 +75,11 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
                           conservative=FALSE, parallel=FALSE, ...) {
 
   #---------- Generating model matrix ----------#
+  #remove columns from variables not used in the model
+  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+
   contrastslist = list()
-  for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
+  for(x in names(RunMatrix[lapply(RunMatrixReduced, class) == "factor"])) {
     contrastslist[[x]] = contrasts
   }
   if(length(contrastslist) < 1) {
@@ -85,11 +88,9 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
   #---------- Convert dot formula to terms -----#
   if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~",paste(attr(RunMatrix,"names"),collapse=" + "),sep=""))
+    model = as.formula(paste("~", paste(attr(RunMatrixReduced, "names"), collapse=" + "), sep=""))
   }
 
-  #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
   # autogenerate anticipated coefficients

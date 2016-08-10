@@ -116,6 +116,8 @@
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
                       optimality="D",repeats=10, contrast=NULL, parallel=FALSE,  ...) {
 
+  factorial = reduceRunMatrix(factorial, model)
+
   if(is.null(contrast)) {
     contrast = function(n) contr.simplex(n,size=sqrt(n-1))
   }

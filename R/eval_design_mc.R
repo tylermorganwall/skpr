@@ -170,7 +170,7 @@
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
-                          blockfunction=NULL, blocknoise = NULL, anticoef, delta=2,
+                          blocknoise = NULL, anticoef, delta=2,
                           conservative=FALSE, contrasts=contr.simplex, parallel=FALSE) {
 
   #---------- Generating model matrix ----------#
@@ -206,10 +206,6 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
     anticoef = rep(1,dim(ModelMatrix)[2])
   }
 
-  #------------ Generate Responses -------------#
-
-  responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2))
-
   #-------------- Blocking errors --------------#
   blocking = FALSE
   blocknames = rownames(RunMatrix)
@@ -217,36 +213,44 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
 
   if(any(lapply(blocklist,length) > 1)) {
     if(is.null(blocknoise)) {
-      stop("Error: blocknoise argument missing. If blocking present, need blocknoise vector to generate extra block variance")
+      warning("Warning: blocknoise argument missing. Blocking ignored.")
+    } else {
+      blocking = TRUE
+      blockstructure = do.call(rbind,blocklist)
+      blockgroups = apply(blockstructure,2,blockingstructure)
+      listblocknoise = list()
     }
-    blocking = TRUE
-    blockstructure = do.call(rbind,blocklist)
-    blockgroups = apply(blockstructure,2,blockingstructure)
-    listblocknoise = list()
   }
 
-  if(!is.null(blocknoise)) {
-    for(i in 1:(length(blockgroups)-1)) {
+  rblocknoise = function(noise,groups) {
+    for(i in 1:(length(groups)-1)) {
       blocktemp = list()
-      for(j in 1:length(blockgroups[[i]])) {
-        row = replicate(nsim,blockfunction(blocknoise[i]))
-        blocktemp[[j]] = do.call(rbind, replicate(blockgroups[[i]][j],row,simplify = FALSE))
+      for(j in 1:length(groups[[i]])) {
+        row = rnorm(n=1,mean=0,sd=noise[i])
+        blocktemp[[j]] = do.call(rbind, replicate(groups[[i]][j],row,simplify = FALSE))
       }
       listblocknoise[[i]] = do.call(rbind,blocktemp)
     }
-  }
-
-  if(!is.null(blocknoise)) {
     totalblocknoise = Reduce("+",listblocknoise)
+    return(totalblocknoise)
   }
 
+  #------------ Generate Responses -------------#
+
+  responses = matrix(ncol=nsim,nrow=nrow(ModelMatrix))
+  if(blocking) {
+    for(i in 1:nsim) {
+      responses[,i] = rfunction(ModelMatrix,anticoef*delta/2,rblocknoise(noise=blocknoise,groups=blockgroups))
+    }
+  } else {
+    responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2,rep(0,nrow(ModelMatrix))))
+  }
   #-------Update formula with random blocks------#
 
   genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
 
   if(!is.null(blocknoise)) {
     blockindicators = lapply(blockgroups,genBlockIndicators)
-    responses = responses + totalblocknoise
     blocknumber = length(blockgroups)-1
     randomeffects = c()
     for(i in 1:(length(blockgroups)-1)) {
@@ -261,6 +265,8 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
 
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
+  print(RunMatrixReduced)
+  print(model_formula)
 
   #---------------- Run Simulations ---------------#
   if(!parallel) {

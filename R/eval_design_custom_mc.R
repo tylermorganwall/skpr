@@ -65,7 +65,7 @@
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
 #'
-#'eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
+#'eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
 #'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc.

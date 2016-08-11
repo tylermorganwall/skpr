@@ -155,7 +155,7 @@
 #'#a factor of 2. We generate the design:
 #'
 #'factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-#'designpois = gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=1000)
+#'designpois = gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=100)
 #'
 #'
 #'#Here we return a random poisson number of events that vary depending

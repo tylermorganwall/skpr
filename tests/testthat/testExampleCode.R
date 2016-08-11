@@ -292,7 +292,7 @@ test_that("eval_design_mc example code runs without errors", {
   #'#a factor of 2. We generate the design:
   #'
   factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-  expect_silent(designpois <- gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=1000))
+  expect_silent(designpois <- gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=100))
   #'
   #'
   #'#Here we return a random poisson number of events that vary depending
@@ -398,7 +398,7 @@ test_that("eval_design_custom_mc example code runs without errors", {
   #'#And now we evaluate the design, passing the fitting function and p-value extracting function
   #'#in along with the standard inputs for eval_design_mc.
   #'
-  expect_silent(eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=1000,
+  expect_silent(eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
                         fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1))
   #'
   #'#This has the exact same behavior as eval_design_survival_mc.

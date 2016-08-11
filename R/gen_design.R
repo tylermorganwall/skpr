@@ -40,7 +40,7 @@
 #'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
 #'
 #'#You can also use a higher order model when generating the design:
-#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=19)
+#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
 #'
 #'#To evaluate a response surface design, include center points in the candidate set and do not include
 #'#quadratic effects with categorical factors.

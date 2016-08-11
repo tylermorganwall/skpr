@@ -218,11 +218,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
-      listblocknoise = list()
     }
   }
 
   rblocknoise = function(noise,groups) {
+    listblocknoise = list()
     for(i in 1:(length(groups)-1)) {
       blocktemp = list()
       for(j in 1:length(groups[[i]])) {

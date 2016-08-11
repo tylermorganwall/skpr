@@ -243,7 +243,7 @@ test_that("eval_design_mc example code runs without errors", {
   #'
   vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6)
   htcdesign = gen_design(factorial=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6))
-  expect_silent(splitplotdesign <- gen_design(factorial=factorialcoffee, model=~cost+type+size+size*Store, trials=54,
+  expect_silent(splitplotdesign <- gen_design(factorial=factorialcoffee, model=~cost+type+size+size, trials=54,
                                splitplotdesign=htcdesign, splitplotsizes=rep(3,18)))
   #'
   #'#Each block has an additional noise term associated with it in addition to the normal error term.

@@ -92,6 +92,9 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
   }
 
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
+  #We'll need the parameter and effect names for output
+  parameter_names = colnames(ModelMatrix)
+  effect_names = c("(Intercept)", attr(terms(model), 'term.labels'))
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
@@ -108,6 +111,8 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
+    effect_power_values = rep(0, length(effect_names))
+
     for (j in 1:nsim) {
 
       #simulate the data.
@@ -122,16 +127,13 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
-      for(i in 1:length(pvals)) {
-        if (pvals[i] < alpha) {
-          power_values[i] = power_values[i] + 1
-        }
-      }
+      power_values[pvals < alpha] = power_values[pvals < alpha] + 1
+      effect_power_values = effect_power_values + effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
     }
-    power_values = power_values/nsim
-
-    #output the results
-    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
+    #We are going to output a tidy data.frame with the results, so just append the effect powers
+    #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
+    #or effect power.
+    power_values = c(power_values, effect_power_values)/nsim
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
@@ -151,19 +153,22 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = summary(fit)$table[,4]
+      power_values[pvals < alpha] = 1
+      effect_power_values = effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
 
-      for(j in 1:length(pvals)) {
-        if (pvals[j] < alpha) {
-          power_values[j] = power_values[j] + 1
-        }
-      }
-      power_values
+      #We are going to output a tidy data.frame with the results, so just append the effect powers
+      #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
+      #or effect power.
+      c(power_values, effect_power_values)
     }
     parallel::stopCluster(cl)
     power_values = power_values/nsim
-    #output the results
-
-    return(data.frame(parameters=colnames(ModelMatrix),type=rep("parameter.power.mc",length(power_values)), power=power_values))
   }
+  #output the results (tidy data format)
+  return(data.frame(parameters=c(parameter_names, effect_names),
+                    type=c(rep("parameter.power.mc", length(parameter_names)),
+                           rep("effect.power.mc", length(effect_names))),
+                    power=power_values))
+
 }
 globalVariables('i')

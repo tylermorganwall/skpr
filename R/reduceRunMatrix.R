@@ -8,7 +8,7 @@
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix,model) {
   ReduceRM = RunMatrix
-  if(length(as.character(model)) == 2 && as.character(model)[2] == ".") {
+  if(length(as.character(model)) == 2 && (as.character(model)[2] == "." || as.character(model)[2] == "quad(.)")) {
     return(ReduceRM)
   }
   for (var in colnames(ReduceRM)) {

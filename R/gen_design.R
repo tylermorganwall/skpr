@@ -115,8 +115,20 @@
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
                       optimality="D",repeats=10, contrast=NULL, parallel=FALSE, timer=FALSE) {
+  quad=FALSE
+  if(as.character(model)[2] == "quad(.)") {
+    modelvars = colnames(model.matrix(~.,data=factorial))[-1]
+    modellinear = paste(modelvars,collapse=" + ")
+    modellinear = paste("~",modellinear,sep="")
+    modelfull = quad(as.formula(modellinear))
+    quad=TRUE
+  }
 
   factorial = reduceRunMatrix(factorial, model)
+
+  if(quad) {
+    model = modelfull
+  }
 
   if(is.null(contrast)) {
     contrast = function(n) contr.simplex(n,size=sqrt(n-1))

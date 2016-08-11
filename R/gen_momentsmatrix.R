@@ -47,11 +47,18 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
   }
 
   for(i in 1:length(linearterms)) {
-    if(any(lapply(strsplit(modelfactors[-1], split=paste(linearterms[i],"^",sep=""),fixed=TRUE),length) > 1)) {
+    if(any(ishigherorder)) {
       for(j in 2:ncol(ordermatrix)) {
         if(length(strsplit(modelfactors[j], split=paste(linearterms[i],"^",sep=""),fixed=TRUE)[[1]]) > 1) {
           ordermatrix[i,j] = as.numeric(gsub("\\D","",strsplit(modelfactors[j],split="^",fixed=TRUE)[[1]][2]))
         }
+      }
+    }
+  }
+  for(i in 1:length(linearterms)) {
+    for(j in 2:ncol(ordermatrix)) {
+      if(isinteraction[j] && (linearterms[i] %in% strsplit(modelfactors[j],split=":",fixed=TRUE)[[1]])) {
+        ordermatrix[i,j] = ordermatrix[i,j]+1
       }
     }
   }

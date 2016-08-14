@@ -185,8 +185,8 @@ test_that("eval_design_mc example code runs without errors", {
   #'#to create a function that generates random numbers based on our run matrix X and
   #'#our anticipated coefficients (b).
   #'
-  rgen = function(X,b) {
-    return(rnorm(n=nrow(X), mean = X %*% b, sd = 1))
+  rgen = function(X, b, delta) {
+    return(rnorm(n=nrow(X), mean = X %*% b + delta, sd = 1))
   }
   #'
   #'#Here we generate our nrow(X) random numbers from a population with a mean that varies depending
@@ -209,8 +209,8 @@ test_that("eval_design_mc example code runs without errors", {
   #'#However, we could also specify this using a different random generator function by
   #'#doubling the standard deviation of the population we are drawing from:
   #'
-  rgensnr = function(X,b) {
-    return(rnorm(n=nrow(X), mean = X %*% b, sd = 2))
+  rgensnr = function(X, b, delta) {
+    return(rnorm(n=nrow(X), mean = X %*% b + delta, sd = 2))
   }
   #'
   expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
@@ -253,17 +253,11 @@ test_that("eval_design_mc example code runs without errors", {
   #'#a variance ratio of one between the whole plots and the sub-plots.
   #'#See the accompanying paper _____ for further technical details.
   #'
-  rgenblocking = function(v) {
-    return(rnorm(n=1, mean = 0, sd = v))
-  }
-  #'
   blockvector = c(1,1)
   #'
   #'#Evaluate the design. Note the decreased power for the blocking factors. If
   expect_silent(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
-                 blocknoise = blockvector))
-  #'
+                 nsim=100, glmfamily="gaussian", rfunction=rgen, blocknoise = blockvector))
   #'
   #'#We can also use this method to evaluate designs that cannot be easily
   #'#evaluated using normal approximations. Here, we evaluate a design and see
@@ -276,8 +270,8 @@ test_that("eval_design_mc example code runs without errors", {
   #'#Here our random binomial generator simulates a response based on the resulting
   #'#probability from of all the columns in one row influencing the result.
   #'
-  rgenbinom = function(X,b) {
-    rbinom(n=nrow(X),size=1,prob = exp(X %*% b)/(1+exp(X %*% b)))
+  rgenbinom = function(X, b, delta) {
+    rbinom(n=nrow(X), size=1, prob = 1 / ( 1 + exp(-(X %*% b - delta))))
   }
   #'
   #'#Plugging everything in, we now evaluate our model and obtain the binomial power.
@@ -297,8 +291,8 @@ test_that("eval_design_mc example code runs without errors", {
   #'
   #'#Here we return a random poisson number of events that vary depending
   #'#on the rate in the design.
-  rrate = function(X,b) {
-    return(rpois(n=nrow(X),lambda=exp(X%*%b)))
+  rrate = function(X, b, delta) {
+    return(rpois(n=nrow(X), lambda=exp(X %*% b + delta)))
   }
   expect_silent(eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson",rfunction=rrate,
                  anticoef=c(log(0.2),log(2),log(2))))

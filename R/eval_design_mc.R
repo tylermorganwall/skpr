@@ -286,7 +286,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
-      effect_power_values = effect_power_values + effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
+      effect_power_values = effect_power_values + effectSignificance(fit, alpha, attr(ModelMatrix, 'assign'))
     }
     #We are going to output a tidy data.frame with the results, so just append the effect powers
     #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
@@ -317,7 +317,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       power_values[pvals < alpha] = 1
-      effect_power_values = effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
+      effect_power_values = effectSignificance(fit, alpha, attr(ModelMatrix, 'assign'))
 
       #We are going to output a tidy data.frame with the results, so just append the effect powers
       #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter

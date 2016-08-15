@@ -3,21 +3,20 @@
 #'@description Evaluates design, given a run matrix, with a monte carlo simulation and returns
 #'a data frame of parameter and effect powers.
 #'
-#'
 #'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations.
 #'@param glmfamily String indicating the family of distribution for the glm function
 #'(e.g. "gaussian", "binomial", "poisson")
-#'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X,b), where X is the
-#'model matrix and b are the anticipated coefficients.
+#'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X,b,delta), where X is the
+#'model matrix,b is a vector of the anticipated coefficients, and delta is a vector of noise due to blocking (one
+#'element for each row in the run matrix). Typically something like rnorm(nrow(X), mean = X * b + delta, sd = 1).
+#'
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
 #'
-#'@param blockfuntion Random number generator for the noise due to blocks. See examples for details.
-#'
-#'@param blocknoise Vector of noise levels for each block, one element per blocking level. See examples for details.
+#'@param blocknoise Vector of noise levels (in standard deviations) for each block, one element per blocking level. See examples for details.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.
 #'@param conservative Default FALSE. Specifies whether default method for generating
@@ -28,7 +27,7 @@
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import foreach doParallel
+#'@import foreach doParallel plyr
 #'@export
 #'@examples #We first generate a full factorial design using expand.grid:
 #'factorialcoffee = expand.grid(cost=c(-1, 1),
@@ -48,8 +47,8 @@
 #'#to create a function that generates random numbers based on our run matrix X and
 #'#our anticipated coefficients (b).
 #'
-#'rgen = function(X,b) {
-#'  return(rnorm(n=nrow(X), mean = X %*% b, sd = 1))
+#'rgen = function(X,b, delta) {
+#'  return(rnorm(n=nrow(X), mean = X %*% b + delta, sd = 1))
 #'}
 #'
 #'#Here we generate our nrow(X) random numbers from a population with a mean that varies depending
@@ -72,8 +71,8 @@
 #'#However, we could also specify this using a different random generator function by
 #'#doubling the standard deviation of the population we are drawing from:
 #'
-#'rgensnr = function(X,b) {
-#'  return(rnorm(n=nrow(X), mean = X %*% b, sd = 2))
+#'rgensnr = function(X,b, delta) {
+#'  return(rnorm(n=nrow(X), mean = X %*% b + delta, sd = 2))
 #'}
 #'
 #'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
@@ -116,16 +115,14 @@
 #'#a variance ratio of one between the whole plots and the sub-plots.
 #'#See the accompanying paper _____ for further technical details.
 #'
-#'rgenblocking = function(v) {
-#'  return(rnorm(n=1, mean = 0, sd = v))
-#'}
 #'
 #'blockvector = c(1,1)
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors. If
 #'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
+#'               nsim=100, glmfamily="gaussian", rfunction=rgen,
 #'               blocknoise = blockvector)
+
 #'
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
@@ -139,8 +136,8 @@
 #'#Here our random binomial generator simulates a response based on the resulting
 #'#probability from of all the columns in one row influencing the result.
 #'
-#'rgenbinom = function(X,b) {
-#'  rbinom(n=nrow(X),size=1,prob = exp(X %*% b)/(1+exp(X %*% b)))
+#'rgenbinom = function(X, b, delta) {
+#'  rbinom(n=nrow(X), size=1, prob = 1 / (1 + exp(-(X %*% b + delta))))
 #'}
 #'
 #'#Plugging everything in, we now evaluate our model and obtain the binomial power.
@@ -160,8 +157,8 @@
 #'
 #'#Here we return a random poisson number of events that vary depending
 #'#on the rate in the design.
-#'rrate = function(X,b) {
-#'  return(rpois(n=nrow(X),lambda=exp(X%*%b)))
+#'rrate = function(X, b, delta) {
+#'  return(rpois(n=nrow(X),lambda=exp(X %*% b + delta)))
 #'}
 #'eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson",rfunction=rrate,
 #'               anticoef=c(log(0.2),log(2),log(2)))
@@ -170,8 +167,8 @@
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
-                          blockfunction=NULL, blocknoise = NULL, anticoef, delta=2,
-                          conservative=FALSE, contrasts=contr.simplex, parallel=FALSE) {
+                          blocknoise = NULL, anticoef, delta=2,
+                          conservative=FALSE, contrasts=contr.sum, parallel=FALSE) {
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
@@ -206,51 +203,32 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
     anticoef = rep(1,dim(ModelMatrix)[2])
   }
 
-  #------------ Generate Responses -------------#
-
-  responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2))
-
   #-------------- Blocking errors --------------#
   blocking = FALSE
+
+  #convert from our rownames construct to a run matrix indicating which block each run is in
   blocknames = rownames(RunMatrix)
   blocklist = strsplit(blocknames,".",fixed=TRUE)
+  blocklist = lapply(blocklist, as.numeric) #so we can use block # for indexing later
+  blockindicators = do.call(rbind,blocklist)  #matrix, indicates which block(s) each run is in
+  levels_in_block = alply(blockindicators, 2, unique) #list of the levels in each block.
+  #the last 'block' is just the run number, not really a block. We use alply to ensure the result is a list
 
-  if(any(lapply(blocklist,length) > 1)) {
+
+  if(ncol(blockindicators) > 1) {
     if(is.null(blocknoise)) {
-      stop("Error: blocknoise argument missing. If blocking present, need blocknoise vector to generate extra block variance")
-    }
+      warning("Warning: blocknoise argument missing. Blocking ignored.")
+    } else {
     blocking = TRUE
-    blockstructure = do.call(rbind,blocklist)
-    blockgroups = apply(blockstructure,2,blockingstructure)
-    listblocknoise = list()
-  }
-
-  if(!is.null(blocknoise)) {
-    for(i in 1:(length(blockgroups)-1)) {
-      blocktemp = list()
-      for(j in 1:length(blockgroups[[i]])) {
-        row = replicate(nsim,blockfunction(blocknoise[i]))
-        blocktemp[[j]] = do.call(rbind, replicate(blockgroups[[i]][j],row,simplify = FALSE))
-      }
-      listblocknoise[[i]] = do.call(rbind,blocktemp)
     }
-  }
-
-  if(!is.null(blocknoise)) {
-    totalblocknoise = Reduce("+",listblocknoise)
   }
 
   #-------Update formula with random blocks------#
 
-  genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
-
-  if(!is.null(blocknoise)) {
-    blockindicators = lapply(blockgroups,genBlockIndicators)
-    responses = responses + totalblocknoise
-    blocknumber = length(blockgroups)-1
+  if(blocking) {
     randomeffects = c()
-    for(i in 1:(length(blockgroups)-1)) {
-      RunMatrixReduced[paste("Block",i,sep="")] = blockindicators[[i]]
+    for(i in 1:(ncol(blockindicators) - 1)) {
+      RunMatrixReduced[paste("Block",i,sep="")] = blockindicators[, i]
       randomeffects = c(randomeffects, paste("( 1 | Block",i, " )", sep=""))
     }
     randomeffects = paste(randomeffects, collapse=" + ")
@@ -264,12 +242,13 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
 
   #---------------- Run Simulations ---------------#
   if(!parallel) {
-    power_values = rep(0, ncol(ModelMatrix))
+    power_values = rep(0, length(parameter_names))
     effect_power_values = rep(0, length(effect_names))
     for (j in 1:nsim) {
-
       #simulate the data.
-      RunMatrixReduced$Y = responses[,j]
+      noise_from_blocks = generate_block_noise(blockindicators, levels_in_block, blocknoise)
+      RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef * delta / 2, noise_from_blocks)
+
       if (blocking) {
         if(glmfamily == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
@@ -299,8 +278,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
 
     power_values = foreach::foreach (j = 1:nsim, .combine = "+", .packages = c("lme4")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
+
       #simulate the data.
-      RunMatrixReduced$Y = responses[,j]
+      noise_from_blocks = generate_block_noise(blockindicators, levels_in_block, blocknoise)
+      RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef * delta / 2, noise_from_blocks)
+
       if (blocking) {
         if(glmfamily == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)

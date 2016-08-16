@@ -44,60 +44,40 @@
 #'
 #'eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 #'
-#'#We want to evaluate this design with a Monte Carlo approach. In this case, we need
-#'#to create a function that generates random numbers based on our run matrix X and
-#'#our anticipated coefficients (b).
+#'#To evaluate this design with a Monte Carlo method, we enter the same information
+#'#used in eval_design, with the addition of the number of simulations "nsim" and the distribution
+#'#family used in fitting for the glm "glmfamily". For gaussian, binomial, expontial, and poisson
+#'#families, a default random generating function (rfunction) will be supplied. If another glm
+#'#family is used or the default random generating function is not adequate, a custom generating
+#'#function can be supplied by the user.
 #'
-#'rgen = function(X,b) {
-#'  return(rnorm(n=nrow(X), mean = X %*% b, sd = 1))
-#'}
-#'
-#'#Here we generate our nrow(X) random numbers from a population with a mean that varies depending
-#'#on the design (and is set by multiplying the run matrix X with the anticipated coefficients
-#'#vector b), and has a standard deviation of one. To evaluate this, we enter the same information
-#'#used in eval_design, with the addition of the number of simulations "nsim", the distribution
-#'#family used in fitting for the glm "glmfamily", the custom random generation function "rfunction",
-#'#and whether or not we want the computation to be done with all the cores available "parallel".
-#'
-#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgen)
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=10000,
+#'               glmfamily="gaussian")
 #'
 #'#We see here we generate approximately the same parameter powers as we do
 #'#using the normal approximation in eval_design. Like eval_design, we can also change
 #'#delta to produce a different signal-to-noise ratio:
 #'
 #'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgen, delta=1)
-#'
-#'#However, we could also specify this using a different random generator function by
-#'#doubling the standard deviation of the population we are drawing from:
-#'
-#'rgensnr = function(X,b) {
-#'  return(rnorm(n=nrow(X), mean = X %*% b, sd = 2))
-#'}
-#'
-#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgensnr)
-#'
-#'#Both methods provide the same end result.
+#'               nsim=100, glmfamily="gaussian", delta=1)
 #'
 #'#Like eval_design, we can also evaluate the design with a different model than
 #'#the one that generated the design.
 #'eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgen)
+#'               nsim=100, glmfamily="gaussian")
 #'
 #'#Here we evaluate the design using conservative anticipated coefficients:
 #'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgen, conservative=TRUE)
+#'               nsim=100, glmfamily="gaussian", conservative=TRUE)
 #'
-#'#And here it is evaluated with higher order effects included:
+#'#And here it is evaluated with interactions included:
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgen)
+#'               nsim=100, glmfamily="gaussian")
 #'
 #'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
 #'#computation.
-#'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
-#'               nsim=100,glmfamily="gaussian",rfunction=rgen,parallel=TRUE)}
+#'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
+#'               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
 #'
 #'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
 #'
@@ -109,69 +89,59 @@
 #'splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size+size, trials=54,
 #'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18))
 #'
-#'#Each block has an additional noise term associated with it in addition to the normal error term.
-#'#This is specified by an additional random generating function and a vector specifying the input for
-#'#each split-plot level. This function is stating that there is an addition gaussian noise term with each
-#'#block, and the vector is stating it has a standard deviation of one for each level. This is equivalent to
-#'#a variance ratio of one between the whole plots and the sub-plots.
+#'#Each block has an additional noise term associated with it in addition to the normal error term in the model.
+#'#This is specified by a vector specifying the additional variance for each split-plot level. This is equivalent to
+#'#specifying a variance ratio of one between the whole plots and the sub-plots for gaussian models.
 #'#See the accompanying paper _____ for further technical details.
-#'
-#'rgenblocking = function(v) {
-#'  return(rnorm(n=1, mean = 0, sd = v))
-#'}
-#'
-#'blockvector = c(1,1)
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors. If
 #'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
-#'               blocknoise = blockvector)
-#'
+#'               nsim=100, glmfamily="gaussian", blocknoise = c(1,1))
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
-#'#evaluated using normal approximations. Here, we evaluate a design and see
+#'#evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
 #'#if we can detect the difference between each factor changing whether an event
 #'#70% of the time or 90% of the time.
 #'
 #'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
 #'designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
 #'
-#'#Here our random binomial generator simulates a response based on the resulting
-#'#probability from of all the columns in one row influencing the result.
-#'
-#'rgenbinom = function(X,b) {
-#'  rbinom(n=nrow(X),size=1,prob = exp(X %*% b)/(1+exp(X %*% b)))
-#'}
-#'
-#'#Plugging everything in, we now evaluate our model and obtain the binomial power.
-#'#(the anticipated coefficients were determined empircally to set the
-#'#high and low probabilities correctly for each factor)
-#'
 #'eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
-#'               glmfamily="binomial",rfunction=rgenbinom)
+#'               glmfamily="binomial")
 #'
 #'#We can also use this method to determine power for poisson response variables.
 #'#We design our test to detect if each factor changes the base rate of 0.2 by
 #'#a factor of 2. We generate the design:
 #'
 #'factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-#'designpois = gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=100)
+#'designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)
 #'
+#'eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson", anticoef=c(log(0.2),log(2),log(2)))
 #'
-#'#Here we return a random poisson number of events that vary depending
-#'#on the rate in the design.
-#'rrate = function(X,b) {
-#'  return(rpois(n=nrow(X),lambda=exp(X%*%b)))
-#'}
-#'eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson",rfunction=rrate,
-#'               anticoef=c(log(0.2),log(2),log(2)))
 #'#where the anticipated coefficients are chosen to set the base rate at 0.2
 #'#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
-eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
-                          blocknoise = NULL, anticoef, delta=2,
-                          conservative=FALSE, contrasts=contr.simplex, parallel=FALSE) {
+eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
+                          blocknoise = NULL, rfunction=NULL, anticoef=NULL, delta=2,
+                          conservative=FALSE, contrasts=contr.sum, parallel=FALSE) {
+  glmfamilyname = glmfamily
+  #------Auto-set random generating function----#
+  if(is.null(rfunction)) {
+    if(glmfamily == "gaussian") {
+      rfunction = function(X,b,blockvector) {return(rnorm(n=nrow(X), mean = X %*% b + blockvector, sd = 1))}
+    }
+    if(glmfamily == "binomial") {
+      rfunction = function(X,b,blockvector) {return(rbinom(n=nrow(X), size = 1 ,prob = 1/(1+exp(-(X %*% b + blockvector)))))}
+    }
+    if(glmfamily == "poisson") {
+      rfunction = function(X,b,blockvector) {return(rpois(n=nrow(X), lambda = exp((X %*% b + blockvector))))}
+    }
+    if(glmfamily == "exponential") {
+      glmfamily = Gamma(link="log")
+      rfunction = function(X,b,blockvector) {return(rexp(n=nrow(X), rate = exp(X %*% b + blockvector)))}
+    }
+  }
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
@@ -247,9 +217,8 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
   }
   #-------Update formula with random blocks------#
 
-  genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
-
   if(!is.null(blocknoise)) {
+    genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
     blockindicators = lapply(blockgroups,genBlockIndicators)
     blocknumber = length(blockgroups)-1
     randomeffects = c()
@@ -265,8 +234,6 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
 
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
-  print(RunMatrixReduced)
-  print(model_formula)
 
   #---------------- Run Simulations ---------------#
   if(!parallel) {
@@ -277,13 +244,13 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {
-        if(glmfamily == "gaussian") {
+        if(glmfamilyname == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
       } else {
-        if (glmfamily == "gaussian") {
+        if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
@@ -308,13 +275,13 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily, rfunction,
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {
-        if(glmfamily == "gaussian") {
+        if(glmfamilyname == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
       } else {
-        if (glmfamily == "gaussian") {
+        if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)

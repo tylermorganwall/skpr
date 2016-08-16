@@ -115,7 +115,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
 
   if(!is.null(blockmodel)) {
-    BlockedRunMatrix = reducemodelmatrix(BlockDesign, blockmodel)
+    BlockedRunMatrix = reduceRunMatrix(BlockDesign, blockmodel)
     if(any(lapply(BlockedRunMatrix,class) == "factor")) {
       blockedcontrastslist = list()
       for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {

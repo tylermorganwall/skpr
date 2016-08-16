@@ -64,7 +64,7 @@ test_that("gen_design example code runs without errors", {
   #'#Since we have 11 runs in our hard-to-change design, we need a vector specifying the size of each 11 runs. Here
   #'#we specify the blocks be three runs each (meaning the final design will be 33 runs):
   #'
-  #'splitplotblocksize = rep(3,11)
+  splitplotblocksize = rep(3,11)
   #'
   #'#Putting this all together:
   expect_silent({
@@ -171,191 +171,77 @@ test_that("eval_design_mc example code runs without errors", {
   factorialcoffee = expand.grid(cost=c(-1, 1),
                                 type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
                                 size=as.factor(c("Short", "Grande", "Venti")))
-  #'
-  #'#And then generate the 21-run D-optimal design using gen_design.
-  #'
-  expect_silent(designcoffee <- gen_design(factorialcoffee, model=~cost + type + size, trials=21, optimality="D"))
-  #'
-  #'#To evaluate this design using a normal approximation, we just use eval_design
-  #'#(here using the default settings for contrasts, delta, and the anticipated coefficients):
-  #'
+  factorialcoffee = expand.grid(cost=c(-1, 1),
+                                type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+                                size=as.factor(c("Short", "Grande", "Venti")))
+  expect_silent({
+    designcoffee = gen_design(factorialcoffee, model=~cost + type + size, trials=21, optimality="D")
+  })
   expect_silent(eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05))
-  #'
-  #'#We want to evaluate this design with a Monte Carlo approach. In this case, we need
-  #'#to create a function that generates random numbers based on our run matrix X and
-  #'#our anticipated coefficients (b).
-  #'
-  rgen = function(X,b) {
-    return(rnorm(n=nrow(X), mean = X %*% b, sd = 1))
-  }
-  #'
-  #'#Here we generate our nrow(X) random numbers from a population with a mean that varies depending
-  #'#on the design (and is set by multiplying the run matrix X with the anticipated coefficients
-  #'#vector b), and has a standard deviation of one. To evaluate this, we enter the same information
-  #'#used in eval_design, with the addition of the number of simulations "nsim", the distribution
-  #'#family used in fitting for the glm "glmfamily", the custom random generation function "rfunction",
-  #'#and whether or not we want the computation to be done with all the cores available "parallel".
-  #'
+  expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=100,
+                               glmfamily="gaussian"))
   expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgen))
-  #'
-  #'#We see here we generate approximately the same parameter powers as we do
-  #'#using the normal approximation in eval_design. Like eval_design, we can also change
-  #'#delta to produce a different signal-to-noise ratio:
-  #'
-  expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgen, delta=1))
-  #'
-  #'#However, we could also specify this using a different random generator function by
-  #'#doubling the standard deviation of the population we are drawing from:
-  #'
-  rgensnr = function(X,b) {
-    return(rnorm(n=nrow(X), mean = X %*% b, sd = 2))
-  }
-  #'
-  expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgensnr))
-  #'
-  #'#Both methods provide the same end result.
-  #'
-  #'#Like eval_design, we can also evaluate the design with a different model than
-  #'#the one that generated the design.
+                               nsim=100, glmfamily="gaussian", delta=1))
   expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgen))
-  #'
-  #'#Here we evaluate the design using conservative anticipated coefficients:
+                 nsim=100, glmfamily="gaussian"))
   expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgen, conservative=TRUE))
-  #'
-  #'#And here it is evaluated with higher order effects included:
+                 nsim=100, glmfamily="gaussian", conservative=TRUE))
   expect_silent(eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
-                 nsim=100,glmfamily="gaussian",rfunction=rgen))
-  #'
-  #'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
-  #'#computation.
-  #'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size, 0.05,
-  #'               nsim=100,glmfamily="gaussian",rfunction=rgen,parallel=TRUE)}
-  #'
-  #'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
+                 nsim=100, glmfamily="gaussian"))
+  #'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
+  #'               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
   #'
   vhtc = expand.grid(Store=as.factor(c("A","B")))
   htc = expand.grid(Temp = c(1,-1))
-  #'
+
   vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6)
   htcdesign = gen_design(factorial=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6))
-  expect_silent(splitplotdesign <- gen_design(factorial=factorialcoffee, model=~cost+type+size+size, trials=54,
-                               splitplotdesign=htcdesign, splitplotsizes=rep(3,18)))
-  #'
-  #'#Each block has an additional noise term associated with it in addition to the normal error term.
-  #'#This is specified by an additional random generating function and a vector specifying the input for
-  #'#each split-plot level. This function is stating that there is an addition gaussian noise term with each
-  #'#block, and the vector is stating it has a standard deviation of one for each level. This is equivalent to
-  #'#a variance ratio of one between the whole plots and the sub-plots.
-  #'#See the accompanying paper _____ for further technical details.
-  #'
-  rgenblocking = function(v) {
-    return(rnorm(n=1, mean = 0, sd = v))
-  }
-  #'
-  blockvector = c(1,1)
-  #'
-  #'#Evaluate the design. Note the decreased power for the blocking factors. If
+  expect_silent({
+    splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size+size, trials=54,
+                               splitplotdesign=htcdesign, splitplotsizes=rep(3,18))
+  })
   expect_silent(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", rfunction=rgen,blockfunction = rgenblocking,
-                 blocknoise = blockvector))
-  #'
-  #'
-  #'#We can also use this method to evaluate designs that cannot be easily
-  #'#evaluated using normal approximations. Here, we evaluate a design and see
-  #'#if we can detect the difference between each factor changing whether an event
-  #'#70% of the time or 90% of the time.
-  #'
+                 nsim=100, glmfamily="gaussian", blocknoise = c(1,1)))
   factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
-  expect_silent(designbinom <- gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100))
-  #'
-  #'#Here our random binomial generator simulates a response based on the resulting
-  #'#probability from of all the columns in one row influencing the result.
-  #'
-  rgenbinom = function(X,b) {
-    rbinom(n=nrow(X),size=1,prob = exp(X %*% b)/(1+exp(X %*% b)))
-  }
-  #'
-  #'#Plugging everything in, we now evaluate our model and obtain the binomial power.
-  #'#(the anticipated coefficients were determined empircally to set the
-  #'#high and low probabilities correctly for each factor)
-  #'
+  expect_silent({
+    designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
+  })
   expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
-                 glmfamily="binomial",rfunction=rgenbinom))
-  #'
-  #'#We can also use this method to determine power for poisson response variables.
-  #'#We design our test to detect if each factor changes the base rate of 0.2 by
-  #'#a factor of 2. We generate the design:
-  #'
+                 glmfamily="binomial"))
   factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-  expect_silent(designpois <- gen_design(factorialpois,~a+b,trials=90,optimality="D",repeats=100))
-  #'
-  #'
-  #'#Here we return a random poisson number of events that vary depending
-  #'#on the rate in the design.
-  rrate = function(X,b) {
-    return(rpois(n=nrow(X),lambda=exp(X%*%b)))
-  }
-  expect_silent(eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson",rfunction=rrate,
-                 anticoef=c(log(0.2),log(2),log(2))))
-  #'#where the anticipated coefficients are chosen to set the base rate at 0.2
-  #'#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
-  #'#We see here we need about 90 test events to get accurately distinguish the three different
-  #'#rates in each factor to 90% power.
+  designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)
+
+  expect_silent(eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson", anticoef=c(log(0.2),log(2),log(2))))
 })
 
 
 test_that("eval_design_survival_mc example code runs without errors", {
-  #'@examples #These examples focus on the survival analysis case and assume familiarity
-  #'#with the basic functionality of eval_design_mc.
-  #'
-  #'#We first generate simple 2-level design using expand.grid:
-  basicdesign = expand.grid(a=c(-1,1))
-  expect_silent(design <- gen_design(factorial=basicdesign,model=~a,trials=100,
-                            optimality="D",repeats=100))
-  #'
-  #'#We want to evaluate this design with a Monte Carlo approach, taking into account
-  #'#that some of the points will be censored. In this case, we need
-  #'#to create a function that generates random numbers based on our run matrix X and
-  #'#our anticipated coefficients (b), censors the results from those numbers based
-  #'#on the censoring criteria, and then returns a Surv object from the survival package.
-  #'#For an exponential distribution, the censored response is generated according to the
-  #'#following formula:
-  #'
-  rsurvival = function(X,b) {
-    Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
+  basicdesign = expand.grid(a=c(-1, 1))
+  expect_silent({
+    design = gen_design(factorial=basicdesign, model=~a, trials=100,
+                            optimality="D", repeats=100)
+  })
+  rsurvival = function(X, b) {
+    Y = rexp(n=nrow(X), rate=exp(-(X %*% b)))
     censored = Y > 1
     Y[censored] = 1
-    return(Surv(time=Y,event=!censored,type="right"))
+    return(Surv(time=Y, event=!censored, type="right"))
   }
-  #'
-  #'#We can then evaluate the power of the design in the same way as eval_design_mc:
-  #'
-  expect_silent(eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
-                          distribution="exponential",rfunctionsurv=rsurvival, delta=1))
-  #'
-  #'#We can also evaluate different censored distributions by specifying a different
-  #'#random generating function and changing the distribution argument. You can also
-  #'#specify any additional arguments at the end of the function call and they will be
-  #'#input into the survreg function when it evaluates.
-  #'
-  rlognorm = function(X,b) {
+  expect_silent({
+    a = eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05, nsim=100,
+                          distribution="exponential", rfunctionsurv=rsurvival, delta=1)
+  })
+  rlognorm = function(X, b) {
     Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 0.4)
     censored = Y > 1.2
     Y[censored] = 1.2
-    return(Surv(time=Y,event=!censored,type="right"))
+    return(Surv(time=Y, event=!censored, type="right"))
   }
-  #'
-  #'#The argument "scale" was not specified in eval_design_survival_mc, but it was passed into
-  #'#the survreg function call.
-  #'
-  expect_silent(eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.2,nsim=100,
-                          distribution="lognormal",rfunctionsurv=rlognorm,
-                          anticoef=c(0.184,0.101),delta=2,scale=0.4))
+  expect_silent(
+    eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
+                          distribution="lognormal", rfunctionsurv=rlognorm,
+                          anticoef=c(0.184,0.101), delta=2, scale=0.4)
+  )
 })
 
 test_that("eval_design_custom_mc example code runs without errors", {

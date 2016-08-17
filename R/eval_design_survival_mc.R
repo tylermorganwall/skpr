@@ -21,16 +21,17 @@
 #'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
 #'@param ... Any additional arguments to be input into the survreg function during fitting.
-#'@return A data frame consisting of the parameters and their powers
+#'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
+#'stored in the 'estimates' attribute.
 #'@import AlgDesign foreach doParallel survival
 #'@export
 #'@examples #These examples focus on the survival analysis case and assume familiarity
 #'#with the basic functionality of eval_design_mc.
 #'
 #'#We first generate simple 2-level design using expand.grid:
-#'basicdesign = expand.grid(a=c(-1,1))
-#'design = gen_design(factorial=basicdesign,model=~a,trials=100,
-#'                          optimality="D",repeats=100)
+#'basicdesign = expand.grid(a=c(-1, 1))
+#'design = gen_design(factorial=basicdesign, model=~a, trials=100,
+#'                          optimality="D", repeats=100)
 #'
 #'#We want to evaluate this design with a Monte Carlo approach, taking into account
 #'#that some of the points will be censored. In this case, we need
@@ -40,36 +41,36 @@
 #'#For an exponential distribution, the censored response is generated according to the
 #'#following formula:
 #'
-#'rsurvival = function(X,b) {
-#'  Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
+#'rsurvival = function(X, b) {
+#'  Y = rexp(n=nrow(X), rate=exp(-(X %*% b)))
 #'  censored = Y > 1
 #'  Y[censored] = 1
-#'  return(Surv(time=Y,event=!censored,type="right"))
+#'  return(Surv(time=Y, event=!censored, type="right"))
 #'}
 #'
 #'#We can then evaluate the power of the design in the same way as eval_design_mc:
 #'
-#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
-#'                        distribution="exponential",rfunctionsurv=rsurvival, delta=1)
+#'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05, nsim=100,
+#'                        distribution="exponential", rfunctionsurv=rsurvival, delta=1)
 #'
 #'#We can also evaluate different censored distributions by specifying a different
 #'#random generating function and changing the distribution argument. You can also
 #'#specify any additional arguments at the end of the function call and they will be
 #'#input into the survreg function when it evaluates.
 #'
-#'rlognorm = function(X,b) {
+#'rlognorm = function(X, b) {
 #'  Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 0.4)
 #'  censored = Y > 1.2
 #'  Y[censored] = 1.2
-#'  return(Surv(time=Y,event=!censored,type="right"))
+#'  return(Surv(time=Y, event=!censored, type="right"))
 #'}
 #'
-#'#The argument "scale" was not specified in eval_design_survival_mc, but it was passed into
-#'#the survreg function call.
+#'#Any additional arguments are passed into the survreg function call.  As an example, you
+#'might want to fix the "scale" argument to survreg, when fitting a lognormal:
 #'
-#'eval_design_survival_mc(RunMatrix=design,model=~a,alpha=0.2,nsim=100,
-#'                        distribution="lognormal",rfunctionsurv=rlognorm,
-#'                        anticoef=c(0.184,0.101),delta=2,scale=0.4)
+#'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
+#'                        distribution="lognormal", rfunctionsurv=rlognorm,
+#'                        anticoef=c(0.184,0.101), delta=2, scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,
                           anticoef, delta=2, contrasts = contr.sum,
                           conservative=FALSE, parallel=FALSE, ...) {
@@ -111,8 +112,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
-    effect_power_values = rep(0, length(effect_names))
-
+    estimates = matrix(0, nrow = nsim, ncol = nparam)
     for (j in 1:nsim) {
 
       #simulate the data.
@@ -128,17 +128,15 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
-      effect_power_values = effect_power_values + effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
+      estimates[j, ] = coef(fit)
     }
-    #We are going to output a tidy data.frame with the results, so just append the effect powers
-    #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
-    #or effect power.
-    power_values = c(power_values, effect_power_values)/nsim
+    power_values = power_values / nsim
+
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (i = 1:nsim, .combine = "+", .packages=c("survival")) %dopar% {
+    power_estimates = foreach::foreach (i = 1:nsim, .combine = "+", .packages=c("survival")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
 
@@ -154,21 +152,20 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = summary(fit)$table[,4]
       power_values[pvals < alpha] = 1
-      effect_power_values = effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
-
-      #We are going to output a tidy data.frame with the results, so just append the effect powers
-      #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
-      #or effect power.
-      c(power_values, effect_power_values)
+      estimates = coef(fit)
+      c(power_values, estimates)
     }
     parallel::stopCluster(cl)
-    power_values = power_values/nsim
+    power_values = apply(power_estimates[, 1:nparam], 2, sum) / nsim
+    estimates = power_estimates[, (nparam + 1):ncol(power_estimates)]
   }
   #output the results (tidy data format)
-  return(data.frame(parameters=c(parameter_names, effect_names),
-                    type=c(rep("parameter.power.mc", length(parameter_names)),
-                           rep("effect.power.mc", length(effect_names))),
-                    power=power_values))
+  retval = data.frame(parameters=parameter_names,
+                      type="parameter.power.mc",
+                      power=power_values)
+  colnames(estimates) = parameter_names
+  attr(retval, 'estimates') = estimates
+  retval
 
 }
 globalVariables('i')

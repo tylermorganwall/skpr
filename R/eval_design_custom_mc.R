@@ -85,9 +85,8 @@
 #'
 #'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, delta=2, contrasts = contr.simplex,
+                                 anticoef, delta=2, contrasts = contr.sum,
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
-  blocking = FALSE
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model

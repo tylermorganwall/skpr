@@ -13,6 +13,7 @@
 #'where X is the model matrix. If contrasts do not need to be specified for the user supplied
 #'library, that argument can be ignored.
 #'@param pvalfunction Function that returns a vector of pvals from the object returned from the fitfunction.
+#'@param coef_function Function that, when applied to a fitfunction return object, returns the estimated coefficients.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
@@ -23,7 +24,8 @@
 #'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
-#'@return A data frame consisting of the parameters and their powers
+#'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
+#'stored in the 'estimates' attribute.
 #'@import AlgDesign foreach doParallel
 #'@export
 #'@examples #To demonstrate how a user can use their own libraries for Monte Carlo power generation,
@@ -65,7 +67,7 @@
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
 #'
-#'eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
+#'d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
 #'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc.
@@ -85,7 +87,7 @@
 #'
 #'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, delta=2, contrasts = contr.simplex,
+                                 coef_function = coef, anticoef, delta=2, contrasts = contr.simplex,
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
   blocking = FALSE
 
@@ -131,7 +133,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   if(!parallel) {
     power_values = rep(0, length(parameter_names))
-    effect_power_values = rep(0, length(effect_names))
+    estimates = matrix(0, nrow = nsim, ncol = nparam)
     for (j in 1:nsim) {
 
       #simulate the data.
@@ -143,17 +145,15 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
-      effect_power_values = effect_power_values + effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
+      estimates[j, ] = coef_function(fit)
     }
-    #We are going to output a tidy data.frame with the results, so just append the effect powers
-    #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
-    #or effect power.
-    power_values = c(power_values, effect_power_values)/nsim
+    power_values = power_values / nsim
+
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (i = 1:nsim, .combine = "+",.packages = parallelpackages) %dopar% {
+    power_estimates = foreach::foreach (i = 1:nsim, .combine = "+",.packages = parallelpackages) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
@@ -164,21 +164,24 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
       power_values[pvals < alpha] = 1
-      effect_power_values = effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
+      estimates = coef_function(fit)
 
       #We are going to output a tidy data.frame with the results, so just append the effect powers
       #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
       #or effect power.
-      c(power_values, effect_power_values)
+      c(power_values, estimates)
     }
     parallel::stopCluster(cl)
-    power_values = power_values/nsim
+    power_values = apply(power_estimates[, 1:nparam], 2, sum) / nsim
+    estimates = power_estimates[, (nparam + 1):ncol(power_estimates)]
   }
   #output the results (tidy data format)
-  return(data.frame(parameters=c(parameter_names, effect_names),
-                    type=c(rep("parameter.power.mc", length(parameter_names)),
-                           rep("effect.power.mc", length(effect_names))),
-                    power=power_values))
+  retval = data.frame(parameters=parameter_names,
+                      type="parameter.power.mc",
+                      power=power_values)
+  colnames(estimates) = parameter_names
+  attr(retval, 'estimates') = estimates
+  retval
 
 }
 globalVariables('i')

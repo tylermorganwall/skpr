@@ -10,8 +10,8 @@
 #'@param nsim The number of simulations.
 #'@param glmfamily String indicating the family of distribution for the glm function
 #'(e.g. "gaussian", "binomial", "poisson")
-#'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X,b), where X is the
-#'model matrix and b are the anticipated coefficients.
+#'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
+#'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. typically something like rnorm(nrow(X), X * b + delta, 0)
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
 #'
@@ -51,7 +51,7 @@
 #'#family is used or the default random generating function is not adequate, a custom generating
 #'#function can be supplied by the user.
 #'
-#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=10000,
+#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=100,
 #'               glmfamily="gaussian")
 #'
 #'#We see here we generate approximately the same parameter powers as we do
@@ -238,7 +238,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
   #---------------- Run Simulations ---------------#
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
-    effect_power_values = rep(0, length(effect_names))
+    estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
     for (j in 1:nsim) {
 
       #simulate the data.
@@ -249,28 +249,29 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
+        estimates[j, ] = coef(summary(fit))[, 1]
       } else {
         if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
         }
+        estimates[j, ] = coef(fit)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
-      effect_power_values = effect_power_values + effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
     }
     #We are going to output a tidy data.frame with the results, so just append the effect powers
     #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
     #or effect power.
-    power_values = c(power_values, effect_power_values)/nsim
+    power_values = power_values / nsim
 
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_values = foreach::foreach (j = 1:nsim, .combine = "+", .packages = c("lme4")) %dopar% {
+    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .packages = c("lme4")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
@@ -280,30 +281,31 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
         }
+        estimates = coef(summary(fit))[, 1]
       } else {
         if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)
         }
+        estimates = coef(fit)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       power_values[pvals < alpha] = 1
-      effect_power_values = effectSignificance(pvals, alpha, attr(ModelMatrix, 'assign'))
 
-      #We are going to output a tidy data.frame with the results, so just append the effect powers
-      #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
-      #or effect power.
-      c(power_values, effect_power_values)
+      c(power_values, estimates)
     }
     parallel::stopCluster(cl)
-    power_values = power_values/nsim
+    power_values = apply(power_estimates[, 1:ncol(ModelMatrix)], 2, sum) / nsim
+    estimates = power_estimates[, (ncol(ModelMatrix) + 1):ncol(power_estimates)]
   }
   #output the results (tidy data format)
-  return(data.frame(parameters=c(parameter_names, effect_names),
-                    type=c(rep("parameter.power.mc", length(parameter_names)),
-                           rep("effect.power.mc", length(effect_names))),
-                    power=power_values))
+  retval = data.frame(parameters=parameter_names,
+                    type="parameter.power.mc",
+                    power=power_values)
+  colnames(estimates) = parameter_names
+  attr(retval, 'estimates') = estimates
+  retval
 }
 globalVariables('i')

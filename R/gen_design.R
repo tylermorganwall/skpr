@@ -114,7 +114,7 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=10, contrast=NULL, parallel=FALSE, timer=FALSE) {
+                      optimality="D",repeats=10, varianceRatio = 1, contrast=NULL, parallel=FALSE, timer=FALSE) {
   quad=FALSE
   if(as.character(model)[2] == "quad(.)") {
     modelvars = colnames(model.matrix(~.,data=factorial))[-1]
@@ -275,7 +275,8 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
           randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                    candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+                                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                                   blocking= splitplotsizes,varRatio = varianceRatio)
         }
       } else {
         cat("Estimated time to completion ... ")
@@ -283,13 +284,15 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
         genOutput[[1]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                                 condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+                                                 condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                                 blocking= splitplotsizes,varRatio = varianceRatio)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                    candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+                                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                                   blocking= splitplotsizes,varRatio = varianceRatio)
         }
       }
     } else {
@@ -301,7 +304,8 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
           randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
           genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                  blocking= splitplotsizes,varRatio = varianceRatio)
         }
         parallel::stopCluster(cl)
       } else {
@@ -312,15 +316,17 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         ptm = proc.time()
         randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
         genOutputOne = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                                 candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                                 condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+                                               candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+                                               condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                               blocking= splitplotsizes,varRatio = varianceRatio)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
           randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
           genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
-                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices)
+                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                  blocking= splitplotsizes,varRatio = varianceRatio)
         }
         genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)
@@ -366,7 +372,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   if(!blocking) {
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
   } else {
-    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM)
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blocking= splitplotsizes, varRatio = varianceRatio)
   }
   attr(design,"model.matrix") = designmm
   attr(design,"generating.model") = model

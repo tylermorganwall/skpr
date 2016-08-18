@@ -3,18 +3,18 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 
-double calculateBlockedDOptimality(arma::mat currentDesign) {
-  return(arma::det(currentDesign.t()*currentDesign));
+double calculateBlockedDOptimality(const arma::mat currentDesign, const arma::mat gls) {
+  return(arma::det(currentDesign.t()*gls*currentDesign));
 }
 
-double calculateBlockedIOptimality(arma::mat currentDesign, const arma::mat momentsMatrix) {
-  double variance = trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix);
+double calculateBlockedIOptimality(const arma::mat currentDesign, const arma::mat momentsMatrix,const arma::mat gls) {
+  double variance = trace(inv_sympd(currentDesign.t()*gls*currentDesign)*momentsMatrix);
   return(variance);
 }
 
 //Function to calculate the A-optimality
-double calculateBlockedAOptimality(arma::mat currentDesign) {
-  double variance = trace(inv_sympd(currentDesign.t()*currentDesign));
+double calculateBlockedAOptimality(arma::mat currentDesign,const arma::mat gls) {
+  double variance = trace(inv_sympd(currentDesign.t()*gls*currentDesign));
   return(variance);
 }
 
@@ -23,8 +23,19 @@ double calculateBlockedAOptimality(arma::mat currentDesign) {
 //`@return stufff
 // [[Rcpp::export]]
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
-                      const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows) {
-
+                      const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows,
+                      const NumericVector blocking, const double varRatio) {
+  //Generate blocking structure covariance matrix
+  int blockMatrixSize = sum(blocking);
+  arma::mat V = arma::mat(blockMatrixSize, blockMatrixSize, arma::fill::zeros);
+  V.diag() += 1;
+  int placeholder = blocking[0];
+  V(arma::span(0,blocking[0]-1),arma::span(0,blocking[0]-1)) += varRatio;
+  for(int i = 1; i < blocking.size(); i++) {
+    V(arma::span(placeholder,placeholder+blocking[i]-1),arma::span(placeholder,placeholder+blocking[i]-1)) += varRatio;
+    placeholder += blocking[i];
+  }
+  const arma::mat vInv = inv_sympd(V);
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
   for(int j = 1; j < candidatelist.n_cols; j++) {
     if(all(candidatelist.col(0) == candidatelist.col(j))) {
@@ -71,11 +82,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //Generate a D-optimal design, fixing the blocking factors
   if(condition == "D") {
     arma::mat temp;
-    newOptimum = calculateBlockedDOptimality(combinedDesign);
+    newOptimum = calculateBlockedDOptimality(combinedDesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      del = calculateBlockedDOptimality(combinedDesign);
+      del = calculateBlockedDOptimality(combinedDesign,vInv);
       for (int i = 0; i < nTrials; i++) {
         found = FALSE;
         entryx = 0;
@@ -83,7 +94,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         temp = combinedDesign;
         for (int j = 0; j < totalPoints; j++) {
           temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-          newdel = calculateBlockedDOptimality(temp);
+          newdel = calculateBlockedDOptimality(temp, vInv);
           if(newdel > del) {
             found = TRUE;
             entryx = i; entryy = j;
@@ -98,7 +109,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           candidateRow[i] = initialRows[i];
         }
       }
-      newOptimum = calculateBlockedDOptimality(combinedDesign);
+      newOptimum = calculateBlockedDOptimality(combinedDesign, vInv);
     }
   }
   //Generate an I-optimal design, fixing the blocking factors
@@ -106,7 +117,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     //Potential issue here: Any interactions between the blocked and regular runs need to be
     //reflected in the moments matrix correctly
     arma::mat temp;
-    del = calculateBlockedIOptimality(combinedDesign,momentsmatrix);
+    del = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
     newOptimum = del;
     priorOptimum = del/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
@@ -120,7 +131,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-            newdel = calculateBlockedIOptimality(temp,momentsmatrix);
+            newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
             if(newdel < del) {
               found = TRUE;
               entryx = i; entryy = j;
@@ -138,13 +149,13 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           candidateRow[i] = initialRows[i];
         }
       }
-      newOptimum = calculateBlockedIOptimality(combinedDesign,momentsmatrix);
+      newOptimum = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
     }
   }
   //Generate an A-optimal design, fixing the blocking factors
   if(condition == "A") {
     arma::mat temp;
-    del = calculateBlockedAOptimality(combinedDesign);
+    del = calculateBlockedAOptimality(combinedDesign,vInv);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -158,7 +169,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-            newdel = calculateBlockedAOptimality(temp);
+            newdel = calculateBlockedAOptimality(temp,vInv);
             if(newdel < del) {
               found = TRUE;
               entryx = i; entryy = j;
@@ -176,7 +187,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           candidateRow[i] = initialRows[i];
         }
       }
-      newOptimum = calculateBlockedAOptimality(combinedDesign);
+      newOptimum = calculateBlockedAOptimality(combinedDesign,vInv);
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix

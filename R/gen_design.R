@@ -150,6 +150,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     alreadyBlocking = FALSE
     initialrownames = rownames(splitplotdesign)
     blocklist = strsplit(initialrownames,".",fixed=TRUE)
+    blockgroups = list(splitplotsizes)
 
     if(any(lapply(blocklist,length) > 1)) {
       alreadyBlocking = TRUE
@@ -386,7 +387,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
   attr(design,"A-Efficiency") = AOptimality(designmm)
   if(!blocking) {
-    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrows(designmm)))
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrow(designmm)))
   } else {
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blockedVar = V)
   }
@@ -405,6 +406,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     colnames(blockedMM) = colnames(designmm)
     rownames(blockedMM) = colnames(designmm)
     attr(design,"moments.matrix") = blockedMM
+    attr(design,"V") = V
   }
   if(ncol(designmm) > 2) {
     correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1,-1])

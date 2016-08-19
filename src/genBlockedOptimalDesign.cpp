@@ -24,18 +24,9 @@ double calculateBlockedAOptimality(arma::mat currentDesign,const arma::mat gls) 
 // [[Rcpp::export]]
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
                       const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows,
-                      const NumericVector blocking, const double varRatio) {
-  //Generate blocking structure covariance matrix
-  int blockMatrixSize = sum(blocking);
-  arma::mat V = arma::mat(blockMatrixSize, blockMatrixSize, arma::fill::zeros);
-  V.diag() += 1;
-  int placeholder = blocking[0];
-  V(arma::span(0,blocking[0]-1),arma::span(0,blocking[0]-1)) += varRatio;
-  for(int i = 1; i < blocking.size(); i++) {
-    V(arma::span(placeholder,placeholder+blocking[i]-1),arma::span(placeholder,placeholder+blocking[i]-1)) += varRatio;
-    placeholder += blocking[i];
-  }
-  const arma::mat vInv = inv_sympd(V);
+                      const arma::mat blockedVar) {
+  //Generate blocking structure inverse covariance matrix
+  const arma::mat vInv = inv_sympd(blockedVar);
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
   for(int j = 1; j < candidatelist.n_cols; j++) {
     if(all(candidatelist.col(0) == candidatelist.col(j))) {

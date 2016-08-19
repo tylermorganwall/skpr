@@ -156,6 +156,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
       initialrownames = rep(rownames(splitplotdesign),splitplotsizes)
       blocklist = strsplit(initialrownames,".",fixed=TRUE)
       existingBlockStructure = do.call(rbind,blocklist)
+      blockgroups = apply(existingBlockStructure,2,blockingstructure)
     }
     withinBlockRun = function(runs) {return(1:runs)}
 
@@ -183,6 +184,21 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
       rownames(splitPlotReplicateDesign) = paste(initialrownames, blockRuns,sep=".")
     } else {
       rownames(splitPlotReplicateDesign) = paste(blockIndicators, blockRuns,sep=".")
+    }
+    if(length(blockgroups) != length(varianceRatio)) {
+      stop("Need to specify a variance ratio for each level of blocking")
+    }
+    blockMatrixSize = sum(splitplotsizes)
+    V = diag(blockMatrixSize)
+    blockcounter = 1
+    for(block in blockgroups) {
+      V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceRatio[blockcounter]
+      placeholder = block[1]
+      for(i in 2:length(block)) {
+        V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceRatio[blockcounter]
+        placeholder = placeholder + block[i]
+      }
+      blockcounter = blockcounter+1
     }
   }
 
@@ -276,7 +292,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                    candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                   blocking= splitplotsizes,varRatio = varianceRatio)
+                                                   blockedVar=V)
         }
       } else {
         cat("Estimated time to completion ... ")
@@ -285,14 +301,14 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         genOutput[[1]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                 blocking= splitplotsizes,varRatio = varianceRatio)
+                                                 blockedVar=V)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                    candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                   blocking= splitplotsizes,varRatio = varianceRatio)
+                                                   blockedVar=V)
         }
       }
     } else {
@@ -305,7 +321,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
           genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                  blocking= splitplotsizes,varRatio = varianceRatio)
+                                  blockedVar=V)
         }
         parallel::stopCluster(cl)
       } else {
@@ -318,7 +334,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         genOutputOne = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                                candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                               blocking= splitplotsizes,varRatio = varianceRatio)
+                                               blockedVar=V)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
@@ -326,7 +342,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
           genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                  blocking= splitplotsizes,varRatio = varianceRatio)
+                                  blockedVar=V)
         }
         genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)
@@ -370,9 +386,9 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
   attr(design,"A-Efficiency") = AOptimality(designmm)
   if(!blocking) {
-    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm)
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrows(designmm)))
   } else {
-    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blocking= splitplotsizes, varRatio = varianceRatio)
+    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blockedVar = V)
   }
   attr(design,"model.matrix") = designmm
   attr(design,"generating.model") = model

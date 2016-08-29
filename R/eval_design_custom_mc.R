@@ -88,6 +88,7 @@
 #'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, delta=2, contrasts = contr.sum,
+                                 coef_function = coef,
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
 
   #---------- Generating model matrix ----------#
@@ -152,7 +153,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     cl <- parallel::makeCluster(parallel::detectCores())
     doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-    power_estimates = foreach::foreach (i = 1:nsim, .combine = "+",.packages = parallelpackages) %dopar% {
+    power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind",.packages = parallelpackages) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)

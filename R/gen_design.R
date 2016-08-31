@@ -89,10 +89,10 @@
 #'htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
 #'etcfactors = expand.grid(Age = c(1,-1))
 #'
-#'gen_design(extremelyhtcfactors, ~Location, trials=6) -> temp
-#'gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp
-#'gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp
-#'gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) -> splitsplitsplitplotdesign
+#'gen_design(extremelyhtcfactors, ~Location, trials=6,varianceRatio=2) -> temp
+#'gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),varianceRatio=1) -> temp
+#'gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12),varianceRatio=1) -> temp
+#'gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48),varianceRatio=1) -> splitsplitsplitplotdesign
 #'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'
@@ -137,6 +137,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   blocking=FALSE
   #generate blocked design with replicates
   if(!is.null(splitplotdesign)) {
+    varianceRatios = c(attr(splitplotdesign,"varianceratios"),varianceRatio)
     blocking = TRUE
     if(is.null(splitplotsizes)) {
       stop("If split plot design provided, user needs to input split plot sizes as well")
@@ -186,17 +187,14 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     } else {
       rownames(splitPlotReplicateDesign) = paste(blockIndicators, blockRuns,sep=".")
     }
-    if(length(blockgroups) != length(varianceRatio)) {
-      stop("Need to specify a variance ratio for each level of blocking")
-    }
     blockMatrixSize = sum(splitplotsizes)
-    V = diag(blockMatrixSize)
-    blockcounter = 1
+    V = diag(blockMatrixSize)*varianceRatios[1]
+    blockcounter = 2
     for(block in blockgroups) {
-      V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceRatio[blockcounter]
+      V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceRatios[blockcounter]
       placeholder = block[1]
       for(i in 2:length(block)) {
-        V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceRatio[blockcounter]
+        V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceRatios[blockcounter]
         placeholder = placeholder + block[i]
       }
       blockcounter = blockcounter+1
@@ -401,12 +399,14 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     colnames(mm) = colnames(designmm)
     rownames(mm) = colnames(designmm)
     attr(design,"moments.matrix") = mm
+    attr(design,"varianceratios") = varianceRatio
   } else {
     rownames(design) = rownames(splitPlotReplicateDesign)
     colnames(blockedMM) = colnames(designmm)
     rownames(blockedMM) = colnames(designmm)
     attr(design,"moments.matrix") = blockedMM
     attr(design,"V") = V
+    attr(design,"varianceratios") = varianceRatios
   }
   if(ncol(designmm) > 2) {
     correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1,-1])

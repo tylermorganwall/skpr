@@ -26,7 +26,7 @@
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import AlgDesign foreach doParallel
+#'@import foreach doParallel
 #'@export
 #'@examples #To demonstrate how a user can use their own libraries for Monte Carlo power generation,
 #'#We will recreate eval_design_survival_mc using the eval_design_custom_mc framework.

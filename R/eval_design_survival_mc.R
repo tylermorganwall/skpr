@@ -23,7 +23,7 @@
 #'@param ... Any additional arguments to be input into the survreg function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import AlgDesign foreach doParallel survival
+#'@import foreach doParallel survival
 #'@export
 #'@examples #These examples focus on the survival analysis case and assume familiarity
 #'#with the basic functionality of eval_design_mc.

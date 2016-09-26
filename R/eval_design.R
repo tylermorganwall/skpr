@@ -22,13 +22,11 @@
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 #'to zero.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power.
-#'@import AlgDesign
 #'@export
-#'@examples #Generating a simple 2x3 factorial using AlgDesign's gen.factorial function
-#'#to feed into our optimal design generation and generating a 11-run design.
-#'factorial <- AlgDesign::gen.factorial(levels = 2, nVars = 3, varNames = c("A", "B", "C"))
-#'#this can also be generated with expand.grid as:
+#'@examples #Generating a simple 2x3 factorial to feed into our optimal design generation
+#'#of an 11-run design.
 #'factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
+#'
 #'optdesign = gen_design(factorial=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
 #'
 #'#Now evaluating that design (with default anticipated coefficients and a delta of 2):

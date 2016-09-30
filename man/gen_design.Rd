@@ -20,15 +20,20 @@ set as a factor.}
 
 \item{trials}{The number of runs in the design.}
 
-\item{splitplotdesign}{test}
+\item{splitplotdesign}{For a split-plot design, this is the design for all of the factors harder to change
+than the current set of factors. These rows are replicated to the specified size for each block
+(given in the argument splitplotsizes) and the optimal design is found for all of the factors given in the
+factorial argument, taking into consideration the fixed and replicated hard-to-change factors.}
 
-\item{splitplotsizes}{test}
+\item{splitplotsizes}{Specifies the block size for each row of harder-to-change factors given in the
+argument splitplotdesign.}
 
 \item{optimality}{The optimality criterion (e.g. "D", "I", or "A")}
 
 \item{repeats}{The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.}
 
-\item{varianceRatio}{test}
+\item{varianceRatio}{Default 1. The ratio between the interblock and intra-block variance for a given stratum in
+a split plot design.}
 
 \item{contrast}{Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.}
 

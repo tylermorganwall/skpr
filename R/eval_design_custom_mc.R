@@ -72,21 +72,6 @@
 #'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc.
-#'
-#'#-----Cookbook of extractor functions for various libraries-----#
-#'
-#'#glm:
-#'
-#'#bbmle (mle2):
-#'
-#'
-#'#fit.f = mle2(Y~,data=RunMatrix)
-#'
-#'#pvals = coef(bbmle::summary(fit.f))[,4]
-#'
-#'#aov
-#'
-#'#fit = aov(y ~ A + B + A:B, data=mydataframe)
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, delta=2, contrasts = contr.sum,
                                  coef_function = coef,

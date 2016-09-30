@@ -29,6 +29,8 @@ will be automatically generated based on the delta argument.}
 \item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
 and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
 
+\item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default contr.sum.}
+
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
 estimate of power by setting all but one level in a categorical factor's anticipated coefficients
@@ -88,7 +90,7 @@ rlognorm = function(X, b) {
 }
 
 #Any additional arguments are passed into the survreg function call.  As an example, you
-might want to fix the "scale" argument to survreg, when fitting a lognormal:
+#might want to fix the "scale" argument to survreg, when fitting a lognormal:
 
 eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
                        distribution="lognormal", rfunctionsurv=rlognorm,

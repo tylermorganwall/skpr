@@ -8,6 +8,8 @@ contr.simplex(n, size = 1)
 }
 \arguments{
 \item{n}{The number of levels in the catagorical variable}
+
+\item{size}{The length of the simplex vector. Default 1.}
 }
 \description{
 Evaluates power for a right censored survival design with a Monte Carlo simulation,

@@ -28,7 +28,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //Generate blocking structure inverse covariance matrix
   const arma::mat vInv = inv_sympd(blockedVar);
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
-  for(int j = 1; j < candidatelist.n_cols; j++) {
+  for(unsigned int j = 1; j < candidatelist.n_cols; j++) {
     if(all(candidatelist.col(0) == candidatelist.col(j))) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
@@ -37,11 +37,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   candidatelist.shed_col(0);
   initialdesign.shed_col(0);
 
-  int check = 0;
-  int nTrials = initialdesign.n_rows;
-  int maxSingularityChecks = nTrials;
-  int totalPoints = candidatelist.n_rows;
-  int blockedCols = blockeddesign.n_cols;
+  unsigned int check = 0;
+  unsigned int nTrials = initialdesign.n_rows;
+  unsigned int maxSingularityChecks = nTrials;
+  unsigned int totalPoints = candidatelist.n_rows;
+  unsigned int blockedCols = blockeddesign.n_cols;
   int designCols = initialdesign.n_cols;
   arma::mat combinedDesign(nTrials,blockedCols+designCols,arma::fill::zeros);
   combinedDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
@@ -53,7 +53,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   }
   while(!inv_sympd(test,combinedDesign.t() * combinedDesign) && check < maxSingularityChecks) {
     arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-    for(int i = 0; i < nTrials; i++) {
+    for(unsigned int i = 0; i < nTrials; i++) {
       combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
     }
     check++;
@@ -78,12 +78,12 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedDOptimality(combinedDesign,vInv);
-      for (int i = 0; i < nTrials; i++) {
+      for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (int j = 0; j < totalPoints; j++) {
+        for (unsigned int j = 0; j < totalPoints; j++) {
           temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
           newdel = calculateBlockedDOptimality(temp, vInv);
           if(newdel > del) {
@@ -113,12 +113,12 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     priorOptimum = del/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (int j = 0; j < totalPoints; j++) {
+        for (unsigned int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
@@ -151,12 +151,12 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (int j = 0; j < totalPoints; j++) {
+        for (unsigned int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);

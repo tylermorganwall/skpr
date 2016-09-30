@@ -33,6 +33,8 @@ automatically generated.}
 \item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 Anticipated coefficients will be half of this number.}
 
+\item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default contr.sum.}
+
 \item{coef_function}{Function that, when applied to a fitfunction return object, returns the estimated coefficients.}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating

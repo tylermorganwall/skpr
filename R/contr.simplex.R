@@ -4,6 +4,7 @@
 #'using the survival package and survreg to fit the data.
 #'
 #'@param n The number of levels in the catagorical variable
+#'@param size The length of the simplex vector. Default 1.
 #'@export
 #'@examples contr.simplex(4)
 contr.simplex = function(n,size=1) {

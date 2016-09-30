@@ -15,6 +15,7 @@
 #'will be automatically generated based on the delta argument.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta
+#'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default contr.sum.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
@@ -23,7 +24,7 @@
 #'@param ... Any additional arguments to be input into the survreg function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import foreach doParallel survival
+#'@import foreach doParallel survival stats
 #'@export
 #'@examples #These examples focus on the survival analysis case and assume familiarity
 #'#with the basic functionality of eval_design_mc.
@@ -66,7 +67,7 @@
 #'}
 #'
 #'#Any additional arguments are passed into the survreg function call.  As an example, you
-#'might want to fix the "scale" argument to survreg, when fitting a lognormal:
+#'#might want to fix the "scale" argument to survreg, when fitting a lognormal:
 #'
 #'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
 #'                        distribution="lognormal", rfunctionsurv=rlognorm,

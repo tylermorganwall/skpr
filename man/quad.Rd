@@ -6,8 +6,11 @@
 \usage{
 quad(formula)
 }
+\arguments{
+\item{formula}{The formula to be expanded}
+}
 \value{
-Returns quad model
+Returns quadratic model from formula
 }
 \description{
 quadratic

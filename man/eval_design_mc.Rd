@@ -39,8 +39,6 @@ to zero.}
 \item{contrasts}{The contrasts to use for categorical factors. Defaults to contr.sum.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation.}
-
-\item{blockfuntion}{Random number generator for the noise due to blocks. See examples for details.}
 }
 \value{
 A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
@@ -106,14 +104,16 @@ vhtc = expand.grid(Store=as.factor(c("A","B")))
 htc = expand.grid(Temp = c(1,-1))
 
 vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6, varianceRatio=1)
-htcdesign = gen_design(factorial=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceRatio=1)
+htcdesign = gen_design(factorial=htc, model=~Temp, trials=18,
+                      splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceRatio=1)
 splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size, trials=54,
                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceRatio=1)
 
-#Each block has an additional noise term associated with it in addition to the normal error term in the model.
-#This is specified by a vector specifying the additional variance for each split-plot level. This is equivalent to
-#specifying a variance ratio of one between the whole plots and the sub-plots for gaussian models.
-#See the accompanying paper _____ for further technical details.
+#Each block has an additional noise term associated with it in addition to the normal error
+#term in the model. This is specified by a vector specifying the additional variance for
+#each split-plot level. This is equivalent to specifying a variance ratio of one between
+#the whole plots and the sub-plots for gaussian models. See the accompanying paper
+#_____ for further technical details.
 
 #Evaluate the design. Note the decreased power for the blocking factors. If
 eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,

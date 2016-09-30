@@ -2,9 +2,9 @@
 #'
 #'@description quadratic
 #'
-#'@param formula
+#'@param formula The formula to be expanded
 #'@keywords internal
-#'@return Returns quad model
+#'@return Returns quadratic model from formula
 quad = function(formula) {
   variables = all.vars(formula)
   quadratic = paste(variables, collapse=" + ")

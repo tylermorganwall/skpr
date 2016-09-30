@@ -44,11 +44,10 @@ assumes a signal-to-noise ratio of 2 (can be changed with the
 delta parameter).
 }
 \examples{
-#Generating a simple 2x3 factorial using AlgDesign's gen.factorial function
-#to feed into our optimal design generation and generating a 11-run design.
-factorial <- AlgDesign::gen.factorial(levels = 2, nVars = 3, varNames = c("A", "B", "C"))
-#this can also be generated with expand.grid as:
+#Generating a simple 2x3 factorial to feed into our optimal design generation
+#of an 11-run design.
 factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
+
 optdesign = gen_design(factorial=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
 
 #Now evaluating that design (with default anticipated coefficients and a delta of 2):
@@ -88,13 +87,13 @@ eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,
 #You can also evaluate the design with higher order effects:
 eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 
-#Blocked designs can also be evaluated by specifying the blocking model.
+#Split plot designs can also be evaluated by specifying the blocking model.
 
-#Generating blocked design
+#Generating split plot design
 coffeeblocks = expand.grid(caffeine=c(1,-1))
 coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
 coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
-                              wholeblock=coffeeblockdesign, blocksize=3)
+                              splitplotdesign=coffeeblockdesign, splitplotsizes=rep(3,12))
 
 #Evaluating design
 eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine)

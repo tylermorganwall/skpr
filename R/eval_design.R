@@ -66,13 +66,13 @@
 #'#You can also evaluate the design with higher order effects:
 #'eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 #'
-#'#Blocked designs can also be evaluated by specifying the blocking model.
+#'#Split plot designs can also be evaluated by specifying the blocking model.
 #'
-#'#Generating blocked design
+#'#Generating split plot design
 #'coffeeblocks = expand.grid(caffeine=c(1,-1))
 #'coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
 #'coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
-#'                               wholeblock=coffeeblockdesign, blocksize=3)
+#'                               splitplotdesign=coffeeblockdesign, splitplotsizes=rep(3,12))
 #'
 #'#Evaluating design
 #'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine)

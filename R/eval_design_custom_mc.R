@@ -18,6 +18,7 @@
 #'automatically generated.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
+#'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default contr.sum.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
@@ -26,7 +27,7 @@
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import foreach doParallel
+#'@import foreach doParallel stats
 #'@export
 #'@examples #To demonstrate how a user can use their own libraries for Monte Carlo power generation,
 #'#We will recreate eval_design_survival_mc using the eval_design_custom_mc framework.

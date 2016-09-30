@@ -3,7 +3,6 @@
 #'@description Evaluates design, given a run matrix, with a monte carlo simulation and returns
 #'a data frame of parameter and effect powers.
 #'
-#'
 #'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
@@ -14,9 +13,6 @@
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. typically something like rnorm(nrow(X), X * b + delta, 0)
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
-#'
-#'@param blockfuntion Random number generator for the noise due to blocks. See examples for details.
-#'
 #'@param blocknoise Vector of noise levels for each block, one element per blocking level. See examples for details.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.
@@ -28,7 +24,7 @@
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import foreach doParallel
+#'@import foreach doParallel nlme stats
 #'@export
 #'@examples #We first generate a full factorial design using expand.grid:
 #'factorialcoffee = expand.grid(cost=c(-1, 1),
@@ -85,14 +81,16 @@
 #'htc = expand.grid(Temp = c(1,-1))
 #'
 #'vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6, varianceRatio=1)
-#'htcdesign = gen_design(factorial=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceRatio=1)
+#'htcdesign = gen_design(factorial=htc, model=~Temp, trials=18,
+#'                       splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceRatio=1)
 #'splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size, trials=54,
 #'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceRatio=1)
 #'
-#'#Each block has an additional noise term associated with it in addition to the normal error term in the model.
-#'#This is specified by a vector specifying the additional variance for each split-plot level. This is equivalent to
-#'#specifying a variance ratio of one between the whole plots and the sub-plots for gaussian models.
-#'#See the accompanying paper _____ for further technical details.
+#'#Each block has an additional noise term associated with it in addition to the normal error
+#'#term in the model. This is specified by a vector specifying the additional variance for
+#'#each split-plot level. This is equivalent to specifying a variance ratio of one between
+#'#the whole plots and the sub-plots for gaussian models. See the accompanying paper
+#'#_____ for further technical details.
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors. If
 #'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,

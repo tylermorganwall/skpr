@@ -20,17 +20,24 @@ set as a factor.}
 
 \item{trials}{The number of runs in the design.}
 
+\item{splitplotdesign}{test}
+
+\item{splitplotsizes}{test}
+
 \item{optimality}{The optimality criterion (e.g. "D", "I", or "A")}
 
 \item{repeats}{The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.}
 
-\item{wholeblock}{A data frame specifying the blocking factors.}
+\item{varianceRatio}{test}
 
-\item{blocksize}{The number of runs in each block.}
+\item{contrast}{Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.}
+
+\item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.}
+
+\item{timer}{Default FALSE. If TRUE, will print an estimate of the optimal design search time.}
 }
 \value{
-The model matrix for the design, to be passed to eval_design. The model matrix
-has various attributes (accessible with the attr function) that aid evaluation.
+The optimal design. Attributes can be accessed with the attr function.
 }
 \description{
 Creates design given a model and desired number of runs, returning the model matrix. Currently
@@ -49,19 +56,21 @@ design = gen_design(factorial=basicdesign, model=~x1+x2, trials=11)
 design = gen_design(factorial=basicdesign, model=~., trials=11)
 
 #Here we add categorical factors, specified by using "as.factor" in expand.grid:
-categoricaldesign = expand.grid(a=c(-1,1), b=as.factor(c("A","B")), c=as.factor(c("High","Med","Low")))
+categoricaldesign = expand.grid(a=c(-1,1), b=as.factor(c("A","B")),
+                               c=as.factor(c("High","Med","Low")))
 
 #This factorial design is used as an input in the optimal design generation.
 design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19)
 
-#We can also increase the number of times the algorithm repeats the search to increase the probability
-#that the globally optimal design was found.
+#We can also increase the number of times the algorithm repeats
+#the search to increase the probability that the globally optimal design was found.
 design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
 
 #You can also use a higher order model when generating the design:
 design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
 
-#To evaluate a response surface design, include center points in the candidate set and do not include
+#To evaluate a response surface design, include center points
+#in the candidate set and do not include
 #quadratic effects with categorical factors.
 
 designquad = expand.grid(a=c(1,0,-1), b=c(-1,0,1), c=c("A","B","C"))
@@ -84,24 +93,28 @@ hardtochangedesign = gen_design(factorial = hardtochangefactor, model=~Altitude,
 
 easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
 
-#Here, we specify the easy to change factors for the factorial design, and input the hard-to-change design
-#along with a vector listing the number of repetitions within each block for the blocked design. There should be
-#a size entry for every block and the number of runs specified in the trials argument needs to equal the
+#Here, we specify the easy to change factors for the factorial design,
+#and input the hard-to-change design along with a vector listing the number
+#of repetitions within each block for the blocked design. There should be a size entry
+#for every block and the number of runs specified in the trials argument needs to equal the
 #sum of all of the block sizes or else the program will throw an error.
 
-#Since we have 11 runs in our hard-to-change design, we need a vector specifying the size of each 11 runs. Here
-#we specify the blocks be three runs each (meaning the final design will be 33 runs):
+#Since we have 11 runs in our hard-to-change design, we need a vector
+#specifying the size of each 11 runs. Here we specify the blocks be three runs each
+#(meaning the final design will be 33 runs):
 
 splitplotblocksize = rep(3,11)
 
 #Putting this all together:
-designsplitplot = gen_design(easytochangefactors, ~Range+Power, trials=33, htc=hardtochangedesign,
-                            blocksizes = splitplotblocksize)
+designsplitplot = gen_design(easytochangefactors, ~Range+Power, trials=33,
+                            splitplotdesign=hardtochangedesign,
+                            splitplotsizes = splitplotblocksize)
 
-#The split-plot structure is encoded into the row names, with a period demarcating the blocking level. This process
-#can be repeated for arbitrary levels of blocking (i.e. a split-plot design can be entered in as the hard-to-change
-#to produce a split-split-plot design, which can be passed as another hard-to-change design to produce a
-#split-split-split plot design, etc).
+#The split-plot structure is encoded into the row names, with a period
+#demarcating the blocking level. This process can be repeated for arbitrary
+#levels of blocking (i.e. a split-plot design can be entered in as the hard-to-change
+#to produce a split-split-plot design, which can be passed as another
+#hard-to-change design to produce a split-split-split plot design, etc).
 
 extremelyhtcfactors = expand.grid(Location=as.character(c("East","West")))
 veryhtcfactors = expand.grid(Climate = as.factor(c("Dry","Wet","Arid")))
@@ -109,9 +122,12 @@ htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
 etcfactors = expand.grid(Age = c(1,-1))
 
 gen_design(extremelyhtcfactors, ~Location, trials=6,varianceRatio=2) -> temp
-gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),varianceRatio=1) -> temp
-gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12),varianceRatio=1) -> temp
-gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48),varianceRatio=1) -> splitsplitsplitplotdesign
+gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
+          varianceRatio=1) -> temp
+gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12),
+          varianceRatio=1) -> temp
+gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48),
+          varianceRatio=1) -> splitsplitsplitplotdesign
 
 #A design's diagnostics can be accessed via the following attributes:
 
@@ -131,6 +147,7 @@ ggplot(melted.correlation.matrix, aes(x=Var1, y=Var2, fill=value)) + geom_tile()
  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
 
 #Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
-#eval_design_survival_mc (Monte Carlo survival analysis), and eval_design_custom_mc (Custom Library Monte Carlo)
+#eval_design_survival_mc (Monte Carlo survival analysis), and
+#eval_design_custom_mc (Custom Library Monte Carlo)
 }
 

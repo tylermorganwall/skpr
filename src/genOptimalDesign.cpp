@@ -28,25 +28,25 @@ double calculateAOptimality(arma::mat currentDesign) {
 // [[Rcpp::export]]
 List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,const std::string condition,
                       const arma::mat momentsmatrix, NumericVector initialRows) {
-  int check = 0;
-  int nTrials = initialdesign.n_rows;
-  int maxSingularityChecks = nTrials;
-  int totalPoints = candidatelist.n_rows;
-  IntegerVector candidateRow(nTrials);
+  unsigned int check = 0;
+  unsigned int nTrials = initialdesign.n_rows;
+  unsigned int maxSingularityChecks = nTrials;
+  unsigned int totalPoints = candidatelist.n_rows;
+  arma::vec candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
   //Check to see if the design could be a full factorial or replicated full factorial
   if(nTrials % totalPoints == 0) {
-    for(int i = 0; i < nTrials; i++) {
+    for(unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(i % totalPoints);
       candidateRow[i] = i % totalPoints+1;
     }
-    std::random_shuffle(candidateRow.begin(),candidateRow.end());
-    return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = 0));
+    arma::vec returnRow = shuffle(candidateRow);
+    return(List::create(_["indices"] = returnRow, _["modelmatrix"] = initialdesign, _["criterion"] = 0));
   }
   if(nTrials <= candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
-  for(int j = 1; j < candidatelist.n_cols; j++) {
+  for(unsigned int j = 1; j < candidatelist.n_cols; j++) {
     if(all(candidatelist.col(0) == candidatelist.col(j))) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
@@ -55,7 +55,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
   while(check < maxSingularityChecks) {
     if(!inv_sympd(test,initialdesign.t() * initialdesign)) {
       arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-      for(int i = 0; i < nTrials; i++) {
+      for(unsigned int i = 0; i < nTrials; i++) {
         initialdesign.row(i) = candidatelist.row(randomrows(i));
       }
       check++;
@@ -82,13 +82,13 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
         del = 0;
         entryx = 0;
         entryy = 0;
         V = inv_sympd(initialdesign.t() * initialdesign);
-        for (int j = 0; j < totalPoints; j++) {
+        for (unsigned int j = 0; j < totalPoints; j++) {
           newdel = delta(V,initialdesign.row(i),candidatelist.row(j));
           if(newdel > del) {
             found = TRUE;
@@ -115,12 +115,12 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        for (int j = 0; j < totalPoints; j++) {
+        for (unsigned int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.row(i) = candidatelist.row(j);
@@ -153,12 +153,12 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        for (int j = 0; j < totalPoints; j++) {
+        for (unsigned int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.row(i) = candidatelist.row(j);

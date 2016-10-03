@@ -30,7 +30,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
                       const arma::mat momentsmatrix, NumericVector initialRows) {
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
-  unsigned int maxSingularityChecks = nTrials;
+  unsigned int maxSingularityChecks = nTrials*100;
   unsigned int totalPoints = candidatelist.n_rows;
   arma::vec candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);

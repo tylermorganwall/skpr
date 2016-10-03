@@ -39,7 +39,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
-  unsigned int maxSingularityChecks = nTrials;
+  unsigned int maxSingularityChecks = nTrials*100;
   unsigned int totalPoints = candidatelist.n_rows;
   unsigned int blockedCols = blockeddesign.n_cols;
   int designCols = initialdesign.n_cols;

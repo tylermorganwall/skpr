@@ -41,6 +41,8 @@ a split plot design.}
 \item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.}
 
 \item{timer}{Default FALSE. If TRUE, will print an estimate of the optimal design search time.}
+
+\item{disallowedcombinations}{Default FALSE. Set TRUE if the candidate list has had any test points removed.}
 }
 \value{
 The optimal design. Attributes can be accessed with the attr function.

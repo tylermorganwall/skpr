@@ -24,6 +24,7 @@
 #'@param contrast Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
+#'@param disallowedcombinations Default FALSE. Set TRUE if the candidate list has had any test points removed.
 #'@return The optimal design. Attributes can be accessed with the attr function.
 #'@export
 #'@examples #Generate the basic factorial design used in generating the optimal design with expand.grid.

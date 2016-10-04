@@ -52,9 +52,20 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   while(!inv_sympd(test,combinedDesign.t() * combinedDesign) && check < maxSingularityChecks) {
-    arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-    for(unsigned int i = 0; i < nTrials; i++) {
-      combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
+    if (nTrials < totalPoints) {
+      arma::vec shuffledindices = arma::shuffle(arma::regspace(0,totalPoints-1));
+      arma::vec indices(nTrials);
+      for(unsigned int i = 0; i < nTrials; i++) {
+        indices(i) = shuffledindices(i);
+      }
+      for(unsigned int i = 0; i < nTrials; i++) {
+        combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(indices(i));
+      }
+    } else {
+      arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
+      for(unsigned int i = 0; i < nTrials; i++) {
+        combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
+      }
     }
     check++;
   }

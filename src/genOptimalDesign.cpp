@@ -26,8 +26,8 @@ double calculateAOptimality(arma::mat currentDesign) {
 //`@param x an x
 //`@return stufff
 // [[Rcpp::export]]
-List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,const std::string condition,
-                      const arma::mat momentsmatrix, NumericVector initialRows) {
+List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std::string condition,
+                      const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations) {
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*100;
@@ -35,13 +35,23 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
   arma::vec candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
   //Check to see if the design could be a full factorial or replicated full factorial
-  if(nTrials % totalPoints == 0) {
+  if(nTrials % totalPoints == 0 && !hasdisallowedcombinations) {
+    double criterion;
     for(unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(i % totalPoints);
       candidateRow[i] = i % totalPoints+1;
     }
     arma::vec returnRow = shuffle(candidateRow);
-    return(List::create(_["indices"] = returnRow, _["modelmatrix"] = initialdesign, _["criterion"] = 0));
+    if(condition == "D") {
+      criterion = calculateDOptimality(initialdesign);
+    }
+    if(condition == "I") {
+      criterion = calculateIOptimality(initialdesign,momentsmatrix);
+    }
+    if(condition == "A") {
+      criterion = calculateAOptimality(initialdesign);
+    }
+    return(List::create(_["indices"] = returnRow, _["modelmatrix"] = initialdesign, _["criterion"] = criterion));
   }
   if(nTrials <= candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
@@ -54,9 +64,20 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   while(check < maxSingularityChecks) {
     if(!inv_sympd(test,initialdesign.t() * initialdesign)) {
-      arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-      for(unsigned int i = 0; i < nTrials; i++) {
-        initialdesign.row(i) = candidatelist.row(randomrows(i));
+      if (nTrials < totalPoints) {
+        arma::vec shuffledindices = arma::shuffle(arma::regspace(0,totalPoints-1));
+        arma::vec indices(nTrials);
+        for(unsigned int i = 0; i < nTrials; i++) {
+          indices(i) = shuffledindices(i);
+        }
+        for(unsigned int row = 0; row < nTrials; row++) {
+          initialdesign.row(row) = candidatelist.row(indices(row));
+        }
+      } else {
+        arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
+        for(unsigned int i = 0; i < nTrials; i++) {
+          initialdesign.row(i) = candidatelist.row(randomrows(i));
+        }
       }
       check++;
     } else {
@@ -78,18 +99,20 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat candidatelist,con
   double newdel;
   //Generate a D-optimal design
   if(condition == "D") {
-    newOptimum = calculateDOptimality(initialdesign);
+    arma::mat temp;
+    del = calculateDOptimality(initialdesign);
+    newOptimum = del;
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         found = FALSE;
-        del = 0;
         entryx = 0;
         entryy = 0;
-        V = inv_sympd(initialdesign.t() * initialdesign);
+        temp = initialdesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          newdel = delta(V,initialdesign.row(i),candidatelist.row(j));
+          temp.row(i) = candidatelist.row(j);
+          newdel = calculateDOptimality(temp);
           if(newdel > del) {
             found = TRUE;
             entryx = i; entryy = j;

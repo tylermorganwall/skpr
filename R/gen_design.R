@@ -132,7 +132,8 @@
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=10, varianceRatio = 1, contrast=NULL, parallel=FALSE, timer=FALSE) {
+                      optimality="D",repeats=10, varianceRatio = 1, contrast=NULL, parallel=FALSE,
+                      timer=FALSE,disallowedcombinations=FALSE) {
   quad=FALSE
   if(as.character(model)[2] == "quad(.)") {
     modelvars = colnames(model.matrix(~.,data=factorial))[-1]
@@ -244,19 +245,22 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         for(i in 1:repeats) {
           randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                                          hasdisallowedcombinations = disallowedcombinations)
         }
       } else {
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
         genOutput[[1]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                                          hasdisallowedcombinations = disallowedcombinations)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+                                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                                            hasdisallowedcombinations = disallowedcombinations)
         }
       }
     } else {
@@ -267,7 +271,8 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         genOutput = foreach(i=1:repeats) %dopar% {
           randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                           hasdisallowedcombinations = disallowedcombinations)
         }
         parallel::stopCluster(cl)
       } else {
@@ -278,13 +283,15 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         ptm = proc.time()
         randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
         genOutputOne = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+                                        condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                                        hasdisallowedcombinations = disallowedcombinations)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
           randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
-                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices)
+                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                           hasdisallowedcombinations = disallowedcombinations)
         }
         genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)

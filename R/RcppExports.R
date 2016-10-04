@@ -5,23 +5,23 @@ AOptimality <- function(currentDesign) {
     .Call('skpr_AOptimality', PACKAGE = 'skpr', currentDesign)
 }
 
-covarianceMatrix <- function(design) {
-    .Call('skpr_covarianceMatrix', PACKAGE = 'skpr', design)
-}
-
 DOptimality <- function(currentDesign) {
     .Call('skpr_DOptimality', PACKAGE = 'skpr', currentDesign)
+}
+
+IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {
+    .Call('skpr_IOptimality', PACKAGE = 'skpr', currentDesign, momentsMatrix, blockedVar)
+}
+
+covarianceMatrix <- function(design) {
+    .Call('skpr_covarianceMatrix', PACKAGE = 'skpr', design)
 }
 
 genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar) {
     .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar)
 }
 
-genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows) {
-    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows)
-}
-
-IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {
-    .Call('skpr_IOptimality', PACKAGE = 'skpr', currentDesign, momentsMatrix, blockedVar)
+genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations) {
+    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations)
 }
 

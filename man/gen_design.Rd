@@ -7,7 +7,8 @@ and desired number of runs.}
 \usage{
 gen_design(factorial, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
-  varianceRatio = 1, contrast = NULL, parallel = FALSE, timer = FALSE)
+  varianceRatio = 1, contrast = NULL, parallel = FALSE, timer = FALSE,
+  disallowedcombinations = FALSE)
 }
 \arguments{
 \item{factorial}{A data frame of candidate test points. Usually this is a full factorial test matrix

@@ -17,30 +17,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// DOptimality
-double DOptimality(arma::mat currentDesign);
-RcppExport SEXP skpr_DOptimality(SEXP currentDesignSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
-    rcpp_result_gen = Rcpp::wrap(DOptimality(currentDesign));
-    return rcpp_result_gen;
-END_RCPP
-}
-// IOptimality
-double IOptimality(arma::mat currentDesign, const arma::mat momentsMatrix, const arma::mat blockedVar);
-RcppExport SEXP skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP, SEXP blockedVarSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type momentsMatrix(momentsMatrixSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type blockedVar(blockedVarSEXP);
-    rcpp_result_gen = Rcpp::wrap(IOptimality(currentDesign, momentsMatrix, blockedVar));
-    return rcpp_result_gen;
-END_RCPP
-}
 // covarianceMatrix
 arma::mat covarianceMatrix(arma::mat design);
 RcppExport SEXP skpr_covarianceMatrix(SEXP designSEXP) {
@@ -49,6 +25,17 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type design(designSEXP);
     rcpp_result_gen = Rcpp::wrap(covarianceMatrix(design));
+    return rcpp_result_gen;
+END_RCPP
+}
+// DOptimality
+double DOptimality(arma::mat currentDesign);
+RcppExport SEXP skpr_DOptimality(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(DOptimality(currentDesign));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -82,6 +69,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
     Rcpp::traits::input_parameter< bool >::type hasdisallowedcombinations(hasdisallowedcombinationsSEXP);
     rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations));
+    return rcpp_result_gen;
+END_RCPP
+}
+// IOptimality
+double IOptimality(arma::mat currentDesign, const arma::mat momentsMatrix, const arma::mat blockedVar);
+RcppExport SEXP skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP, SEXP blockedVarSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type momentsMatrix(momentsMatrixSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type blockedVar(blockedVarSEXP);
+    rcpp_result_gen = Rcpp::wrap(IOptimality(currentDesign, momentsMatrix, blockedVar));
     return rcpp_result_gen;
 END_RCPP
 }

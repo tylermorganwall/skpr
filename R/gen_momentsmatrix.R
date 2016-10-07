@@ -38,6 +38,12 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
   islinear = rep(TRUE,length(modelfactors)) & !isintercept & !ishigherorder & !isinteraction
 
   linearterms = modelfactors[islinear]
+
+  if(!all(islinear) && all(isinteraction[-1])) {
+    stop("No main effects in model. skpR only supports interactions between terms when their main effects are present.")
+    #linearterms = colnames(RunMatrix)
+  }
+
   ordermatrix = matrix(0,nrow=length(linearterms),ncol = length(modelfactors))
   momentsmatrix = matrix(list(2),nrow=length(modelfactors),ncol=length(modelfactors))
   momentsmatrixresults = matrix(0,nrow=length(modelfactors),ncol=length(modelfactors))

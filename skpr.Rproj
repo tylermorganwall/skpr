@@ -19,5 +19,5 @@ BuildType: Package
 PackageUseDevtools: Yes
 PackagePath: U:/R/skpr
 PackageInstallArgs: --no-multiarch --with-keep.source
-PackageCheckArgs: --no-multiarch --with-keep.source
+PackageCheckArgs: --no-multiarch
 PackageRoxygenize: rd,collate,namespace

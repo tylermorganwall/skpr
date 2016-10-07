@@ -21,8 +21,8 @@ gen_anticoef = function(RunMatrix,model,conservative=FALSE) {
       highertype = "numeric"
       factors = strsplit(term,":")[[1]]
       for(i in factors) {
-        higherlevel = (attr(RunMatrix,"out.attr")$dim[i]-1)*higherlevel
         if(class(RunMatrix[[i]]) == "factor") {
+          higherlevel = levels[i]*higherlevel
           highertype = "factor"
         }
       }

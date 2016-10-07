@@ -140,6 +140,12 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
       rfunction = function(X,b,blockvector) {return(rexp(n=nrow(X), rate = exp(X %*% b + blockvector)))}
     }
   }
+  #------Normalize/Center numeric columns ------#
+  for(column in 1:ncol(RunMatrix)) {
+    if(class(RunMatrix[,column]) == "numeric") {
+      RunMatrix[,column] = as.numeric(scale(RunMatrix[,column],scale=FALSE)/max(scale(RunMatrix[,column],scale=FALSE)))
+    }
+  }
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model

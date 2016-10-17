@@ -27,7 +27,8 @@ than the current set of factors. These rows are replicated to the specified size
 factorial argument, taking into consideration the fixed and replicated hard-to-change factors.}
 
 \item{splitplotsizes}{Specifies the block size for each row of harder-to-change factors given in the
-argument splitplotdesign.}
+argument splitplotdesign. If the input is a vector, each entry of the vector determines the size of the sub-plot
+for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.}
 
 \item{optimality}{The optimality criterion (e.g. "D", "I", or "A")}
 

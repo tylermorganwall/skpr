@@ -16,7 +16,8 @@
 #'(given in the argument splitplotsizes) and the optimal design is found for all of the factors given in the
 #'factorial argument, taking into consideration the fixed and replicated hard-to-change factors.
 #'@param splitplotsizes Specifies the block size for each row of harder-to-change factors given in the
-#'argument splitplotdesign.
+#'argument splitplotdesign. If the input is a vector, each entry of the vector determines the size of the sub-plot
+#'for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.
 #'@param optimality The optimality criterion (e.g. "D", "I", or "A")
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.
 #'@param varianceRatio Default 1. The ratio between the interblock and intra-block variance for a given stratum in
@@ -161,6 +162,9 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     blocking = TRUE
     if(is.null(splitplotsizes)) {
       stop("If split plot design provided, user needs to input split plot sizes as well")
+    }
+    if(length(splitplotsizes) == 1) {
+      splitplotsizes = rep(splitplotsizes,nrow(splitplotdesign))
     }
     if(trials != sum(splitplotsizes)) {
       stop("Blocked replicates does not equal the number of trials input")

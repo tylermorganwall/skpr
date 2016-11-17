@@ -140,6 +140,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     blockvar = c(rep(nrow(BlockedRunMatrix)/nrow(RunMatrix),ncol(attr(BlockedRunMatrix,"modelmatrix"))))
   }
 
+
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
     effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
@@ -152,7 +153,9 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
         effectresults[namevector == blocknamevector[i]] = blockeffectresults[i]
       }
     }
-    return(data.frame(parameters = namevector, type = typevector, power = effectresults))
+    results = data.frame(parameters = namevector, type = typevector, power = effectresults)
+    attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
+    return(results)
   } else {
     levelvector = sapply(lapply(RunMatrix,unique),length)
 
@@ -172,7 +175,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     powervector = c(effectresults,parameterresults)
 
     results = data.frame(parameters = namevector, type = typevector, power = powervector)
-
+    attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
     if(!is.null(blockmodel)) {
       if(!any(table(attr(attr(BlockDesign,"modelmatrix"),"assign")[-1])!=1)) {
         blockeffectresults = parameterpower(BlockedRunMatrix,blockedanticoef*delta/2,alpha,blockvar=blockvar,varianceratio=varianceratio)
@@ -215,6 +218,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     if(length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")
     }
+
     return(results)
   }
 }

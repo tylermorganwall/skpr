@@ -7,7 +7,8 @@
 #'@return The reduced model matrix.
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix,model) {
-  ReduceRM = RunMatrix
+  ReduceRM = RunMatrix[attr(terms(model),"term.labels")[attr(terms(model),"order")==1]]
+
   if(length(as.character(model)) == 2 && (as.character(model)[2] == "." || as.character(model)[2] == "quad(.)")) {
     return(ReduceRM)
   }

@@ -7,7 +7,13 @@
 #'@return The reduced model matrix.
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix,model) {
-  ReduceRM = RunMatrix[attr(terms(model),"term.labels")[attr(terms(model),"order")==1]]
+  if((as.character(model)[2] == "." || as.character(model)[2] == "quad(.)")) {
+    ReduceRM = RunMatrix
+  } else {
+    orderone = attr(terms(model),"term.labels")[attr(terms(model),"order")==1]
+    nohighorder = orderone[!unlist(lapply(pattern="^",FUN=grepl,X=orderone,fixed=TRUE))]
+    ReduceRM = RunMatrix[nohighorder]
+  }
 
   if(length(as.character(model)) == 2 && (as.character(model)[2] == "." || as.character(model)[2] == "quad(.)")) {
     return(ReduceRM)

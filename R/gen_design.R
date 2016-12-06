@@ -146,6 +146,22 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   }
 
   factorial = reduceRunMatrix(factorial, model)
+  factorialnormalized = factorial
+
+  #------Normalize/Center numeric columns ------#
+  for(column in 1:ncol(factorial)) {
+    if(class(factorialnormalized[,column]) == "numeric") {
+      factorialnormalized[,column] = as.numeric(scale(factorialnormalized[,column],scale=FALSE)/max(scale(factorialnormalized[,column],scale=FALSE)))
+    }
+  }
+  if(!is.null(splitplotdesign)) {
+    spdnormalized = splitplotdesign
+    for(column in 1:ncol(spdnormalized)) {
+      if(class(spdnormalized[,column]) == "numeric") {
+        spdnormalized[,column] = as.numeric(scale(spdnormalized[,column],scale=FALSE)/max(scale(spdnormalized[,column],scale=FALSE)))
+      }
+    }
+  }
 
   if(quad) {
     model = modelfull
@@ -191,7 +207,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     blockvars = colnames(splitplotdesign)
     blocks = list()
     for(i in 1:length(blockIndicators)) {
-      blocks[[i]] = splitplotdesign[blockIndicators[i],]
+      blocks[[i]] = spdnormalized[blockIndicators[i],]
     }
 
     blockRuns = c()
@@ -237,9 +253,9 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     contrastslist[[x]] = contrast
   }
   if(length(contrastslist) == 0) {
-    factorialmm = model.matrix(model,factorial)
+    factorialmm = model.matrix(model,factorialnormalized)
   } else {
-    factorialmm = model.matrix(model,factorial,contrasts.arg=contrastslist)
+    factorialmm = model.matrix(model,factorialnormalized,contrasts.arg=contrastslist)
   }
 
   if(!blocking) {

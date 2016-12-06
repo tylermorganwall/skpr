@@ -93,6 +93,14 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
   if(length(contrastslist) < 1) {
     contrastslist = NULL
   }
+
+  #------Normalize/Center numeric columns ------#
+  for(column in 1:ncol(RunMatrix)) {
+    if(class(RunMatrix[,column]) == "numeric") {
+      RunMatrix[,column] = as.numeric(scale(RunMatrix[,column],scale=FALSE)/max(scale(RunMatrix[,column],scale=FALSE)))
+    }
+  }
+
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
 
@@ -129,6 +137,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrix,model,conservative=conservative)
   }
+
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && any(sapply(RunMatrix,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }

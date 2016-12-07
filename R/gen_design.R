@@ -20,7 +20,7 @@
 #'for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.
 #'@param optimality The optimality criterion (e.g. "D", "I", or "A")
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.
-#'@param varianceRatio Default 1. The ratio between the interblock and intra-block variance for a given stratum in
+#'@param varianceratio Default 1. The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design.
 #'@param contrast Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.
@@ -105,13 +105,13 @@
 #'htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
 #'etcfactors = expand.grid(Age = c(1,-1))
 #'
-#'gen_design(extremelyhtcfactors, ~Location, trials=6,varianceRatio=2) -> temp
+#'gen_design(extremelyhtcfactors, ~Location, trials=6,varianceratio=2) -> temp
 #'gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
-#'           varianceRatio=1) -> temp
+#'           varianceratio=1) -> temp
 #'gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12),
-#'           varianceRatio=1) -> temp
+#'           varianceratio=1) -> temp
 #'gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48),
-#'           varianceRatio=1) -> splitsplitsplitplotdesign
+#'           varianceratio=1) -> splitsplitsplitplotdesign
 #'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'
@@ -134,7 +134,7 @@
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=10, varianceRatio = 1, contrast=NULL, parallel=FALSE,
+                      optimality="D",repeats=10, varianceratio = 1, contrast=NULL, parallel=FALSE,
                       timer=FALSE,disallowedcombinations=FALSE) {
   quad=FALSE
   if(as.character(model)[2] == "quad(.)") {
@@ -174,7 +174,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   blocking=FALSE
   #generate blocked design with replicates
   if(!is.null(splitplotdesign)) {
-    varianceRatios = c(attr(splitplotdesign,"varianceratios"),varianceRatio)
+    varianceRatios = c(attr(splitplotdesign,"varianceratios"),varianceratio)
     blocking = TRUE
     if(is.null(splitplotsizes)) {
       stop("If split plot design provided, user needs to input split plot sizes as well")
@@ -445,7 +445,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     colnames(mm) = colnames(designmm)
     rownames(mm) = colnames(designmm)
     attr(design,"moments.matrix") = mm
-    attr(design,"varianceratios") = varianceRatio
+    attr(design,"varianceratios") = varianceratio
   } else {
     rownames(design) = rownames(splitPlotReplicateDesign)
     colnames(blockedMM) = colnames(designmm)

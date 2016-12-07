@@ -7,7 +7,7 @@ and desired number of runs.}
 \usage{
 gen_design(factorial, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
-  varianceRatio = 1, contrast = NULL, parallel = FALSE, timer = FALSE,
+  varianceratio = 1, contrast = NULL, parallel = FALSE, timer = FALSE,
   disallowedcombinations = FALSE)
 }
 \arguments{
@@ -34,7 +34,7 @@ for that whole plot setting. If the input is an integer, it generates a balanced
 
 \item{repeats}{The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.}
 
-\item{varianceRatio}{Default 1. The ratio between the interblock and intra-block variance for a given stratum in
+\item{varianceratio}{Default 1. The ratio between the interblock and intra-block variance for a given stratum in
 a split plot design.}
 
 \item{contrast}{Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.}
@@ -130,13 +130,13 @@ veryhtcfactors = expand.grid(Climate = as.factor(c("Dry","Wet","Arid")))
 htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
 etcfactors = expand.grid(Age = c(1,-1))
 
-gen_design(extremelyhtcfactors, ~Location, trials=6,varianceRatio=2) -> temp
+gen_design(extremelyhtcfactors, ~Location, trials=6,varianceratio=2) -> temp
 gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
-          varianceRatio=1) -> temp
+          varianceratio=1) -> temp
 gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12),
-          varianceRatio=1) -> temp
+          varianceratio=1) -> temp
 gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48),
-          varianceRatio=1) -> splitsplitsplitplotdesign
+          varianceratio=1) -> splitsplitsplitplotdesign
 
 #A design's diagnostics can be accessed via the following attributes:
 

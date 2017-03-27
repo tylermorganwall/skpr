@@ -6,8 +6,8 @@
 \usage{
 eval_design_custom_mc(RunMatrix, model, alpha, nsim, rfunction, fitfunction,
   pvalfunction, anticoef, delta = 2, contrasts = contr.sum,
-  coef_function = coef, conservative = FALSE, parallel = FALSE,
-  parallelpackages = NULL)
+  coef_function = coef, parameternames = NULL, conservative = FALSE,
+  parallel = FALSE, parallelpackages = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -36,6 +36,9 @@ Anticipated coefficients will be half of this number.}
 \item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default contr.sum.}
 
 \item{coef_function}{Function that, when applied to a fitfunction return object, returns the estimated coefficients.}
+
+\item{parameternames}{Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
+(e.g. coefficients from an MLE).}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative

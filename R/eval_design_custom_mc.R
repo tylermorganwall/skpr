@@ -14,6 +14,8 @@
 #'library, that argument can be ignored.
 #'@param pvalfunction Function that returns a vector of pvals from the object returned from the fitfunction.
 #'@param coef_function Function that, when applied to a fitfunction return object, returns the estimated coefficients.
+#'@param parameternames Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
+#'(e.g. coefficients from an MLE fit).
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
@@ -75,6 +77,7 @@
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, delta=2, contrasts = contr.sum,
                                  coef_function = coef,
+                                 parameternames = NULL,
                                  conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
 
   #---------- Generating model matrix ----------#
@@ -97,7 +100,11 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
   #We'll need the parameter and effect names for output
-  parameter_names = colnames(ModelMatrix)
+  if(is.null(parameternames)) {
+    parameter_names = colnames(ModelMatrix)
+  } else {
+    parameter_names = parameternames
+  }
   effect_names = c("(Intercept)", attr(terms(model), 'term.labels'))
 
 
@@ -119,7 +126,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   if(!parallel) {
     power_values = rep(0, length(parameter_names))
-    estimates = matrix(0, nrow = nsim, ncol = nparam)
+    estimates = list()
     for (j in 1:nsim) {
 
       #simulate the data.
@@ -131,7 +138,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
-      estimates[j, ] = coef_function(fit)
+      estimates[[j]] = coef_function(fit)
     }
     power_values = power_values / nsim
 
@@ -165,7 +172,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   retval = data.frame(parameters=parameter_names,
                       type="parameter.power.mc",
                       power=power_values)
-  colnames(estimates) = parameter_names
+  attr(retval, 'estimatesnames') = parameter_names
   attr(retval, 'estimates') = estimates
   retval
 

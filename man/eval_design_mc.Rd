@@ -103,11 +103,11 @@ eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.0
 vhtc = expand.grid(Store=as.factor(c("A","B")))
 htc = expand.grid(Temp = c(1,-1))
 
-vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6, varianceRatio=1)
+vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6, varianceratio=1)
 htcdesign = gen_design(factorial=htc, model=~Temp, trials=18,
-                      splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceRatio=1)
+                      splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
 splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size, trials=54,
-                            splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceRatio=1)
+                            splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
 
 #Each block has an additional noise term associated with it in addition to the normal error
 #term in the model. This is specified by a vector specifying the additional variance for

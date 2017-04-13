@@ -4,7 +4,7 @@
 \alias{calcnoncentralparam}
 \title{Calculate Non-Centrality Parameter}
 \usage{
-calcnoncentralparam(X, L, b, V = 0, varianceratio = 1)
+calcnoncentralparam(X, L, b, vInv = NULL)
 }
 \arguments{
 \item{X}{The model matrix}

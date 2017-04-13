@@ -82,16 +82,19 @@
 #'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine,
 #'            varianceratio=2)
 eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
-                       delta=2, varianceratio=1, contrasts="contr.sum", conservative=FALSE) {
-
+                       delta=2, varianceratio=1, contrasts=contr.sum, conservative=FALSE) {
   RunMatrix = reduceRunMatrix(RunMatrix,model)
 
+  #---Develop contrast lists for model matrix---#
   contrastslist = list()
+  contrastslist_correlationmatrix = list()
   for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
-    contrastslist[x] = contrasts
+    contrastslist[[x]] = contrasts
+    contrastslist_correlationmatrix[[x]] = contr.simplex
   }
   if(length(contrastslist) < 1) {
     contrastslist = NULL
+    contrastslist_correlationmatrix = NULL
   }
 
   #------Normalize/Center numeric columns ------#
@@ -125,7 +128,7 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     if(any(lapply(BlockedRunMatrix,class) == "factor")) {
       blockedcontrastslist = list()
       for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
-        blockedcontrastslist[x] = contrasts
+        blockedcontrastslist[[x]] = contrasts
       }
       attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix,contrasts.arg=blockedcontrastslist)
     } else {
@@ -145,8 +148,27 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     anticoef = rep(1,dim(attr(RunMatrix,"modelmatrix"))[2])
   }
 
+  #-----Generate V inverse matrix-----X
+
   if(!is.null(blockmodel)) {
-    blockvar = c(rep(nrow(BlockedRunMatrix)/nrow(RunMatrix),ncol(attr(BlockedRunMatrix,"modelmatrix"))))
+    blocklist = strsplit(rownames(RunMatrix),".",fixed=TRUE)
+    blockmat = do.call(rbind,blocklist)
+    blockgroups = table(as.numeric(blockmat[,1]))
+    blockMatrixSize = nrow(RunMatrix)
+    V = diag(blockMatrixSize)
+    for(i in 1:length(blockgroups)) {
+      if(i == 1) {
+        V[1:blockgroups[i],1:blockgroups[i]] =  V[1:blockgroups[i],1:blockgroups[i]]+varianceratio
+        placeholder = blockgroups[i]
+      } else {
+        V[(placeholder+1):(placeholder+blockgroups[i]),(placeholder+1):(placeholder+blockgroups[i])] =
+          V[(placeholder+1):(placeholder+blockgroups[i]),(placeholder+1):(placeholder+blockgroups[i])] + varianceratio
+        placeholder = placeholder + blockgroups[i]
+      }
+    }
+    vInv = solve(V)
+  } else {
+    vInv = NULL
   }
 
 
@@ -156,26 +178,33 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
     if(!is.null(blockmodel)) {
-      blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha,blockvar=blockvar,varianceratio=varianceratio)
+      blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha,vInv=vInv)
       blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
       for(i in 1:length(blocknamevector)) {
         effectresults[namevector == blocknamevector[i]] = blockeffectresults[i]
       }
     }
+
     results = data.frame(parameters = namevector, type = typevector, power = effectresults)
+
+    attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
+    attr(results, "anticoef") = anticoef*delta/2
+
+    modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
+    if(ncol(modelmatrix_cor) > 2) {
+      correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1,-1])
+      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      attr(results,"correlation.matrix") = round(correlation.matrix,8)
+    }
+
     attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
     return(results)
   } else {
     levelvector = sapply(lapply(RunMatrix,unique),length)
 
-    #generating number of categorical factors
-
-    catornot = rep(0,length(sapply(RunMatrix,class)))
-    catornot[sapply(RunMatrix,class) == "factor"] = 1
-    priorcat = priorlevels(catornot)
-
-    effectresults = effectpower(RunMatrix,levelvector,anticoef*delta/2,alpha,priorcat)
-    parameterresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
+    effectresults = effectpower(RunMatrix,levelvector,anticoef*delta/2,alpha,vInv=vInv)
+    parameterresults = parameterpower(RunMatrix,anticoef*delta/2,alpha,vInv=vInv)
 
     typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
     effectnamevector = c("(Intercept)",names(sapply(lapply(RunMatrix,unique),length)))
@@ -185,49 +214,21 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
     results = data.frame(parameters = namevector, type = typevector, power = powervector)
     attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
-    if(!is.null(blockmodel)) {
-      if(!any(table(attr(attr(BlockDesign,"modelmatrix"),"assign")[-1])!=1)) {
-        blockeffectresults = parameterpower(BlockedRunMatrix,blockedanticoef*delta/2,alpha,blockvar=blockvar,varianceratio=varianceratio)
-        blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
-        cols = c()
-        for(col in blocknamevector) {
-          cols = c(cols, match(col,colnames(attr(BlockDesign, "modelmatrix"))))
-        }
-        for(i in cols) {
-          results$power[results$parameters == blocknamevector[i] && results$type == "effect.power"] = blockeffectresults[i]
-          results$power[results$parameters == blocknamevector[i] && results$type == "parameter.power"] = blockeffectresults[i]
-        }
-      } else {
-        blockedlevelvector = sapply(lapply(BlockedRunMatrix,unique),length)
-        blockedcatornot = rep(0,length(lapply(BlockedRunMatrix,class)))
-        blockedcatornot[lapply(BlockedRunMatrix,class) == "factor"] = 1
-        blockedpriorcat = priorlevels(blockedcatornot)
-        blockeffectresults = effectpower(BlockedRunMatrix,blockedlevelvector,blockedanticoef*delta/2,alpha,blockedpriorcat,blockvar=blockvar,varianceratio=varianceratio)
-        blockparameterresults = parameterpower(BlockedRunMatrix,blockedanticoef*delta/2,alpha,blockvar=blockvar,varianceratio=varianceratio)
-        blocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
-        fullblocknamevector = colnames(attr(BlockedRunMatrix, "modelmatrix"))
-        effects = colnames(BlockedRunMatrix)
-        cols = c()
-
-        for(i in 1:length(effects)) {
-          results$power[results$parameters == effects[i]] = blockeffectresults[i]
-        }
-        #substitute parameter results
-
-        for(col in blocknamevector) {
-          cols = c(cols, match(col,colnames(attr(BlockedRunMatrix, "modelmatrix"))))
-        }
-
-        for(i in cols) {
-          results$power[results$parameters == fullblocknamevector[i]] = blockparameterresults[i]
-        }
-      }
-    }
 
     if(length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")
     }
 
+    attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
+    attr(results, "anticoef") = anticoef*delta/2
+
+    modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
+    if(ncol(modelmatrix_cor) > 2) {
+      correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1,-1])
+      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      attr(results,"correlation.matrix") = round(correlation.matrix,8)
+    }
     return(results)
   }
 }

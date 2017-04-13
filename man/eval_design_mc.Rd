@@ -6,7 +6,7 @@
 \usage{
 eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, blocknoise = NULL,
   rfunction = NULL, anticoef = NULL, delta = 2, conservative = FALSE,
-  contrasts = contr.sum, parallel = FALSE)
+  contrasts = contr.sum, binomialprobs = NULL, parallel = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -38,11 +38,12 @@ to zero.}
 
 \item{contrasts}{The contrasts to use for categorical factors. Defaults to contr.sum.}
 
-\item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation.}
+\item{binomialprobs}{Default NULL. If the glm family is binomial, user should specify a length-two vector consisting of the base probability and the maximum expected probability given all the level settings in the experiment. As an example, if the user wants to detect at an increase in successes from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument}
+
+\item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
 }
 \value{
-A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
-stored in the 'estimates' attribute.
+A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are stored in the 'estimates' attribute.
 }
 \description{
 Evaluates design, given a run matrix, with a monte carlo simulation and returns

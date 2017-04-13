@@ -38,7 +38,7 @@ Anticipated coefficients will be half of this number.}
 \item{coef_function}{Function that, when applied to a fitfunction return object, returns the estimated coefficients.}
 
 \item{parameternames}{Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
-(e.g. coefficients from an MLE).}
+(e.g. coefficients from an MLE fit).}
 
 \item{conservative}{Default FALSE. Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative

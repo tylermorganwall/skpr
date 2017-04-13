@@ -4,8 +4,7 @@
 \alias{effectpower}
 \title{Calculate Effect Power}
 \usage{
-effectpower(RunMatrix, levelvector, anticoef, alpha, priorcat,
-  blockvar = NULL, varianceratio = 1)
+effectpower(RunMatrix, levelvector, anticoef, alpha, vInv = NULL)
 }
 \arguments{
 \item{levelvector}{The number of levels in each parameter (1st is always the intercept)}
@@ -13,6 +12,8 @@ effectpower(RunMatrix, levelvector, anticoef, alpha, priorcat,
 \item{anticoef}{The anticipated coefficients}
 
 \item{alpha}{the specified type-I error}
+
+\item{vInv}{The V inverse matrix}
 
 \item{X}{The model matrix}
 }

@@ -7,7 +7,7 @@
 #'@param size The length of the simplex vector. Default 1.
 #'@export
 #'@examples contr.simplex(4)
-contr.simplex = function(n,size=1) {
+contr.simplex = function(n,size=NULL) {
   results = matrix(nrow = n-1, ncol = n)
   if (n==1) {
     stop("Too few dimensions for contrast generation")
@@ -16,6 +16,9 @@ contr.simplex = function(n,size=1) {
     results[,1]=1
     results[,2]=-1
     return(t(results))
+  }
+  if(is.null(size)) {
+    size=sqrt(n-1)
   }
   results[1,] = c(size,rep(-size/(n-1),n-1))
   results[-1,1] = 0

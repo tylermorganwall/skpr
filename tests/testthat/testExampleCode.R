@@ -149,14 +149,14 @@ test_that("eval_design example code runs without errors", {
   coffeeblocks = expand.grid(caffeine=c(1,-1))
   expect_silent({coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)})
   expect_silent({coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
-                                 splitplotdesign=coffeeblockdesign, splitplotsizes=rep(3,12))})
+                                 splitplotdesign=coffeeblockdesign, splitplotsizes=3)})
   #'
   #'#Evaluating design
-  expect_silent(eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine))
+  expect_silent(eval_design(coffeefinaldesign,  model=~cost+size+type + caffeine, alpha=0.2, blockmodel= ~caffeine))
   #'
   #'#We can also evaluate the design with a custom ratio between the whole plot error to
   #'#the run-to-run error.
-  expect_silent(eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine,
+  expect_silent(eval_design(coffeefinaldesign,  model=~cost+size+type + caffeine, alpha=0.2, blockmodel= ~caffeine,
               varianceratio=2))
 })
 
@@ -201,7 +201,7 @@ test_that("eval_design_mc example code runs without errors", {
   expect_silent({
     designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
   })
-  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+  expect_warning(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
                  glmfamily="binomial"))
   factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
   designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)

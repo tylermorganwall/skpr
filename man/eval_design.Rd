@@ -5,7 +5,7 @@
 \title{Calculates Power Given a Run Matrix}
 \usage{
 eval_design(RunMatrix, model, alpha, blockmodel = NULL, anticoef = NULL,
-  delta = 2, varianceratio = 1, contrasts = "contr.sum",
+  delta = 2, varianceratio = 1, contrasts = contr.sum,
   conservative = FALSE)
 }
 \arguments{

@@ -21,9 +21,9 @@
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 #'to zero.
 #'@param contrasts The contrasts to use for categorical factors. Defaults to contr.sum.
-#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation.
-#'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
-#'stored in the 'estimates' attribute.
+#'@param binomialprobs Default NULL. If the glm family is binomial, user should specify a length-two vector consisting of the base probability and the maximum expected probability given all the level settings in the experiment. As an example, if the user wants to detect at an increase in successes from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument
+#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
+#'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are stored in the 'estimates' attribute.
 #'@import foreach doParallel nlme stats
 #'@export
 #'@examples #We first generate a full factorial design using expand.grid:
@@ -122,7 +122,8 @@
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
                           blocknoise = NULL, rfunction=NULL, anticoef=NULL, delta=2,
-                          conservative=FALSE, contrasts=contr.sum, parallel=FALSE) {
+                          conservative=FALSE, contrasts=contr.sum, binomialprobs = NULL,
+                          parallel=FALSE) {
   glmfamilyname = glmfamily
   #------Auto-set random generating function----#
   if(is.null(rfunction)) {
@@ -151,12 +152,16 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
   #Remove columns from variables not used in the model
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
 
+  contrastslist_correlationmatrix = list()
   contrastslist = list()
   for(x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) == "factor"])) {
     contrastslist[[x]] = contrasts
+    contrastslist_correlationmatrix[[x]] = contr.simplex
+
   }
   if(length(contrastslist) < 1) {
     contrastslist = NULL
+    contrastslist_correlationmatrix = NULL
   }
 
   #---------- Convert dot formula to terms -----#
@@ -178,6 +183,14 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && !any(lapply(RunMatrixReduced,class)=="factor")) {
     anticoef = rep(1,dim(ModelMatrix)[2])
+  }
+  if(glmfamilyname == "binomial" && is.null(binomialprobs)) {
+    warning("Warning: Binomial model using default (or user supplied) anticipated coefficients. Default anticipated coefficients can result in
+            large shifts in probability throughout the design space. It is recommended to specify probability bounds in the argument
+            binomialprobs for more realistic effect sizes.")
+  }
+  if(glmfamilyname == "binomial" && !is.null(binomialprobs)) {
+    anticoef = gen_binomial_anticoef(anticoef,binomialprobs[1],binomialprobs[2])
   }
 
   #-------------- Blocking errors --------------#
@@ -241,6 +254,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
 
   #---------------- Run Simulations ---------------#
   if(!parallel) {
+    pvallist = list()
     power_values = rep(0, ncol(ModelMatrix))
     estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
     for (j in 1:nsim) {
@@ -264,11 +278,13 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
+      pvallist[[j]] = pvals
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
     }
     #We are going to output a tidy data.frame with the results, so just append the effect powers
-    #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
-    #or effect power.
+    #to the parameter powers. We'll use another column of that dataframe to label whether it is parameter
+    #or effect power.\
+    attr(power_values, "pvals") = do.call(rbind,pvallist)
     power_values = power_values / nsim
 
   } else {
@@ -298,18 +314,32 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
       pvals = extractPvalues(fit)
       power_values[pvals < alpha] = 1
 
-      c(power_values, estimates)
+      c(power_values, estimates, pvals)
     }
+    dfsplit = ncol(ModelMatrix)
     parallel::stopCluster(cl)
-    power_values = apply(power_estimates[, 1:ncol(ModelMatrix)], 2, sum) / nsim
-    estimates = power_estimates[, (ncol(ModelMatrix) + 1):ncol(power_estimates)]
+    power_values = apply(power_estimates[, 1:dfsplit], 2, sum) / nsim
+    estimates = power_estimates[, (dfsplit + 1):(2*dfsplit)]
+    attr(power_values,"pvals") = power_estimates[, (2*dfsplit + 1):ncol(power_estimates)]
   }
   #output the results (tidy data format)
   retval = data.frame(parameters=parameter_names,
                     type="parameter.power.mc",
                     power=power_values)
+  attr(retval, "modelmatrix") = attr(RunMatrix,"modelmatrix")
+  attr(retval, "anticoef") = anticoef*delta/2
+
+  modelmatrix_cor = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
+  if(ncol(modelmatrix_cor) > 2) {
+    correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1,-1])
+    colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+    rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+    attr(retval,"correlation.matrix") = round(correlation.matrix,8)
+  }
+
   colnames(estimates) = parameter_names
   attr(retval, 'estimates') = estimates
+  attr(retval, 'pvals') = attr(power_values, "pvals")
   retval
 }
 globalVariables('i')

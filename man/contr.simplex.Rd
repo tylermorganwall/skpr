@@ -4,7 +4,7 @@
 \alias{contr.simplex}
 \title{Simplex Contrast Generator}
 \usage{
-contr.simplex(n, size = 1)
+contr.simplex(n, size = NULL)
 }
 \arguments{
 \item{n}{The number of levels in the catagorical variable}

@@ -7,10 +7,10 @@
 #'@param levelvector The number of levels in each parameter (1st is always the intercept)
 #'@param anticoef The anticipated coefficients
 #'@param alpha the specified type-I error
+#'@param vInv The V inverse matrix
 #'@return The effect power for the parameters
 #'@keywords internal
-effectpower = function(RunMatrix,levelvector,anticoef,alpha,priorcat,blockvar=NULL,varianceratio=1) {
-
+effectpower = function(RunMatrix,levelvector,anticoef,alpha,vInv=NULL) {
   levelvectoradj = levelvector
   levelvectoradj[sapply(RunMatrix,class)=="numeric"] = 2
   levelvectoradj = c(1,levelvectoradj-1)
@@ -26,18 +26,8 @@ effectpower = function(RunMatrix,levelvector,anticoef,alpha,priorcat,blockvar=NU
   Q = vector("list",dim(attr(RunMatrix,"modelmatrix"))[2])
 
   power = c(length(L))
-  if(is.null(blockvar)) {
-    for(j in 1:length(L)) {
-      power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),L[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),L[[j]],anticoef,varianceratio=varianceratio),alpha)
-    }
-  } else {
-    place = 1
-    for(j in 1:length(L)) {
-      isolate = rep(0,sum(levelvectoradj))
-      isolate[place] = 1
-      power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),L[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),L[[j]],anticoef,V=isolate %*% blockvar),alpha)
-      place = place + nrow(L[[j]])
-    }
+  for(j in 1:length(L)) {
+    power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),L[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),L[[j]],anticoef,vInv=vInv),alpha)
   }
   return(power)
 }

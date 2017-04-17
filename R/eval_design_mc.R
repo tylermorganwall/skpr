@@ -326,15 +326,17 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
   retval = data.frame(parameters=parameter_names,
                     type="parameter.power.mc",
                     power=power_values)
-  attr(retval, "modelmatrix") = attr(RunMatrix,"modelmatrix")
+  attr(retval, "modelmatrix") = ModelMatrix
   attr(retval, "anticoef") = anticoef*delta/2
 
   modelmatrix_cor = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
   if(ncol(modelmatrix_cor) > 2) {
-    correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1,-1])
-    colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-    rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-    attr(retval,"correlation.matrix") = round(correlation.matrix,8)
+    tryCatch({
+      correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor))[-1,-1])
+      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      attr(retval,"correlation.matrix") = round(correlation.matrix,8)
+    }, error = function(e) {warning("Correlation matrix not calculated")})
   }
 
   colnames(estimates) = parameter_names

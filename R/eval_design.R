@@ -10,12 +10,13 @@
 #'@param model The model used in evaluating the design. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation.
 #'@param alpha The specified type-I error.
-#'@param blockmodel A formula specifing the blocking factors.
+#'@param blocking Default FALSE. If TRUE, eval_design will look at the rownames to determine blocking structure.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta. If you do specify anticoef, leave delta at its default of 2.
-#'@param varianceratio Default 1. The ratio of the whole plot variance to the run-to-run variance.
+#'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
+#'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param contrasts A string specifying how to treat the contrasts in calculating the model matrix.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
@@ -72,23 +73,36 @@
 #'coffeeblocks = expand.grid(caffeine=c(1,-1))
 #'coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
 #'coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
-#'                               splitplotdesign=coffeeblockdesign, splitplotsizes=rep(3,12))
+#'                               splitplotdesign=coffeeblockdesign, splitplotsizes=3)
 #'
 #'#Evaluating design
-#'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine)
+#'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE)
 #'
 #'#We can also evaluate the design with a custom ratio between the whole plot error to
 #'#the run-to-run error.
-#'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine,
+#'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE,
 #'            varianceratio=2)
-eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
-                       delta=2, varianceratio=1, contrasts=contr.sum, conservative=FALSE) {
+#'
+#'#If the design was generated outside of skpr and thus the row names do not have the
+#'#blocking structure encoded already, the user can add these manually. For a 12-run
+#'#design with 4 blocks, the rownames will be as follows:
+#'
+#'manualrownames = paste(c(1,1,1,2,2,2,3,3,3,4,4,4),rep(c(1,2,3),4),sep=".")
+#'
+#'#If we wanted to add this blocking structure to the design coffeeblockdesign, we would
+#'#simply set the rownames to this character vector:
+#'
+#'rownames(coffeeblockdesign) = manualrownames
+#'
+#'#Deeper levels of blocking can be specified with additional periods.
+eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
+                       delta=2, varianceratios=1, contrasts=contr.sum, conservative=FALSE) {
   RunMatrix = reduceRunMatrix(RunMatrix,model)
 
   #---Develop contrast lists for model matrix---#
   contrastslist = list()
   contrastslist_correlationmatrix = list()
-  for(x in names(RunMatrix[sapply(RunMatrix,class) == "factor"])) {
+  for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
     contrastslist[[x]] = contrasts
     contrastslist_correlationmatrix[[x]] = contr.simplex
   }
@@ -104,38 +118,9 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
     }
   }
 
+  #-Generate Model Matrix & Anticipated Coefficients-#
+
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
-
-
-  if(!is.null(blockmodel)) {
-    BlockDesign = data.frame()
-    block = floor(as.numeric(rownames(RunMatrix)))
-    blocknumbers = unique(block)
-    indices = c()
-    for(blockstarts in blocknumbers) {
-      indices = c(indices, match(blockstarts,block))
-    }
-    for(ind in indices) {
-      BlockDesign = rbind(BlockDesign,RunMatrix[ind,])
-    }
-    names(BlockDesign) = names(RunMatrix)
-    attr(BlockDesign,"modelmatrix") = model.matrix(model,BlockDesign,contrasts.arg=contrastslist)
-  }
-
-
-  if(!is.null(blockmodel)) {
-    BlockedRunMatrix = reduceRunMatrix(BlockDesign, blockmodel)
-    if(any(lapply(BlockedRunMatrix,class) == "factor")) {
-      blockedcontrastslist = list()
-      for(x in names(BlockedRunMatrix[sapply(BlockedRunMatrix,class) == "factor"])) {
-        blockedcontrastslist[[x]] = contrasts
-      }
-      attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix,contrasts.arg=blockedcontrastslist)
-    } else {
-      attr(BlockedRunMatrix,"modelmatrix") = model.matrix(blockmodel,BlockedRunMatrix)
-    }
-    blockedanticoef = gen_anticoef(BlockedRunMatrix,blockmodel,conservative=conservative)
-  }
 
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrix,model,conservative=conservative)
@@ -150,21 +135,34 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
   #-----Generate V inverse matrix-----X
 
-  if(!is.null(blockmodel)) {
+  if(blocking) {
     blocklist = strsplit(rownames(RunMatrix),".",fixed=TRUE)
-    blockmat = do.call(rbind,blocklist)
-    blockgroups = table(as.numeric(blockmat[,1]))
+
+    existingBlockStructure = do.call(rbind,blocklist)
+    blockgroups = apply(existingBlockStructure,2,blockingstructure)
+
     blockMatrixSize = nrow(RunMatrix)
     V = diag(blockMatrixSize)
-    for(i in 1:length(blockgroups)) {
-      if(i == 1) {
-        V[1:blockgroups[i],1:blockgroups[i]] =  V[1:blockgroups[i],1:blockgroups[i]]+varianceratio
-        placeholder = blockgroups[i]
-      } else {
-        V[(placeholder+1):(placeholder+blockgroups[i]),(placeholder+1):(placeholder+blockgroups[i])] =
-          V[(placeholder+1):(placeholder+blockgroups[i]),(placeholder+1):(placeholder+blockgroups[i])] + varianceratio
-        placeholder = placeholder + blockgroups[i]
+    blockcounter = 1
+    if(length(blockgroups) == 1 | is.matrix(blockgroups)) {
+      stop("No blocking detected. Specify block structure in row names or set blocking=FALSE")
+    }
+    if(length(blockgroups) > 2 && length(varianceratios) == 1) {
+      warning("Only one variance ratio specified for several levels of blocking, applying that variance ratio to all substrata")
+      varianceratios = rep(varianceratios,length(blockgroups))
+    }
+    if(length(blockgroups) > 2 && length(varianceratios) != 1 && length(blockgroups)-1 != length(varianceratios)) {
+      stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")
+    }
+    blockgroups = blockgroups[-length(blockgroups)]
+    for(block in blockgroups) {
+      V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceratios[blockcounter]
+      placeholder = block[1]
+      for(i in 2:length(block)) {
+        V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceratios[blockcounter]
+        placeholder = placeholder + block[i]
       }
+      blockcounter = blockcounter+1
     }
     vInv = solve(V)
   } else {
@@ -174,16 +172,9 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
-    effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha)
+    effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha,vInv = vInv)
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
-    if(!is.null(blockmodel)) {
-      blockeffectresults = parameterpower(BlockDesign,anticoef*delta/2,alpha,vInv=vInv)
-      blocknamevector = colnames(attr(BlockDesign,"modelmatrix"))
-      for(i in 1:length(blocknamevector)) {
-        effectresults[namevector == blocknamevector[i]] = blockeffectresults[i]
-      }
-    }
 
     results = data.frame(parameters = namevector, type = typevector, power = effectresults)
 
@@ -224,10 +215,12 @@ eval_design = function(RunMatrix, model, alpha, blockmodel=NULL, anticoef=NULL,
 
     modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
     if(ncol(modelmatrix_cor) > 2) {
-      correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1,-1])
-      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-      attr(results,"correlation.matrix") = round(correlation.matrix,8)
+      tryCatch({
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor))[-1,-1])
+        colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+        rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+        attr(results,"correlation.matrix") = round(correlation.matrix,8)
+      }, error = function(e) {warning("Correlation matrix not calculated")})
     }
     return(results)
   }

@@ -4,8 +4,8 @@
 \alias{eval_design}
 \title{Calculates Power Given a Run Matrix}
 \usage{
-eval_design(RunMatrix, model, alpha, blockmodel = NULL, anticoef = NULL,
-  delta = 2, varianceratio = 1, contrasts = contr.sum,
+eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
+  delta = 2, varianceratios = 1, contrasts = contr.sum,
   conservative = FALSE)
 }
 \arguments{
@@ -16,7 +16,7 @@ generate the design, or include higher order effects not in the original design 
 
 \item{alpha}{The specified type-I error.}
 
-\item{blockmodel}{A formula specifing the blocking factors.}
+\item{blocking}{Default FALSE. If TRUE, eval_design will look at the rownames to determine blocking structure.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the delta argument.}
@@ -24,7 +24,8 @@ will be automatically generated based on the delta argument.}
 \item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
 and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta. If you do specify anticoef, leave delta at its default of 2.}
 
-\item{varianceratio}{Default 1. The ratio of the whole plot variance to the run-to-run variance.}
+\item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
+this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
 
 \item{contrasts}{A string specifying how to treat the contrasts in calculating the model matrix.}
 
@@ -93,14 +94,27 @@ eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 coffeeblocks = expand.grid(caffeine=c(1,-1))
 coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
 coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
-                              splitplotdesign=coffeeblockdesign, splitplotsizes=rep(3,12))
+                              splitplotdesign=coffeeblockdesign, splitplotsizes=3)
 
 #Evaluating design
-eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine)
+eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE)
 
 #We can also evaluate the design with a custom ratio between the whole plot error to
 #the run-to-run error.
-eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blockmodel= ~caffeine,
+eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE,
            varianceratio=2)
+
+#If the design was generated outside of skpr and thus the row names do not have the
+#blocking structure encoded already, the user can add these manually. For a 12-run
+#design with 4 blocks, the rownames will be as follows:
+
+manualrownames = paste(c(1,1,1,2,2,2,3,3,3,4,4,4),rep(c(1,2,3),4),sep=".")
+
+#If we wanted to add this blocking structure to the design coffeeblockdesign, we would
+#simply set the rownames to this character vector:
+
+rownames(coffeeblockdesign) = manualrownames
+
+#Deeper levels of blocking can be specified with additional periods.
 }
 

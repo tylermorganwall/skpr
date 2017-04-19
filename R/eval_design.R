@@ -189,7 +189,21 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       attr(results,"correlation.matrix") = round(correlation.matrix,8)
     }
 
+    attr(results,"generating.model") = model
+    attr(results,"runmatrix") = RunMatrix
+
+    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),RunMatrix)
+
+    attr(results,"moment.matrix") = mm
+    attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
+    if(!blocking) {
+      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar=diag(nrow(attr(RunMatrix,"modelmatrix"))))
+    } else {
+      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar = V)
+    }
     attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
+
+
     return(results)
   } else {
     levelvector = sapply(lapply(RunMatrix,unique),length)
@@ -204,7 +218,6 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     powervector = c(effectresults,parameterresults)
 
     results = data.frame(parameters = namevector, type = typevector, power = powervector)
-    attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
 
     if(length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")
@@ -222,6 +235,20 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
         attr(results,"correlation.matrix") = round(correlation.matrix,8)
       }, error = function(e) {warning("Correlation matrix not calculated")})
     }
+    attr(results,"generating.model") = model
+    attr(results,"runmatrix") = RunMatrix
+
+    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),RunMatrix)
+
+    attr(results,"moment.matrix") = mm
+    attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
+    if(!blocking) {
+      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar=diag(nrow(attr(RunMatrix,"modelmatrix"))))
+    } else {
+      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar = V)
+    }
+    attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
+
     return(results)
   }
 }

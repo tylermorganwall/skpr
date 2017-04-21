@@ -39,6 +39,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// DOptimalityBlocked
+double DOptimalityBlocked(arma::mat currentDesign, arma::mat blockedVar);
+RcppExport SEXP skpr_DOptimalityBlocked(SEXP currentDesignSEXP, SEXP blockedVarSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type blockedVar(blockedVarSEXP);
+    rcpp_result_gen = Rcpp::wrap(DOptimalityBlocked(currentDesign, blockedVar));
+    return rcpp_result_gen;
+END_RCPP
+}
 // genBlockedOptimalDesign
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, const arma::mat blockedVar);
 RcppExport SEXP skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP) {

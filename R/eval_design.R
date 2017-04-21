@@ -1,3 +1,4 @@
+
 #'@title Calculates Power Given a Run Matrix
 #'
 #'@description Evaluates a design given a run matrix and returns
@@ -111,6 +112,21 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     contrastslist_correlationmatrix = NULL
   }
 
+  #----- Convert dot/quad formula to terms -----#
+  if((as.character(model)[2] == ".")) {
+    model = as.formula(paste("~", paste(attr(RunMatrix, "names"), collapse=" + "), sep=""))
+  }
+
+  if(as.character(model)[2] == "quad(.)") {
+    if(any(lapply(RunMatrix,class) %in% c("factor","character"))) {
+      stop("quad() function cannot be used in models with categorical factors. Manually specify your model")
+    }
+    modelvars = colnames(model.matrix(~.,data=RunMatrix,contrasts.arg = contrastslist))[-1]
+    modellinear = paste(modelvars,collapse=" + ")
+    modellinear = paste("~",modellinear,sep="")
+    model = quad(as.formula(modellinear))
+  }
+
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
     if(class(RunMatrix[,column]) == "numeric") {
@@ -196,12 +212,15 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
     attr(results,"moment.matrix") = mm
     attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
+
     if(!blocking) {
-      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar=diag(nrow(attr(RunMatrix,"modelmatrix"))))
+      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
+      attr(results,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
     } else {
-      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar = V)
+      attr(results,"variance.matrix") = V
+      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
+      attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
     }
-    attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
 
 
     return(results)
@@ -228,12 +247,16 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
     modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
     if(ncol(modelmatrix_cor) > 2) {
-      tryCatch({
-        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor))[-1,-1])
+
+      if(!blocking) {
+        V = diag(nrow(modelmatrix_cor))
+      }
+      # tryCatch({
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
         colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
         rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
         attr(results,"correlation.matrix") = round(correlation.matrix,8)
-      }, error = function(e) {warning("Correlation matrix not calculated")})
+      # }, error = function(e) {warning("Correlation matrix not calculated")})
     }
     attr(results,"generating.model") = model
     attr(results,"runmatrix") = RunMatrix
@@ -242,12 +265,16 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
     attr(results,"moment.matrix") = mm
     attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
+
     if(!blocking) {
-      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar=diag(nrow(attr(RunMatrix,"modelmatrix"))))
+      attr(results,"variance.matrix") = diag(nrow(modelmatrix_cor))
+      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
+      attr(results,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
     } else {
-      attr(results,"I") = IOptimality(as.matrix(attr(RunMatrix,"modelmatrix")),momentsMatrix = mm, blockedVar = V)
+      attr(results,"variance.matrix") = V
+      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
+      attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
     }
-    attr(results,"D") = 100*DOptimality(attr(RunMatrix,"modelmatrix"))^(1/ncol(attr(RunMatrix,"modelmatrix")))/nrow(attr(RunMatrix,"modelmatrix"))
 
     return(results)
   }

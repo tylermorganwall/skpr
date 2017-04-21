@@ -16,10 +16,6 @@
 #'@param blocknoise Vector of noise levels for each block, one element per blocking level. See examples for details.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.
-#'@param conservative Default FALSE. Specifies whether default method for generating
-#'anticipated coefficents should be conservative or not. TRUE will give the most conservative
-#'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-#'to zero.
 #'@param contrasts The contrasts to use for categorical factors. Defaults to contr.sum.
 #'@param binomialprobs Default NULL. If the glm family is binomial, user should specify a length-two vector consisting of the base probability and the maximum expected probability given all the level settings in the experiment. As an example, if the user wants to detect at an increase in successes from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
@@ -122,7 +118,7 @@
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
                           blocknoise = NULL, rfunction=NULL, anticoef=NULL, delta=2,
-                          conservative=FALSE, contrasts=contr.sum, binomialprobs = NULL,
+                          contrasts=contr.sum, binomialprobs = NULL,
                           parallel=FALSE) {
   glmfamilyname = glmfamily
   #------Auto-set random generating function----#
@@ -169,6 +165,16 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
     model = as.formula(paste("~", paste(attr(RunMatrixReduced, "names"), collapse=" + "), sep=""))
   }
 
+  if(as.character(model)[2] == "quad(.)") {
+    if(any(lapply(RunMatrixReduced,class) %in% c("factor","character"))) {
+      stop("quad() function cannot be used in models with categorical factors. Manually specify your model")
+    }
+    modelvars = colnames(model.matrix(~.,data=RunMatrixReduced,contrasts.arg = contrastslist))[-1]
+    modellinear = paste(modelvars,collapse=" + ")
+    modellinear = paste("~",modellinear,sep="")
+    model = quad(as.formula(modellinear))
+  }
+
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
   #We'll need the parameter and effect names for output
   parameter_names = colnames(ModelMatrix)
@@ -176,7 +182,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
 
   #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model, conservative=conservative)
+    anticoef = gen_anticoef(RunMatrixReduced, model, conservative=FALSE)
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(lapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

@@ -148,12 +148,14 @@ attr(design,"I") #The average prediction variance across the design space
 
 correlation.matrix = attr(design2, "correlation.matrix")
 
-#A correlation color map can be produced with the following call to ggplot2 and reshape2
+#A correlation color map can be produced by calling the plot_correlation command with the output
+#of gen_design
 
-\dontrun{melt(correlation.matrix) -> melted.correlation.matrix
-ggplot(melted.correlation.matrix, aes(x=Var1, y=Var2, fill=value)) + geom_tile() +
- scale_fill_gradient2(mid="grey70", high="red", low="blue", midpoint=0.5) +
- theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
+plot_correlation(design2)
+
+#A fraction of design space plot can be produced by calling the plot_fds command
+
+plot_fds(design2)
 
 #Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #eval_design_survival_mc (Monte Carlo survival analysis), and

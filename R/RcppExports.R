@@ -13,6 +13,10 @@ DOptimality <- function(currentDesign) {
     .Call('skpr_DOptimality', PACKAGE = 'skpr', currentDesign)
 }
 
+DOptimalityBlocked <- function(currentDesign, blockedVar) {
+    .Call('skpr_DOptimalityBlocked', PACKAGE = 'skpr', currentDesign, blockedVar)
+}
+
 genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar) {
     .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar)
 }

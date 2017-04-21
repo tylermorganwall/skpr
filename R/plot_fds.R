@@ -3,10 +3,27 @@
 #'@description Plots design diagnostics
 #'
 #'@param genoutput The run matrix
+#'@param model The model, by default uses the model used in eval_design or gen_design.
 #'@return Plots design diagnostics
+#'@import graphics grDevices
+#'@export
+#'@examples
+#'#We can pass either the output of gen_design or eval_design to plot_correlations
+#'#in order to obtain the correlation map. Passing the output of eval_design is useful
+#'#if you want to plot the correlation map from an externally generated design.
+#'
+#'#First generate the design:
+#'
+#'candidatelist = expand.grid(cost=c(15000,20000),year=c("2001","2002","2003","2004"),
+#'                            type=c("SUV","Sedan","Hybrid"),color=c("red","black","white"))
+#'
+#'cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
+#'
+#'plot_fds(cardesign)
 plot_fds = function(genoutput,model=NULL) {
-  browser
+
   Iopt = attr(genoutput,"I")
+  V = attr(genoutput,"variance.matrix")
 
   if(is.null(model)) {
     model = attr(genoutput,"generating.model")
@@ -15,7 +32,7 @@ plot_fds = function(genoutput,model=NULL) {
     genoutput = attr(genoutput,"runmatrix")
   }
 
-  factornames = colnames(genoutput)[apply(genoutput,2,class) %in% c("factor","character")]
+  factornames = colnames(genoutput)[unlist(lapply(genoutput,class)) %in% c("factor","character")]
   if(length(factornames) > 0) {
     contrastlist = list()
     for(name in 1:length(factornames)) {
@@ -40,11 +57,11 @@ plot_fds = function(genoutput,model=NULL) {
   mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
   samplemm = model.matrix(model,samples,contrasts.arg = contrastlist)
 
-  testcor = solve(t(mm) %*% mm)
+  testcor = solve(t(mm) %*% solve(V) %*% mm)
 
   v = list()
 
-  for(i in 1:nrow(samplesmm)) {
+  for(i in 1:nrow(samplemm)) {
     xi = samplemm[i,]
     v[[i]] = t(xi) %*% testcor %*% xi
   }
@@ -61,12 +78,14 @@ plot_fds = function(genoutput,model=NULL) {
   midval = varsorderedscaled[5000]
   maxyaxis = max(varsorderedscaled)+max(varsorderedscaled)/20
 
+  abline(v = 0.5, untf = FALSE,lty=2,col="red",lwd=2)
+  abline(h = midval, untf = FALSE,lty=2,col="red",lwd=2)
+
   plot(1:length(varsorderedscaled)/length(varsorderedscaled),varsorderedscaled,ylim=c(0,maxyaxis), type="n",
        xlab = "Fraction of Design Space", ylab = "Prediction Variance",
        xlim=c(0,1),xaxs = "i",yaxs = "i")
-  lines(1:length(varsorderedscaled)/length(varsorderedscaled),varsorderedscaled,lwd = 2,col="blue")
-
   abline(v = 0.5, untf = FALSE,lty=2,col="red",lwd=2)
   abline(h = midval, untf = FALSE,lty=2,col="red",lwd=2)
+  lines(1:length(varsorderedscaled)/length(varsorderedscaled),varsorderedscaled,lwd = 2,col="blue")
 
 }

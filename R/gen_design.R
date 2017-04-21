@@ -123,30 +123,47 @@
 #'
 #'correlation.matrix = attr(design2, "correlation.matrix")
 #'
-#'#A correlation color map can be produced with the following call to ggplot2 and reshape2
+#'#A correlation color map can be produced by calling the plot_correlation command with the output
+#'#of gen_design
 #'
-#'\dontrun{melt(correlation.matrix) -> melted.correlation.matrix
-#'ggplot(melted.correlation.matrix, aes(x=Var1, y=Var2, fill=value)) + geom_tile() +
-#'  scale_fill_gradient2(mid="grey70", high="red", low="blue", midpoint=0.5) +
-#'  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust=0.5))}
+#'plot_correlation(design2)
+#'
+#'#A fraction of design space plot can be produced by calling the plot_fds command
+#'
+#'plot_fds(design2)
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
                       optimality="D",repeats=10, varianceratio = 1, contrast=NULL, parallel=FALSE,
-                      timer=FALSE,disallowedcombinations=FALSE) {
-  quad=FALSE
-  if(as.character(model)[2] == "quad(.)") {
-    modelvars = colnames(model.matrix(~.,data=factorial))[-1]
-    modellinear = paste(modelvars,collapse=" + ")
-    modellinear = paste("~",modellinear,sep="")
-    modelfull = quad(as.formula(modellinear))
-    quad=TRUE
-  }
+                      timer=FALSE, disallowedcombinations=FALSE) {
+
 
   factorial = reduceRunMatrix(factorial, model)
   factorialnormalized = factorial
+
+  #---- generate contrast list-----#
+
+  contrastslist = list()
+  for(x in names(factorial[lapply(factorial,class) == "factor"])) {
+    contrastslist[[x]] = contrast
+  }
+
+  #----- Convert dot/quad formula to terms -----#
+  if((as.character(model)[2] == ".")) {
+    model = as.formula(paste("~", paste(attr(factorial, "names"), collapse=" + "), sep=""))
+  }
+
+  if(as.character(model)[2] == "quad(.)") {
+    if(any(lapply(factorial,class) %in% c("factor","character"))) {
+      stop("quad() function cannot be used in models with categorical factors. Manually specify your model")
+    }
+    modelvars = colnames(model.matrix(~.,data=factorial,contrasts.arg = contrastslist))[-1]
+    modellinear = paste(modelvars,collapse=" + ")
+    modellinear = paste("~",modellinear,sep="")
+    model = quad(as.formula(modellinear))
+  }
 
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(factorial)) {
@@ -161,10 +178,6 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         spdnormalized[,column] = as.numeric(scale(spdnormalized[,column],scale=FALSE)/max(scale(spdnormalized[,column],scale=FALSE)))
       }
     }
-  }
-
-  if(quad) {
-    model = modelfull
   }
 
   if(is.null(contrast)) {
@@ -248,10 +261,6 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
   genOutput = list(repeats)
 
-  contrastslist = list()
-  for(x in names(factorial[lapply(factorial,class) == "factor"])) {
-    contrastslist[[x]] = contrast
-  }
   if(length(contrastslist) == 0) {
     factorialmm = model.matrix(model,factorialnormalized)
   } else {
@@ -431,8 +440,10 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
   attr(design,"A-Efficiency") = AOptimality(designmm)
   if(!blocking) {
+    attr(design,"variance.matrix") = diag(nrow(designmm))
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrow(designmm)))
   } else {
+    attr(design,"variance.matrix") = V
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blockedVar = V)
   }
   attr(design,"model.matrix") = designmm

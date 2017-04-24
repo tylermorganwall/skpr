@@ -5,8 +5,8 @@
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, blocknoise = NULL,
-  rfunction = NULL, anticoef = NULL, delta = 2, conservative = FALSE,
-  contrasts = contr.sum, binomialprobs = NULL, parallel = FALSE)
+  rfunction = NULL, anticoef = NULL, delta = 2, contrasts = contr.sum,
+  binomialprobs = NULL, parallel = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -30,11 +30,6 @@ will be automatically generated based on the delta argument.}
 
 \item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
 and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.}
-
-\item{conservative}{Default FALSE. Specifies whether default method for generating
-anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-to zero.}
 
 \item{contrasts}{The contrasts to use for categorical factors. Defaults to contr.sum.}
 
@@ -86,9 +81,6 @@ eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
 eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
               nsim=100, glmfamily="gaussian")
 
-#Here we evaluate the design using conservative anticipated coefficients:
-eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
-              nsim=100, glmfamily="gaussian", conservative=TRUE)
 
 #And here it is evaluated with interactions included:
 eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,

@@ -88,7 +88,7 @@ eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,
 #You can also evaluate the design with higher order effects:
 eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 
-#Split plot designs can also be evaluated by specifying the blocking model.
+#Split plot designs can also be evaluated by setting the blocking parameter as TRUE.
 
 #Generating split plot design
 coffeeblocks = expand.grid(caffeine=c(1,-1))

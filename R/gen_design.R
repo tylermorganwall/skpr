@@ -126,7 +126,7 @@
 #'#A correlation color map can be produced by calling the plot_correlation command with the output
 #'#of gen_design
 #'
-#'plot_correlation(design2)
+#'plot_correlations(design2)
 #'
 #'#A fraction of design space plot can be produced by calling the plot_fds command
 #'
@@ -136,7 +136,7 @@
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=10, varianceratio = 1, contrast=NULL, parallel=FALSE,
+                      optimality="D",repeats=10, varianceratio = 1, contrast=contr.simplex, parallel=FALSE,
                       timer=FALSE, disallowedcombinations=FALSE) {
 
 
@@ -146,7 +146,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   #---- generate contrast list-----#
 
   contrastslist = list()
-  for(x in names(factorial[lapply(factorial,class) == "factor"])) {
+  for(x in names(factorial[lapply(factorial,class) %in% c("factor","character")])) {
     contrastslist[[x]] = contrast
   }
 

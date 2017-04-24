@@ -4,12 +4,10 @@
 \alias{gen_anticoef}
 \title{Generates Anticipated Coefficients}
 \usage{
-gen_anticoef(RunMatrix, model, conservative = FALSE)
+gen_anticoef(RunMatrix, model)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}
-
-\item{conservative}{Default FALSE. If true, will generate conservative anticipated coefficients.}
 }
 \value{
 Anticipated coefficients.

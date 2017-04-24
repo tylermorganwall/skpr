@@ -16,10 +16,6 @@
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta
 #'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default contr.sum.
-#'@param conservative Default FALSE. Specifies whether default method for generating
-#'anticipated coefficents should be conservative or not. TRUE will give the most conservative
-#'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-#'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
 #'@param ... Any additional arguments to be input into the survreg function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
@@ -74,7 +70,7 @@
 #'                        anticoef=c(0.184,0.101), delta=2, scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,
                           anticoef, delta=2, contrasts = contr.sum,
-                          conservative=FALSE, parallel=FALSE, ...) {
+                          parallel=FALSE, ...) {
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
@@ -100,7 +96,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model,conservative=conservative)
+    anticoef = gen_anticoef(RunMatrixReduced,model)
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

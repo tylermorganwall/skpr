@@ -68,7 +68,7 @@
 #'#You can also evaluate the design with higher order effects:
 #'eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 #'
-#'#Split plot designs can also be evaluated by specifying the blocking model.
+#'#Split plot designs can also be evaluated by setting the blocking parameter as TRUE.
 #'
 #'#Generating split plot design
 #'coffeeblocks = expand.grid(caffeine=c(1,-1))
@@ -139,7 +139,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrix,model,conservative=conservative)
+    anticoef = gen_anticoef(RunMatrix,model)
   }
 
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && any(sapply(RunMatrix,class)=="factor")) {
@@ -274,6 +274,43 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       attr(results,"variance.matrix") = V
       attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
       attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+    }
+
+    #For conservative coefficients, look for lowest power results from non-conservative calculation and set them to one
+    #and the rest to zero. (If equally low results, apply 1 -1 pattern to lowest)
+
+    if(conservative == TRUE) {
+      groupvars = attr(attr(results,"modelmatrix"),"assign")
+      uniquevars = unique(groupvars)
+      orderedunique = uniquevars[order(uniquevars)]
+      parresults = results[results$type=="parameter.power",]
+      parresults$variable = groupvars
+      conservative_anticoef = c()
+
+      for(var in orderedunique) {
+        powers = parresults$power[parresults$variable == var]
+        if(length(powers) == 1) {
+          conservative_anticoef = c(conservative_anticoef,1)
+        }
+        if(length(powers) > 1) {
+          if(length(which(powers == min(powers))) == 1) {
+            coefvec = rep(0,length(powers))
+            coefvec[which.min(powers)] = 1
+            conservative_anticoef = c(conservative_anticoef,coefvec)
+          }
+          if(length(which(powers == min(powers))) > 1) {
+            numberofequal = length(which(powers == min(powers)))
+            exponents = 1:numberofequal+1
+            values = rep(-1,numberofequal)^exponents
+            coefvec = rep(0,length(powers))
+            coefvec[which(powers == min(powers))] = values
+            conservative_anticoef = c(conservative_anticoef,coefvec)
+          }
+        }
+      }
+      results = eval_design(RunMatrix=RunMatrix, model=model, alpha=alpha, blocking=blocking,
+                  anticoef=conservative_anticoef,
+                  delta=delta, varianceratios=varianceratios, contrasts=contrasts, conservative=FALSE)
     }
 
     return(results)

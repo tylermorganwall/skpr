@@ -6,7 +6,7 @@
 \usage{
 eval_design_survival_mc(RunMatrix, model, alpha, nsim, distribution,
   rfunctionsurv, anticoef, delta = 2, contrasts = contr.sum,
-  conservative = FALSE, parallel = FALSE, ...)
+  parallel = FALSE, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -30,11 +30,6 @@ will be automatically generated based on the delta argument.}
 and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
 
 \item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default contr.sum.}
-
-\item{conservative}{Default FALSE. Specifies whether default method for generating
-anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-to zero.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}
 

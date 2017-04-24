@@ -6,8 +6,8 @@
 \usage{
 eval_design_custom_mc(RunMatrix, model, alpha, nsim, rfunction, fitfunction,
   pvalfunction, anticoef, delta = 2, contrasts = contr.sum,
-  coef_function = coef, parameternames = NULL, conservative = FALSE,
-  parallel = FALSE, parallelpackages = NULL)
+  coef_function = coef, parameternames = NULL, parallel = FALSE,
+  parallelpackages = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -39,11 +39,6 @@ Anticipated coefficients will be half of this number.}
 
 \item{parameternames}{Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 (e.g. coefficients from an MLE fit).}
-
-\item{conservative}{Default FALSE. Specifies whether default method for generating
-anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-to zero.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}
 

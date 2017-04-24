@@ -7,8 +7,8 @@ and desired number of runs.}
 \usage{
 gen_design(factorial, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
-  varianceratio = 1, contrast = NULL, parallel = FALSE, timer = FALSE,
-  disallowedcombinations = FALSE)
+  varianceratio = 1, contrast = contr.simplex, parallel = FALSE,
+  timer = FALSE, disallowedcombinations = FALSE)
 }
 \arguments{
 \item{factorial}{A data frame of candidate test points. Usually this is a full factorial test matrix
@@ -151,7 +151,7 @@ correlation.matrix = attr(design2, "correlation.matrix")
 #A correlation color map can be produced by calling the plot_correlation command with the output
 #of gen_design
 
-plot_correlation(design2)
+plot_correlations(design2)
 
 #A fraction of design space plot can be produced by calling the plot_fds command
 

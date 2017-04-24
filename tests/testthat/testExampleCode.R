@@ -180,7 +180,7 @@ test_that("eval_design_mc example code runs without errors", {
   expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
                  nsim=100, glmfamily="gaussian"))
   expect_silent(eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
-                 nsim=100, glmfamily="gaussian", conservative=TRUE))
+                 nsim=100, glmfamily="gaussian"))
   expect_silent(eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
                  nsim=100, glmfamily="gaussian"))
   #'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,

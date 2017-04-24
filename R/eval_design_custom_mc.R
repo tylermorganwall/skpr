@@ -21,10 +21,6 @@
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
 #'Anticipated coefficients will be half of this number.
 #'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default contr.sum.
-#'@param conservative Default FALSE. Specifies whether default method for generating
-#'anticipated coefficents should be conservative or not. TRUE will give the most conservative
-#'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-#'to zero.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
@@ -78,7 +74,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
                                  anticoef, delta=2, contrasts = contr.sum,
                                  coef_function = coef,
                                  parameternames = NULL,
-                                 conservative=FALSE, parallel=FALSE, parallelpackages=NULL) {
+                                 parallel=FALSE, parallelpackages=NULL) {
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
@@ -110,7 +106,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model,conservative=conservative)
+    anticoef = gen_anticoef(RunMatrixReduced,model)
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

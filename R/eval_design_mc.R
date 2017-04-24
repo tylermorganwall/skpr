@@ -58,9 +58,6 @@
 #'eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
 #'               nsim=100, glmfamily="gaussian")
 #'
-#'#Here we evaluate the design using conservative anticipated coefficients:
-#'eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
-#'               nsim=100, glmfamily="gaussian", conservative=TRUE)
 #'
 #'#And here it is evaluated with interactions included:
 #'eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
@@ -182,7 +179,7 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
 
   #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model, conservative=FALSE)
+    anticoef = gen_anticoef(RunMatrixReduced, model)
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(lapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")

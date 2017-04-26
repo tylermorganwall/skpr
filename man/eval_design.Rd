@@ -49,7 +49,7 @@ delta parameter).
 #of an 11-run design.
 factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
 
-optdesign = gen_design(factorial=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
+optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
 
 #Now evaluating that design (with default anticipated coefficients and a delta of 2):
 eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2)

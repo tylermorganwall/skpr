@@ -73,10 +73,10 @@
 #'vhtc = expand.grid(Store=as.factor(c("A","B")))
 #'htc = expand.grid(Temp = c(1,-1))
 #'
-#'vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6, varianceratio=1)
-#'htcdesign = gen_design(factorial=htc, model=~Temp, trials=18,
+#'vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=6, varianceratio=1)
+#'htcdesign = gen_design(candidateset=htc, model=~Temp, trials=18,
 #'                       splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
-#'splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size, trials=54,
+#'splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size, trials=54,
 #'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
 #'
 #'#Each block has an additional noise term associated with it in addition to the normal error

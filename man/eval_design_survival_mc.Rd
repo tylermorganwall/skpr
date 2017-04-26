@@ -49,7 +49,7 @@ using the survival package and survreg to fit the data.
 
 #We first generate simple 2-level design using expand.grid:
 basicdesign = expand.grid(a=c(-1, 1))
-design = gen_design(factorial=basicdesign, model=~a, trials=100,
+design = gen_design(candidateset=basicdesign, model=~a, trials=100,
                          optimality="D", repeats=100)
 
 #We want to evaluate this design with a Monte Carlo approach, taking into account

@@ -2,16 +2,16 @@
 % Please edit documentation in R/gen_design.R
 \name{gen_design}
 \alias{gen_design}
-\title{Generates the optimal run matrix from full factorial, model, optimality criterion,
+\title{Generates the optimal run matrix from candidate set, model, optimality criterion,
 and desired number of runs.}
 \usage{
-gen_design(factorial, model, trials, splitplotdesign = NULL,
+gen_design(candidateset, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
   varianceratio = 1, contrast = contr.simplex, parallel = FALSE,
   timer = FALSE, disallowedcombinations = FALSE)
 }
 \arguments{
-\item{factorial}{A data frame of candidate test points. Usually this is a full factorial test matrix
+\item{candidateset}{A data frame of candidate test points. Usually this is a full factorial test matrix
 generated for the factors in the model, but if you have disallowed combinations then make sure the candidate list
 is consistent with them (e.g. by generating a full factorial and then removing disallowed combinations). If
 the factor is continuous, it should be type numeric. If the factor is categorical, it should be
@@ -24,7 +24,7 @@ set as a factor.}
 \item{splitplotdesign}{For a split-plot design, this is the design for all of the factors harder to change
 than the current set of factors. These rows are replicated to the specified size for each block
 (given in the argument splitplotsizes) and the optimal design is found for all of the factors given in the
-factorial argument, taking into consideration the fixed and replicated hard-to-change factors.}
+candidateset argument, taking into consideration the fixed and replicated hard-to-change factors.}
 
 \item{splitplotsizes}{Specifies the block size for each row of harder-to-change factors given in the
 argument splitplotdesign. If the input is a vector, each entry of the vector determines the size of the sub-plot
@@ -57,26 +57,26 @@ Used with eval_design/eval_design_mc to produce power estimations for designs.
 #Generating a basic 2 factor design:
 basicdesign = expand.grid(x1=c(-1,1), x2=c(-1,1))
 
-#This factorial design is used as an input in the optimal design generation for a
+#This candidate set is used as an input in the optimal design generation for a
 #D-optimal design with 11 runs.
-design = gen_design(factorial=basicdesign, model=~x1+x2, trials=11)
+design = gen_design(candidateset=basicdesign, model=~x1+x2, trials=11)
 
 #We can also use the dot operator to automatically use all of the terms in the model:
-design = gen_design(factorial=basicdesign, model=~., trials=11)
+design = gen_design(candidateset=basicdesign, model=~., trials=11)
 
 #Here we add categorical factors, specified by using "as.factor" in expand.grid:
 categoricaldesign = expand.grid(a=c(-1,1), b=as.factor(c("A","B")),
                                c=as.factor(c("High","Med","Low")))
 
-#This factorial design is used as an input in the optimal design generation.
-design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19)
+#This candidate set is used as an input in the optimal design generation.
+design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19)
 
 #We can also increase the number of times the algorithm repeats
 #the search to increase the probability that the globally optimal design was found.
-design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
+design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
 
 #You can also use a higher order model when generating the design:
-design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
+design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
 
 #To evaluate a response surface design, include center points
 #in the candidate set and do not include
@@ -96,13 +96,13 @@ gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="A")
 #See the accompannying paper "___________" for details of the implementation.
 
 hardtochangefactor = expand.grid(Altitude=c(-1,1))
-hardtochangedesign = gen_design(factorial = hardtochangefactor, model=~Altitude, trials=11)
+hardtochangedesign = gen_design(candidateset = hardtochangefactor, model=~Altitude, trials=11)
 
 #Now we can use the D-optimal blocked design as an input to our full design.
 
 easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
 
-#Here, we specify the easy to change factors for the factorial design,
+#Here, we specify the easy to change factors for the candidate set,
 #and input the hard-to-change design along with a vector listing the number
 #of repetitions within each block for the blocked design. There should be a size entry
 #for every block and the number of runs specified in the trials argument needs to equal the

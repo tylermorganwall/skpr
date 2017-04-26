@@ -8,10 +8,10 @@ test_that("gen_design example code runs without errors", {
   #'
   #'#This factorial design is used as an input in the optimal design generation for a
   #'#D-optimal design with 11 runs.
-  expect_silent({design <- gen_design(factorial=basicdesign, model=~x1+x2, trials=11)})
+  expect_silent({design <- gen_design(candidateset=basicdesign, model=~x1+x2, trials=11)})
   #'
   #'#We can also use the dot operator to automatically use all of the terms in the model:
-  expect_silent({design <- gen_design(factorial=basicdesign, model=~., trials=11)})
+  expect_silent({design <- gen_design(candidateset=basicdesign, model=~., trials=11)})
   #'
   #'#Here we add categorical factors, specified by using "as.factor" in expand.grid:
   expect_silent({
@@ -19,16 +19,16 @@ test_that("gen_design example code runs without errors", {
   #'
   #'#This factorial design is used as an input in the optimal design generation.
   expect_silent({
-    design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19)})
+    design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19)})
   #'
   #'#We can also increase the number of times the algorithm repeats the search to increase the probability
   #'#that the globally optimal design was found.
   expect_silent({
-    design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19, repeats=100)})
+    design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19, repeats=100)})
   #'
   #'#You can also use a higher order model when generating the design:
   expect_silent({
-    design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
+    design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
     })
   #'
   #'#To evaluate a response surface design, include center points in the candidate set and do not include
@@ -48,7 +48,7 @@ test_that("gen_design example code runs without errors", {
   #'#See the accompannying paper "___________" for details of the implementation.
   #'
   hardtochangefactor = expand.grid(Altitude=c(-1,1))
-  expect_silent({hardtochangedesign = gen_design(factorial = hardtochangefactor, model=~Altitude, trials=11)})
+  expect_silent({hardtochangedesign = gen_design(candidateset = hardtochangefactor, model=~Altitude, trials=11)})
   #'
   #'#Now we can use the D-optimal blocked design as an input to our full design.
   #'
@@ -104,7 +104,7 @@ test_that("gen_design example code runs without errors", {
 test_that("eval_design example code runs without errors", {
   #'#this can also be generated with expand.grid as:
   factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
-  expect_silent({optdesign = gen_design(factorial=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)})
+  expect_silent({optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)})
   #'
   #'#Now evaluating that design (with default anticipated coefficients and a delta of 2):
   expect_silent(eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2))
@@ -189,10 +189,10 @@ test_that("eval_design_mc example code runs without errors", {
   vhtc = expand.grid(Store=as.factor(c("A","B")))
   htc = expand.grid(Temp = c(1,-1))
 
-  vhtcdesign = gen_design(factorial=vhtc, model=~Store, trials=6)
-  htcdesign = gen_design(factorial=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6))
+  vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=6)
+  htcdesign = gen_design(candidateset=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6))
   expect_silent({
-    splitplotdesign = gen_design(factorial=factorialcoffee, model=~cost+type+size+size, trials=72,
+    splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size+size, trials=72,
                                splitplotdesign=htcdesign, splitplotsizes=4)
   })
   expect_warning(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
@@ -213,7 +213,7 @@ test_that("eval_design_mc example code runs without errors", {
 test_that("eval_design_survival_mc example code runs without errors", {
   basicdesign = expand.grid(a=c(-1, 1))
   expect_silent({
-    design = gen_design(factorial=basicdesign, model=~a, trials=100,
+    design = gen_design(candidateset=basicdesign, model=~a, trials=100,
                             optimality="D", repeats=100)
   })
   rsurvival = function(X, b) {
@@ -247,7 +247,7 @@ test_that("eval_design_custom_mc example code runs without errors", {
   #'#eval_design_survival_mc examples:
   #'
   basicdesign = expand.grid(a=c(-1,1))
-  expect_silent(design <- gen_design(factorial=basicdesign,model=~a,trials=100,
+  expect_silent(design <- gen_design(candidateset=basicdesign,model=~a,trials=100,
                             optimality="D",repeats=100))
   #'
   #'#Random number generating function

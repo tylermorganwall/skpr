@@ -27,7 +27,7 @@
 #'
 #'#We first generate simple 2-level design using expand.grid:
 #'basicdesign = expand.grid(a=c(-1, 1))
-#'design = gen_design(factorial=basicdesign, model=~a, trials=100,
+#'design = gen_design(candidateset=basicdesign, model=~a, trials=100,
 #'                          optimality="D", repeats=100)
 #'
 #'#We want to evaluate this design with a Monte Carlo approach, taking into account
@@ -147,7 +147,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, 
       fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution,...)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = summary(fit)$table[,4]
+      pvals = extractPvalues(fit)
       power_values[pvals < alpha] = 1
       estimates = coef(fit)
       c(power_values, estimates)

@@ -60,7 +60,7 @@ a data frame of parameter powers. Currently only works with linear, non-interact
 #eval_design_survival_mc examples:
 
 basicdesign = expand.grid(a=c(-1,1))
-design = gen_design(factorial=basicdesign,model=~a,trials=100,
+design = gen_design(candidateset=basicdesign,model=~a,trials=100,
                          optimality="D",repeats=100)
 
 #Random number generating function

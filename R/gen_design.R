@@ -1,10 +1,10 @@
-#'@title Generates the optimal run matrix from full factorial, model, optimality criterion,
+#'@title Generates the optimal run matrix from candidate set, model, optimality criterion,
 #'and desired number of runs.
 #'
 #'@description Creates design given a model and desired number of runs, returning the model matrix. Currently
 #'Used with eval_design/eval_design_mc to produce power estimations for designs.
 #'
-#'@param factorial A data frame of candidate test points. Usually this is a full factorial test matrix
+#'@param candidateset A data frame of candidate test points. Usually this is a full factorial test matrix
 #'generated for the factors in the model, but if you have disallowed combinations then make sure the candidate list
 #'is consistent with them (e.g. by generating a full factorial and then removing disallowed combinations). If
 #'the factor is continuous, it should be type numeric. If the factor is categorical, it should be
@@ -14,7 +14,7 @@
 #'@param splitplotdesign For a split-plot design, this is the design for all of the factors harder to change
 #'than the current set of factors. These rows are replicated to the specified size for each block
 #'(given in the argument splitplotsizes) and the optimal design is found for all of the factors given in the
-#'factorial argument, taking into consideration the fixed and replicated hard-to-change factors.
+#'candidateset argument, taking into consideration the fixed and replicated hard-to-change factors.
 #'@param splitplotsizes Specifies the block size for each row of harder-to-change factors given in the
 #'argument splitplotdesign. If the input is a vector, each entry of the vector determines the size of the sub-plot
 #'for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.
@@ -32,26 +32,26 @@
 #'#Generating a basic 2 factor design:
 #'basicdesign = expand.grid(x1=c(-1,1), x2=c(-1,1))
 #'
-#'#This factorial design is used as an input in the optimal design generation for a
+#'#This candidate set is used as an input in the optimal design generation for a
 #'#D-optimal design with 11 runs.
-#'design = gen_design(factorial=basicdesign, model=~x1+x2, trials=11)
+#'design = gen_design(candidateset=basicdesign, model=~x1+x2, trials=11)
 #'
 #'#We can also use the dot operator to automatically use all of the terms in the model:
-#'design = gen_design(factorial=basicdesign, model=~., trials=11)
+#'design = gen_design(candidateset=basicdesign, model=~., trials=11)
 #'
 #'#Here we add categorical factors, specified by using "as.factor" in expand.grid:
 #'categoricaldesign = expand.grid(a=c(-1,1), b=as.factor(c("A","B")),
 #'                                c=as.factor(c("High","Med","Low")))
 #'
-#'#This factorial design is used as an input in the optimal design generation.
-#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19)
+#'#This candidate set is used as an input in the optimal design generation.
+#'design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19)
 #'
 #'#We can also increase the number of times the algorithm repeats
 #'#the search to increase the probability that the globally optimal design was found.
-#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
+#'design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
 #'
 #'#You can also use a higher order model when generating the design:
-#'design2 = gen_design(factorial=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
+#'design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
 #'
 #'#To evaluate a response surface design, include center points
 #'#in the candidate set and do not include
@@ -71,13 +71,13 @@
 #'#See the accompannying paper "___________" for details of the implementation.
 #'
 #'hardtochangefactor = expand.grid(Altitude=c(-1,1))
-#'hardtochangedesign = gen_design(factorial = hardtochangefactor, model=~Altitude, trials=11)
+#'hardtochangedesign = gen_design(candidateset = hardtochangefactor, model=~Altitude, trials=11)
 #'
 #'#Now we can use the D-optimal blocked design as an input to our full design.
 #'
 #'easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
 #'
-#'#Here, we specify the easy to change factors for the factorial design,
+#'#Here, we specify the easy to change factors for the candidate set,
 #'#and input the hard-to-change design along with a vector listing the number
 #'#of repetitions within each block for the blocked design. There should be a size entry
 #'#for every block and the number of runs specified in the trials argument needs to equal the
@@ -135,40 +135,40 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
-gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
+gen_design = function(candidateset, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
                       optimality="D",repeats=10, varianceratio = 1, contrast=contr.simplex, parallel=FALSE,
                       timer=FALSE, disallowedcombinations=FALSE) {
 
 
-  factorial = reduceRunMatrix(factorial, model)
-  factorialnormalized = factorial
+  candidateset = reduceRunMatrix(candidateset, model)
+  candidatesetnormalized = candidateset
 
   #---- generate contrast list-----#
 
   contrastslist = list()
-  for(x in names(factorial[lapply(factorial,class) %in% c("factor","character")])) {
+  for(x in names(candidateset[lapply(candidateset,class) %in% c("factor","character")])) {
     contrastslist[[x]] = contrast
   }
 
   #----- Convert dot/quad formula to terms -----#
   if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~", paste(attr(factorial, "names"), collapse=" + "), sep=""))
+    model = as.formula(paste("~", paste(attr(candidateset, "names"), collapse=" + "), sep=""))
   }
 
   if(as.character(model)[2] == "quad(.)") {
-    if(any(lapply(factorial,class) %in% c("factor","character"))) {
+    if(any(lapply(candidateset,class) %in% c("factor","character"))) {
       stop("quad() function cannot be used in models with categorical factors. Manually specify your model")
     }
-    modelvars = colnames(model.matrix(~.,data=factorial,contrasts.arg = contrastslist))[-1]
+    modelvars = colnames(model.matrix(~.,data=candidateset,contrasts.arg = contrastslist))[-1]
     modellinear = paste(modelvars,collapse=" + ")
     modellinear = paste("~",modellinear,sep="")
     model = quad(as.formula(modellinear))
   }
 
   #------Normalize/Center numeric columns ------#
-  for(column in 1:ncol(factorial)) {
-    if(class(factorialnormalized[,column]) == "numeric") {
-      factorialnormalized[,column] = as.numeric(scale(factorialnormalized[,column],scale=FALSE)/max(scale(factorialnormalized[,column],scale=FALSE)))
+  for(column in 1:ncol(candidateset)) {
+    if(class(candidatesetnormalized[,column]) == "numeric") {
+      candidatesetnormalized[,column] = as.numeric(scale(candidatesetnormalized[,column],scale=FALSE)/max(scale(candidatesetnormalized[,column],scale=FALSE)))
     }
   }
   if(!is.null(splitplotdesign)) {
@@ -255,40 +255,40 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
   }
 
   initialReplace = FALSE
-  if(trials > nrow(factorial)) {
+  if(trials > nrow(candidateset)) {
     initialReplace = TRUE
   }
 
   genOutput = list(repeats)
 
   if(length(contrastslist) == 0) {
-    factorialmm = model.matrix(model,factorialnormalized)
+    candidatesetmm = model.matrix(model,candidatesetnormalized)
   } else {
-    factorialmm = model.matrix(model,factorialnormalized,contrasts.arg=contrastslist)
+    candidatesetmm = model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist)
   }
 
   if(!blocking) {
-    factors = colnames(factorialmm)
-    mm = gen_momentsmatrix(factors,factorial)
+    factors = colnames(candidatesetmm)
+    mm = gen_momentsmatrix(factors,candidateset)
     if(!parallel) {
       if(!timer) {
         for(i in 1:repeats) {
-          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-          genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+          randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+          genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                           hasdisallowedcombinations = disallowedcombinations)
         }
       } else {
         cat("Estimated time to completion ... ")
         ptm = proc.time()
-        randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-        genOutput[[1]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+        randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+        genOutput[[1]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                           hasdisallowedcombinations = disallowedcombinations)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
-          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-          genOutput[[i]] = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+          randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+          genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                             hasdisallowedcombinations = disallowedcombinations)
         }
@@ -299,8 +299,8 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
         genOutput = foreach(i=1:repeats) %dopar% {
-          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-          genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+          randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+          genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                            hasdisallowedcombinations = disallowedcombinations)
         }
@@ -311,15 +311,15 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
         cat("Estimated time to completion ... ")
         ptm = proc.time()
-        randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-        genOutputOne = genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+        randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+        genOutputOne = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                         hasdisallowedcombinations = disallowedcombinations)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
-          randomIndices = sample(nrow(factorialmm), trials, replace = initialReplace)
-          genOptimalDesign(initialdesign = factorialmm[randomIndices,], candidatelist=factorialmm,
+          randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+          genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                            hasdisallowedcombinations = disallowedcombinations)
         }
@@ -337,30 +337,30 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     } else {
       blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
     }
-    blockedFactors = c(colnames(blockedModelMatrix),colnames(factorialmm)[-1])
+    blockedFactors = c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1])
     blockedMM = gen_momentsmatrix(blockedFactors,splitPlotReplicateDesign)
     if (!parallel) {
       if(!timer) {
         for(i in 1:repeats) {
-          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+          randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                    blockedVar=V)
         }
       } else {
         cat("Estimated time to completion ... ")
         ptm = proc.time()
-        randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-        genOutput[[1]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                                 candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+        randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+        genOutput[[1]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                                 candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                  blockedVar=V)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
-          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                                   candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+          randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                    blockedVar=V)
         }
@@ -371,9 +371,9 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
         genOutput = foreach(i=1:repeats) %dopar% {
-          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-          genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+          randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+          genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                  candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                   blockedVar=V)
         }
@@ -384,17 +384,17 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
 
         cat("Estimated time to completion ... ")
         ptm = proc.time()
-        randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-        genOutputOne = genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                               candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+        randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+        genOutputOne = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                               candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                blockedVar=V)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
-          randomIndices = sample(nrow(factorial), trials, replace = initialReplace)
-          genBlockedOptimalDesign(initialdesign = factorialmm[randomIndices,],
-                                  candidatelist=factorialmm, blockeddesign = blockedModelMatrix,
+          randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+          genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                  candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                   blockedVar=V)
         }
@@ -432,7 +432,7 @@ gen_design = function(factorial, model, trials, splitplotdesign = NULL, splitplo
     colnames(designmm) = blockedFactors
   }
 
-  design = constructRunMatrix(rowIndices = rowindex, candidateList = factorial)
+  design = constructRunMatrix(rowIndices = rowindex, candidateList = candidateset)
 
   if(blocking) {
     design = cbind(splitPlotReplicateDesign,design)

@@ -113,7 +113,8 @@
 #'#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
-eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
+eval_design_mc = function(RunMatrix, model, alpha,
+                          nsim=1000, glmfamily="gaussian",
                           blocknoise = NULL, rfunction=NULL, anticoef=NULL, delta=2,
                           contrasts=contr.sum, binomialprobs = NULL,
                           parallel=FALSE) {
@@ -203,7 +204,11 @@ eval_design_mc = function(RunMatrix, model, alpha, nsim, glmfamily,
 
   if(any(lapply(blocklist,length) > 1)) {
     if(is.null(blocknoise)) {
-      warning("Warning: blocknoise argument missing. Blocking ignored.")
+      warning("Warning: blocknoise argument missing. Blocking generated with default variance ratio of 1.")
+      blocking = TRUE
+      blockstructure = do.call(rbind,blocklist)
+      blockgroups = apply(blockstructure,2,blockingstructure)
+      blocknoise = rep(1,max(lapply(blocklist,length))-1)
     } else {
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)

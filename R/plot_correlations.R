@@ -22,7 +22,38 @@
 #'#You can also pass a custom color map to be used with
 #'plot_correlations(cardesign,customcolors=c("black","green","red"))
 #'plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
-plot_correlations = function(genoutput,customcolors=NULL) {
+plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
+
+  if(is.null(model)) {
+    model = attr(genoutput,"generating.model")
+    cormat = attr(genoutput,"correlation.matrix")
+  } else {
+    V = attr(genoutput,"variance.matrix")
+    if(!is.null(attr(genoutput,"runmatrix"))) {
+      genoutput = attr(genoutput,"runmatrix")
+    }
+
+    factornames = colnames(genoutput)[unlist(lapply(genoutput,class)) %in% c("factor","character")]
+    if(length(factornames) > 0) {
+      contrastlist = list()
+      for(name in 1:length(factornames)) {
+        contrastlist[[factornames[name]]] = contr.simplex
+      }
+    } else {
+      contrastlist = NULL
+    }
+
+    #------Normalize/Center numeric columns ------#
+    for(column in 1:ncol(genoutput)) {
+      if(class(genoutput[,column]) == "numeric") {
+        genoutput[,column] = as.numeric(scale(genoutput[,column],scale=FALSE)/max(scale(genoutput[,column],scale=FALSE)))
+      }
+    }
+
+    mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
+
+    cormat = abs(cov2cor(solve(t(mm) %*% solve(V) %*% mm))[-1,-1])
+  }
 
   if(is.null(customcolors)) {
     imagecolors = colorRampPalette(colors=c("blue","white","red"))(101)
@@ -30,15 +61,13 @@ plot_correlations = function(genoutput,customcolors=NULL) {
     imagecolors = colorRampPalette(customcolors)(101)
   }
 
-  cormat = attr(genoutput,"correlation.matrix")
-
   par(mar=c(5,3,7,0))
   image(t(cormat[ncol(cormat):1,]),x=1:ncol(cormat),y=1:ncol(cormat),zlim=c(0,1),asp=1,axes=F,
         col=imagecolors,xlab="",ylab="")
   axis(3,at=1:ncol(cormat),labels=colnames(cormat), pos=ncol(cormat)+1,las=2,hadj=0,cex.axis=0.8)
   axis(2,at=ncol(cormat):1, labels=colnames(cormat), pos=0,las=2,hadj=1,cex.axis=0.8)
 
-  legend(length(colnames(cormat))+0.2,length(colnames(cormat)),
+  legend(length(colnames(cormat))+1,length(colnames(cormat)),
          c("0","","","","","0.5","","","","","1.0"), title="|r|\n",
          fill = imagecolors[c(seq(1,101,10))], xpd=TRUE,bty="n",border=NA,y.intersp=0.3,x.intersp=0.1,cex=1)
   par(mar=c(5.1, 4.1, 4.1, 2.1))

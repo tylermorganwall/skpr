@@ -78,9 +78,6 @@ plot_fds = function(genoutput,model=NULL) {
   midval = varsorderedscaled[5000]
   maxyaxis = max(varsorderedscaled)+max(varsorderedscaled)/20
 
-  abline(v = 0.5, untf = FALSE,lty=2,col="red",lwd=2)
-  abline(h = midval, untf = FALSE,lty=2,col="red",lwd=2)
-
   plot(1:length(varsorderedscaled)/length(varsorderedscaled),varsorderedscaled,ylim=c(0,maxyaxis), type="n",
        xlab = "Fraction of Design Space", ylab = "Prediction Variance",
        xlim=c(0,1),xaxs = "i",yaxs = "i")

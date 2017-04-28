@@ -68,9 +68,9 @@
 #'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
 #'                        distribution="lognormal", rfunctionsurv=rlognorm,
 #'                        anticoef=c(0.184,0.101), delta=2, scale=0.4)
-eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution, rfunctionsurv,
-                          anticoef, delta=2, contrasts = contr.sum,
-                          parallel=FALSE, ...) {
+eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution,
+                                   rfunctionsurv, anticoef, delta=2, contrasts = contr.sum,
+                                   parallel=FALSE, ...) {
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model

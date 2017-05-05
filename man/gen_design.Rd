@@ -7,8 +7,9 @@ and desired number of runs.}
 \usage{
 gen_design(candidateset, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
-  varianceratio = 1, contrast = contr.simplex, parallel = FALSE,
-  timer = FALSE, disallowedcombinations = FALSE)
+  varianceratio = 1, contrast = contr.simplex, aliaspower = 2,
+  minDopt = 0.95, parallel = FALSE, timer = FALSE,
+  disallowedcombinations = FALSE)
 }
 \arguments{
 \item{candidateset}{A data frame of candidate test points. Usually this is a full factorial test matrix
@@ -38,6 +39,10 @@ for that whole plot setting. If the input is an integer, it generates a balanced
 a split plot design.}
 
 \item{contrast}{Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.}
+
+\item{aliaspower}{Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
+
+\item{minDopt}{Default 0.95. Minimum value for the D-Optimality of a design when searching for alias optimal designs.}
 
 \item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.}
 

@@ -2,7 +2,8 @@
 #'
 #'@description Plots design diagnostics
 #'
-#'@param genoutput The run matrix
+#'@param genoutput The output of either gen_design or eval_design/eval_design_mc
+#'@param model Default NULL. If specified, it will override the default model used to generate/evaluate the design.
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
 #'@return Plots design diagnostics
 #'@import graphics grDevices
@@ -42,17 +43,28 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
     } else {
       contrastlist = NULL
     }
-
     #------Normalize/Center numeric columns ------#
     for(column in 1:ncol(genoutput)) {
       if(class(genoutput[,column]) == "numeric") {
-        genoutput[,column] = as.numeric(scale(genoutput[,column],scale=FALSE)/max(scale(genoutput[,column],scale=FALSE)))
+        midvalue = mean(c(max(genoutput[,column]),min(genoutput[,column])))
+        genoutput[,column] = (genoutput[,column]-midvalue)/(max(genoutput[,column])-midvalue)
       }
     }
 
     mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
 
-    cormat = abs(cov2cor(solve(t(mm) %*% solve(V) %*% mm))[-1,-1])
+    cormat = tryCatch({
+      abs(cov2cor(solve(t(mm) %*% solve(V) %*% mm))[-1,-1])
+      }, error = function(e) {
+        return("SINGULAR")
+      }, warning = function(e) {
+        return("SINGULAR")
+      })
+
+    if(!is.matrix(cormat)) {
+      warning("Full correlation matrix singular: calculating approximate correlation map")
+      cormat = abs(cov2cor(solve(t(mm) %*% solve(V) %*% mm + diag(ncol(mm))*0.000001))[-1,-1])
+    }
   }
 
   if(is.null(customcolors)) {

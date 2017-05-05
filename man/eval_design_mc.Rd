@@ -4,9 +4,9 @@
 \alias{eval_design_mc}
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
-eval_design_mc(RunMatrix, model, alpha, nsim, glmfamily, blocknoise = NULL,
-  rfunction = NULL, anticoef = NULL, delta = 2, contrasts = contr.sum,
-  binomialprobs = NULL, parallel = FALSE)
+eval_design_mc(RunMatrix, model, alpha, nsim = 1000, glmfamily = "gaussian",
+  blocknoise = NULL, rfunction = NULL, anticoef = NULL, delta = 2,
+  contrasts = contr.sum, binomialprobs = NULL, parallel = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}

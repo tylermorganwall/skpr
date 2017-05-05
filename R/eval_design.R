@@ -130,7 +130,8 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
     if(class(RunMatrix[,column]) == "numeric") {
-      RunMatrix[,column] = as.numeric(scale(RunMatrix[,column],scale=FALSE)/max(scale(RunMatrix[,column],scale=FALSE)))
+      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
+      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
     }
   }
 

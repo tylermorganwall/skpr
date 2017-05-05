@@ -23,6 +23,8 @@
 #'@param varianceratio Default 1. The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design.
 #'@param contrast Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.
+#'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
+#'@param minDopt Default 0.95. Minimum value for the D-Optimality of a design when searching for alias optimal designs.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
 #'@param disallowedcombinations Default FALSE. Set TRUE if the candidate list has had any test points removed.
@@ -135,12 +137,14 @@
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
-gen_design = function(candidateset, model, trials, splitplotdesign = NULL, splitplotsizes = NULL,
-                      optimality="D",repeats=10, varianceratio = 1, contrast=contr.simplex, parallel=FALSE,
-                      timer=FALSE, disallowedcombinations=FALSE) {
+gen_design = function(candidateset, model, trials,
+                      splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
+                      repeats=10, varianceratio = 1, contrast=contr.simplex,
+                      aliaspower = 2, minDopt = 0.95,
+                      parallel=FALSE, timer=FALSE, disallowedcombinations=FALSE) {
 
 
-  candidateset = reduceRunMatrix(candidateset, model)
+  candidateset = unique(reduceRunMatrix(candidateset, model))
   candidatesetnormalized = candidateset
 
   #---- generate contrast list-----#
@@ -148,6 +152,10 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
   contrastslist = list()
   for(x in names(candidateset[lapply(candidateset,class) %in% c("factor","character")])) {
     contrastslist[[x]] = contrast
+  }
+
+  if(length(contrastslist) == 0) {
+    contrastslist = NULL
   }
 
   #----- Convert dot/quad formula to terms -----#
@@ -168,14 +176,16 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(candidateset)) {
     if(class(candidatesetnormalized[,column]) == "numeric") {
-      candidatesetnormalized[,column] = as.numeric(scale(candidatesetnormalized[,column],scale=FALSE)/max(scale(candidatesetnormalized[,column],scale=FALSE)))
+      midvalue = mean(c(max(candidatesetnormalized[,column]),min(candidatesetnormalized[,column])))
+      candidatesetnormalized[,column] = (candidatesetnormalized[,column]-midvalue)/(max(candidatesetnormalized[,column])-midvalue)
     }
   }
   if(!is.null(splitplotdesign)) {
     spdnormalized = splitplotdesign
     for(column in 1:ncol(spdnormalized)) {
       if(class(spdnormalized[,column]) == "numeric") {
-        spdnormalized[,column] = as.numeric(scale(spdnormalized[,column],scale=FALSE)/max(scale(spdnormalized[,column],scale=FALSE)))
+        midvalue = mean(c(max(spdnormalized[,column]),min(spdnormalized[,column])))
+        spdnormalized[,column] = (spdnormalized[,column]-midvalue)/(max(spdnormalized[,column])-midvalue)
       }
     }
   }
@@ -267,6 +277,19 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
     candidatesetmm = model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist)
   }
 
+  amodel = aliasmodel(model,aliaspower)
+
+  if(model == amodel && optimality == "Alias") {
+    stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
+                  aliaspower,". Try setting aliaspower = ", aliaspower+1),collapse=""))
+  }
+
+  if(length(contrastslist) == 0) {
+    aliasmm = model.matrix(amodel,candidatesetnormalized)
+  } else {
+    aliasmm = model.matrix(amodel,candidatesetnormalized,contrasts.arg=contrastslist)
+  }
+
   if(!blocking) {
     factors = colnames(candidatesetmm)
     mm = gen_momentsmatrix(factors,candidateset)
@@ -276,7 +299,9 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                          hasdisallowedcombinations = disallowedcombinations)
+                                          hasdisallowedcombinations = disallowedcombinations,
+                                          aliasdesign = aliasmm[randomIndices,],
+                                          aliascandidatelist = aliasmm, minDopt = minDopt)
         }
       } else {
         cat("Estimated time to completion ... ")
@@ -284,13 +309,17 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
         genOutput[[1]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                          hasdisallowedcombinations = disallowedcombinations)
+                                          hasdisallowedcombinations = disallowedcombinations,
+                                          aliasdesign = aliasmm[randomIndices,],
+                                          aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                            hasdisallowedcombinations = disallowedcombinations)
+                                            hasdisallowedcombinations = disallowedcombinations,
+                                            aliasdesign = aliasmm[randomIndices,],
+                                            aliascandidatelist = aliasmm, minDopt = minDopt)
         }
       }
     } else {
@@ -302,7 +331,9 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                           hasdisallowedcombinations = disallowedcombinations)
+                           hasdisallowedcombinations = disallowedcombinations,
+                           aliasdesign = aliasmm[randomIndices,],
+                           aliascandidatelist = aliasmm, minDopt = minDopt)
         }
         parallel::stopCluster(cl)
       } else {
@@ -314,14 +345,18 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
         genOutputOne = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                        hasdisallowedcombinations = disallowedcombinations)
+                                        hasdisallowedcombinations = disallowedcombinations,
+                                        aliasdesign = aliasmm[randomIndices,],
+                                        aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                           hasdisallowedcombinations = disallowedcombinations)
+                           hasdisallowedcombinations = disallowedcombinations,
+                           aliasdesign = aliasmm[randomIndices,],
+                           aliascandidatelist = aliasmm, minDopt = minDopt)
         }
         genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)
@@ -346,7 +381,8 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                   blockedVar=V)
+                                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                                   aliascandidatelist = aliasmm, minDopt = minDopt)
         }
       } else {
         cat("Estimated time to completion ... ")
@@ -355,14 +391,16 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
         genOutput[[1]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                                  candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                 blockedVar=V)
+                                                 blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                                 aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                   blockedVar=V)
+                                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                                   aliascandidatelist = aliasmm, minDopt = minDopt)
         }
       }
     } else {
@@ -375,7 +413,8 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
           genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                  blockedVar=V)
+                                  blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                  aliascandidatelist = aliasmm, minDopt = minDopt)
         }
         parallel::stopCluster(cl)
       } else {
@@ -388,7 +427,8 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
         genOutputOne = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                                candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                               blockedVar=V)
+                                               blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                               aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
@@ -396,7 +436,8 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
           genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                  blockedVar=V)
+                                  blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                  aliascandidatelist = aliasmm, minDopt = minDopt)
         }
         genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)
@@ -414,7 +455,7 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
     criteria[i] = genOutput[[i]]["criterion"]
   }
 
-  if(optimality == "D") {
+  if(optimality == "D" || optimality == "Alias") {
     best = which.max(criteria)
     designmm = designs[[best]]
     rowindex = rowIndicies[[best]]
@@ -470,7 +511,17 @@ gen_design = function(candidateset, model, trials, splitplotdesign = NULL, split
     colnames(correlation.matrix) = colnames(designmm)[-1]
     rownames(correlation.matrix) = colnames(designmm)[-1]
     attr(design,"correlation.matrix") = round(correlation.matrix,8)
+    if(amodel != model) {
+      aliasmatrix = model.matrix(aliasmodel(model,aliaspower),design,contrasts.arg = contrastslist)[,-1]
+      attr(design,"alias.matrix") = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
+      attr(design,"trA") = sum(diag(t(attr(design,"alias.matrix")) %*% attr(design,"alias.matrix")))
+    } else {
+      attr(design,"alias.matrix") = "No alias matrix calculated: full model specified"
+      attr(design,"trA") = "No alias trace calculated: full model specified"
+    }
   }
+
+  attr(design,"contrastslist") = contrastslist
 
   return(design)
 }

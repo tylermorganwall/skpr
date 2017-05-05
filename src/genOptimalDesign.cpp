@@ -12,8 +12,7 @@ double calculateDOptimality(arma::mat currentDesign) {
 }
 
 double calculateIOptimality(arma::mat currentDesign, const arma::mat momentsMatrix) {
-  double variance = trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix);
-  return(variance);
+  return(trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix));
 }
 
 //Function to calculate the A-optimality
@@ -22,12 +21,26 @@ double calculateAOptimality(arma::mat currentDesign) {
   return(variance);
 }
 
+double calculateAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix) {
+  arma::mat A = inv_sympd(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
+  return(trace(A.t() * A));
+}
+
+
+double calculateDEff(arma::mat currentDesign) {
+  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+}
+
+
+
+
 //`@title genOptimalDesign
 //`@param x an x
 //`@return stufff
 // [[Rcpp::export]]
 List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std::string condition,
-                      const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations) {
+                      const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations,
+                      arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt) {
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*100;
@@ -42,7 +55,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       candidateRow[i] = i % totalPoints+1;
     }
     arma::vec returnRow = shuffle(candidateRow);
-    if(condition == "D") {
+    if(condition == "D" || condition == "Alias") {
       criterion = calculateDOptimality(initialdesign);
     }
     if(condition == "I") {
@@ -72,11 +85,13 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
         }
         for(unsigned int row = 0; row < nTrials; row++) {
           initialdesign.row(row) = candidatelist.row(indices(row));
+          aliasdesign.row(row) = aliascandidatelist.row(indices(row));
         }
       } else {
         arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
         for(unsigned int i = 0; i < nTrials; i++) {
           initialdesign.row(i) = candidatelist.row(randomrows(i));
+          aliasdesign.row(i) = aliascandidatelist.row(randomrows(i));
         }
       }
       check++;
@@ -205,6 +220,105 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       }
       newOptimum = calculateAOptimality(initialdesign);
     }
+  }
+  //Generate an Alias optimal design
+  if(condition == "Alias") {
+
+    arma::mat temp;
+    del = calculateDOptimality(initialdesign);
+    newOptimum = del;
+    priorOptimum = newOptimum/2;
+    arma::vec candidateRowTempD = candidateRow;
+    arma::vec initialRowsTempD = initialRows;
+
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp.row(i) = candidatelist.row(j);
+          newdel = calculateDOptimality(temp);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          initialdesign.row(entryx) = candidatelist.row(entryy);
+          aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
+
+          candidateRowTempD[i] = entryy+1;
+          initialRowsTempD[i] = entryy+1;
+        }
+      }
+      newOptimum = calculateDOptimality(initialdesign);
+    }
+
+    double prevA = calculateAliasTrace(initialdesign,aliasdesign);
+    double initialD = calculateDEff(initialdesign);
+    double currentA = prevA;
+    double currentD = initialD;
+    double wdelta = 0.05;
+    double aliasweight = 1;
+
+    arma::vec candidateRowTemp = candidateRowTempD;
+    arma::vec initialRowsTemp = initialRowsTempD;
+    arma::mat initialdesignTemp = initialdesign;
+
+    while(prevA != 0 && currentA != 0 && currentD > minDopt && aliasweight > wdelta) {
+
+      aliasweight = aliasweight - wdelta;
+      del = aliasweight*currentD + (1-aliasweight)*(1-currentA/prevA);
+      newOptimum = del;
+      priorOptimum = newOptimum/2;
+
+      while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+        priorOptimum = newOptimum;
+        for (unsigned int i = 0; i < nTrials; i++) {
+          found = FALSE;
+          entryx = 0;
+          entryy = 0;
+          temp = initialdesignTemp;
+          for (unsigned int j = 0; j < totalPoints; j++) {
+            temp.row(i) = candidatelist.row(j);
+            aliasdesign.row(i) = aliascandidatelist.row(j);
+            try {
+              currentA = calculateAliasTrace(temp,aliasdesign);
+              currentD = calculateDEff(temp);
+
+              newdel = aliasweight*currentD + (1-aliasweight)*(1-currentA/prevA);
+
+              if(newdel > del && currentD > minDopt) {
+                found = TRUE;
+                entryx = i; entryy = j;
+                del = newdel;
+              }
+            } catch (std::runtime_error& e) {
+              continue;
+            }
+          }
+          if (found) {
+            initialdesignTemp.row(entryx) = candidatelist.row(entryy);
+            aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
+
+            candidateRowTemp[i] = entryy+1;
+            initialRowsTemp[i] = entryy+1;
+
+          } else {
+            candidateRowTemp[i] = initialRowsTemp[i];
+          }
+        }
+        currentD = calculateDEff(initialdesignTemp);
+        currentA = calculateAliasTrace(initialdesignTemp,aliasdesign);
+        newOptimum = aliasweight*currentD + (1-aliasweight)*(1-currentA/prevA);
+      }
+    }
+    candidateRow = candidateRowTemp;
+    initialdesign = initialdesignTemp;
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = newOptimum));

@@ -5,6 +5,14 @@ AOptimality <- function(currentDesign) {
     .Call('skpr_AOptimality', PACKAGE = 'skpr', currentDesign)
 }
 
+calcAliasTrace <- function(currentDesign, aliasMatrix) {
+    .Call('skpr_calcAliasTrace', PACKAGE = 'skpr', currentDesign, aliasMatrix)
+}
+
+calculateDEfficiency <- function(currentDesign) {
+    .Call('skpr_calculateDEfficiency', PACKAGE = 'skpr', currentDesign)
+}
+
 covarianceMatrix <- function(design) {
     .Call('skpr_covarianceMatrix', PACKAGE = 'skpr', design)
 }
@@ -17,12 +25,12 @@ DOptimalityBlocked <- function(currentDesign, blockedVar) {
     .Call('skpr_DOptimalityBlocked', PACKAGE = 'skpr', currentDesign, blockedVar)
 }
 
-genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar) {
-    .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar)
+genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt) {
+    .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt)
 }
 
-genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations) {
-    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations)
+genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt) {
+    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt)
 }
 
 IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {

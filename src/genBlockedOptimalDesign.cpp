@@ -8,14 +8,21 @@ double calculateBlockedDOptimality(const arma::mat currentDesign, const arma::ma
 }
 
 double calculateBlockedIOptimality(const arma::mat currentDesign, const arma::mat momentsMatrix,const arma::mat gls) {
-  double variance = trace(inv_sympd(currentDesign.t()*gls*currentDesign)*momentsMatrix);
-  return(variance);
+  return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)*momentsMatrix));
 }
 
 //Function to calculate the A-optimality
 double calculateBlockedAOptimality(arma::mat currentDesign,const arma::mat gls) {
-  double variance = trace(inv_sympd(currentDesign.t()*gls*currentDesign));
-  return(variance);
+  return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)));
+}
+
+double calculateBlockedAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix) {
+  arma::mat A = inv_sympd(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
+  return(trace(A.t() * A));
+}
+
+double calculateBlockedDEff(arma::mat currentDesign) {
+  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
 }
 
 //`@title genOptimalDesign
@@ -24,7 +31,9 @@ double calculateBlockedAOptimality(arma::mat currentDesign,const arma::mat gls) 
 // [[Rcpp::export]]
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
                       const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows,
-                      const arma::mat blockedVar) {
+                      const arma::mat blockedVar,
+                      arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt) {
+
   //Generate blocking structure inverse covariance matrix
   const arma::mat vInv = inv_sympd(blockedVar);
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
@@ -192,6 +201,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       newOptimum = calculateBlockedAOptimality(combinedDesign,vInv);
     }
   }
+
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign, _["criterion"] = newOptimum));
 }

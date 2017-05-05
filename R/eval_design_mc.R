@@ -138,7 +138,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
     if(class(RunMatrix[,column]) == "numeric") {
-      RunMatrix[,column] = as.numeric(scale(RunMatrix[,column],scale=FALSE)/max(scale(RunMatrix[,column],scale=FALSE)))
+      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
+      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
     }
   }
 
@@ -208,7 +209,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
-      blocknoise = rep(1,max(lapply(blocklist,length))-1)
+      blocknoise = rep(1,max(unlist(lapply(blocklist,length)))-1)
     } else {
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)

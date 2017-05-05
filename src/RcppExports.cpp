@@ -17,6 +17,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calcAliasTrace
+double calcAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix);
+RcppExport SEXP skpr_calcAliasTrace(SEXP currentDesignSEXP, SEXP aliasMatrixSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type aliasMatrix(aliasMatrixSEXP);
+    rcpp_result_gen = Rcpp::wrap(calcAliasTrace(currentDesign, aliasMatrix));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateDEfficiency
+double calculateDEfficiency(arma::mat currentDesign);
+RcppExport SEXP skpr_calculateDEfficiency(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateDEfficiency(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
 // covarianceMatrix
 arma::mat covarianceMatrix(arma::mat design);
 RcppExport SEXP skpr_covarianceMatrix(SEXP designSEXP) {
@@ -52,8 +75,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // genBlockedOptimalDesign
-List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, const arma::mat blockedVar);
-RcppExport SEXP skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP) {
+List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, const arma::mat blockedVar, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
+RcppExport SEXP skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -64,13 +87,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat >::type momentsmatrix(momentsmatrixSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type blockedVar(blockedVarSEXP);
-    rcpp_result_gen = Rcpp::wrap(genBlockedOptimalDesign(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar));
+    Rcpp::traits::input_parameter< arma::mat >::type aliasdesign(aliasdesignSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
+    Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
+    rcpp_result_gen = Rcpp::wrap(genBlockedOptimalDesign(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt));
     return rcpp_result_gen;
 END_RCPP
 }
 // genOptimalDesign
-List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations);
-RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP hasdisallowedcombinationsSEXP) {
+List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
+RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP hasdisallowedcombinationsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -80,7 +106,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat >::type momentsmatrix(momentsmatrixSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
     Rcpp::traits::input_parameter< bool >::type hasdisallowedcombinations(hasdisallowedcombinationsSEXP);
-    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations));
+    Rcpp::traits::input_parameter< arma::mat >::type aliasdesign(aliasdesignSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
+    Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
+    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt));
     return rcpp_result_gen;
 END_RCPP
 }

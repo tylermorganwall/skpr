@@ -113,6 +113,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// getPseudoInverse
+arma::mat getPseudoInverse(arma::mat currentDesign);
+RcppExport SEXP skpr_getPseudoInverse(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(getPseudoInverse(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
 // IOptimality
 double IOptimality(arma::mat currentDesign, const arma::mat momentsMatrix, const arma::mat blockedVar);
 RcppExport SEXP skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP, SEXP blockedVarSEXP) {

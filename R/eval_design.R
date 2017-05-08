@@ -215,6 +215,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
 
     if(!blocking) {
+      attr(results,"variance.matrix") = diag(nrow(modelmatrix_cor))
       attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
       attr(results,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
     } else {

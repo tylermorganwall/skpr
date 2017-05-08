@@ -33,6 +33,10 @@ genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmat
     .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt)
 }
 
+getPseudoInverse <- function(currentDesign) {
+    .Call('skpr_getPseudoInverse', PACKAGE = 'skpr', currentDesign)
+}
+
 IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {
     .Call('skpr_IOptimality', PACKAGE = 'skpr', currentDesign, momentsMatrix, blockedVar)
 }

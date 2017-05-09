@@ -28,6 +28,7 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
   if(is.null(model)) {
     model = attr(genoutput,"generating.model")
     cormat = attr(genoutput,"correlation.matrix")
+    mm = attr(genoutput,"model.matrix")
   } else {
     V = attr(genoutput,"variance.matrix")
     if(!is.null(attr(genoutput,"runmatrix"))) {

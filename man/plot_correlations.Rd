@@ -31,8 +31,8 @@ candidatelist = expand.grid(cost=c(15000,20000),year=c("2001","2002","2003","200
 cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
 plot_correlations(cardesign)
 
-#You can also pass a custom color map to be used with
-plot_correlations(cardesign,customcolors=c("black","green","red"))
+#You can also pass a custom color map to be used with.
+plot_correlations(cardesign,customcolors=c("blue","grey","red"))
 plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
 }
 

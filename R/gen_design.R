@@ -358,8 +358,8 @@ gen_design = function(candidateset, model, trials,
                            aliasdesign = aliasmm[randomIndices,],
                            aliascandidatelist = aliasmm, minDopt = minDopt)
         }
-        genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)
+        genOutput = as.list(c(genOutputOne,genOutput))
       }
     }
   } else {
@@ -439,15 +439,15 @@ gen_design = function(candidateset, model, trials,
                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                   aliascandidatelist = aliasmm, minDopt = minDopt)
         }
-        genOutput = c(genOutputOne,genOutput)
         parallel::stopCluster(cl)
+        genOutput = as.list(c(genOutputOne,genOutput))
       }
     }
   }
 
-  designs = list(repeats)
-  rowIndicies = list(repeats)
-  criteria = list(repeats)
+  designs = list()
+  rowIndicies = list()
+  criteria = list()
 
   for(i in 1:repeats) {
     designs[i] = genOutput[[i]]["modelmatrix"]
@@ -455,17 +455,19 @@ gen_design = function(candidateset, model, trials,
     criteria[i] = genOutput[[i]]["criterion"]
   }
 
-  if(optimality == "D" || optimality == "Alias") {
+  if(optimality == "D") {
     best = which.max(criteria)
     designmm = designs[[best]]
-    rowindex = rowIndicies[[best]]
+    rowindex = round(rowIndicies[[best]])
   }
 
-  if(optimality == "A" || optimality == "I") {
+  if(optimality == "A" || optimality == "I" || optimality == "Alias") {
     best = which.min(criteria)
     designmm = designs[[best]]
-    rowindex = rowIndicies[[best]]
+    rowindex = round(rowIndicies[[best]])
   }
+
+  rowindex[rowindex == 0] = 1
 
   if(!blocking) {
     colnames(designmm) = factors
@@ -478,6 +480,7 @@ gen_design = function(candidateset, model, trials,
   if(blocking) {
     design = cbind(splitPlotReplicateDesign,design)
   }
+
   attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
   attr(design,"A-Efficiency") = AOptimality(designmm)
   if(!blocking) {
@@ -506,6 +509,7 @@ gen_design = function(candidateset, model, trials,
     attr(design,"V") = V
     attr(design,"varianceratios") = varianceRatios
   }
+
   if(ncol(designmm) > 2) {
     correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1,-1])
     colnames(correlation.matrix) = colnames(designmm)[-1]
@@ -513,8 +517,9 @@ gen_design = function(candidateset, model, trials,
     attr(design,"correlation.matrix") = round(correlation.matrix,8)
     if(amodel != model) {
       aliasmatrix = model.matrix(aliasmodel(model,aliaspower),design,contrasts.arg = contrastslist)[,-1]
-      attr(design,"alias.matrix") = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
-      attr(design,"trA") = sum(diag(t(attr(design,"alias.matrix")) %*% attr(design,"alias.matrix")))
+      A = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
+      attr(design,"alias.matrix") = A
+      attr(design,"trA") = sum(diag(t(A) %*% A))
     } else {
       attr(design,"alias.matrix") = "No alias matrix calculated: full model specified"
       attr(design,"trA") = "No alias trace calculated: full model specified"

@@ -253,12 +253,10 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       if(!blocking) {
         V = diag(nrow(modelmatrix_cor))
       }
-      # tryCatch({
-        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
-        colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-        rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-        attr(results,"correlation.matrix") = round(correlation.matrix,8)
-      # }, error = function(e) {warning("Correlation matrix not calculated")})
+      correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
+      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      attr(results,"correlation.matrix") = round(correlation.matrix,8)
     }
     attr(results,"generating.model") = model
     attr(results,"runmatrix") = RunMatrix

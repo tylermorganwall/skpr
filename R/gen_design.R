@@ -18,7 +18,8 @@
 #'@param splitplotsizes Specifies the block size for each row of harder-to-change factors given in the
 #'argument splitplotdesign. If the input is a vector, each entry of the vector determines the size of the sub-plot
 #'for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.
-#'@param optimality The optimality criterion (e.g. "D", "I", or "A")
+#'@param optimality Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
+#'only supports the D, I, and A criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E"
 #'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.
 #'@param varianceratio Default 1. The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design.
@@ -455,13 +456,13 @@ gen_design = function(candidateset, model, trials,
     criteria[i] = genOutput[[i]]["criterion"]
   }
 
-  if(optimality == "D") {
+  if(optimality == "D" || optimality == "T" || optimality == "E") {
     best = which.max(criteria)
     designmm = designs[[best]]
     rowindex = round(rowIndicies[[best]])
   }
 
-  if(optimality == "A" || optimality == "I" || optimality == "Alias") {
+  if(optimality == "A" || optimality == "I" || optimality == "Alias" || optimality == "G") {
     best = which.min(criteria)
     designmm = designs[[best]]
     rowindex = round(rowIndicies[[best]])
@@ -484,6 +485,9 @@ gen_design = function(candidateset, model, trials,
   attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
   attr(design,"A-Efficiency") = AOptimality(designmm)
   if(!blocking) {
+    attr(design,"G") = max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm)))
+    attr(design,"T") = sum(diag(t(designmm) %*% designmm))
+    attr(design,"E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
     attr(design,"variance.matrix") = diag(nrow(designmm))
     attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrow(designmm)))
   } else {

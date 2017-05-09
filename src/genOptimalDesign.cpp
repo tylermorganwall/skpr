@@ -15,7 +15,21 @@ double calculateIOptimality(arma::mat currentDesign, const arma::mat momentsMatr
   return(trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix));
 }
 
-//Function to calculate the A-optimality
+double calculateGOptimality(arma::mat currentDesign, const arma::mat candidateSet) {
+  arma::mat results = candidateSet*inv_sympd(currentDesign.t()*currentDesign)*candidateSet.t();
+  return(results.diag().max());
+}
+
+double calculateTOptimality(arma::mat currentDesign) {
+  return(trace(currentDesign.t()*currentDesign));
+}
+
+double calculateEOptimality(arma::mat currentDesign) {
+  arma::vec eigval;
+  arma::eig_sym(eigval,currentDesign.t()*currentDesign);
+  return(eigval.min());
+}
+
 double calculateAOptimality(arma::mat currentDesign) {
   return(trace(inv_sympd(currentDesign.t()*currentDesign)));
 }
@@ -337,6 +351,107 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
     candidateRow = bestcandidaterow;
     aliasdesign = bestaliasdesign;
     newOptimum = bestA;
+  }
+  if(condition == "G") {
+    arma::mat temp;
+    del = calculateGOptimality(initialdesign,candidatelist);
+    newOptimum = del;
+    priorOptimum = del*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
+      priorOptimum = newOptimum;
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          //Checks for singularity; If singular, moves to next candidate in the candidate set
+          try {
+            temp.row(i) = candidatelist.row(j);
+            newdel = calculateGOptimality(temp,candidatelist);
+            if(newdel < del) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
+          } catch (std::runtime_error& e) {
+            continue;
+          }
+        }
+        if (found) {
+          initialdesign.row(entryx) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateGOptimality(initialdesign,candidatelist);
+    }
+  }
+  if(condition == "T") {
+    arma::mat temp;
+    del = calculateTOptimality(initialdesign);
+    newOptimum = del;
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp.row(i) = candidatelist.row(j);
+          newdel = calculateTOptimality(temp);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          initialdesign.row(entryx) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateTOptimality(initialdesign);
+    }
+  }
+  if(condition == "E") {
+    arma::mat temp;
+    del = calculateEOptimality(initialdesign);
+    newOptimum = del;
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp.row(i) = candidatelist.row(j);
+          newdel = calculateEOptimality(temp);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          initialdesign.row(entryx) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateEOptimality(initialdesign);
+    }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = newOptimum));

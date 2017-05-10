@@ -69,8 +69,8 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
   unsigned int totalPoints = candidatelist.n_rows;
   arma::vec candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
-  //Check to see if the design could be a full factorial or replicated full factorial
-  if(nTrials % totalPoints == 0 && !hasdisallowedcombinations) {
+  //Check to see if the design could be a full factorial or replicated full factorial -- TURNED OFF
+  /*if(nTrials % totalPoints == 0 && !hasdisallowedcombinations) {
     double criterion;
     for(unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(i % totalPoints);
@@ -87,8 +87,8 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       criterion = calculateAOptimality(initialdesign);
     }
     return(List::create(_["indices"] = returnRow, _["modelmatrix"] = initialdesign, _["criterion"] = criterion));
-  }
-  if(nTrials <= candidatelist.n_cols) {
+  } */
+  if(nTrials < candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   for(unsigned int j = 1; j < candidatelist.n_cols; j++) {

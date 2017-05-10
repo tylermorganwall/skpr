@@ -9,8 +9,6 @@
 aliasmodel = function(formula, power) {
   existingterms = attr(terms(formula),"term.labels")
   variables = all.vars(formula)
-  linearterms = paste(variables, collapse=" + ")
-  linearterms = paste("~", linearterms, sep="")
 
   if(power < 2) {
     stop("Aliased terms must be greater than linear")

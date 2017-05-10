@@ -26,36 +26,37 @@
 plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
 
   if(is.null(model)) {
-    model = attr(genoutput,"generating.model")
-    cormat = attr(genoutput,"correlation.matrix")
-    mm = attr(genoutput,"model.matrix")
-  } else {
-    V = attr(genoutput,"variance.matrix")
-    if(!is.null(attr(genoutput,"runmatrix"))) {
-      genoutput = attr(genoutput,"runmatrix")
-    }
-
-    factornames = colnames(genoutput)[unlist(lapply(genoutput,class)) %in% c("factor","character")]
-    if(length(factornames) > 0) {
-      contrastlist = list()
-      for(name in 1:length(factornames)) {
-        contrastlist[[factornames[name]]] = contr.simplex
-      }
-    } else {
-      contrastlist = NULL
-    }
-    #------Normalize/Center numeric columns ------#
-    for(column in 1:ncol(genoutput)) {
-      if(class(genoutput[,column]) == "numeric") {
-        midvalue = mean(c(max(genoutput[,column]),min(genoutput[,column])))
-        genoutput[,column] = (genoutput[,column]-midvalue)/(max(genoutput[,column])-midvalue)
-      }
-    }
-
-    mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
-    #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
-    cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
+    existingmodel = attr(genoutput,"generating.model")
+    variables = all.vars(existingmodel)
+    linearterms = paste(variables, collapse=" + ")
+    linearmodel = paste0(c("~",linearterms),collapse="")
+    model = as.formula(paste(c(linearmodel,as.character(aliasmodel(existingmodel,2)[2])),collapse=" + "))
   }
+  V = attr(genoutput,"variance.matrix")
+  if(!is.null(attr(genoutput,"runmatrix"))) {
+    genoutput = attr(genoutput,"runmatrix")
+  }
+
+  factornames = colnames(genoutput)[unlist(lapply(genoutput,class)) %in% c("factor","character")]
+  if(length(factornames) > 0) {
+    contrastlist = list()
+    for(name in 1:length(factornames)) {
+      contrastlist[[factornames[name]]] = contr.simplex
+    }
+  } else {
+    contrastlist = NULL
+  }
+  #------Normalize/Center numeric columns ------#
+  for(column in 1:ncol(genoutput)) {
+    if(class(genoutput[,column]) == "numeric") {
+      midvalue = mean(c(max(genoutput[,column]),min(genoutput[,column])))
+      genoutput[,column] = (genoutput[,column]-midvalue)/(max(genoutput[,column])-midvalue)
+    }
+  }
+
+  mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
+  #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
+  cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
 
   if(is.null(customcolors)) {
     imagecolors = colorRampPalette(colors=c("black","white","green"))(101)

@@ -274,6 +274,8 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
 
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
         }
       }
       newOptimum = calculateDOptimality(initialdesign);

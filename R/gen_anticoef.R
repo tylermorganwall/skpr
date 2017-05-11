@@ -7,31 +7,27 @@
 #'@keywords internal
 gen_anticoef = function(RunMatrix,model) {
   #calculate levels for anticipated coefficients, with or without higher order effects
-  if(max(attr(terms(model),"order")) == 1) {
-    levels = sapply(lapply(RunMatrix,unique),length)-1
-    type = sapply(RunMatrix,class)
-  } else {
-    levels = sapply(lapply(RunMatrix,unique),length)-1
-    type = sapply(RunMatrix,class)
-    notlinear = attr(terms(model),"order") > 1
-    notlinear_notinteraction = grepl("^",attr(terms(model),"term.labels"),fixed=TRUE)
-    higherorder = attr(terms(model),"term.labels")[notlinear_notinteraction]
-    levels = c(levels,rep(1,length(higherorder)))
-    type = c(type, rep("numeric",length(higherorder)))
-    nonlinearterms = attr(terms(model),"term.labels")[notlinear]
-    for(term in nonlinearterms) {
-      higherlevel = 1
-      highertype = "numeric"
-      factors = strsplit(term,":")[[1]]
-      for(i in factors) {
-        if(class(RunMatrix[[i]]) == "factor") {
-          higherlevel = levels[i]*higherlevel
-          highertype = "factor"
-        }
+
+  levels = sapply(lapply(RunMatrix,unique),length)-1
+  type = sapply(RunMatrix,class)
+  notlinear = attr(terms(model),"order") > 1
+  notlinear_notinteraction = grepl("^",attr(terms(model),"term.labels"),fixed=TRUE)
+  higherorder = attr(terms(model),"term.labels")[notlinear_notinteraction]
+  levels = c(levels,rep(1,length(higherorder)))
+  type = c(type, rep("numeric",length(higherorder)))
+  nonlinearterms = attr(terms(model),"term.labels")[notlinear]
+  for(term in nonlinearterms) {
+    higherlevel = 1
+    highertype = "numeric"
+    factors = strsplit(term,":")[[1]]
+    for(i in factors) {
+      if(class(RunMatrix[[i]]) == "factor") {
+        higherlevel = levels[i]*higherlevel
+        highertype = "factor"
       }
-      levels = c(levels, higherlevel)
-      type = c(type,highertype)
     }
+    levels = c(levels, higherlevel)
+    type = c(type,highertype)
   }
 
   anticoef = c(1)

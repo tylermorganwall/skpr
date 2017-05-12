@@ -6,11 +6,15 @@
 #'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
-#'@param nsim The number of simulations.
-#'@param distribution Distribution of survival function
-#'@param rfunctionsurv Random number generator function. Should be a function of the form f(X,b), where X is the
+#'@param nsim Default 1000. The number of simulations.
+#'@param distribution Default "gaussian". Distribution of survival function.
+#'@param censorpoint Default NA for no censoring. The point after/before (for right censored or left censored data, respectively)
+#'which data should be labelled as censored.
+#'@param censortype Default "right". The type of censoring (either "left" or "right")
+#'@param rfunctionsurv Default NULL. Random number generator function. Should be a function of the form f(X,b), where X is the
 #'model matrix and b are the anticipated coefficients. This function should return a Surv object from
-#'the survival package.
+#'the survival package. This is available if the user wants to add their own distribution not interally supported
+#'or modify the existing random generation functions.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
@@ -27,30 +31,20 @@
 #'
 #'#We first generate simple 2-level design using expand.grid:
 #'basicdesign = expand.grid(a=c(-1, 1))
-#'design = gen_design(candidateset=basicdesign, model=~a, trials=100,
-#'                          optimality="D", repeats=100)
+#'design = gen_design(candidateset=basicdesign, model=~a, trials=15)
 #'
-#'#We want to evaluate this design with a Monte Carlo approach, taking into account
-#'#that some of the points will be censored. In this case, we need
-#'#to create a function that generates random numbers based on our run matrix X and
-#'#our anticipated coefficients (b), censors the results from those numbers based
-#'#on the censoring criteria, and then returns a Surv object from the survival package.
-#'#For an exponential distribution, the censored response is generated according to the
-#'#following formula:
+#'#We can then evaluate the power of the design in the same way as eval_design_mc,
+#'#now including the type of censoring (either right or left) and the point at which
+#'#the data should be censored:
 #'
-#'rsurvival = function(X, b) {
-#'  Y = rexp(n=nrow(X), rate=exp(-(X %*% b)))
-#'  censored = Y > 1
-#'  Y[censored] = 1
-#'  return(Surv(time=Y, event=!censored, type="right"))
-#'}
+#'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
+#'                        nsim=100, distribution="exponential",
+#'                        censorpoint=5,censortype="right")
 #'
-#'#We can then evaluate the power of the design in the same way as eval_design_mc:
+#'#Built-in Monte Carlo random generating functions are included for the gaussian, exponential,
+#'#and lognormal distributions.
 #'
-#'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05, nsim=100,
-#'                        distribution="exponential", rfunctionsurv=rsurvival, delta=1)
-#'
-#'#We can also evaluate different censored distributions by specifying a different
+#'#We can also evaluate different censored distributions by specifying a custom
 #'#random generating function and changing the distribution argument. You can also
 #'#specify any additional arguments at the end of the function call and they will be
 #'#input into the survreg function when it evaluates.
@@ -68,9 +62,53 @@
 #'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
 #'                        distribution="lognormal", rfunctionsurv=rlognorm,
 #'                        anticoef=c(0.184,0.101), delta=2, scale=0.4)
-eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution,
-                                   rfunctionsurv, anticoef, delta=2, contrasts = contr.sum,
+eval_design_survival_mc = function(RunMatrix, model, alpha,
+                                   nsim=1000, distribution="gaussian", censorpoint=NA, censortype="right",
+                                   rfunctionsurv=NULL, anticoef=NULL, delta=2, contrasts = contr.sum,
                                    parallel=FALSE, ...) {
+
+  #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
+  if(is.na(censorpoint)) {
+    censorfunction = function(data, point) {rep(FALSE,length(data))}
+  }
+  if(censortype == "left" && !is.na(censorpoint)) {
+    censorfunction = function(data, point) {data<point}
+  }
+  if(censortype == "right" && !is.na(censorpoint)) {
+    censorfunction = function(data, point) {data>point}
+  }
+
+  if(is.null(rfunctionsurv)) {
+    if(distribution == "exponential") {
+      rfunctionsurv = function(X, b) {
+        Y = rexp(n=nrow(X), rate=exp(-(X %*% b)))
+        Y[censorfunction(Y,censorpoint)] = censorpoint
+        return(Surv(time=Y, event=!censorfunction(Y,censorpoint), type=censortype))
+      }
+    }
+    if(distribution == "lognormal") {
+      rfunctionsurv = function(X, b) {
+        Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 1)
+        Y[censorfunction(Y,censorpoint)] = censorpoint
+        return(Surv(time=Y, event=!censorfunction(Y,censorpoint), type=censortype))
+      }
+    }
+    if(distribution == "gaussian") {
+      rfunctionsurv = function(X, b) {
+        Y = rnorm(n=nrow(X), mean=X %*% b, sd=1)
+        Y[censorfunction(Y,censorpoint)] = censorpoint
+        return(Surv(time=Y, event=!censorfunction(Y,censorpoint), type=censortype))
+      }
+    }
+  }
+
+  #------Normalize/Center numeric columns ------#
+  for(column in 1:ncol(RunMatrix)) {
+    if(class(RunMatrix[,column]) == "numeric") {
+      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
+      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
+    }
+  }
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
@@ -120,10 +158,10 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution,
       model_formula = update.formula(model, Y ~ .)
 
       #fit a model to the simulated data.
-      fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution,...)
+      fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution, ...)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = extractPvalues(fit)
+      pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
       estimates[j, ] = coef(fit)
     }
@@ -144,10 +182,10 @@ eval_design_survival_mc = function(RunMatrix, model, alpha, nsim, distribution,
       model_formula = update.formula(model, Y ~ .)
 
       #fit a model to the simulated data.
-      fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution,...)
+      fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution, ...)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = extractPvalues(fit)
+      pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
       power_values[pvals < alpha] = 1
       estimates = coef(fit)
       c(power_values, estimates)

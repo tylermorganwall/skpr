@@ -205,7 +205,6 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   if(any(lapply(blocklist,length) > 1)) {
     if(is.null(blocknoise)) {
-      warning("Warning: blocknoise argument missing. Blocking generated with default variance ratio of 1.")
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
@@ -345,7 +344,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       attr(retval,"correlation.matrix") = round(correlation.matrix,8)
-    }, error = function(e) {warning("Correlation matrix not calculated")})
+    }, error = function(e) {})
   }
 
   colnames(estimates) = parameter_names

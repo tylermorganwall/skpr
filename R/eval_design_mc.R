@@ -6,6 +6,7 @@
 #'@param RunMatrix The run matrix of the design.
 #'@param model The model used in the evaluation.
 #'@param alpha The type-I error.
+#'@param blocking Default FALSE. Set to TRUE if design has blocking structure.
 #'@param nsim The number of simulations.
 #'@param glmfamily String indicating the family of distribution for the glm function
 #'(e.g. "gaussian", "binomial", "poisson")
@@ -13,7 +14,8 @@
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. typically something like rnorm(nrow(X), X * b + delta, 0)
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the delta argument.
-#'@param blocknoise Vector of noise levels for each block, one element per blocking level. See examples for details.
+#'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
+#'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.
 #'@param contrasts The contrasts to use for categorical factors. Defaults to contr.sum.
@@ -87,7 +89,7 @@
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors. If
 #'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", blocknoise = c(1,1))
+#'               nsim=100, glmfamily="gaussian", varianceratios = c(1,1))
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
@@ -114,8 +116,8 @@
 #'#We see here we need about 90 test events to get accurately distinguish the three different
 #'#rates in each factor to 90% power.
 eval_design_mc = function(RunMatrix, model, alpha,
-                          nsim=1000, glmfamily="gaussian",
-                          blocknoise = NULL, rfunction=NULL, anticoef=NULL, delta=2,
+                          blocking=FALSE, nsim=1000, glmfamily="gaussian",
+                          varianceratios = NULL, rfunction=NULL, anticoef=NULL, delta=2,
                           contrasts=contr.sum, binomialprobs = NULL,
                           parallel=FALSE) {
   glmfamilyname = glmfamily
@@ -199,20 +201,34 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #-------------- Blocking errors --------------#
-  blocking = FALSE
   blocknames = rownames(RunMatrix)
   blocklist = strsplit(blocknames,".",fixed=TRUE)
 
   if(any(lapply(blocklist,length) > 1)) {
-    if(is.null(blocknoise)) {
+    if(is.null(varianceratios) || max(unlist(lapply(blocklist,length)))-1 != length(varianceratios)) {
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
-      blocknoise = rep(1,max(unlist(lapply(blocklist,length)))-1)
+
+      if(max(unlist(lapply(blocklist,length)))-1 != length(varianceratios) && length(varianceratios) != 1) {
+        warning("varianceratios length does not match number of split plots. Defaulting to variance ratio of 1 for all strata. ")
+        varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
+      }
+      if(length(varianceratios) == 1 && max(unlist(lapply(blocklist,length)))-1 != length(varianceratios)) {
+        varianceratios = rep(varianceratios,max(unlist(lapply(blocklist,length)))-1)
+      }
+      if(is.null(varianceratios)) {
+        varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
+      }
     } else {
       blocking = TRUE
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
+    }
+  } else {
+    if(blocking) {
+      warning("Blocking set to TRUE, but no blocks detected in rownames. Blocking ignored.")
+      blocking=FALSE
     }
   }
 
@@ -235,14 +251,14 @@ eval_design_mc = function(RunMatrix, model, alpha,
   responses = matrix(ncol=nsim,nrow=nrow(ModelMatrix))
   if(blocking) {
     for(i in 1:nsim) {
-      responses[,i] = rfunction(ModelMatrix,anticoef*delta/2,rblocknoise(noise=blocknoise,groups=blockgroups))
+      responses[,i] = rfunction(ModelMatrix,anticoef*delta/2,rblocknoise(noise=varianceratios,groups=blockgroups))
     }
   } else {
     responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2,rep(0,nrow(ModelMatrix))))
   }
   #-------Update formula with random blocks------#
 
-  if(!is.null(blocknoise)) {
+  if(blocking) {
     genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
     blockindicators = lapply(blockgroups,genBlockIndicators)
     blocknumber = length(blockgroups)-1

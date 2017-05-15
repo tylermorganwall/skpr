@@ -82,7 +82,7 @@
 #'#We can also evaluate the design with a custom ratio between the whole plot error to
 #'#the run-to-run error.
 #'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE,
-#'            varianceratio=2)
+#'            varianceratios=2)
 #'
 #'#If the design was generated outside of skpr and thus the row names do not have the
 #'#blocking structure encoded already, the user can add these manually. For a 12-run
@@ -99,7 +99,6 @@
 eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
                        delta=2, varianceratios=1, contrasts=contr.sum, conservative=FALSE) {
   RunMatrix = reduceRunMatrix(RunMatrix,model)
-
   #---Develop contrast lists for model matrix---#
   contrastslist = list()
   contrastslist_correlationmatrix = list()

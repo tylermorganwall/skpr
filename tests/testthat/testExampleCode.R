@@ -195,8 +195,8 @@ test_that("eval_design_mc example code runs without errors", {
     splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size+size, trials=72,
                                splitplotdesign=htcdesign, splitplotsizes=4)
   })
-  expect_warning(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-                 nsim=100, glmfamily="gaussian", blocknoise = c(1,1)))
+  expect_warning(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05, blocking=TRUE,
+                                nsim=100, glmfamily="gaussian", varianceratios = c(5,4,2)))
   factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
   expect_silent({
     designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)

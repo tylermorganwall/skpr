@@ -4,9 +4,10 @@
 \alias{eval_design_mc}
 \title{Evaluates power for model matrix with a Monte Carlo simulation}
 \usage{
-eval_design_mc(RunMatrix, model, alpha, nsim = 1000, glmfamily = "gaussian",
-  blocknoise = NULL, rfunction = NULL, anticoef = NULL, delta = 2,
-  contrasts = contr.sum, binomialprobs = NULL, parallel = FALSE)
+eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
+  glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
+  anticoef = NULL, delta = 2, contrasts = contr.sum,
+  binomialprobs = NULL, parallel = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -15,12 +16,15 @@ eval_design_mc(RunMatrix, model, alpha, nsim = 1000, glmfamily = "gaussian",
 
 \item{alpha}{The type-I error.}
 
+\item{blocking}{Default FALSE. Set to TRUE if design has blocking structure.}
+
 \item{nsim}{The number of simulations.}
 
 \item{glmfamily}{String indicating the family of distribution for the glm function
 (e.g. "gaussian", "binomial", "poisson")}
 
-\item{blocknoise}{Vector of noise levels for each block, one element per blocking level. See examples for details.}
+\item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
+this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
 
 \item{rfunction}{Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
 model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. typically something like rnorm(nrow(X), X * b + delta, 0)}
@@ -110,7 +114,7 @@ splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size
 
 #Evaluate the design. Note the decreased power for the blocking factors. If
 eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-              nsim=100, glmfamily="gaussian", blocknoise = c(1,1))
+              nsim=100, glmfamily="gaussian", varianceratios = c(1,1))
 
 #We can also use this method to evaluate designs that cannot be easily
 #evaluated using normal approximations. Here, we evaluate a design with a binomial response and see

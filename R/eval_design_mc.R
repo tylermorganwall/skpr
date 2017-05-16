@@ -205,12 +205,12 @@ eval_design_mc = function(RunMatrix, model, alpha,
   blocklist = strsplit(blocknames,".",fixed=TRUE)
 
   if(any(lapply(blocklist,length) > 1)) {
-    if(is.null(varianceratios) || max(unlist(lapply(blocklist,length)))-1 != length(varianceratios)) {
-      blocking = TRUE
+    if(blocking && (is.null(varianceratios) || max(unlist(lapply(blocklist,length)))-1 != length(varianceratios))) {
+
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
 
-      if(max(unlist(lapply(blocklist,length)))-1 != length(varianceratios) && length(varianceratios) != 1) {
+      if(!is.null(varianceratios) && max(unlist(lapply(blocklist,length)))-1 != length(varianceratios) && length(varianceratios) != 1) {
         warning("varianceratios length does not match number of split plots. Defaulting to variance ratio of 1 for all strata. ")
         varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
       }
@@ -220,10 +220,6 @@ eval_design_mc = function(RunMatrix, model, alpha,
       if(is.null(varianceratios)) {
         varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
       }
-    } else {
-      blocking = TRUE
-      blockstructure = do.call(rbind,blocklist)
-      blockgroups = apply(blockstructure,2,blockingstructure)
     }
   } else {
     if(blocking) {

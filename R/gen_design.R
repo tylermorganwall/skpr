@@ -277,8 +277,8 @@ gen_design = function(candidateset, model, trials,
   } else {
     candidatesetmm = model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist)
   }
-
   amodel = aliasmodel(model,aliaspower)
+
 
   if(model == amodel && optimality == "Alias") {
     stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
@@ -288,7 +288,9 @@ gen_design = function(candidateset, model, trials,
   if(length(contrastslist) == 0) {
     aliasmm = model.matrix(amodel,candidatesetnormalized)
   } else {
-    aliasmm = model.matrix(amodel,candidatesetnormalized,contrasts.arg=contrastslist)
+    suppressWarnings({
+      aliasmm = model.matrix(amodel,candidatesetnormalized,contrasts.arg=contrastslist)
+    })
   }
 
   if(!blocking) {
@@ -520,7 +522,9 @@ gen_design = function(candidateset, model, trials,
     rownames(correlation.matrix) = colnames(designmm)[-1]
     attr(design,"correlation.matrix") = round(correlation.matrix,8)
     if(amodel != model) {
-      aliasmatrix = model.matrix(aliasmodel(model,aliaspower),design,contrasts.arg = contrastslist)[,-1]
+      aliasmatrix = suppressWarnings({
+        model.matrix(aliasmodel(model,aliaspower),design,contrasts.arg = contrastslist)[,-1]
+      })
       A = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
       attr(design,"alias.matrix") = A
       attr(design,"trA") = sum(diag(t(A) %*% A))

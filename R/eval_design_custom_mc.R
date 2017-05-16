@@ -76,6 +76,14 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
                                  parameternames = NULL,
                                  parallel=FALSE, parallelpackages=NULL) {
 
+  #------Normalize/Center numeric columns ------#
+  for(column in 1:ncol(RunMatrix)) {
+    if(class(RunMatrix[,column]) == "numeric") {
+      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
+      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
+    }
+  }
+
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)

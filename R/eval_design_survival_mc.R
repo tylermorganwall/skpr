@@ -69,38 +69,42 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
 
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if(is.na(censorpoint)) {
-    censorfunction = function(data, point) {rep(FALSE,length(data))}
+    censorfunction = function(data, point) {return(rep(FALSE,length(data)))}
   }
   if(censortype == "left" && !is.na(censorpoint)) {
-    censorfunction = function(data, point) {data<point}
+    censorfunction = function(data, point) {return(data<point)}
   }
   if(censortype == "right" && !is.na(censorpoint)) {
-    censorfunction = function(data, point) {data>point}
+    censorfunction = function(data, point) {return(data>point)}
   }
 
   if(is.null(rfunctionsurv)) {
     if(distribution == "exponential") {
       rfunctionsurv = function(X, b) {
         Y = rexp(n=nrow(X), rate=exp(-(X %*% b)))
-        Y[censorfunction(Y,censorpoint)] = censorpoint
-        return(Surv(time=Y, event=!censorfunction(Y,censorpoint), type=censortype))
+        condition = censorfunction(Y,censorpoint)
+        Y[condition] = censorpoint
+        return(Surv(time=Y, event=!condition, type=censortype))
       }
     }
     if(distribution == "lognormal") {
       rfunctionsurv = function(X, b) {
         Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 1)
-        Y[censorfunction(Y,censorpoint)] = censorpoint
-        return(Surv(time=Y, event=!censorfunction(Y,censorpoint), type=censortype))
+        condition = censorfunction(Y,censorpoint)
+        Y[condition] = censorpoint
+        return(Surv(time=Y, event=!condition, type=censortype))
       }
     }
     if(distribution == "gaussian") {
       rfunctionsurv = function(X, b) {
         Y = rnorm(n=nrow(X), mean=X %*% b, sd=1)
-        Y[censorfunction(Y,censorpoint)] = censorpoint
-        return(Surv(time=Y, event=!censorfunction(Y,censorpoint), type=censortype))
+        condition = censorfunction(Y,censorpoint)
+        Y[condition] = censorpoint
+        return(Surv(time=Y, event=!condition, type=censortype))
       }
     }
   }
+
 
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
@@ -158,7 +162,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
       model_formula = update.formula(model, Y ~ .)
 
       #fit a model to the simulated data.
-      fit = survival::survreg(model_formula, data=RunMatrixReduced,dist=distribution, ...)
+      fit = survival::survreg(model_formula, data=RunMatrixReduced, dist=distribution, ...)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]

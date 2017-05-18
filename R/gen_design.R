@@ -484,17 +484,22 @@ gen_design = function(candidateset, model, trials,
     design = cbind(splitPlotReplicateDesign,design)
   }
 
-  attr(design,"D-Efficiency") = 100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
-  attr(design,"A-Efficiency") = AOptimality(designmm)
+  attr(design,"D-Efficiency") =  capture.output(100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm))
+  attr(design,"A-Efficiency") = tryCatch({capture.output(AOptimality(designmm))
+    }, error = function(e) {})
   if(!blocking) {
-    attr(design,"G") = max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm)))
-    attr(design,"T") = sum(diag(t(designmm) %*% designmm))
-    attr(design,"E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
-    attr(design,"variance.matrix") = diag(nrow(designmm))
-    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrow(designmm)))
+    tryCatch({
+      attr(design,"G") = max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm)))
+      attr(design,"T") = sum(diag(t(designmm) %*% designmm))
+      attr(design,"E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
+      attr(design,"variance.matrix") = diag(nrow(designmm))
+      attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = mm,blockedVar=diag(nrow(designmm)))
+    }, error = function(e) {})
   } else {
-    attr(design,"variance.matrix") = V
-    attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blockedVar = V)
+    tryCatch({
+      attr(design,"variance.matrix") = V
+      attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blockedVar = V)
+    }, error = function(e) {})
   }
   attr(design,"model.matrix") = designmm
   attr(design,"generating.model") = model
@@ -516,23 +521,25 @@ gen_design = function(candidateset, model, trials,
     attr(design,"varianceratios") = varianceRatios
   }
 
-  if(ncol(designmm) > 2) {
-    correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1,-1])
-    colnames(correlation.matrix) = colnames(designmm)[-1]
-    rownames(correlation.matrix) = colnames(designmm)[-1]
-    attr(design,"correlation.matrix") = round(correlation.matrix,8)
-    if(amodel != model) {
-      aliasmatrix = suppressWarnings({
-        model.matrix(aliasmodel(model,aliaspower),design,contrasts.arg = contrastslist)[,-1]
-      })
-      A = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
-      attr(design,"alias.matrix") = A
-      attr(design,"trA") = sum(diag(t(A) %*% A))
-    } else {
-      attr(design,"alias.matrix") = "No alias matrix calculated: full model specified"
-      attr(design,"trA") = "No alias trace calculated: full model specified"
+  tryCatch({
+    if(ncol(designmm) > 2) {
+      correlation.matrix = capture.output(abs(cov2cor(covarianceMatrix(designmm))[-1,-1]))
+      colnames(correlation.matrix) = colnames(designmm)[-1]
+      rownames(correlation.matrix) = colnames(designmm)[-1]
+      attr(design,"correlation.matrix") = round(correlation.matrix,8)
+      if(amodel != model) {
+        aliasmatrix = suppressWarnings({
+          model.matrix(aliasmodel(model,aliaspower),design,contrasts.arg = contrastslist)[,-1]
+        })
+        A = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
+        attr(design,"alias.matrix") = A
+        attr(design,"trA") = sum(diag(t(A) %*% A))
+      } else {
+        attr(design,"alias.matrix") = "No alias matrix calculated: full model specified"
+        attr(design,"trA") = "No alias trace calculated: full model specified"
+      }
     }
-  }
+  }, error = function(e) {})
 
   attr(design,"contrastslist") = contrastslist
 

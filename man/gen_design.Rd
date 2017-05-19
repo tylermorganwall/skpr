@@ -32,7 +32,7 @@ argument splitplotdesign. If the input is a vector, each entry of the vector det
 for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.}
 
 \item{optimality}{Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-only supports the D, I, and A criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E"}
+only supports the D, I, A, and E criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E"}
 
 \item{repeats}{The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.}
 

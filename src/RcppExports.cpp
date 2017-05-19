@@ -29,6 +29,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calculateAOptimalityPseudo
+double calculateAOptimalityPseudo(arma::mat currentDesign);
+RcppExport SEXP skpr_calculateAOptimalityPseudo(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateAOptimalityPseudo(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calculateDEfficiency
 double calculateDEfficiency(arma::mat currentDesign);
 RcppExport SEXP skpr_calculateDEfficiency(SEXP currentDesignSEXP) {
@@ -48,6 +59,17 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type design(designSEXP);
     rcpp_result_gen = Rcpp::wrap(covarianceMatrix(design));
+    return rcpp_result_gen;
+END_RCPP
+}
+// covarianceMatrixPseudo
+arma::mat covarianceMatrixPseudo(arma::mat design);
+RcppExport SEXP skpr_covarianceMatrixPseudo(SEXP designSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type design(designSEXP);
+    rcpp_result_gen = Rcpp::wrap(covarianceMatrixPseudo(design));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -73,6 +73,15 @@ test_that("gen_design example code runs without errors", {
   expect_silent({
     designsplitplot = gen_design(easytochangefactors, ~Range+Power, trials=33, splitplotdesign=hardtochangedesign,
                                  splitplotsizes = splitplotblocksize)})
+
+  expect_silent({design = gen_design(easytochangefactors, ~Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="I")})
+  expect_silent({design = gen_design(easytochangefactors, ~Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="A")})
+  expect_silent({design = gen_design(easytochangefactors, ~Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="D")})
+  expect_silent({design = gen_design(easytochangefactors, ~Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="E")})
   #'
   #'#The split-plot structure is encoded into the row names, with a period demarcating the blocking level. This process
   #'#can be repeated for arbitrary levels of blocking (i.e. a split-plot design can be entered in as the hard-to-change
@@ -191,10 +200,10 @@ test_that("eval_design_mc example code runs without errors", {
   vhtc = expand.grid(Store=as.factor(c("A","B")))
   htc = expand.grid(Temp = c(1,-1))
 
-  vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=6)
-  htcdesign = gen_design(candidateset=htc, model=~Temp, trials=18, splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6))
+  vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=8)
+  htcdesign = gen_design(candidateset=htc, model=~Temp, trials=24, splitplotdesign=vhtcdesign, splitplotsizes=3)
   expect_silent({
-    splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size+size, trials=72,
+    splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size+size, trials=96,
                                splitplotdesign=htcdesign, splitplotsizes=4)
   })
   expect_warning(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05, blocking=TRUE,

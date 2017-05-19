@@ -16,13 +16,32 @@ double calculateBlockedAOptimality(arma::mat currentDesign,const arma::mat gls) 
   return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)));
 }
 
-double calculateBlockedAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix) {
-  arma::mat A = inv_sympd(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
+double calculateBlockedAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix,const arma::mat gls) {
+  arma::mat A = inv_sympd(currentDesign.t()*gls*currentDesign)*currentDesign.t()*aliasMatrix;
   return(trace(A.t() * A));
 }
 
-double calculateBlockedDEff(arma::mat currentDesign) {
-  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+double calculateBlockedGOptimality(arma::mat currentDesign, const arma::mat candidateSet, const arma::mat gls) {
+  arma::mat results = candidateSet*inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t();
+  return(results.diag().max());
+}
+
+double calculateBlockedTOptimality(arma::mat currentDesign,const arma::mat gls) {
+  return(trace(currentDesign.t()*gls*currentDesign));
+}
+
+double calculateBlockedEOptimality(arma::mat currentDesign,const arma::mat gls) {
+  arma::vec eigval;
+  arma::eig_sym(eigval,currentDesign.t()*gls*currentDesign);
+  return(eigval.min());
+}
+
+double calculateBlockedDEff(arma::mat currentDesign,const arma::mat gls) {
+  return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+}
+
+double calculateBlockedDEffNN(arma::mat currentDesign,const arma::mat gls) {
+  return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols))));
 }
 
 //`@title genOptimalDesign
@@ -201,7 +220,105 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       newOptimum = calculateBlockedAOptimality(combinedDesign,vInv);
     }
   }
-
+  //Commented out until bugs worked out
+  /*if(condition == "G") {
+    arma::mat temp;
+    newOptimum = calculateBlockedGOptimality(combinedDesign, candidatelist, vInv);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedGOptimality(combinedDesign,candidatelist,vInv);
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          newdel = calculateBlockedGOptimality(temp, candidatelist, vInv);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedGOptimality(combinedDesign, candidatelist, vInv);
+    }
+  }
+  if(condition == "T") {
+    arma::mat temp;
+    newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedTOptimality(combinedDesign,vInv);
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          newdel = calculateBlockedTOptimality(temp, vInv);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
+    }
+  }
+   */
+  //Generate an E-optimal design, fixing the blocking factors
+  if(condition == "E") {
+    arma::mat temp;
+    newOptimum = calculateBlockedEOptimality(combinedDesign, vInv);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedEOptimality(combinedDesign,vInv);
+      for (unsigned int i = 0; i < nTrials; i++) {
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          newdel = calculateBlockedEOptimality(temp, vInv);
+          if(newdel > del) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedEOptimality(combinedDesign, vInv);
+    }
+  }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign, _["criterion"] = newOptimum));
 }

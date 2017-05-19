@@ -9,12 +9,20 @@ calcAliasTrace <- function(currentDesign, aliasMatrix) {
     .Call('skpr_calcAliasTrace', PACKAGE = 'skpr', currentDesign, aliasMatrix)
 }
 
+calculateAOptimalityPseudo <- function(currentDesign) {
+    .Call('skpr_calculateAOptimalityPseudo', PACKAGE = 'skpr', currentDesign)
+}
+
 calculateDEfficiency <- function(currentDesign) {
     .Call('skpr_calculateDEfficiency', PACKAGE = 'skpr', currentDesign)
 }
 
 covarianceMatrix <- function(design) {
     .Call('skpr_covarianceMatrix', PACKAGE = 'skpr', design)
+}
+
+covarianceMatrixPseudo <- function(design) {
+    .Call('skpr_covarianceMatrixPseudo', PACKAGE = 'skpr', design)
 }
 
 DOptimality <- function(currentDesign) {

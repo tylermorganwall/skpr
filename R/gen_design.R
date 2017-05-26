@@ -28,7 +28,6 @@
 #'@param minDopt Default 0.95. Minimum value for the D-Optimality of a design when searching for alias optimal designs.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
-#'@param disallowedcombinations Default FALSE. Set TRUE if the candidate list has had any test points removed.
 #'@return The optimal design. Attributes can be accessed with the attr function.
 #'@export
 #'@examples #Generate the basic factorial design used in generating the optimal design with expand.grid.
@@ -142,7 +141,7 @@ gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
                       repeats=10, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.95,
-                      parallel=FALSE, timer=FALSE, disallowedcombinations=FALSE) {
+                      parallel=FALSE, timer=FALSE) {
 
 
   candidateset = unique(reduceRunMatrix(candidateset, model))
@@ -302,7 +301,6 @@ gen_design = function(candidateset, model, trials,
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                          hasdisallowedcombinations = disallowedcombinations,
                                           aliasdesign = aliasmm[randomIndices,],
                                           aliascandidatelist = aliasmm, minDopt = minDopt)
         }
@@ -312,7 +310,6 @@ gen_design = function(candidateset, model, trials,
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
         genOutput[[1]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                          hasdisallowedcombinations = disallowedcombinations,
                                           aliasdesign = aliasmm[randomIndices,],
                                           aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
@@ -320,7 +317,6 @@ gen_design = function(candidateset, model, trials,
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                            hasdisallowedcombinations = disallowedcombinations,
                                             aliasdesign = aliasmm[randomIndices,],
                                             aliascandidatelist = aliasmm, minDopt = minDopt)
         }
@@ -334,7 +330,6 @@ gen_design = function(candidateset, model, trials,
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                           hasdisallowedcombinations = disallowedcombinations,
                            aliasdesign = aliasmm[randomIndices,],
                            aliascandidatelist = aliasmm, minDopt = minDopt)
         }
@@ -348,7 +343,6 @@ gen_design = function(candidateset, model, trials,
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
         genOutputOne = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                        hasdisallowedcombinations = disallowedcombinations,
                                         aliasdesign = aliasmm[randomIndices,],
                                         aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
@@ -357,7 +351,6 @@ gen_design = function(candidateset, model, trials,
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                           hasdisallowedcombinations = disallowedcombinations,
                            aliasdesign = aliasmm[randomIndices,],
                            aliascandidatelist = aliasmm, minDopt = minDopt)
         }

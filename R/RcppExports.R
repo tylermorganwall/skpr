@@ -37,8 +37,8 @@ genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign,
     .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt)
 }
 
-genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt) {
-    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt)
+genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt) {
+    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt)
 }
 
 getPseudoInverse <- function(currentDesign) {

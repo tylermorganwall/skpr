@@ -117,8 +117,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // genOptimalDesign
-List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
-RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP hasdisallowedcombinationsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
+List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
+RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -127,11 +127,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type condition(conditionSEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type momentsmatrix(momentsmatrixSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
-    Rcpp::traits::input_parameter< bool >::type hasdisallowedcombinations(hasdisallowedcombinationsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type aliasdesign(aliasdesignSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
     Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
-    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, hasdisallowedcombinations, aliasdesign, aliascandidatelist, minDopt));
+    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt));
     return rcpp_result_gen;
 END_RCPP
 }

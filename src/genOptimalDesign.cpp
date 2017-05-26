@@ -61,7 +61,7 @@ double calculateDEffNN(arma::mat currentDesign) {
 //`@return stufff
 // [[Rcpp::export]]
 List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std::string condition,
-                      const arma::mat momentsmatrix, NumericVector initialRows, bool hasdisallowedcombinations,
+                      const arma::mat momentsmatrix, NumericVector initialRows,
                       arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt) {
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
@@ -69,25 +69,6 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
   unsigned int totalPoints = candidatelist.n_rows;
   arma::vec candidateRow(nTrials);
   arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
-  //Check to see if the design could be a full factorial or replicated full factorial -- TURNED OFF
-  /*if(nTrials % totalPoints == 0 && !hasdisallowedcombinations) {
-    double criterion;
-    for(unsigned int i = 0; i < nTrials; i++) {
-      initialdesign.row(i) = candidatelist.row(i % totalPoints);
-      candidateRow[i] = i % totalPoints+1;
-    }
-    arma::vec returnRow = shuffle(candidateRow);
-    if(condition == "D" || condition == "Alias") {
-      criterion = calculateDOptimality(initialdesign);
-    }
-    if(condition == "I") {
-      criterion = calculateIOptimality(initialdesign,momentsmatrix);
-    }
-    if(condition == "A") {
-      criterion = calculateAOptimality(initialdesign);
-    }
-    return(List::create(_["indices"] = returnRow, _["modelmatrix"] = initialdesign, _["criterion"] = criterion));
-  } */
   if(nTrials < candidatelist.n_cols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }

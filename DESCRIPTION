@@ -1,6 +1,6 @@
 Package: skpr
 Title: skpr
-Version: 0.26.0.0
+Version: 0.26.1.0
 Authors@R: c(person("Tyler", "Morgan-Wall", email = "tylermw@gmail.com", role = c("aut", "cre")),
              person("George", "Khoury", email = "george.m.khoury@gmail.com", role = c("aut")))
 Description: Generates optimal designs and calculates power for those designs given a model and a factorial design for the given parameters. Evaluation can be done with both normal approximation techniques and Monte Carlo methods, and includes a method to evaluate a censored response variable.

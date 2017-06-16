@@ -361,8 +361,8 @@ function(input, output) {
   code = reactive({
     blocking = any("htc" %in% c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5)[1:input$numberfactors])
     first = paste0(c("<br><pre>",
-                     "# This is the R code used to generate these results in skpr.<br>",
-                     "# Copy this into an R script and rerun to reproduce these results.<br><br>",
+                     "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
+                     "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
                      ifelse(blocking,
                             paste0(c("# Generating Hard-to-change candidate set:<br>candidateset_htc = expand.grid(",
                                      inputstring_htc(), ")<br><br>",
@@ -531,7 +531,6 @@ function(input, output) {
                  trials = isolate(input$trials),
                  optimality = isolate(input$optimality),
                  repeats = isolate(input$repeats),
-                 varianceratio = isolate(input$varianceratio),
                  aliaspower = isolate(input$aliaspower),
                  minDopt = isolate(input$mindopt),
                  parallel = isolate(as.logical(input$parallel)))
@@ -610,8 +609,6 @@ function(input, output) {
   powerresultsglm = reactive({
     input$evalbutton
     if(evaluationtype() == "glm") {
-      print(runmatrix())
-      print(input$model)
       eval_design_mc(RunMatrix = isolate(runmatrix()),
                      model = isolate(as.formula(input$model)),
                      alpha = isolate(input$alpha),

@@ -23,20 +23,24 @@
 #'#You can also pass a custom color map to be used with.
 #'plot_correlations(cardesign,customcolors=c("blue","grey","red"))
 #'plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
-plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
+plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
 
   if(is.null(model)) {
-    existingmodel = attr(genoutput,"generating.model")
-    variables = all.vars(existingmodel)
+    if(!is.null(attr(genoutput,"runmatrix"))) {
+      variables = colnames(attr(genoutput,"runmatrix"))
+      runmat = attr(genoutput,"runmatrix")
+    } else {
+      variables = colnames(genoutput)
+      runmat = genoutput
+    }
     linearterms = paste(variables, collapse=" + ")
     linearmodel = paste0(c("~",linearterms),collapse="")
-    model = as.formula(paste(c(linearmodel,as.character(aliasmodel(existingmodel,2)[2])),collapse=" + "))
+    model = as.formula(paste(c(linearmodel,as.character(aliasmodel(as.formula(linearmodel),power=pow)[2])),collapse=" + "))
   }
   V = attr(genoutput,"variance.matrix")
   if(!is.null(attr(genoutput,"runmatrix"))) {
     genoutput = attr(genoutput,"runmatrix")
   }
-
   factornames = colnames(genoutput)[unlist(lapply(genoutput,class)) %in% c("factor","character")]
   if(length(factornames) > 0) {
     contrastlist = list()
@@ -56,7 +60,7 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
 
   mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
   #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
-  cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
+  cormat = abs(cov2cor(skpr:::getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
 
   if(is.null(customcolors)) {
     imagecolors = colorRampPalette(colors=c("black","white","green"))(101)

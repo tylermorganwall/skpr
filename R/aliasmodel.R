@@ -8,6 +8,7 @@
 #'@return Returns aliased model terms from formula
 aliasmodel = function(formula, power) {
   existingterms = attr(terms(formula),"term.labels")
+  # existingterms = c(existingterms,disallowed)
   variables = all.vars(formula)
 
   if(power < 2) {
@@ -20,7 +21,7 @@ aliasmodel = function(formula, power) {
     return(formula)
   }
   for(pow in 2:power) {
-    powerterms = apply(combn(variables,pow), 2, paste, collapse=":")
+    powerterms = apply(combn(variables,pow), 2, paste, collapse="*")
     powerterms = powerterms[!(powerterms %in% existingterms)]
     if(length(powerterms) > 0) {
       aliasterms = c(aliasterms,paste(powerterms, collapse=" + "))

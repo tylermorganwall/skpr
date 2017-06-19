@@ -512,6 +512,20 @@ gen_design = function(candidateset, model, trials,
     attr(design,"moments.matrix") = blockedMM
     attr(design,"V") = V
     attr(design,"varianceratios") = varianceRatios
+    finallist = list()
+    counterfinallist = 1
+    for(row in 1:nrow(splitplotdesign)) {
+      for(size in 1:splitplotsizes[row]) {
+        finallist[[counterfinallist]] = splitplotdesign[row,]
+        counterfinallist = counterfinallist + 1
+      }
+    }
+    finalspddesign = do.call(rbind,finallist)
+    for(col in 1:ncol(finalspddesign)) {
+      if(class(finalspddesign[,col]) == "numeric") {
+        design[,col] = finalspddesign[,col]
+      }
+    }
   }
 
   tryCatch({

@@ -4,6 +4,7 @@
 #'
 #'@param genoutput The run matrix
 #'@param model The model, by default uses the model used in eval_design or gen_design.
+#'@param continuouslength Default 9. The precision of the continuous variables.
 #'@return Plots design diagnostics
 #'@import graphics grDevices
 #'@export
@@ -20,7 +21,7 @@
 #'cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
 #'
 #'plot_fds(cardesign)
-plot_fds = function(genoutput,model=NULL) {
+plot_fds = function(genoutput,model=NULL,continuouslength = 9) {
 
   Iopt = attr(genoutput,"I")
   V = attr(genoutput,"variance.matrix")
@@ -47,7 +48,7 @@ plot_fds = function(genoutput,model=NULL) {
       factorrange[[colnames(genoutput)[col]]] = unique(genoutput[,col])
     }
     if(class(genoutput[,col]) == "numeric") {
-      factorrange[[colnames(genoutput)[col]]] = seq(-1,1,0.01)
+      factorrange[[colnames(genoutput)[col]]] = seq(-1,1,length.out=continuouslength)
     }
   }
   fullgrid = expand.grid(factorrange)

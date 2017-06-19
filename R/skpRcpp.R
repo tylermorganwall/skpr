@@ -1,3 +1,3 @@
-#' @useDynLib skpr
+#' @useDynLib skpr, .registration = TRUE
 #' @importFrom Rcpp evalCpp
 NULL

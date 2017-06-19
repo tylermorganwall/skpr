@@ -76,31 +76,35 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   combinedDesign(arma::span::all,arma::span(blockedCols,blockedCols+designCols-1)) = initialdesign;
   IntegerVector candidateRow(nTrials);
   arma::mat test(combinedDesign.n_cols,combinedDesign.n_cols,arma::fill::zeros);
-  if(nTrials <= candidatelist.n_cols + blockedCols) {
+  if(nTrials < candidatelist.n_cols + blockedCols) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
-  while(!inv_sympd(test,combinedDesign.t() * combinedDesign) && check < maxSingularityChecks) {
-    if (nTrials < totalPoints) {
-      arma::vec shuffledindices = arma::shuffle(arma::regspace(0,totalPoints-1));
-      arma::vec indices(nTrials);
-      for(unsigned int i = 0; i < nTrials; i++) {
-        indices(i) = shuffledindices(i);
+  while(check < maxSingularityChecks) {
+    if(!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
+      if (nTrials < totalPoints) {
+        arma::vec shuffledindices = arma::shuffle(arma::regspace(0,totalPoints-1));
+        arma::vec indices(nTrials);
+        for(unsigned int i = 0; i < nTrials; i++) {
+          indices(i) = shuffledindices(i);
+        }
+        for(unsigned int i = 0; i < nTrials; i++) {
+          combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(indices(i));
+        }
+      } else {
+        arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
+        for(unsigned int i = 0; i < nTrials; i++) {
+          combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
+        }
       }
-      for(unsigned int i = 0; i < nTrials; i++) {
-        combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(indices(i));
-      }
+      check++;
     } else {
-      arma::vec randomrows = arma::randi<arma::vec>(nTrials, arma::distr_param(0, totalPoints-1));
-      for(unsigned int i = 0; i < nTrials; i++) {
-        combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
-      }
+      break;
     }
-    check++;
   }
   //If still no non-singular design, throws and error and exits.
-  if (!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
-    throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
-  }
+  // if (!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
+  //   throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
+  // }
   double del = 0;
   bool found = FALSE;
   int entryx = 0;

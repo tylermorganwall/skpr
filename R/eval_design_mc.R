@@ -205,7 +205,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
   blocklist = strsplit(blocknames,".",fixed=TRUE)
 
   if(any(lapply(blocklist,length) > 1)) {
-    if(blocking && (is.null(varianceratios) || max(unlist(lapply(blocklist,length)))-1 != length(varianceratios))) {
+    # if(blocking && (is.null(varianceratios) || max(unlist(lapply(blocklist,length)))-1 != length(varianceratios))) {
+    if(blocking) {
 
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)

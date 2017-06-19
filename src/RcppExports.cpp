@@ -158,3 +158,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
+static const R_CallMethodDef CallEntries[] = {
+    {"skpr_AOptimality", (DL_FUNC) &skpr_AOptimality, 1},
+    {"skpr_calcAliasTrace", (DL_FUNC) &skpr_calcAliasTrace, 2},
+    {"skpr_calculateAOptimalityPseudo", (DL_FUNC) &skpr_calculateAOptimalityPseudo, 1},
+    {"skpr_calculateDEfficiency", (DL_FUNC) &skpr_calculateDEfficiency, 1},
+    {"skpr_covarianceMatrix", (DL_FUNC) &skpr_covarianceMatrix, 1},
+    {"skpr_covarianceMatrixPseudo", (DL_FUNC) &skpr_covarianceMatrixPseudo, 1},
+    {"skpr_DOptimality", (DL_FUNC) &skpr_DOptimality, 1},
+    {"skpr_DOptimalityBlocked", (DL_FUNC) &skpr_DOptimalityBlocked, 2},
+    {"skpr_genBlockedOptimalDesign", (DL_FUNC) &skpr_genBlockedOptimalDesign, 10},
+    {"skpr_genOptimalDesign", (DL_FUNC) &skpr_genOptimalDesign, 8},
+    {"skpr_getPseudoInverse", (DL_FUNC) &skpr_getPseudoInverse, 1},
+    {"skpr_IOptimality", (DL_FUNC) &skpr_IOptimality, 3},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_skpr(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}

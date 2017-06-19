@@ -4,7 +4,7 @@
 \alias{plot_fds}
 \title{Plots design diagnostics}
 \usage{
-plot_fds(genoutput, model = NULL)
+plot_fds(genoutput, model = NULL, continuouslength = 9)
 }
 \arguments{
 \item{genoutput}{The run matrix}

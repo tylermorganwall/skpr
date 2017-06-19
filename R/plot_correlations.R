@@ -5,6 +5,7 @@
 #'@param genoutput The output of either gen_design or eval_design/eval_design_mc
 #'@param model Default NULL. If specified, it will override the default model used to generate/evaluate the design.
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
+#'@param pow Default 2. The interaction level that the correlation map is showing.
 #'@return Plots design diagnostics
 #'@import graphics grDevices
 #'@export
@@ -23,20 +24,24 @@
 #'#You can also pass a custom color map to be used with.
 #'plot_correlations(cardesign,customcolors=c("blue","grey","red"))
 #'plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
-plot_correlations = function(genoutput,model=NULL,customcolors=NULL) {
+plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
 
   if(is.null(model)) {
-    existingmodel = attr(genoutput,"generating.model")
-    variables = all.vars(existingmodel)
+    if(!is.null(attr(genoutput,"runmatrix"))) {
+      variables = colnames(attr(genoutput,"runmatrix"))
+      runmat = attr(genoutput,"runmatrix")
+    } else {
+      variables = colnames(genoutput)
+      runmat = genoutput
+    }
     linearterms = paste(variables, collapse=" + ")
     linearmodel = paste0(c("~",linearterms),collapse="")
-    model = as.formula(paste(c(linearmodel,as.character(aliasmodel(existingmodel,2)[2])),collapse=" + "))
+    model = as.formula(paste(c(linearmodel,as.character(aliasmodel(as.formula(linearmodel),power=pow)[2])),collapse=" + "))
   }
   V = attr(genoutput,"variance.matrix")
   if(!is.null(attr(genoutput,"runmatrix"))) {
     genoutput = attr(genoutput,"runmatrix")
   }
-
   factornames = colnames(genoutput)[unlist(lapply(genoutput,class)) %in% c("factor","character")]
   if(length(factornames) > 0) {
     contrastlist = list()

@@ -103,9 +103,9 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
     }
   }
   //If still no non-singular design, throws and error and exits.
-  if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
-    throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
-  }
+  // if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
+  //   throw std::runtime_error("All initial attempts to generate a non-singular matrix failed. Try again or reconfigure inputs.");
+  // }
   bool found = FALSE;
   double del = 0;
   int entryx = 0;

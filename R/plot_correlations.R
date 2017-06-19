@@ -5,6 +5,7 @@
 #'@param genoutput The output of either gen_design or eval_design/eval_design_mc
 #'@param model Default NULL. If specified, it will override the default model used to generate/evaluate the design.
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
+#'@param pow Default 2. The interaction level that the correlation map is showing.
 #'@return Plots design diagnostics
 #'@import graphics grDevices
 #'@export
@@ -60,7 +61,7 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
 
   mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
   #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
-  cormat = abs(cov2cor(skpr:::getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
+  cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
 
   if(is.null(customcolors)) {
     imagecolors = colorRampPalette(colors=c("black","white","green"))(101)

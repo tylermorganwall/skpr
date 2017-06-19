@@ -4,6 +4,7 @@
 #'
 #'@param genoutput The run matrix
 #'@param model The model, by default uses the model used in eval_design or gen_design.
+#'@param continuouslength Default 9. The precision of the continuous variables.
 #'@return Plots design diagnostics
 #'@import graphics grDevices
 #'@export

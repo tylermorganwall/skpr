@@ -3,6 +3,7 @@
 #'@description skprGUI
 #'
 #'@return skprGUI
+#'@import shiny
 #'@export
 skprGUI = function() {
   appDir = system.file("shiny-examples", "skprGUI", package = "skpr")

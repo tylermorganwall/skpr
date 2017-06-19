@@ -521,7 +521,11 @@ gen_design = function(candidateset, model, trials,
       }
     }
     finalspddesign = do.call(rbind,finallist)
-    design[1:nrow(design),1:ncol(finalspddesign)] = finalspddesign
+    for(col in 1:ncol(finalspddesign)) {
+      if(class(finalspddesign[,col]) == "numeric") {
+        design[,col] = finalspddesign[,col]
+      }
+    }
   }
 
   tryCatch({

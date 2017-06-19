@@ -2,50 +2,50 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 AOptimality <- function(currentDesign) {
-    .Call('skpr_AOptimality', PACKAGE = 'skpr', currentDesign)
+    .Call(skpr_AOptimality, currentDesign)
 }
 
 calcAliasTrace <- function(currentDesign, aliasMatrix) {
-    .Call('skpr_calcAliasTrace', PACKAGE = 'skpr', currentDesign, aliasMatrix)
+    .Call(skpr_calcAliasTrace, currentDesign, aliasMatrix)
 }
 
 calculateAOptimalityPseudo <- function(currentDesign) {
-    .Call('skpr_calculateAOptimalityPseudo', PACKAGE = 'skpr', currentDesign)
+    .Call(skpr_calculateAOptimalityPseudo, currentDesign)
 }
 
 calculateDEfficiency <- function(currentDesign) {
-    .Call('skpr_calculateDEfficiency', PACKAGE = 'skpr', currentDesign)
+    .Call(skpr_calculateDEfficiency, currentDesign)
 }
 
 covarianceMatrix <- function(design) {
-    .Call('skpr_covarianceMatrix', PACKAGE = 'skpr', design)
+    .Call(skpr_covarianceMatrix, design)
 }
 
 covarianceMatrixPseudo <- function(design) {
-    .Call('skpr_covarianceMatrixPseudo', PACKAGE = 'skpr', design)
+    .Call(skpr_covarianceMatrixPseudo, design)
 }
 
 DOptimality <- function(currentDesign) {
-    .Call('skpr_DOptimality', PACKAGE = 'skpr', currentDesign)
+    .Call(skpr_DOptimality, currentDesign)
 }
 
 DOptimalityBlocked <- function(currentDesign, blockedVar) {
-    .Call('skpr_DOptimalityBlocked', PACKAGE = 'skpr', currentDesign, blockedVar)
+    .Call(skpr_DOptimalityBlocked, currentDesign, blockedVar)
 }
 
 genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt) {
-    .Call('skpr_genBlockedOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt)
+    .Call(skpr_genBlockedOptimalDesign, initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt)
 }
 
 genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt) {
-    .Call('skpr_genOptimalDesign', PACKAGE = 'skpr', initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt)
+    .Call(skpr_genOptimalDesign, initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt)
 }
 
 getPseudoInverse <- function(currentDesign) {
-    .Call('skpr_getPseudoInverse', PACKAGE = 'skpr', currentDesign)
+    .Call(skpr_getPseudoInverse, currentDesign)
 }
 
 IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {
-    .Call('skpr_IOptimality', PACKAGE = 'skpr', currentDesign, momentsMatrix, blockedVar)
+    .Call(skpr_IOptimality, currentDesign, momentsMatrix, blockedVar)
 }
 

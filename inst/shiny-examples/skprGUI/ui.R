@@ -346,7 +346,7 @@ shinyUI(fluidPage(
                                          choiceValues = list("FALSE","TRUE"),
                                          label = "Parallel")
                    ),
-                   tabPanel("Evaluation",
+                   tabPanel("Power",
                             radioButtons(inputId = "evaltype",
                                          label="Model Type",
                                          choiceNames = c("Linear Model","Generalized Linear Model","Survival Model"),

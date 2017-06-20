@@ -20,4 +20,3 @@ The parameter matrix L isolating the levels of parameter of interest
 Generates hypothesis matrix for power calculation
 }
 \keyword{internal}
-

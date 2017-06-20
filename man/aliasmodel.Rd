@@ -16,4 +16,3 @@ Returns aliased model terms from formula
 Creates alias terms for Alias-optimal designs
 }
 \keyword{internal}
-

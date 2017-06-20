@@ -22,4 +22,3 @@ The parameter power for the parameters
 Calculates parameter power
 }
 \keyword{internal}
-

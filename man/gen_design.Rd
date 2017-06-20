@@ -164,4 +164,3 @@ plot_fds(design2)
 #eval_design_survival_mc (Monte Carlo survival analysis), and
 #eval_design_custom_mc (Custom Library Monte Carlo)
 }
-

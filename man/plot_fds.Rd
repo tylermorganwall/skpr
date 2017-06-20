@@ -10,6 +10,8 @@ plot_fds(genoutput, model = NULL, continuouslength = 9)
 \item{genoutput}{The run matrix}
 
 \item{model}{The model, by default uses the model used in eval_design or gen_design.}
+
+\item{continuouslength}{Default 9. The precision of the continuous variables.}
 }
 \value{
 Plots design diagnostics
@@ -31,4 +33,3 @@ cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
 
 plot_fds(cardesign)
 }
-

@@ -97,4 +97,3 @@ d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
 
 #This has the exact same behavior as eval_design_survival_mc.
 }
-

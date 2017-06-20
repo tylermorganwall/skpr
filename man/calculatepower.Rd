@@ -22,4 +22,3 @@ The power for a given parameter L, given the
 Calculates the power of the model given the non-centrality parameter
 }
 \keyword{internal}
-

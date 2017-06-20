@@ -16,4 +16,3 @@ Returns number of runs in full factorial
 Determines full factorial size
 }
 \keyword{internal}
-

@@ -16,4 +16,3 @@ Anticipated coefficients.
 Generates Anticipated Coefficients
 }
 \keyword{internal}
-

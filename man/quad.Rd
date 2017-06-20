@@ -16,4 +16,3 @@ Returns quadratic model from formula
 quadratic
 }
 \keyword{internal}
-

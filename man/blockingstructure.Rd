@@ -16,4 +16,3 @@ Returns the blocking structure given a vector of block ids
 Returns blocks
 }
 \keyword{internal}
-

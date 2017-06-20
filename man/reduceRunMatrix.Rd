@@ -18,4 +18,3 @@ The reduced model matrix.
 Remove columns not in model
 }
 \keyword{internal}
-

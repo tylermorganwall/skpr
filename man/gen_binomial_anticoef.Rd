@@ -26,4 +26,3 @@ Anticipated coefficients.
 Generates Binomial Anticipated Coefficients
 }
 \keyword{internal}
-

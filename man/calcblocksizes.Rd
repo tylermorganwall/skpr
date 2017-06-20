@@ -18,4 +18,3 @@ The blocksize vector
 Calculate block size vector
 }
 \keyword{internal}
-

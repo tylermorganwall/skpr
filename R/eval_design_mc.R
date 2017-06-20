@@ -21,6 +21,7 @@
 #'@param contrasts The contrasts to use for categorical factors. Defaults to contr.sum.
 #'@param binomialprobs Default NULL. If the glm family is binomial, user should specify a length-two vector consisting of the base probability and the maximum expected probability given all the level settings in the experiment. As an example, if the user wants to detect at an increase in successes from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
+#'@param detailedoutput Default FALSE. Returns additional information about evaluation in results.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are stored in the 'estimates' attribute.
 #'@import foreach doParallel nlme stats
 #'@export
@@ -119,7 +120,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
                           blocking=FALSE, nsim=1000, glmfamily="gaussian",
                           varianceratios = NULL, rfunction=NULL, anticoef=NULL, delta=2,
                           contrasts=contr.sum, binomialprobs = NULL,
-                          parallel=FALSE) {
+                          parallel=FALSE, detailedoutput=FALSE) {
   glmfamilyname = glmfamily
   #------Auto-set random generating function----#
   if(is.null(rfunction)) {
@@ -358,6 +359,16 @@ eval_design_mc = function(RunMatrix, model, alpha,
       rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       attr(retval,"correlation.matrix") = round(correlation.matrix,8)
     }, error = function(e) {})
+  }
+
+  if(detailedoutput) {
+    retval$anticoef = anticoef
+    retval$alpha = alpha
+    retval$glmfamily = glmfamily
+    retval$trials = nrow(RunMatrix)
+    retval$nsim = nsim
+    retval$blocking = blocking
+    retval$delta = delta
   }
 
   colnames(estimates) = parameter_names

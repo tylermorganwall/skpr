@@ -24,4 +24,3 @@ The effect power for the parameters
 Calculates the effect power given the anticipated coefficients and the type-I error
 }
 \keyword{internal}
-

@@ -17,4 +17,3 @@ of levels preceeding each parameter (including the intercept)
 Returns number of levels prior to each parameter
 }
 \keyword{internal}
-

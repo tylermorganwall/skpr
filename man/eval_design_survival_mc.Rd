@@ -7,7 +7,7 @@
 eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
   distribution = "gaussian", censorpoint = NA, censortype = "right",
   rfunctionsurv = NULL, anticoef = NULL, delta = 2,
-  contrasts = contr.sum, parallel = FALSE, ...)
+  contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -39,6 +39,8 @@ and low levels. If you do not specify anticoef, the anticipated coefficients wil
 \item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default contr.sum.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}
+
+\item{detailedoutput}{Default FALSE. Returns additional information about evaluation in results.}
 
 \item{...}{Any additional arguments to be input into the survreg function during fitting.}
 }
@@ -88,4 +90,3 @@ eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
                        distribution="lognormal", rfunctionsurv=rlognorm,
                        anticoef=c(0.184,0.101), delta=2, scale=0.4)
 }
-

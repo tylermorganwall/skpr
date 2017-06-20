@@ -6,7 +6,7 @@
 \usage{
 eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
   delta = 2, varianceratios = 1, contrasts = contr.sum,
-  conservative = FALSE)
+  conservative = FALSE, detailedoutput = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix being evaluated.}
@@ -33,6 +33,8 @@ this ratio can be a vector specifying the variance ratio for each subplot. Other
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
 estimate of power by setting all but one level in a categorical factor's anticipated coefficients
 to zero.}
+
+\item{detailedoutput}{Default FALSE. Returns additional information about evaluation in results.}
 }
 \value{
 A data frame with the parameters of the model, the type of power analysis, and the power.
@@ -117,4 +119,3 @@ rownames(coffeeblockdesign) = manualrownames
 
 #Deeper levels of blocking can be specified with additional periods.
 }
-

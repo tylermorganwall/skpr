@@ -21,4 +21,3 @@ Generates the parameter matrix L to isolate the levels of interest
 in the calculation of power
 }
 \keyword{internal}
-

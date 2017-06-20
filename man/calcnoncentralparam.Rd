@@ -20,4 +20,3 @@ The non-centrality parameter for the F test
 Calculates the non-centrality parameter for the model matrix
 }
 \keyword{internal}
-

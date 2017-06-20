@@ -18,4 +18,3 @@ using the survival package and survreg to fit the data.
 \examples{
 contr.simplex(4)
 }
-

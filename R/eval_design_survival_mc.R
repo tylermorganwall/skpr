@@ -21,6 +21,7 @@
 #'and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta
 #'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default contr.sum.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
+#'@param detailedoutput Default FALSE. Returns additional information about evaluation in results.
 #'@param ... Any additional arguments to be input into the survreg function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
@@ -65,7 +66,7 @@
 eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    nsim=1000, distribution="gaussian", censorpoint=NA, censortype="right",
                                    rfunctionsurv=NULL, anticoef=NULL, delta=2, contrasts = contr.sum,
-                                   parallel=FALSE, ...) {
+                                   parallel=FALSE, detailedoutput=FALSE, ...) {
 
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if(is.na(censorpoint)) {
@@ -204,6 +205,15 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
                       power=power_values)
   colnames(estimates) = parameter_names
   attr(retval, 'estimates') = estimates
+
+  if(detailedoutput) {
+    retval$anticoef = anticoef
+    retval$alpha = alpha
+    retval$distribution = distribution
+    retval$trials = nrow(RunMatrix)
+    retval$nsim = nsim
+    retval$delta = delta
+  }
   retval
 
 }

@@ -12,6 +12,8 @@ plot_correlations(genoutput, model = NULL, customcolors = NULL, pow = 2)
 \item{model}{Default NULL. If specified, it will override the default model used to generate/evaluate the design.}
 
 \item{customcolors}{A vector of colors for customizing the appearance of the colormap}
+
+\item{pow}{Default 2. The interaction level that the correlation map is showing.}
 }
 \value{
 Plots design diagnostics
@@ -35,4 +37,3 @@ plot_correlations(cardesign)
 plot_correlations(cardesign,customcolors=c("blue","grey","red"))
 plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
 }
-

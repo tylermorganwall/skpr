@@ -7,7 +7,7 @@
 eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
   anticoef = NULL, delta = 2, contrasts = contr.sum,
-  binomialprobs = NULL, parallel = FALSE)
+  binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design.}
@@ -40,6 +40,8 @@ and low levels. If you do not specify anticoef, the anticipated coefficients wil
 \item{binomialprobs}{Default NULL. If the glm family is binomial, user should specify a length-two vector consisting of the base probability and the maximum expected probability given all the level settings in the experiment. As an example, if the user wants to detect at an increase in successes from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
+
+\item{detailedoutput}{Default FALSE. Returns additional information about evaluation in results.}
 }
 \value{
 A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are stored in the 'estimates' attribute.
@@ -141,4 +143,3 @@ eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson", anticoef=c(log(
 #We see here we need about 90 test events to get accurately distinguish the three different
 #rates in each factor to 90\% power.
 }
-

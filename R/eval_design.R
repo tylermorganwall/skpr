@@ -19,6 +19,7 @@
 #'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param contrasts A string specifying how to treat the contrasts in calculating the model matrix.
+#'@param detailedoutput Default FALSE. Returns additional information about evaluation in results.
 #'@param conservative Default FALSE. Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in a categorical factor's anticipated coefficients
@@ -97,7 +98,8 @@
 #'
 #'#Deeper levels of blocking can be specified with additional periods.
 eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
-                       delta=2, varianceratios=1, contrasts=contr.sum, conservative=FALSE) {
+                       delta=2, varianceratios=1, contrasts=contr.sum, conservative=FALSE,
+                       detailedoutput=FALSE) {
   RunMatrix = reduceRunMatrix(RunMatrix,model)
   #---Develop contrast lists for model matrix---#
   contrastslist = list()
@@ -222,6 +224,16 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
       attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
     }
+    if(detailedoutput) {
+      if(nrow(results) != length(anticoef)){
+        results$anticoef = c(rep(NA,nrow(results) - length(anticoef)), anticoef)
+      } else {
+        results$anticoef = anticoef
+      }
+      results$alpha = alpha
+      results$trials = nrow(RunMatrix)
+      results$delta = delta
+    }
 
 
     return(results)
@@ -273,6 +285,16 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       attr(results,"variance.matrix") = V
       attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
       attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+    }
+    if(detailedoutput) {
+      if(nrow(results) != length(anticoef)){
+        results$anticoef = c(rep(NA,nrow(results) - length(anticoef)), anticoef)
+      } else {
+        results$anticoef = anticoef
+      }
+      results$alpha = alpha
+      results$trials = nrow(RunMatrix)
+      results$delta = delta
     }
 
     #For conservative coefficients, look for lowest power results from non-conservative calculation and set them to one

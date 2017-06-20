@@ -19,4 +19,3 @@ If those do not exist (I'm looking at you, lme4), returns the Wald p-value:
 2*pnorm(-abs(estimate / se))
 }
 \keyword{internal}
-

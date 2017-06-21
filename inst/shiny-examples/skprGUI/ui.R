@@ -344,7 +344,10 @@ shinyUI(fluidPage(
                             radioButtons(inputId = "parallel",
                                          choiceNames = list("Single Core","Multicore"),
                                          choiceValues = list("FALSE","TRUE"),
-                                         label = "Parallel")
+                                         label = "Parallel"),
+                            checkboxInput(inputId = "detailedoutput",
+                                          label = "Detailed Output",
+                                          value=FALSE)
                    ),
                    tabPanel("Power",
                             radioButtons(inputId = "evaltype",

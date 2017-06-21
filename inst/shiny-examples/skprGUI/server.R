@@ -603,7 +603,8 @@ function(input, output) {
                   alpha = isolate(input$alpha),
                   blocking = isolate(input$blocking),
                   delta = isolate(input$delta),
-                  conservative = isolate(input$conservative))
+                  conservative = isolate(input$conservative),
+                  detailedoutput = isolate(input$detailedoutput))
     }
   })
   powerresultsglm = reactive({
@@ -617,7 +618,8 @@ function(input, output) {
                      varianceratios = isolate(input$varianceratio),
                      glmfamily = isolate(input$glmfamily),
                      delta = isolate(input$delta),
-                     binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])))
+                     binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                     detailedoutput = isolate(input$detailedoutput))
     }
   })
   powerresultssurv = reactive({
@@ -630,7 +632,8 @@ function(input, output) {
                               censorpoint = isolate(input$censorpoint),
                               censortype = isolate(input$censortype),
                               distribution = isolate(input$distribution),
-                              delta = isolate(input$delta))
+                              delta = isolate(input$delta),
+                              detailedoutput = isolate(input$detailedoutput))
     }
   })
 

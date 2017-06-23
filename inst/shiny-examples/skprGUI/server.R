@@ -364,7 +364,7 @@ function(input, output) {
                      "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                      "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
                      ifelse(input$setseed,
-                            paste0("#Setting Custom Random Number Generator Seed:<br>",
+                            paste0("#Setting random number generator seed:<br>",
                                    "set.seed(", input$seed, ")<br><br>"),""),
                      ifelse(blocking,
                             paste0(c("# Generating Hard-to-change candidate set:<br>candidateset_htc = expand.grid(",
@@ -394,11 +394,11 @@ function(input, output) {
     }
     if(blocking) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
-                      "splitplotsize = ",sizevector),collapse = "")
+                      "splitplotsizes = ",sizevector),collapse = "")
     }
     if(input$optimality != "D") {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
-                      "optimality = ",sizevector,"\""),collapse = "")
+                      "optimality = \"",input$optimality,"\""),collapse = "")
     }
     if(input$repeats != 10) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),

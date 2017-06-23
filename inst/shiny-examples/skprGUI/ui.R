@@ -341,6 +341,14 @@ shinyUI(fluidPage(
                               sliderInput(inputId = "mindopt",
                                           min=0,max=1,value=0.95, label = "Minimum D Optimality")
                             ),
+                            checkboxInput(inputId = "setseed",
+                                          label = "Set Random Number Generator Seed",
+                                          value=FALSE),
+                            conditionalPanel(
+                              condition = "input.setseed",
+                              numericInput(inputId = "seed",
+                                           1, label = "Random Seed")
+                            ),
                             radioButtons(inputId = "parallel",
                                          choiceNames = list("Single Core","Multicore"),
                                          choiceValues = list("FALSE","TRUE"),

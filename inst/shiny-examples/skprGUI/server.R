@@ -363,6 +363,9 @@ function(input, output) {
     first = paste0(c("<br><pre>",
                      "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                      "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
+                     ifelse(input$setseed,
+                            paste0("#Setting Custom Random Number Generator Seed:<br>",
+                                   "set.seed(", input$seed, ")<br><br>"),""),
                      ifelse(blocking,
                             paste0(c("# Generating Hard-to-change candidate set:<br>candidateset_htc = expand.grid(",
                                      inputstring_htc(), ")<br><br>",
@@ -525,6 +528,9 @@ function(input, output) {
 
   runmatrix = reactive({
     input$submitbutton
+    if(isolate(input$setseed)) {
+      set.seed(isolate(input$seed))
+    }
     if(!isblocking()) {
       gen_design(candidateset = isolate(expand.grid(inputlist())),
                  model = isolate(as.formula(input$model)),
@@ -609,6 +615,9 @@ function(input, output) {
   })
   powerresultsglm = reactive({
     input$evalbutton
+    if(isolate(input$setseed)) {
+      set.seed(isolate(input$seed))
+    }
     if(evaluationtype() == "glm") {
       eval_design_mc(RunMatrix = isolate(runmatrix()),
                      model = isolate(as.formula(input$model)),
@@ -624,6 +633,9 @@ function(input, output) {
   })
   powerresultssurv = reactive({
     input$evalbutton
+    if(isolate(input$setseed)) {
+      set.seed(isolate(input$seed))
+    }
     if(evaluationtype() == "surv") {
       eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
                               model = isolate(as.formula(input$model)),

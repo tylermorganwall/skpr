@@ -1,6 +1,6 @@
 Package: skpr
 Title: Design of Experiments Suite: Generate and Evaluate Optimal Designs in R
-Version: 0.27.1.0
+Version: 0.27.2.0
 Authors@R: c(person("Tyler", "Morgan-Wall", email = "tylermw@gmail.com", role = c("aut", "cre")),
              person("George", "Khoury", email = "george.m.khoury@gmail.com", role = c("aut")))
 Description: Generates and evaluates D, I, A, Alias, E, T, and G optimal designs. Includes parametric and Monte Carlo power evaluation functions. Provides a framework for the user to evaluate power using their own libraries. Includes a Shiny graphical user interface.
@@ -18,7 +18,6 @@ Imports:
   stats,
   nlme,
   lme4,
-  Rcpp (>= 0.11.0),
-  shiny
+  Rcpp (>= 0.11.0)
 LinkingTo: Rcpp, RcppArmadillo (>= 0.6.0)
 Suggests: testthat

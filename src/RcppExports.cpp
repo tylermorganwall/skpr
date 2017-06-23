@@ -96,6 +96,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// genOptimalDesign
+List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
+RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type initialdesign(initialdesignSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type candidatelist(candidatelistSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type condition(conditionSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type momentsmatrix(momentsmatrixSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type aliasdesign(aliasdesignSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
+    Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
+    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt));
+    return rcpp_result_gen;
+END_RCPP
+}
 // genBlockedOptimalDesign
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, const arma::mat blockedVar, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
 RcppExport SEXP skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
@@ -113,24 +131,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
     Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
     rcpp_result_gen = Rcpp::wrap(genBlockedOptimalDesign(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt));
-    return rcpp_result_gen;
-END_RCPP
-}
-// genOptimalDesign
-List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt);
-RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type initialdesign(initialdesignSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type candidatelist(candidatelistSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type condition(conditionSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type momentsmatrix(momentsmatrixSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type initialRows(initialRowsSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type aliasdesign(aliasdesignSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
-    Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
-    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -168,8 +168,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"skpr_covarianceMatrixPseudo", (DL_FUNC) &skpr_covarianceMatrixPseudo, 1},
     {"skpr_DOptimality", (DL_FUNC) &skpr_DOptimality, 1},
     {"skpr_DOptimalityBlocked", (DL_FUNC) &skpr_DOptimalityBlocked, 2},
-    {"skpr_genBlockedOptimalDesign", (DL_FUNC) &skpr_genBlockedOptimalDesign, 10},
     {"skpr_genOptimalDesign", (DL_FUNC) &skpr_genOptimalDesign, 8},
+    {"skpr_genBlockedOptimalDesign", (DL_FUNC) &skpr_genBlockedOptimalDesign, 10},
     {"skpr_getPseudoInverse", (DL_FUNC) &skpr_getPseudoInverse, 1},
     {"skpr_IOptimality", (DL_FUNC) &skpr_IOptimality, 3},
     {NULL, NULL, 0}

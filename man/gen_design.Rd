@@ -118,7 +118,7 @@ easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Po
 splitplotblocksize = rep(3,11)
 
 #Putting this all together:
-designsplitplot = gen_design(easytochangefactors, ~Range+Power, trials=33,
+designsplitplot = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33,
                             splitplotdesign=hardtochangedesign,
                             splitplotsizes = splitplotblocksize)
 
@@ -134,11 +134,14 @@ htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
 etcfactors = expand.grid(Age = c(1,-1))
 
 gen_design(extremelyhtcfactors, ~Location, trials=6,varianceratio=2) -> temp
-gen_design(veryhtcfactors, ~Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
+gen_design(veryhtcfactors, ~Location+Climate,
+          trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
           varianceratio=1) -> temp
-gen_design(htcfactors, ~Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12),
+gen_design(htcfactors, ~Location+Climate+Vineyard,
+          trials=48, splitplotdesign = temp, splitplotsizes = rep(4,12),
           varianceratio=1) -> temp
-gen_design(etcfactors, ~Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48),
+gen_design(etcfactors, ~Location+Climate+Vineyard+Age,
+         trials=192, splitplotdesign = temp, splitplotsizes = rep(4,48),
           varianceratio=1) -> splitsplitsplitplotdesign
 
 #A design's diagnostics can be accessed via the following attributes:

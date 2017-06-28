@@ -371,13 +371,13 @@ function(input, output) {
                                      inputstring_htc(), ")<br><br>",
                                      "# Generating design for hard-to-change factors: <br>",
                                      "design_htc = gen_design(candidateset = candidateset_htc, <br>", rep("&nbsp;",24),
-                                     "model = ", as.character(input$blockmodel), ",<br>", rep("&nbsp;",24),
+                                     "model = ", as.character(blockmodel()), ",<br>", rep("&nbsp;",24),
                                      "trials = ", as.character(input$numberblocks),")<br><br>"),collapse=""),""),
                      "# Generating candidate set:<br>",
                      "candidateset = expand.grid(", inputstring(), ")<br><br>",
                      "# Generating design:<br>",
                      "design = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",20),
-                     "model = ", as.character(input$model), ",<br>", rep("&nbsp;",20),
+                     "model = ", input$model, ",<br>", rep("&nbsp;",20),
                      "trials = ", as.character(input$trials)
     ),collapse="")
     if(blocking) {
@@ -526,11 +526,23 @@ function(input, output) {
                      isolate(input$blockdepth5))[1:isolate(input$numberfactors)])
   })
 
+  blockmodel = reactive({
+    names = isolate(colnames(expand.grid(inputlist())))
+    modelsplit = gsub("~","",strsplit(isolate(input$model),split=" + ", fixed=TRUE),fixed=TRUE)
+    regularmodel = rep(FALSE, length(modelsplit))
+    for(term in names) {
+      regex = paste0("(\\b",term,"\\b)|(\\b",term,":)|(:",term,"\\b)|(\\b",term,"\\s\\*)|(\\*\\s",term,"\\b)|(:",term,":)")
+      regularmodel = regularmodel | grepl(regex,modelsplit,perl=TRUE)
+    }
+    paste0("~",paste(modelsplit[!regularmodel],collapse=" + "))
+  })
+
   runmatrix = reactive({
     input$submitbutton
     if(isolate(input$setseed)) {
       set.seed(isolate(input$seed))
     }
+
     if(!isblocking()) {
       gen_design(candidateset = isolate(expand.grid(inputlist())),
                  model = isolate(as.formula(input$model)),
@@ -542,7 +554,7 @@ function(input, output) {
                  parallel = isolate(as.logical(input$parallel)))
     } else {
       spd = gen_design(candidateset = isolate(expand.grid(inputlist_htc())),
-                       model = isolate(as.formula(input$blockmodel)),
+                       model = isolate(as.formula(blockmodel())),
                        trials = isolate(input$numberblocks),
                        optimality = isolate(input$optimality),
                        repeats = isolate(input$repeats),
@@ -579,33 +591,10 @@ function(input, output) {
 
   powerresults = reactive({
     input$evalbutton
-    if(isblocking() && ((isolate(input$blocking) && isolate(input$evaltype) == "lm") ||
-                        (isolate(input$glmblocking) && isolate(input$evaltype) == "glm"))) {
-      if(isolate(input$model) == "~." && isolate(input$blockmodel) == "~.") {
-        combinedformula = as.formula("~.")
-      }
-      if(isolate(input$model) != "~." && isolate(input$blockmodel) != "~.") {
-        combinedformula = as.formula(paste0(as.character(c(isolate(input$model),
-                                                           paste0(gsub(pattern="~",replacement="",isolate(input$blockmodel),fixed=TRUE),collapse=""))),
-                                            collapse=" + "))
-      }
-      if(isolate(input$model) == "~." && isolate(input$blockmodel) != "~.") {
-        combinedformula = as.formula(paste0(as.character(c(paste0(c("~",paste0(colnames(runmatrix()),collapse=" + ")),collapse=""),
-                                                           paste0(gsub(pattern="~",replacement="",isolate(input$blockmodel),fixed=TRUE),collapse=""))),
-                                            collapse=" + "))
-      }
-      if(isolate(input$model) != "~." && isolate(input$blockmodel) == "~.") {
-        combinedformula = as.formula(paste0(as.character(c(isolate(input$model),
-                                                           paste0(colnames(runmatrix()),collapse=" + "))),
-                                            collapse=" + "))
-      }
-    } else {
-      combinedformula = as.formula(isolate(input$model))
-    }
 
     if(evaluationtype() == "lm") {
       eval_design(RunMatrix = isolate(runmatrix()),
-                  model = combinedformula,
+                  model = as.formula(isolate(input$model)),
                   alpha = isolate(input$alpha),
                   blocking = isolate(input$blocking),
                   delta = isolate(input$delta),

@@ -108,10 +108,10 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
       break;
     }
   }
-  //If still no non-singular design, throws and error and exits.
-  // if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
-  //   throw std::runtime_error("All initial attempts to generate a non-singular matrix failed. Try again or reconfigure inputs.");
-  // }
+  //If still no non-singular design, returns NA.
+  if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
+    return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
+  }
   bool found = FALSE;
   double del = 0;
   int entryx = 0;
@@ -498,8 +498,13 @@ double calculateBlockedDEffNN(arma::mat currentDesign,const arma::mat gls) {
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
                              const std::string condition, const arma::mat momentsmatrix, NumericVector initialRows,
                              const arma::mat blockedVar,
-                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt) {
+                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions) {
+  //Load the R RNG
   RNGScope rngScope;
+
+  //check and log whether there are inter-strata interactions
+  unsigned int numberinteractions = interactions.size();
+  bool interstrata = (numberinteractions > 0);
 
   //Generate blocking structure inverse covariance matrix
   const arma::mat vInv = inv_sympd(blockedVar);
@@ -515,20 +520,28 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
-  unsigned int maxSingularityChecks = nTrials*100;
+  unsigned int maxSingularityChecks = 5;
   unsigned int totalPoints = candidatelist.n_rows;
   unsigned int blockedCols = blockeddesign.n_cols;
   int designCols = initialdesign.n_cols;
-  arma::mat combinedDesign(nTrials,blockedCols+designCols,arma::fill::zeros);
+  //arma::mat combinedDesign(nTrials,blockedCols+designCols,arma::fill::zeros);
+  arma::mat combinedDesign(nTrials,blockedCols+designCols + numberinteractions,arma::fill::zeros);
   combinedDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
   combinedDesign(arma::span::all,arma::span(blockedCols,blockedCols+designCols-1)) = initialdesign;
+
+  if(interstrata) {
+    for(unsigned int i = 0; i < numberinteractions; i++) {
+      combinedDesign.col(blockedCols+designCols + i) = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1) % combinedDesign.col(as<NumericVector>(interactions[i])[1]-1);
+    }
+  }
+
   IntegerVector candidateRow(nTrials);
   arma::mat test(combinedDesign.n_cols,combinedDesign.n_cols,arma::fill::zeros);
-  if(nTrials < candidatelist.n_cols + blockedCols) {
+  if(nTrials < candidatelist.n_cols + blockedCols + numberinteractions) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   while(check < maxSingularityChecks) {
-    if(!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
+    if(!inv_sympd(test,combinedDesign.t() * vInv * combinedDesign)){
       if (nTrials < totalPoints) {
         arma::vec shuffledindices = RcppArmadillo::sample(arma::regspace(0,totalPoints-1),totalPoints,false);
         arma::vec indices(nTrials);
@@ -537,11 +550,21 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         }
         for(unsigned int i = 0; i < nTrials; i++) {
           combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(indices(i));
+          if(interstrata) {
+            for(unsigned int j = 0; j < numberinteractions; j++) {
+              combinedDesign(i,blockedCols+designCols + j) = combinedDesign(i,as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[j])[1]-1);
+            }
+          }
         }
       } else {
         arma::vec randomrows = RcppArmadillo::sample(arma::regspace(0,totalPoints-1), nTrials, true);
         for(unsigned int i = 0; i < nTrials; i++) {
           combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
+          if(interstrata) {
+            for(unsigned int j = 0; j < numberinteractions; j++) {
+              combinedDesign(i,blockedCols+designCols + j) = combinedDesign(i,as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[j])[1]-1);
+            }
+          }
         }
       }
       check++;
@@ -549,10 +572,10 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       break;
     }
   }
-  //If still no non-singular design, throws and error and exits.
-  // if (!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
-  //   throw std::runtime_error("All initial attempts to generate a non-singular matrix failed");
-  // }
+  //If still no non-singular design, returns NA.
+  if (!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
+    return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
+  }
   double del = 0;
   bool found = FALSE;
   int entryx = 0;
@@ -576,6 +599,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
           temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
           newdel = calculateBlockedDOptimality(temp, vInv);
           if(newdel > del) {
             found = TRUE;
@@ -585,6 +613,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         }
         if (found) {
           combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {
@@ -596,8 +629,6 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   }
   //Generate an I-optimal design, fixing the blocking factors
   if(condition == "I") {
-    //Potential issue here: Any interactions between the blocked and regular runs need to be
-    //reflected in the moments matrix correctly
     arma::mat temp;
     del = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
     newOptimum = del;
@@ -613,6 +644,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+            if(interstrata) {
+              for(unsigned int k = 0; k < numberinteractions; k++) {
+                temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              }
+            }
             newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
             if(newdel < del) {
               found = TRUE;
@@ -625,13 +661,22 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         }
         if (found) {
           combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {
           candidateRow[i] = initialRows[i];
         }
       }
-      newOptimum = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
+      try {
+        newOptimum = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
+      } catch (std::runtime_error& e) {
+        continue;
+      }
     }
   }
   //Generate an A-optimal design, fixing the blocking factors
@@ -651,6 +696,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+            if(interstrata) {
+              for(unsigned int k = 0; k < numberinteractions; k++) {
+                temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              }
+            }
             newdel = calculateBlockedAOptimality(temp,vInv);
             if(newdel < del) {
               found = TRUE;
@@ -663,6 +713,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         }
         if (found) {
           combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {
@@ -753,6 +808,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
           temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
           newdel = calculateBlockedEOptimality(temp, vInv);
           if(newdel > del) {
             found = TRUE;
@@ -762,6 +822,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         }
         if (found) {
           combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {

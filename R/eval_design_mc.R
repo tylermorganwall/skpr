@@ -77,16 +77,16 @@
 #'htc = expand.grid(Temp = c(1,-1))
 #'
 #'vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=6, varianceratio=1)
-#'htcdesign = gen_design(candidateset=htc, model=~Temp, trials=18,
+#'htcdesign = gen_design(candidateset=htc, model=~Store+Temp, trials=18,
 #'                       splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
-#'splitplotdesign = gen_design(candidateset=factorialcoffee, model=~cost+type+size, trials=54,
+#'splitplotdesign = gen_design(candidateset=factorialcoffee,
+#'                             model=~Store+Temp+cost+type+size, trials=54,
 #'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
 #'
 #'#Each block has an additional noise term associated with it in addition to the normal error
 #'#term in the model. This is specified by a vector specifying the additional variance for
 #'#each split-plot level. This is equivalent to specifying a variance ratio of one between
-#'#the whole plots and the sub-plots for gaussian models. See the accompanying paper
-#'#_____ for further technical details.
+#'#the whole plots and the sub-plots for gaussian models.
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors. If
 #'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,

@@ -23,10 +23,7 @@ shinyUI(fluidPage(
                                "~.", label = "Model"),
                      conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc'",
                                       fluidRow(
-                                        column(width=6,
-                                               textInput(inputId = "blockmodel",
-                                                         "~.", label = "HTC Model")),
-                                        column(width=6,numericInput(inputId = "numberblocks",
+                                        column(width=12,numericInput(inputId = "numberblocks",
                                                                     4, label = "Number of blocks"))
                                       )
                      ),

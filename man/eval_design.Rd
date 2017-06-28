@@ -95,7 +95,7 @@ eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 #Generating split plot design
 coffeeblocks = expand.grid(caffeine=c(1,-1))
 coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
-coffeefinaldesign = gen_design(factorialcoffee, model=~cost+size+type,trials=36,
+coffeefinaldesign = gen_design(factorialcoffee, model=~caffeine+cost+size+type,trials=36,
                               splitplotdesign=coffeeblockdesign, splitplotsizes=3)
 
 #Evaluating design
@@ -103,7 +103,7 @@ eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE)
 
 #We can also evaluate the design with a custom ratio between the whole plot error to
 #the run-to-run error.
-eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE,
+eval_design(coffeefinaldesign, ~caffeine+cost+size+type + caffeine, 0.2, blocking = TRUE,
            varianceratios=2)
 
 #If the design was generated outside of skpr and thus the row names do not have the

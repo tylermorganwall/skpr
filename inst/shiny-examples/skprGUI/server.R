@@ -377,7 +377,7 @@ function(input, output) {
                      "candidateset = expand.grid(", inputstring(), ")<br><br>",
                      "# Generating design:<br>",
                      "design = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",20),
-                     "model = ", input$model, ",<br>", rep("&nbsp;",20),
+                     "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",20),
                      "trials = ", as.character(input$trials)
     ),collapse="")
     if(blocking) {
@@ -392,7 +392,7 @@ function(input, output) {
       sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] -1
       sizevector = paste0(c("c(",paste0(sizevector,collapse=","),")"),collapse="")
     }
-    if(blocking) {
+    if(isblockingtext()) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
                       "splitplotsizes = ",sizevector),collapse = "")
     }
@@ -425,9 +425,9 @@ function(input, output) {
       first = paste0(c(first,
                        "# Evaluating Design:<br>",
                        "eval_design(RunMatrix = design,<br>", rep("&nbsp;",12),
-                       "model = ", as.character(input$model), ",<br>", rep("&nbsp;",12),
+                       "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",12),
                        "alpha = ", input$alpha),collapse="")
-      if(input$blocking) {
+      if(isblockingtext()) {
         first = paste(c(first, ",<br>", rep("&nbsp;",12),
                         "blocking = TRUE"),collapse = "")
       }
@@ -449,9 +449,9 @@ function(input, output) {
       first = paste0(c(first,
                        "# Evaluating (Monte Carlo) Design:<br>",
                        "eval_design_mc(RunMatrix = design,<br>", rep("&nbsp;",15),
-                       "model = ", as.character(input$model), ",<br>", rep("&nbsp;",15),
+                       "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",15),
                        "alpha = ", input$alpha),collapse="")
-      if(input$glmblocking) {
+      if(isblockingtext()) {
         first = paste(c(first, ",<br>", rep("&nbsp;",15),
                         "blocking = TRUE"),collapse = "")
       }
@@ -485,7 +485,7 @@ function(input, output) {
       first = paste0(c(first,
                        "# Evaluating (Monte Carlo Survival) Design:<br>",
                        "eval_design_survival_mc(RunMatrix = design,<br>", rep("&nbsp;",24),
-                       "model = ", as.character(input$model), ",<br>", rep("&nbsp;",24),
+                       "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",24),
                        "alpha = ", input$alpha),collapse="")
       if(input$nsim_surv != 1000) {
         first = paste(c(first, ",<br>", rep("&nbsp;",24),
@@ -525,16 +525,28 @@ function(input, output) {
                      isolate(input$blockdepth4),
                      isolate(input$blockdepth5))[1:isolate(input$numberfactors)])
   })
+  isblockingtext = reactive({
+    any("htc" %in% c((input$blockdepth1),
+                     (input$blockdepth2),
+                     (input$blockdepth3),
+                     (input$blockdepth4),
+                     (input$blockdepth5))[1:(input$numberfactors)])
+  })
 
   blockmodel = reactive({
-    names = isolate(colnames(expand.grid(inputlist())))
-    modelsplit = gsub("~","",strsplit(isolate(input$model),split=" + ", fixed=TRUE),fixed=TRUE)
-    regularmodel = rep(FALSE, length(modelsplit))
-    for(term in names) {
-      regex = paste0("(\\b",term,"\\b)|(\\b",term,":)|(:",term,"\\b)|(\\b",term,"\\s\\*)|(\\*\\s",term,"\\b)|(:",term,":)")
-      regularmodel = regularmodel | grepl(regex,modelsplit,perl=TRUE)
+    input$submitbutton
+    if(isolate(input$model) == "~.") {
+      as.formula(paste0("~",paste(names(inputlist_htc()),collapse=" + ")))
+    } else {
+      names = names(inputlist())
+      modelsplit = unlist(strsplit(isolate(as.character(as.formula(input$model))[2]),split=" + ", fixed=TRUE))
+      regularmodel = rep(FALSE, length(modelsplit))
+      for(term in names) {
+        regex = paste0("(\\b",term,"\\b)|(\\b",term,":)|(:",term,"\\b)|(\\b",term,"\\s\\*)|(\\*\\s",term,"\\b)|(:",term,":)")
+        regularmodel = regularmodel | grepl(regex,modelsplit,perl=TRUE)
+      }
+      paste0("~",paste(modelsplit[!regularmodel],collapse=" + "))
     }
-    paste0("~",paste(modelsplit[!regularmodel],collapse=" + "))
   })
 
   runmatrix = reactive({
@@ -596,7 +608,7 @@ function(input, output) {
       eval_design(RunMatrix = isolate(runmatrix()),
                   model = as.formula(isolate(input$model)),
                   alpha = isolate(input$alpha),
-                  blocking = isolate(input$blocking),
+                  blocking = isblocking(),
                   delta = isolate(input$delta),
                   conservative = isolate(input$conservative),
                   detailedoutput = isolate(input$detailedoutput))
@@ -611,7 +623,7 @@ function(input, output) {
       eval_design_mc(RunMatrix = isolate(runmatrix()),
                      model = isolate(as.formula(input$model)),
                      alpha = isolate(input$alpha),
-                     blocking = isolate(input$glmblocking),
+                     blocking = isblocking(),
                      nsim = isolate(input$nsim),
                      varianceratios = isolate(input$varianceratio),
                      glmfamily = isolate(input$glmfamily),

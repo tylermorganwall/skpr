@@ -520,7 +520,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
   unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
-  unsigned int maxSingularityChecks = 5;
+  unsigned int maxSingularityChecks = nTrials*10;
   unsigned int totalPoints = candidatelist.n_rows;
   unsigned int blockedCols = blockeddesign.n_cols;
   int designCols = initialdesign.n_cols;
@@ -573,7 +573,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     }
   }
   //If still no non-singular design, returns NA.
-  if (!inv_sympd(test,combinedDesign.t() * combinedDesign)) {
+  if (!inv_sympd(test,combinedDesign.t() * vInv * combinedDesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
   double del = 0;

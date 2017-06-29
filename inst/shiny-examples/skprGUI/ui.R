@@ -363,15 +363,10 @@ shinyUI(fluidPage(
                                         min=0,max=1,value=0.05, label = "Alpha"),
                             numericInput(inputId = "delta",
                                          value=2, step=0.1, label = "Delta"),
-
-
                             conditionalPanel(
                               condition = "input.evaltype == \'lm\'",
                               checkboxInput(inputId = "conservative",
                                             label = "Conservative Power",
-                                            value=FALSE),
-                              checkboxInput(inputId = "blocking",
-                                            label = "Blocking?",
                                             value=FALSE)
                             ),
 
@@ -383,9 +378,6 @@ shinyUI(fluidPage(
                               selectInput(inputId = "glmfamily",
                                           choices = c("gaussian","binomial","poisson","exponential"),
                                           label = "GLM Family"),
-                              checkboxInput(inputId = "glmblocking",
-                                            label = "Blocking?",
-                                            value=FALSE),
                               conditionalPanel(
                                 condition = "input.glmfamily == \'binomial\'",
                                 sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",

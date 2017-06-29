@@ -182,7 +182,7 @@ gen_design = function(candidateset, model, trials,
       contrastslistsubplot = NULL
     }
 
-    if(model != "~." || model != "~quad(.)") {
+    if(model != "~.") {
       # subplotterms = colnames(model.matrix(~.,data = candidateset,contrasts.arg = contrastslistsubplot))[-1]
       # wholeplotterms = colnames(model.matrix(~.,data = splitplotdesign,contrasts.arg = contrastslistspd))[-1]
 
@@ -219,8 +219,8 @@ gen_design = function(candidateset, model, trials,
         lineartermsinteraction = unique(unlist(strsplit(wholeinteractionterms, split="(\\s\\*\\s)|(:)",perl=TRUE)))
         fullcontrastlist = c(contrastslistsubplot,contrastslistspd)
         extract_interactionnames_formula = as.formula(paste0("~",paste(c(lineartermsinteraction,wholeinteractionterms),collapse=" + ")))
-        combinedcand = cbind(candidateset[1,],splitplotdesign[1,])
-        allcolnames = suppressWarnings({colnames(model.matrix(extract_interactionnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist))})
+        combinedcand = cbind(candidateset[1,,drop=FALSE],splitplotdesign[1,,drop=FALSE])
+        allcolnames = colnames(model.matrix(extract_interactionnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist))
         interactionnames = allcolnames[grepl("(\\s\\*\\s)|(:)",allcolnames,perl=TRUE)]
 
         #combined formula with no inter-strata interactions
@@ -239,19 +239,27 @@ gen_design = function(candidateset, model, trials,
       } else {
         interactionlist = list()
       }
+    } else {
+      interactionlist = list()
+      modelwholeformula = as.formula(paste("~", paste(colnames(splitplotdesign), collapse=" + "), sep=""))
+      modelnowholeformula = as.formula(paste("~", paste(colnames(candidateset), collapse=" + "), sep=""))
     }
   }
 
-  if(is.null(splitplotdesign)) {
-    candidateset = unique(reduceRunMatrix(candidateset, model))
-  } else {
-    candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
-  }
+  # if(is.null(splitplotdesign)) {
+  #   candidateset = unique(reduceRunMatrix(candidateset, model))
+  # } else {
+  #   candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
+  # }
   candidatesetnormalized = candidateset
 
   #----- Convert dot/quad formula to terms -----#
   if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~", paste(attr(candidateset, "names"), collapse=" + "), sep=""))
+    if(is.null(splitplotdesign)) {
+      model = as.formula(paste("~", paste(attr(candidateset, "names"), collapse=" + "), sep=""))
+    } else {
+      model = as.formula(paste("~", paste(c(colnames(splitplotdesign),colnames(candidateset)), collapse=" + "), sep=""))
+    }
   }
 
   if(as.character(model)[2] == "quad(.)") {
@@ -377,12 +385,15 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
+  if(optimality %in% c("Alias","G","T") && !is.null(splitplotdesign)) {
+    stop("Generating Alias, G, and T optimal designs not presently supported with split plot designs.")
+  }
+
   if(is.null(splitplotdesign)) {
     amodel = aliasmodel(model,aliaspower)
   } else {
     amodel = aliasmodel(modelnowholeformula,aliaspower)
   }
-
 
   if(model == amodel && optimality == "Alias") {
     stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
@@ -469,9 +480,9 @@ gen_design = function(candidateset, model, trials,
       blockedContrastsList[[x]] = contrast
     }
     if(length(blockedContrastsList) == 0) {
-      blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign)
+      blockedModelMatrix = model.matrix(modelwholeformula,splitPlotReplicateDesign)
     } else {
-      blockedModelMatrix = model.matrix(~.,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
+      blockedModelMatrix = model.matrix(modelwholeformula,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
     }
     if(length(interactionlist) == 0) {
       blockedFactors = c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1])

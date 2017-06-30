@@ -53,15 +53,20 @@ shinyUI(fluidPage(
                                conditionalPanel(
                                  condition = "input.factortype1 == \'numeric\'",
                                  fluidRow(
-                                   column(width=6,
+                                   column(width=4,
                                           numericInput(inputId = "numericlow1",
                                                        value=-1,
                                                        label="Low")
                                    ),
-                                   column(width=6,
+                                   column(width=4,
                                           numericInput(inputId = "numerichigh1",
                                                        value=1,
                                                        label="High")
+                                   ),
+                                   column(width=4,
+                                          numericInput(inputId = "numericlength1",
+                                                       value=3,
+                                                       label="Breaks")
                                    )
                                  )
                                ),
@@ -111,15 +116,20 @@ shinyUI(fluidPage(
                                  conditionalPanel(
                                    condition = "input.factortype2 == \'numeric\'",
                                    fluidRow(
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numericlow2",
                                                          value=-1,
                                                          label="Low")
                                      ),
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numerichigh2",
                                                          value=1,
                                                          label="High")
+                                     ),
+                                     column(width=4,
+                                            numericInput(inputId = "numericlength2",
+                                                         value=3,
+                                                         label="Breaks")
                                      )
                                    )
                                  ),
@@ -170,15 +180,20 @@ shinyUI(fluidPage(
                                  conditionalPanel(
                                    condition = "input.factortype3 == \'numeric\'",
                                    fluidRow(
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numericlow3",
                                                          value=-1,
                                                          label="Low")
                                      ),
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numerichigh3",
                                                          value=1,
                                                          label="High")
+                                     ),
+                                     column(width=4,
+                                            numericInput(inputId = "numericlength3",
+                                                         value=3,
+                                                         label="Breaks")
                                      )
                                    )
                                  ),
@@ -229,15 +244,20 @@ shinyUI(fluidPage(
                                  conditionalPanel(
                                    condition = "input.factortype4 == \'numeric\'",
                                    fluidRow(
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numericlow4",
                                                          value=-1,
                                                          label="Low")
                                      ),
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numerichigh4",
                                                          value=1,
                                                          label="High")
+                                     ),
+                                     column(width=4,
+                                            numericInput(inputId = "numericlength4",
+                                                         value=3,
+                                                         label="Breaks")
                                      )
                                    )
                                  ),
@@ -288,15 +308,20 @@ shinyUI(fluidPage(
                                  conditionalPanel(
                                    condition = "input.factortype5 == \'numeric\'",
                                    fluidRow(
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numericlow5",
                                                          value=-1,
                                                          label="Low")
                                      ),
-                                     column(width=6,
+                                     column(width=4,
                                             numericInput(inputId = "numerichigh5",
                                                          value=1,
                                                          label="High")
+                                     ),
+                                     column(width=4,
+                                            numericInput(inputId = "numericlength5",
+                                                         value=3,
+                                                         label="Breaks")
                                      )
                                    )
                                  ),

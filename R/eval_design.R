@@ -210,7 +210,9 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     attr(results,"generating.model") = model
     attr(results,"runmatrix") = RunMatrix
 
-    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),RunMatrix)
+    levelvector = sapply(lapply(RunMatrix,unique),length)
+    classvector = sapply(lapply(RunMatrix,unique),class) == "factor"
+    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),levelvector,classvector)
 
     attr(results,"moment.matrix") = mm
     attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
@@ -272,7 +274,9 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     attr(results,"generating.model") = model
     attr(results,"runmatrix") = RunMatrix
 
-    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),RunMatrix)
+    levelvector = sapply(lapply(RunMatrix,unique),length)
+    classvector = sapply(lapply(RunMatrix,unique),class) == "factor"
+    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),levelvector,classvector)
 
     attr(results,"moment.matrix") = mm
     attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))

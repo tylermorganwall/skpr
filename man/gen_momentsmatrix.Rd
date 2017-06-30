@@ -4,7 +4,7 @@
 \alias{gen_momentsmatrix}
 \title{Generates the moment matrix}
 \usage{
-gen_momentsmatrix(modelfactors, RunMatrix)
+gen_momentsmatrix(modelfactors, levelvector, classvector)
 }
 \arguments{
 \item{Levelvector}{Returns a vector consisting of the number}

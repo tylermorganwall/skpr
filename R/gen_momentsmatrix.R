@@ -6,10 +6,8 @@
 #'@keywords internal
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)
-gen_momentsmatrix = function(modelfactors,RunMatrix) {
+gen_momentsmatrix = function(modelfactors,levelvector,classvector) {
 
-  levelvector = sapply(lapply(RunMatrix,unique),length)
-  classvector = sapply(lapply(RunMatrix,unique),class) == "factor"
   levelvector[!classvector] = 1
   isfactor = c()
   for(i in 1:length(classvector)) {
@@ -41,15 +39,14 @@ gen_momentsmatrix = function(modelfactors,RunMatrix) {
 
   if(!all(islinear) && all(isinteraction[-1])) {
     stop("No main effects in model. skpR only supports interactions between terms when their main effects are present.")
-    #linearterms = colnames(RunMatrix)
   }
 
   ordermatrix = matrix(0,nrow=length(linearterms),ncol = length(modelfactors))
   momentsmatrix = matrix(list(2),nrow=length(modelfactors),ncol=length(modelfactors))
   momentsmatrixresults = matrix(0,nrow=length(modelfactors),ncol=length(modelfactors))
 
-  for(i in 1:length(linearterms)) {
-    ordermatrix[i,modelfactors[i+1] == modelfactors] = 1
+  for(i in 1:length(which(islinear))) {
+    ordermatrix[i,which(islinear)[i]] = 1
   }
 
   for(i in 1:length(linearterms)) {

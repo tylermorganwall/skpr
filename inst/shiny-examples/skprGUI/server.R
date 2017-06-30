@@ -9,7 +9,7 @@ function(input, output) {
     for(i in 1:5) {
       if((i == 1 && (input$numberfactors) > 0) && isolate(input$blockdepth1) == "htc") {
         if((input$factortype1) == "numeric") {
-          inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = 3)
+          inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
         }
         if((input$factortype1) == "discnum") {
           inputlist1[[(input$factorname1)]] = as.numeric(strsplit((input$disclevels1),split=",")[[1]])
@@ -20,7 +20,7 @@ function(input, output) {
       }
       if((i == 2 && (input$numberfactors) > 1) && isolate(input$blockdepth2) == "htc") {
         if((input$factortype2) == "numeric") {
-          inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = 3)
+          inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
         }
         if((input$factortype2) == "discnum") {
           inputlist1[[(input$factorname2)]] = as.numeric(strsplit((input$disclevels2),split=",")[[1]])
@@ -31,7 +31,7 @@ function(input, output) {
       }
       if((i == 3 && (input$numberfactors) > 2) && isolate(input$blockdepth3) == "htc") {
         if((input$factortype3) == "numeric") {
-          inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = 3)
+          inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
         }
         if((input$factortype3) == "discnum") {
           inputlist1[[(input$factorname3)]] = as.numeric(strsplit((input$disclevels3),split=",")[[1]])
@@ -42,7 +42,7 @@ function(input, output) {
       }
       if((i == 4 && (input$numberfactors) > 3) && isolate(input$blockdepth4) == "htc") {
         if((input$factortype4) == "numeric") {
-          inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = 3)
+          inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
         }
         if((input$factortype4) == "discnum") {
           inputlist1[[(input$factorname4)]] = as.numeric(strsplit((input$disclevels4),split=",")[[1]])
@@ -53,7 +53,7 @@ function(input, output) {
       }
       if((i == 5 && (input$numberfactors) > 4) && isolate(input$blockdepth5) == "htc") {
         if((input$factortype5) == "numeric") {
-          inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = 3)
+          inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
         }
         if((input$factortype5) == "discnum") {
           inputlist1[[(input$factorname5)]] = as.numeric(strsplit((input$disclevels5),split=",")[[1]])
@@ -74,7 +74,7 @@ function(input, output) {
         if(input$blockdepth1 == "htc") {
           finalstring = c(finalstring,(input$factorname1)," = ")
           if((input$factortype1) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=",input$numericlength1,")")
           }
           if((input$factortype1) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels1),")")
@@ -95,7 +95,7 @@ function(input, output) {
         if(input$blockdepth2 == "htc") {
           finalstring = c(finalstring, input$factorname2," = ")
           if((input$factortype2) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=",input$numericlength2,")")
           }
           if((input$factortype2) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels2),")")
@@ -116,7 +116,7 @@ function(input, output) {
         if(input$blockdepth3 == "htc") {
           finalstring = c(finalstring,input$factorname3," = ")
           if((input$factortype3) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=",input$numericlength3,")")
           }
           if((input$factortype3) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels3),")")
@@ -137,7 +137,7 @@ function(input, output) {
         if(input$blockdepth4 == "htc") {
           finalstring = c(finalstring,input$factorname4," = ")
           if((input$factortype4) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=",input$numericlength4,")")
           }
           if((input$factortype4) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels4),")")
@@ -158,7 +158,7 @@ function(input, output) {
         if(input$blockdepth5 == "htc") {
           finalstring = c(finalstring,input$factorname5," = ")
           if((input$factortype5) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=",input$numericlength5,")")
           }
           if((input$factortype5) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels5),")")
@@ -183,7 +183,7 @@ function(input, output) {
       if(i == 1 && (input$numberfactors) > 0 ) {
         if(input$blockdepth1 == "etc") {
           if((input$factortype1) == "numeric") {
-            inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = 3)
+            inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
           }
           if((input$factortype1) == "discnum") {
             inputlist1[[(input$factorname1)]] = as.numeric(strsplit((input$disclevels1),split=",")[[1]])
@@ -196,7 +196,7 @@ function(input, output) {
       if(i == 2 && (input$numberfactors) > 1) {
         if(input$blockdepth2 == "etc") {
           if((input$factortype2) == "numeric") {
-            inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = 3)
+            inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
           }
           if((input$factortype2) == "discnum") {
             inputlist1[[(input$factorname2)]] = as.numeric(strsplit((input$disclevels2),split=",")[[1]])
@@ -209,7 +209,7 @@ function(input, output) {
       if(i == 3 && (input$numberfactors) > 2) {
         if(input$blockdepth3 == "etc") {
           if((input$factortype3) == "numeric") {
-            inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = 3)
+            inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
           }
           if((input$factortype3) == "discnum") {
             inputlist1[[(input$factorname3)]] = as.numeric(strsplit((input$disclevels3),split=",")[[1]])
@@ -222,7 +222,7 @@ function(input, output) {
       if(i == 4 && (input$numberfactors) > 3) {
         if(input$blockdepth4 == "etc") {
           if((input$factortype4) == "numeric") {
-            inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = 3)
+            inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
           }
           if((input$factortype4) == "discnum") {
             inputlist1[[(input$factorname4)]] = as.numeric(strsplit((input$disclevels4),split=",")[[1]])
@@ -235,7 +235,7 @@ function(input, output) {
       if(i == 5 && (input$numberfactors) > 4) {
         if(input$blockdepth5 == "etc") {
           if((input$factortype5) == "numeric") {
-            inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = 3)
+            inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
           }
           if((input$factortype5) == "discnum") {
             inputlist1[[(input$factorname5)]] = as.numeric(strsplit((input$disclevels5),split=",")[[1]])
@@ -257,7 +257,7 @@ function(input, output) {
         if(input$blockdepth1 == "etc") {
           finalstring = c(finalstring,(input$factorname1)," = ")
           if((input$factortype1) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=",input$numericlength1,")")
           }
           if((input$factortype1) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels1),")")
@@ -278,7 +278,7 @@ function(input, output) {
         if(input$blockdepth2 == "etc") {
           finalstring = c(finalstring, input$factorname2," = ")
           if((input$factortype2) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=",input$numericlength2,")")
           }
           if((input$factortype2) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels2),")")
@@ -299,7 +299,7 @@ function(input, output) {
         if(input$blockdepth3 == "etc") {
           finalstring = c(finalstring,input$factorname3," = ")
           if((input$factortype3) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=",input$numericlength3,")")
           }
           if((input$factortype3) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels3),")")
@@ -320,7 +320,7 @@ function(input, output) {
         if(input$blockdepth4 == "etc") {
           finalstring = c(finalstring,input$factorname4," = ")
           if((input$factortype4) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=",input$numericlength4,")")
           }
           if((input$factortype4) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels4),")")
@@ -341,7 +341,7 @@ function(input, output) {
         if(input$blockdepth5 == "etc") {
           finalstring = c(finalstring,input$factorname5," = ")
           if((input$factortype5) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=3)")
+            finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=",input$numericlength5,")")
           }
           if((input$factortype5) == "discnum") {
             finalstring = c(finalstring, "c(",(input$disclevels5),")")
@@ -534,12 +534,11 @@ function(input, output) {
   })
 
   blockmodel = reactive({
-    input$submitbutton
-    if(isolate(input$model) == "~.") {
+    if(input$model == "~.") {
       as.formula(paste0("~",paste(names(inputlist_htc()),collapse=" + ")))
     } else {
       names = names(inputlist())
-      modelsplit = unlist(strsplit(isolate(as.character(as.formula(input$model))[2]),split=" + ", fixed=TRUE))
+      modelsplit = attr(terms.formula(as.formula(input$model)), "term.labels")
       regularmodel = rep(FALSE, length(modelsplit))
       for(term in names) {
         regex = paste0("(\\b",term,"\\b)|(\\b",term,":)|(:",term,"\\b)|(\\b",term,"\\s\\*)|(\\*\\s",term,"\\b)|(:",term,":)")

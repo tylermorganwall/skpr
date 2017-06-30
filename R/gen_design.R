@@ -183,6 +183,7 @@ gen_design = function(candidateset, model, trials,
     }
 
     if(model != "~.") {
+      model = as.formula(paste0("~",paste(attr(terms.formula(model), "term.labels"),collapse = " + ")))
       # subplotterms = colnames(model.matrix(~.,data = candidateset,contrasts.arg = contrastslistsubplot))[-1]
       # wholeplotterms = colnames(model.matrix(~.,data = splitplotdesign,contrasts.arg = contrastslistspd))[-1]
 
@@ -410,7 +411,9 @@ gen_design = function(candidateset, model, trials,
 
   if(!blocking) {
     factors = colnames(candidatesetmm)
-    mm = gen_momentsmatrix(factors,candidateset)
+    levelvector = sapply(lapply(candidateset,unique),length)
+    classvector = sapply(lapply(candidateset,unique),class) == "factor"
+    mm = gen_momentsmatrix(factors,levelvector,classvector)
     if(!parallel) {
       if(!timer) {
         for(i in 1:repeats) {
@@ -484,12 +487,14 @@ gen_design = function(candidateset, model, trials,
     } else {
       blockedModelMatrix = model.matrix(modelwholeformula,splitPlotReplicateDesign,contrasts.arg=blockedContrastsList)
     }
+    levelvector = c(sapply(lapply(splitplotdesign,unique),length),sapply(lapply(candidateset,unique),length))
+    classvector = c(sapply(lapply(splitplotdesign,unique),class) == "factor", sapply(lapply(candidateset,unique),class) == "factor")
     if(length(interactionlist) == 0) {
       blockedFactors = c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1])
-      blockedMM = gen_momentsmatrix(blockedFactors,splitPlotReplicateDesign)
+      blockedMM = gen_momentsmatrix(blockedFactors,levelvector,classvector)
     } else {
       blockedFactors = c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1],interactionnames)
-      blockedMM = gen_momentsmatrix(blockedFactors,splitPlotReplicateDesign)
+      blockedMM = gen_momentsmatrix(blockedFactors,levelvector,classvector)
     }
     if (!parallel) {
       if(!timer) {
@@ -576,7 +581,11 @@ gen_design = function(candidateset, model, trials,
     }
   }
   if(length(designs) == 0) {
-    stop("Was not able to find non-singular design with given number of repeats. Increase repeats argument and try again. If still no designs are found, reduce the number of model parameters or increase the number of runs.")
+    stop(paste0("For a design with ", trials, " trials and ",
+                ncol(candidatesetmm)+ifelse(blocking,ncol(blockedModelMatrix)-1 + length(interactionlist),0),
+                " parameters, skpr was not able to find non-singular design within given number of repeats.",
+                "Increase repeats argument and try again. If still no designs are found, reduce the number ",
+                "of model parameters or increase the number of trials."))
   }
 
   if(optimality == "D" || optimality == "T" || optimality == "E") {

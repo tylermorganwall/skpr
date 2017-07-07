@@ -443,6 +443,10 @@ function(input, output) {
         first = paste(c(first, ",<br>", rep("&nbsp;",12),
                         "conservative = TRUE"),collapse = "")
       }
+      if(as.logical(input$detailedoutput)) {
+        first = paste(c(first, ",<br>", rep("&nbsp;",12),
+                        "detailedoutput = TRUE"),collapse = "")
+      }
       first = paste0(c(first,")<br><br>"),collapse="")
     }
     if(input$evaltype == "glm") {
@@ -479,6 +483,10 @@ function(input, output) {
         first = paste(c(first, ",<br>", rep("&nbsp;",15),
                         "parallel = TRUE"),collapse = "")
       }
+      if(as.logical(input$detailedoutput)) {
+        first = paste(c(first, ",<br>", rep("&nbsp;",15),
+                        "detailedoutput = TRUE"),collapse = "")
+      }
       first = paste0(c(first,")<br><br>"),collapse="")
     }
     if(input$evaltype == "surv") {
@@ -510,6 +518,10 @@ function(input, output) {
       if(as.logical(input$parallel_eval_surv)) {
         first = paste(c(first, ",<br>", rep("&nbsp;",24),
                         "parallel = TRUE"),collapse = "")
+      }
+      if(as.logical(input$detailedoutput)) {
+        first = paste(c(first, ",<br>", rep("&nbsp;",24),
+                        "detailedoutput = TRUE"),collapse = "")
       }
       first = paste0(c(first,")<br><br>"),collapse="")
     }

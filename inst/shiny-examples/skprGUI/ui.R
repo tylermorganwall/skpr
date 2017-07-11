@@ -27,8 +27,15 @@ shinyUI(fluidPage(
                                                                     4, label = "Number of blocks"))
                                       )
                      ),
+                     conditionalPanel(condition = "input.numberfactors == 6",
+                                      fluidRow(
+                                        column(width=12,
+                                          HTML("<p style=\"color: #F00;\">skprGUI only supports up to 6 factors. Alter the generated code to add more.</p>")
+                                        )
+                                      )
+                     ),
                      numericInput(inputId = "numberfactors",
-                                  min=1,max=5, 1, label = "Number of Factors"),
+                                  min=1,max=6, 1, label = "Number of Factors"),
                      br(),
                      wellPanel(h3("Factor 1"),
                                fluidRow(
@@ -340,6 +347,70 @@ shinyUI(fluidPage(
                                    fluidRow(
                                      column(width=12,
                                             textInput(inputId = "levels5",
+                                                      value="",
+                                                      label="Levels (separate with commas)")
+                                     )
+                                   )
+                                 )
+                       )
+                     ),
+                     conditionalPanel(
+                       condition = "input.numberfactors > 5",
+                       wellPanel(h3("Factor 6"),
+                                 fluidRow(
+                                   column(width=5,
+                                          selectInput(inputId = "blockdepth6",
+                                                      choices=list("Easy"="etc","Hard" = "htc"),
+                                                      label="Changes")
+                                   ),
+                                   column(width=7,
+                                          selectInput(inputId = "factortype6",
+                                                      choices=list("Continuous"="numeric","Categorical" = "cat", "Discrete Numeric"="discnum"),
+                                                      label="Type")
+                                   )
+                                 ),
+                                 fluidRow(
+                                   column(width=12,
+                                          textInput(inputId = "factorname6",
+                                                    value="X6",
+                                                    label="Name")
+                                   )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.factortype6 == \'numeric\'",
+                                   fluidRow(
+                                     column(width=4,
+                                            numericInput(inputId = "numericlow6",
+                                                         value=-1,
+                                                         label="Low")
+                                     ),
+                                     column(width=4,
+                                            numericInput(inputId = "numerichigh6",
+                                                         value=1,
+                                                         label="High")
+                                     ),
+                                     column(width=4,
+                                            numericInput(inputId = "numericlength6",
+                                                         value=3,
+                                                         label="Breaks")
+                                     )
+                                   )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.factortype6 == \'discnum\'",
+                                   fluidRow(
+                                     column(width=12,
+                                            textInput(inputId = "disclevels6",
+                                                      value="",
+                                                      label="Levels (separate with commas)")
+                                     )
+                                   )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.factortype6 == \'cat\'",
+                                   fluidRow(
+                                     column(width=12,
+                                            textInput(inputId = "levels6",
                                                       value="",
                                                       label="Levels (separate with commas)")
                                      )

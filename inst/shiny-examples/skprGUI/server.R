@@ -6,7 +6,7 @@ function(input, output) {
   inputlist_htc = reactive({
     input$submitbutton
     inputlist1 = list()
-    for(i in 1:5) {
+    for(i in 1:6) {
       if((i == 1 && (input$numberfactors) > 0) && isolate(input$blockdepth1) == "htc") {
         if((input$factortype1) == "numeric") {
           inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
@@ -62,14 +62,25 @@ function(input, output) {
           inputlist1[[(input$factorname5)]] = strsplit((input$levels5),split=",")[[1]]
         }
       }
+      if((i == 6 && (input$numberfactors) > 5) && isolate(input$blockdepth6) == "htc") {
+        if((input$factortype6) == "numeric") {
+          inputlist1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
+        }
+        if((input$factortype6) == "discnum") {
+          inputlist1[[(input$factorname6)]] = as.numeric(strsplit((input$disclevels6),split=",")[[1]])
+        }
+        if((input$factortype6) == "cat") {
+          inputlist1[[(input$factorname6)]] = strsplit((input$levels6),split=",")[[1]]
+        }
+      }
     }
     inputlist1
   })
 
   inputstring_htc = reactive({
-    commacount = sum("htc" == c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5)[1:input$numberfactors])-1
+    commacount = sum("htc" == c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)[1:input$numberfactors])-1
     finalstring = c()
-    for(i in 1:5) {
+    for(i in 1:6) {
       if(i == 1 && (input$numberfactors) > 0) {
         if(input$blockdepth1 == "htc") {
           finalstring = c(finalstring,(input$factorname1)," = ")
@@ -169,6 +180,27 @@ function(input, output) {
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
+          if(commacount > 0) {
+            commacount = commacount - 1
+            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",31)),collapse=""))
+          }
+        }
+      }
+      if(i == 6 && (input$numberfactors) > 5) {
+        if(input$blockdepth6 == "htc") {
+          finalstring = c(finalstring,input$factorname6," = ")
+          if((input$factortype6) == "numeric") {
+            finalstring = c(finalstring, "seq(",(input$numericlow6),",",(input$numerichigh6),", length.out=",input$numericlength6,")")
+          }
+          if((input$factortype6) == "discnum") {
+            finalstring = c(finalstring, "c(",(input$disclevels6),")")
+          }
+          if((input$factortype6) == "cat") {
+            len = length(strsplit(input$levels6,split=",")[[1]])
+            levelstring = paste0(c("\""),strsplit(input$levels6,split=",")[[1]],c("\","),collapse="")
+            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+            finalstring = c(finalstring, "c(",levelstring,")")
+          }
         }
       }
     }
@@ -179,7 +211,7 @@ function(input, output) {
   inputlist = reactive({
     input$submitbutton
     inputlist1 = list()
-    for(i in 1:5) {
+    for(i in 1:6) {
       if(i == 1 && (input$numberfactors) > 0 ) {
         if(input$blockdepth1 == "etc") {
           if((input$factortype1) == "numeric") {
@@ -245,14 +277,27 @@ function(input, output) {
           }
         }
       }
+      if(i == 6 && (input$numberfactors) > 5) {
+        if(input$blockdepth6 == "etc") {
+          if((input$factortype6) == "numeric") {
+            inputlist1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
+          }
+          if((input$factortype6) == "discnum") {
+            inputlist1[[(input$factorname6)]] = as.numeric(strsplit((input$disclevels6),split=",")[[1]])
+          }
+          if((input$factortype6) == "cat") {
+            inputlist1[[(input$factorname6)]] = strsplit((input$levels6),split=",")[[1]]
+          }
+        }
+      }
     }
     inputlist1
   })
 
   inputstring = reactive({
-    commacount = sum("etc" == c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5)[1:input$numberfactors])-1
+    commacount = sum("etc" == c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)[1:input$numberfactors])-1
     finalstring = c()
-    for(i in 1:5) {
+    for(i in 1:6) {
       if(i == 1 && (input$numberfactors) > 0) {
         if(input$blockdepth1 == "etc") {
           finalstring = c(finalstring,(input$factorname1)," = ")
@@ -352,6 +397,27 @@ function(input, output) {
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
+          if(commacount > 0) {
+            commacount = commacount - 1
+            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
+          }
+        }
+      }
+      if(i == 6 && (input$numberfactors) > 5) {
+        if(input$blockdepth6 == "etc") {
+          finalstring = c(finalstring,input$factorname6," = ")
+          if((input$factortype6) == "numeric") {
+            finalstring = c(finalstring, "seq(",(input$numericlow6),",",(input$numerichigh6),", length.out=",input$numericlength6,")")
+          }
+          if((input$factortype6) == "discnum") {
+            finalstring = c(finalstring, "c(",(input$disclevels6),")")
+          }
+          if((input$factortype6) == "cat") {
+            len = length(strsplit(input$levels6,split=",")[[1]])
+            levelstring = paste0(c("\""),strsplit(input$levels6,split=",")[[1]],c("\","),collapse="")
+            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+            finalstring = c(finalstring, "c(",levelstring,")")
+          }
         }
       }
     }
@@ -359,23 +425,23 @@ function(input, output) {
   })
 
   code = reactive({
-    blocking = any("htc" %in% c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5)[1:input$numberfactors])
+    blocking = any("htc" %in% c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)[1:input$numberfactors])
     first = paste0(c("<br><pre>",
                      "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                      "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
                      ifelse(input$setseed,
-                            paste0("#Setting random number generator seed:<br>",
+                            paste0("<code style=\"color:#468449\">#Setting random number generator seed:</code><br>",
                                    "set.seed(", input$seed, ")<br><br>"),""),
                      ifelse(blocking,
-                            paste0(c("# Generating Hard-to-change candidate set:<br>candidateset_htc = expand.grid(",
+                            paste0(c("<code style=\"color:#468449\"># Generating Hard-to-change candidate set:</code><br>candidateset_htc = expand.grid(",
                                      inputstring_htc(), ")<br><br>",
-                                     "# Generating design for hard-to-change factors: <br>",
+                                     "<code style=\"color:#468449\"># Generating design for hard-to-change factors:</code> <br>",
                                      "design_htc = gen_design(candidateset = candidateset_htc, <br>", rep("&nbsp;",24),
                                      "model = ", as.character(blockmodel()), ",<br>", rep("&nbsp;",24),
                                      "trials = ", as.character(input$numberblocks),")<br><br>"),collapse=""),""),
-                     "# Generating candidate set:<br>",
+                     "<code style=\"color:#468449\"># Generating candidate set:</code><br>",
                      "candidateset = expand.grid(", inputstring(), ")<br><br>",
-                     "# Generating design:<br>",
+                     "<code style=\"color:#468449\"># Generating design:</code><br>",
                      "design = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",20),
                      "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",20),
                      "trials = ", as.character(input$trials)
@@ -423,7 +489,7 @@ function(input, output) {
     first = paste0(c(first,")<br><br>"),collapse="")
     if(input$evaltype == "lm") {
       first = paste0(c(first,
-                       "# Evaluating Design:<br>",
+                       "<code style=\"color:#468449\"># Evaluating Design:</code><br>",
                        "eval_design(RunMatrix = design,<br>", rep("&nbsp;",12),
                        "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",12),
                        "alpha = ", input$alpha),collapse="")
@@ -451,7 +517,7 @@ function(input, output) {
     }
     if(input$evaltype == "glm") {
       first = paste0(c(first,
-                       "# Evaluating (Monte Carlo) Design:<br>",
+                       "<code style=\"color:#468449\"># Evaluating (Monte Carlo) Design:</code><br>",
                        "eval_design_mc(RunMatrix = design,<br>", rep("&nbsp;",15),
                        "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",15),
                        "alpha = ", input$alpha),collapse="")
@@ -491,7 +557,7 @@ function(input, output) {
     }
     if(input$evaltype == "surv") {
       first = paste0(c(first,
-                       "# Evaluating (Monte Carlo Survival) Design:<br>",
+                       "<code style=\"color:#468449\"># Evaluating (Monte Carlo Survival) Design:</code><br>",
                        "eval_design_survival_mc(RunMatrix = design,<br>", rep("&nbsp;",24),
                        "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",24),
                        "alpha = ", input$alpha),collapse="")
@@ -525,7 +591,7 @@ function(input, output) {
       }
       first = paste0(c(first,")<br><br>"),collapse="")
     }
-    first = paste0(c(first,"</pre><code>"),collapse="")
+    first = paste0(c(first,"</pre></code>"),collapse="")
     first
   })
 
@@ -535,14 +601,16 @@ function(input, output) {
                      isolate(input$blockdepth2),
                      isolate(input$blockdepth3),
                      isolate(input$blockdepth4),
-                     isolate(input$blockdepth5))[1:isolate(input$numberfactors)])
+                     isolate(input$blockdepth5),
+                     isolate(input$blockdepth6))[1:isolate(input$numberfactors)])
   })
   isblockingtext = reactive({
     any("htc" %in% c((input$blockdepth1),
                      (input$blockdepth2),
                      (input$blockdepth3),
                      (input$blockdepth4),
-                     (input$blockdepth5))[1:(input$numberfactors)])
+                     (input$blockdepth5),
+                     (input$blockdepth6))[1:(input$numberfactors)])
   })
 
   blockmodel = reactive({
@@ -565,45 +633,49 @@ function(input, output) {
     if(isolate(input$setseed)) {
       set.seed(isolate(input$seed))
     }
-
-    if(!isblocking()) {
-      gen_design(candidateset = isolate(expand.grid(inputlist())),
-                 model = isolate(as.formula(input$model)),
-                 trials = isolate(input$trials),
-                 optimality = isolate(input$optimality),
-                 repeats = isolate(input$repeats),
-                 aliaspower = isolate(input$aliaspower),
-                 minDopt = isolate(input$mindopt),
-                 parallel = isolate(as.logical(input$parallel)))
+    if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
     } else {
-      spd = gen_design(candidateset = isolate(expand.grid(inputlist_htc())),
-                       model = isolate(as.formula(blockmodel())),
-                       trials = isolate(input$numberblocks),
-                       optimality = isolate(input$optimality),
-                       repeats = isolate(input$repeats),
-                       varianceratio = isolate(input$varianceratio),
-                       aliaspower = isolate(input$aliaspower),
-                       minDopt = isolate(input$mindopt),
-                       parallel = isolate(as.logical(input$parallel)))
-      if(isolate(input$trials) %% isolate(input$numberblocks) == 0) {
-        sizevector = isolate(input$trials)/isolate(input$numberblocks)
-      } else {
-        sizevector = c(rep(ceiling(isolate(input$trials)/isolate(input$numberblocks)),isolate(input$numberblocks)))
-        unbalancedruns = ceiling(isolate(input$trials)/isolate(input$numberblocks))*isolate(input$numberblocks) - isolate(input$trials)
-        sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
-      }
 
-      gen_design(candidateset = isolate(expand.grid(inputlist())),
-                 model = isolate(as.formula(input$model)),
-                 trials = isolate(input$trials),
-                 splitplotdesign = spd,
-                 splitplotsizes = sizevector,
-                 optimality = isolate(input$optimality),
-                 repeats = isolate(input$repeats),
-                 varianceratio = isolate(input$varianceratio),
-                 aliaspower = isolate(input$aliaspower),
-                 minDopt = isolate(input$mindopt),
-                 parallel = isolate(as.logical(input$parallel)))
+      if(!isblocking()) {
+        gen_design(candidateset = isolate(expand.grid(inputlist())),
+                   model = isolate(as.formula(input$model)),
+                   trials = isolate(input$trials),
+                   optimality = isolate(input$optimality),
+                   repeats = isolate(input$repeats),
+                   aliaspower = isolate(input$aliaspower),
+                   minDopt = isolate(input$mindopt),
+                   parallel = isolate(as.logical(input$parallel)))
+      } else {
+        spd = gen_design(candidateset = isolate(expand.grid(inputlist_htc())),
+                         model = isolate(as.formula(blockmodel())),
+                         trials = isolate(input$numberblocks),
+                         optimality = isolate(input$optimality),
+                         repeats = isolate(input$repeats),
+                         varianceratio = isolate(input$varianceratio),
+                         aliaspower = isolate(input$aliaspower),
+                         minDopt = isolate(input$mindopt),
+                         parallel = isolate(as.logical(input$parallel)))
+        if(isolate(input$trials) %% isolate(input$numberblocks) == 0) {
+          sizevector = isolate(input$trials)/isolate(input$numberblocks)
+        } else {
+          sizevector = c(rep(ceiling(isolate(input$trials)/isolate(input$numberblocks)),isolate(input$numberblocks)))
+          unbalancedruns = ceiling(isolate(input$trials)/isolate(input$numberblocks))*isolate(input$numberblocks) - isolate(input$trials)
+          sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
+        }
+
+        gen_design(candidateset = isolate(expand.grid(inputlist())),
+                   model = isolate(as.formula(input$model)),
+                   trials = isolate(input$trials),
+                   splitplotdesign = spd,
+                   splitplotsizes = sizevector,
+                   optimality = isolate(input$optimality),
+                   repeats = isolate(input$repeats),
+                   varianceratio = isolate(input$varianceratio),
+                   aliaspower = isolate(input$aliaspower),
+                   minDopt = isolate(input$mindopt),
+                   parallel = isolate(as.logical(input$parallel)))
+      }
     }
   })
 
@@ -614,15 +686,18 @@ function(input, output) {
 
   powerresults = reactive({
     input$evalbutton
-
-    if(evaluationtype() == "lm") {
-      eval_design(RunMatrix = isolate(runmatrix()),
-                  model = as.formula(isolate(input$model)),
-                  alpha = isolate(input$alpha),
-                  blocking = isblocking(),
-                  delta = isolate(input$delta),
-                  conservative = isolate(input$conservative),
-                  detailedoutput = isolate(input$detailedoutput))
+    if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      print("No design generated")
+    } else {
+      if(evaluationtype() == "lm") {
+        eval_design(RunMatrix = isolate(runmatrix()),
+                    model = as.formula(isolate(input$model)),
+                    alpha = isolate(input$alpha),
+                    blocking = isblocking(),
+                    delta = isolate(input$delta),
+                    conservative = isolate(input$conservative),
+                    detailedoutput = isolate(input$detailedoutput))
+      }
     }
   })
   powerresultsglm = reactive({
@@ -630,17 +705,21 @@ function(input, output) {
     if(isolate(input$setseed)) {
       set.seed(isolate(input$seed))
     }
-    if(evaluationtype() == "glm") {
-      eval_design_mc(RunMatrix = isolate(runmatrix()),
-                     model = isolate(as.formula(input$model)),
-                     alpha = isolate(input$alpha),
-                     blocking = isblocking(),
-                     nsim = isolate(input$nsim),
-                     varianceratios = isolate(input$varianceratio),
-                     glmfamily = isolate(input$glmfamily),
-                     delta = isolate(input$delta),
-                     binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
-                     detailedoutput = isolate(input$detailedoutput))
+    if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      print("No design generated")
+    } else {
+      if(evaluationtype() == "glm") {
+        eval_design_mc(RunMatrix = isolate(runmatrix()),
+                       model = isolate(as.formula(input$model)),
+                       alpha = isolate(input$alpha),
+                       blocking = isblocking(),
+                       nsim = isolate(input$nsim),
+                       varianceratios = isolate(input$varianceratio),
+                       glmfamily = isolate(input$glmfamily),
+                       delta = isolate(input$delta),
+                       binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                       detailedoutput = isolate(input$detailedoutput))
+      }
     }
   })
   powerresultssurv = reactive({
@@ -648,16 +727,23 @@ function(input, output) {
     if(isolate(input$setseed)) {
       set.seed(isolate(input$seed))
     }
-    if(evaluationtype() == "surv") {
-      eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
-                              model = isolate(as.formula(input$model)),
-                              alpha = isolate(input$alpha),
-                              nsim = isolate(input$nsim),
-                              censorpoint = isolate(input$censorpoint),
-                              censortype = isolate(input$censortype),
-                              distribution = isolate(input$distribution),
-                              delta = isolate(input$delta),
-                              detailedoutput = isolate(input$detailedoutput))
+    if(isblocking()) {
+      print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
+    }
+    if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      print("No design generated")
+    } else {
+      if(evaluationtype() == "surv") {
+        eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
+                                model = isolate(as.formula(input$model)),
+                                alpha = isolate(input$alpha),
+                                nsim = isolate(input$nsim),
+                                censorpoint = isolate(input$censorpoint),
+                                censortype = isolate(input$censortype),
+                                distribution = isolate(input$distribution),
+                                delta = isolate(input$delta),
+                                detailedoutput = isolate(input$detailedoutput))
+      }
     }
   })
 
@@ -682,7 +768,11 @@ function(input, output) {
     input$evalbutton
     if(isolate(input$numberfactors) == 1) {
     } else {
-      isolate(plot_correlations(runmatrix()))
+      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+        print("No design generated")
+      } else {
+        isolate(plot_correlations(runmatrix()))
+      }
     }
   })
 
@@ -690,7 +780,11 @@ function(input, output) {
     input$evalbutton
     if(isolate(input$numberfactors) == 1) {
     } else {
-      isolate(plot_fds(runmatrix()))
+      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+        print("No design generated")
+      } else {
+        isolate(plot_fds(runmatrix()))
+      }
     }
   })
 

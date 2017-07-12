@@ -2,13 +2,15 @@
 % Please edit documentation in R/skprGUI.R
 \name{skprGUI}
 \alias{skprGUI}
-\title{skprGUI}
+\title{Graphical User Interface for skpr}
 \usage{
-skprGUI()
+skprGUI(inputValue1, inputValue2)
 }
-\value{
-skprGUI
+\arguments{
+\item{inputValue1}{It's the #1 input value.}
+
+\item{inputValue2}{Runner up input value, participation award pending}
 }
 \description{
-skprGUI
+skprGUI provides a graphical user interface to skpr.
 }

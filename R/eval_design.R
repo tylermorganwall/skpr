@@ -150,6 +150,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && !any(sapply(RunMatrix,class)=="factor")) {
     anticoef = rep(1,dim(attr(RunMatrix,"modelmatrix"))[2])
   }
+  anticoef = anticoef * delta / 2
 
   #-----Generate V inverse matrix-----X
 
@@ -190,14 +191,14 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
-    effectresults = parameterpower(RunMatrix,anticoef*delta/2,alpha,vInv = vInv)
+    effectresults = parameterpower(RunMatrix,anticoef,alpha,vInv = vInv)
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
 
     results = data.frame(parameters = namevector, type = typevector, power = effectresults)
 
     attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
-    attr(results, "anticoef") = anticoef*delta/2
+    attr(results, "anticoef") = anticoef
 
     modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
     if(ncol(modelmatrix_cor) > 2) {
@@ -242,8 +243,8 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   } else {
     levelvector = sapply(lapply(RunMatrix,unique),length)
 
-    effectresults = effectpower(RunMatrix,levelvector,anticoef*delta/2,alpha,vInv=vInv)
-    parameterresults = parameterpower(RunMatrix,anticoef*delta/2,alpha,vInv=vInv)
+    effectresults = effectpower(RunMatrix,levelvector,anticoef,alpha,vInv=vInv)
+    parameterresults = parameterpower(RunMatrix,anticoef,alpha,vInv=vInv)
 
     typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
     effectnamevector = c("(Intercept)",names(sapply(lapply(RunMatrix,unique),length)))
@@ -258,7 +259,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     }
 
     attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
-    attr(results, "anticoef") = anticoef*delta/2
+    attr(results, "anticoef") = anticoef
 
     modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
     if(ncol(modelmatrix_cor) > 2) {

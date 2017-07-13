@@ -184,13 +184,13 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model)
+    anticoef = gen_anticoef(RunMatrixReduced, model) * delta / 2
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(lapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && !any(lapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(ModelMatrix)[2])
+    anticoef = rep(1,dim(ModelMatrix)[2]) * delta / 2
   }
   if(glmfamilyname == "binomial" && is.null(binomialprobs)) {
     warning("Warning: Binomial model using default (or user supplied) anticipated coefficients. Default anticipated coefficients can result in
@@ -198,7 +198,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
             binomialprobs for more realistic effect sizes.")
   }
   if(glmfamilyname == "binomial" && !is.null(binomialprobs)) {
-    anticoef = gen_binomial_anticoef(anticoef,binomialprobs[1],binomialprobs[2])
+    anticoef = gen_binomial_anticoef(anticoef,binomialprobs[1],binomialprobs[2]) #ignore delta argument
   }
 
   #-------------- Blocking errors --------------#
@@ -249,10 +249,10 @@ eval_design_mc = function(RunMatrix, model, alpha,
   responses = matrix(ncol=nsim,nrow=nrow(ModelMatrix))
   if(blocking) {
     for(i in 1:nsim) {
-      responses[,i] = rfunction(ModelMatrix,anticoef*delta/2,rblocknoise(noise=varianceratios,groups=blockgroups))
+      responses[,i] = rfunction(ModelMatrix,anticoef,rblocknoise(noise=varianceratios,groups=blockgroups))
     }
   } else {
-    responses = replicate(nsim, rfunction(ModelMatrix,anticoef*delta/2,rep(0,nrow(ModelMatrix))))
+    responses = replicate(nsim, rfunction(ModelMatrix,anticoef,rep(0,nrow(ModelMatrix))))
   }
   #-------Update formula with random blocks------#
 
@@ -349,7 +349,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
                     type="parameter.power.mc",
                     power=power_values)
   attr(retval, "modelmatrix") = ModelMatrix
-  attr(retval, "anticoef") = anticoef*delta/2
+  attr(retval, "anticoef") = anticoef
 
   modelmatrix_cor = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
   if(ncol(modelmatrix_cor) > 2) {
@@ -368,7 +368,6 @@ eval_design_mc = function(RunMatrix, model, alpha,
     retval$trials = nrow(RunMatrix)
     retval$nsim = nsim
     retval$blocking = blocking
-    retval$delta = delta
   }
 
   colnames(estimates) = parameter_names

@@ -199,7 +199,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
             binomialprobs for more realistic effect sizes.")
   }
   if(glmfamilyname == "binomial" && !is.null(binomialprobs)) {
-    anticoef = gen_binomial_anticoef(anticoef,binomialprobs[1],binomialprobs[2]) #ignore delta argument
+    anticoef = gen_binomial_anticoef(gen_anticoef(RunMatrixReduced, model),
+                                     binomialprobs[1],binomialprobs[2]) #ignore delta argument
   }
 
   #-------------- Blocking errors --------------#

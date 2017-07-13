@@ -139,13 +139,14 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model)
+    anticoef = gen_anticoef(RunMatrixReduced,model) * delta / 2
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(ModelMatrix)[2])
+    warning("Wrong number of anticipated coefficients. Using delta instead.")
+    anticoef = rep(1,dim(ModelMatrix)[2]) * delta / 2
   }
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
@@ -156,7 +157,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
     for (j in 1:nsim) {
 
       #simulate the data.
-      anticoef_adjusted = anticoef*delta/2
+      anticoef_adjusted = anticoef
 
       RunMatrixReduced$Y = rfunctionsurv(ModelMatrix,anticoef_adjusted)
 
@@ -180,7 +181,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
 
-      anticoef_adjusted = anticoef*delta/2
+      anticoef_adjusted = anticoef
 
       RunMatrixReduced$Y = rfunctionsurv(ModelMatrix,anticoef_adjusted)
 

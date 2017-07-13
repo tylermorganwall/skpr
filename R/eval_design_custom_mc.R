@@ -114,13 +114,14 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model)
+    anticoef = gen_anticoef(RunMatrixReduced,model) * delta / 2
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
     stop("Wrong number of anticipated coefficients")
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    anticoef = rep(1,dim(ModelMatrix)[2])
+    warning("Wrong number of anticipated coefficients. Using delta instead.")
+    anticoef = rep(1,dim(ModelMatrix)[2]) * delta / 2
   }
 
   model_formula = update.formula(model, Y ~ .)
@@ -134,7 +135,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     for (j in 1:nsim) {
 
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
+      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef)
 
       #fit a model to the simulated data.
       fit = fitfunction(model_formula, RunMatrixReduced, contrastlist)
@@ -153,7 +154,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind",.packages = parallelpackages) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef*delta/2)
+      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef)
 
       #fit a model to the simulated data.
       fit = fitfunction(model_formula, RunMatrixReduced, contrastlist)

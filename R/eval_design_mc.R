@@ -190,6 +190,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
     stop("Wrong number of anticipated coefficients")
   }
   if(length(anticoef) != dim(ModelMatrix)[2] && !any(lapply(RunMatrixReduced,class)=="factor")) {
+    warning("Wrong number of anticipated coefficients. Using delta instead.")
     anticoef = rep(1,dim(ModelMatrix)[2]) * delta / 2
   }
   if(glmfamilyname == "binomial" && is.null(binomialprobs)) {

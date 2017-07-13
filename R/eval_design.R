@@ -148,6 +148,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     stop("Wrong number of anticipated coefficients")
   }
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && !any(sapply(RunMatrix,class)=="factor")) {
+    warning("Wrong number of anticipated coefficients. Using delta instead.")
     anticoef = rep(1,dim(attr(RunMatrix,"modelmatrix"))[2])
   }
   anticoef = anticoef * delta / 2

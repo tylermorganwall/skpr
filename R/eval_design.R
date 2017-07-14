@@ -143,15 +143,11 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrix,model)
   }
-
-  if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && any(sapply(RunMatrix,class)=="factor")) {
+  anticoef = anticoef * delta / 2
+  if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2]) {
     stop("Wrong number of anticipated coefficients")
   }
-  if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2] && !any(sapply(RunMatrix,class)=="factor")) {
-    warning("Wrong number of anticipated coefficients. Using delta instead.")
-    anticoef = rep(1,dim(attr(RunMatrix,"modelmatrix"))[2])
-  }
-  anticoef = anticoef * delta / 2
+
 
   #-----Generate V inverse matrix-----X
 

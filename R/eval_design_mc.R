@@ -184,21 +184,21 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #-----Autogenerate Anticipated Coefficients---#
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model) * delta / 2
+    anticoef = gen_anticoef(RunMatrixReduced, model)
   }
-  if(length(anticoef) != dim(ModelMatrix)[2] && any(lapply(RunMatrixReduced,class)=="factor")) {
+  anticoef = anticoef * delta / 2
+  if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
-  }
-  if(length(anticoef) != dim(ModelMatrix)[2] && !any(lapply(RunMatrixReduced,class)=="factor")) {
-    warning("Wrong number of anticipated coefficients. Using delta instead.")
-    anticoef = rep(1,dim(ModelMatrix)[2]) * delta / 2
   }
   if(glmfamilyname == "binomial" && is.null(binomialprobs)) {
     warning("Warning: Binomial model using default (or user supplied) anticipated coefficients. Default anticipated coefficients can result in
             large shifts in probability throughout the design space. It is recommended to specify probability bounds in the argument
             binomialprobs for more realistic effect sizes.")
   }
-  if(glmfamilyname == "binomial" && !is.null(binomialprobs)) {
+  if(!is.null(binomialprobs)) {
+    if (glmfamilyname != "binomial") {
+      stop("binomialprobs can only be used with glmfamilyname = \"binomial\"")
+    }
     anticoef = gen_binomial_anticoef(gen_anticoef(RunMatrixReduced, model),
                                      binomialprobs[1],binomialprobs[2]) #ignore delta argument
   }
@@ -370,6 +370,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
     retval$trials = nrow(RunMatrix)
     retval$nsim = nsim
     retval$blocking = blocking
+    retval$delta = delta
   }
 
   colnames(estimates) = parameter_names

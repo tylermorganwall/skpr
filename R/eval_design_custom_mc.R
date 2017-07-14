@@ -114,15 +114,13 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   # autogenerate anticipated coefficients
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model) * delta / 2
+    anticoef = gen_anticoef(RunMatrixReduced,model)
   }
-  if(length(anticoef) != dim(ModelMatrix)[2] && any(sapply(RunMatrixReduced,class)=="factor")) {
+  anticoef = anticoef * delta / 2
+  if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
   }
-  if(length(anticoef) != dim(ModelMatrix)[2] && !any(sapply(RunMatrixReduced,class)=="factor")) {
-    warning("Wrong number of anticipated coefficients. Using delta instead.")
-    anticoef = rep(1,dim(ModelMatrix)[2]) * delta / 2
-  }
+
 
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)

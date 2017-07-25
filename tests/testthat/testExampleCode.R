@@ -215,8 +215,6 @@ test_that("eval_design_mc example code runs without errors", {
                  glmfamily="binomial"))
   factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
   designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)
-
-  expect_silent(eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson", anticoef=c(log(0.2),log(2),log(2))))
 })
 
 

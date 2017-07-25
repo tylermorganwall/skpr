@@ -162,12 +162,12 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(!is.null(splitplotdesign)) {
-    if(any(colnames(splitplotdesign) %in% colnames(candidateset))) {
-      stop("Error: Shared variable name in splitplotdesign and candidate set.")
-    }
+    # if(any(colnames(splitplotdesign) %in% colnames(candidateset))) {
+    #   stop("Error: Shared variable name in splitplotdesign and candidate set.")
+    # }
     contrastslistspd = list()
     for(x in names(splitplotdesign[lapply(splitplotdesign,class) %in% c("factor","character")])) {
-      contrastslistspd[[x]] = contr.sum
+      contrastslistspd[[x]] = contrast
     }
 
     if(length(contrastslistspd) == 0) {
@@ -175,7 +175,7 @@ gen_design = function(candidateset, model, trials,
     }
     contrastslistsubplot = list()
     for(x in names(candidateset[lapply(candidateset,class) %in% c("factor","character")])) {
-      contrastslistsubplot[[x]] = contr.sum
+      contrastslistsubplot[[x]] = contrast
     }
 
     if(length(contrastslistspd) == 0) {
@@ -187,8 +187,9 @@ gen_design = function(candidateset, model, trials,
       # subplotterms = colnames(model.matrix(~.,data = candidateset,contrasts.arg = contrastslistsubplot))[-1]
       # wholeplotterms = colnames(model.matrix(~.,data = splitplotdesign,contrasts.arg = contrastslistspd))[-1]
 
-      subplotterms = colnames(candidateset)
       wholeplotterms = colnames(splitplotdesign)
+      subplotterms = colnames(candidateset)
+      subplotterms = subplotterms[!(subplotterms %in% wholeplotterms)]
 
       subplotcategoricals = names(contrastslistsubplot)
       wholeplotcategoricals = names(contrastslistspd)
@@ -214,11 +215,12 @@ gen_design = function(candidateset, model, trials,
       #get whole:non-whole interaction terms
       wholeinteractionterms = splitterms[regularmodel & wholeorwholeinteraction]
 
+      fullcontrastlist = c(contrastslistsubplot,contrastslistspd)
+
       if(length(wholeinteractionterms) > 0) {
         # Find columns of model matrices corresponding to the interactions, to determine what to multiply in the
         # Optimal design generation process.
         lineartermsinteraction = unique(unlist(strsplit(wholeinteractionterms, split="(\\s\\*\\s)|(:)",perl=TRUE)))
-        fullcontrastlist = c(contrastslistsubplot,contrastslistspd)
         extract_interactionnames_formula = as.formula(paste0("~",paste(c(lineartermsinteraction,wholeinteractionterms),collapse=" + ")))
         combinedcand = cbind(candidateset[1,,drop=FALSE],splitplotdesign[1,,drop=FALSE])
         allcolnames = colnames(model.matrix(extract_interactionnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist))
@@ -247,11 +249,13 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  # if(is.null(splitplotdesign)) {
-  #   candidateset = unique(reduceRunMatrix(candidateset, model))
-  # } else {
-  #   candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
-  # }
+  fullcandidateset = candidateset
+
+  if(is.null(splitplotdesign)) {
+    candidateset = unique(reduceRunMatrix(candidateset, model))
+  } else {
+    candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
+  }
   candidatesetnormalized = candidateset
 
   #----- Convert dot/quad formula to terms -----#
@@ -295,7 +299,11 @@ gen_design = function(candidateset, model, trials,
   #generate blocked design with replicates
   if(!is.null(splitplotdesign)) {
     if(!is.null(attr(splitplotdesign,"varianceratios"))) {
-      varianceRatios = c(attr(splitplotdesign,"varianceratios"),varianceratio)
+      if(!is.null(attr(splitplotdesign,"varianceratios"))) {
+        varianceRatios = c(attr(splitplotdesign,"varianceratios"),varianceratio)
+      } else {
+        varianceRatios = varianceratio
+      }
     } else {
       varianceRatios = varianceratio
     }
@@ -382,7 +390,7 @@ gen_design = function(candidateset, model, trials,
     if(is.null(splitplotdesign)) {
       candidatesetmm = model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist)
     } else {
-      candidatesetmm = model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist)
+      candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
     }
   }
 
@@ -496,6 +504,14 @@ gen_design = function(candidateset, model, trials,
       blockedFactors = c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1],interactionnames)
       blockedMM = gen_momentsmatrix(blockedFactors,levelvector,classvector)
     }
+    disallowedcombdf = disallowed_combinations(fullcandidateset)
+    if(nrow(disallowedcombdf) > 0) {
+      anydisallowed = TRUE
+      disallowedcomb = model.matrix(model,disallowedcombdf,contrasts.arg=fullcontrastlist)
+    } else {
+      anydisallowed = FALSE
+      disallowedcomb = matrix()
+    }
     if (!parallel) {
       if(!timer) {
         for(i in 1:repeats) {
@@ -504,7 +520,8 @@ gen_design = function(candidateset, model, trials,
                                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                                   aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist)
+                                                   aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                                   disallowed = disallowedcomb, anydisallowed = anydisallowed)
         }
       } else {
         cat("Estimated time to completion ... ")
@@ -514,7 +531,8 @@ gen_design = function(candidateset, model, trials,
                                                  candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                  blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                                 aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist)
+                                                 aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                                 disallowed = disallowedcomb, anydisallowed = anydisallowed)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
@@ -522,7 +540,8 @@ gen_design = function(candidateset, model, trials,
                                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                                   aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist)
+                                                   aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                                   disallowed = disallowedcomb, anydisallowed = anydisallowed)
         }
       }
     } else {
@@ -536,7 +555,8 @@ gen_design = function(candidateset, model, trials,
                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist)
+                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                  disallowed = disallowedcomb, anydisallowed = anydisallowed)
         }
         parallel::stopCluster(cl)
       } else {
@@ -550,7 +570,8 @@ gen_design = function(candidateset, model, trials,
                                                candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                               aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist)
+                                               aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                               disallowed = disallowedcomb, anydisallowed = anydisallowed)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
         genOutput = foreach(i=2:repeats) %dopar% {
@@ -559,7 +580,8 @@ gen_design = function(candidateset, model, trials,
                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
                                   condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist)
+                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                  disallowed = disallowedcomb, anydisallowed = anydisallowed)
         }
         parallel::stopCluster(cl)
         genOutput = as.list(c(genOutputOne,genOutput))

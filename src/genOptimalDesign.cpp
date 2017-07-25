@@ -498,14 +498,14 @@ double calculateBlockedDEffNN(arma::mat currentDesign,const arma::mat gls) {
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
                              const std::string condition, const arma::mat momentsmatrix, IntegerVector initialRows,
                              const arma::mat blockedVar,
-                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions) {
+                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions,
+                             arma::mat disallowed, const bool anydisallowed) {
   //Load the R RNG
   RNGScope rngScope;
 
   //check and log whether there are inter-strata interactions
   unsigned int numberinteractions = interactions.size();
   bool interstrata = (numberinteractions > 0);
-
   //Generate blocking structure inverse covariance matrix
   const arma::mat vInv = inv_sympd(blockedVar);
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
@@ -524,6 +524,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   unsigned int totalPoints = candidatelist.n_rows;
   unsigned int blockedCols = blockeddesign.n_cols;
   int designCols = initialdesign.n_cols;
+  LogicalVector mustchange(nTrials, false);
   //arma::mat combinedDesign(nTrials,blockedCols+designCols,arma::fill::zeros);
   arma::mat combinedDesign(nTrials,blockedCols+designCols + numberinteractions,arma::fill::zeros);
   combinedDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
@@ -578,6 +579,15 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   if (!inv(test,combinedDesign.t() * vInv * combinedDesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
+  if(anydisallowed) {
+    for(unsigned int i = 0; i < nTrials; i++) {
+      for(unsigned int j = 0; j < disallowed.n_rows; j++) {
+        if(all(combinedDesign.row(i) == disallowed.row(j))) {
+          mustchange[i] = true;
+        }
+      }
+    }
+  }
   double del = 0;
   bool found = FALSE;
   int entryx = 0;
@@ -586,6 +596,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   double priorOptimum = 0;
   double minDelta = 10e-5;
   double newdel;
+  bool pointallowed = false;
   //Generate a D-optimal design, fixing the blocking factors
   if(condition == "D") {
     arma::mat temp;
@@ -599,18 +610,31 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+
         for (unsigned int j = 0; j < totalPoints; j++) {
           temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
+
+          pointallowed = true;
+          if(anydisallowed) {
+            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+              if(all(temp.row(i) == disallowed.row(k))) {
+                pointallowed = false;
+              }
+            }
+          }
+
           newdel = calculateBlockedDOptimality(temp, vInv);
-          if(newdel > del) {
+          if((newdel > del || mustchange[i]) && pointallowed) {
             found = TRUE;
             entryx = i; entryy = j;
             del = newdel;
+            mustchange[i] = false;
           }
         }
         if (found) {
@@ -651,11 +675,22 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
                 temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
               }
             }
+
+            pointallowed = true;
+            if(anydisallowed) {
+              for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+                if(all(temp.row(i) == disallowed.row(k))) {
+                  pointallowed = false;
+                }
+              }
+            }
+
             newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
-            if(newdel < del) {
+            if((newdel > del || mustchange[i]) && pointallowed) {
               found = TRUE;
               entryx = i; entryy = j;
               del = newdel;
+              mustchange[i] = false;
             }
           } catch (std::runtime_error& e) {
             continue;
@@ -703,11 +738,21 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
                 temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
               }
             }
+            pointallowed = true;
+            if(anydisallowed) {
+              for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+                if(all(temp.row(i) == disallowed.row(k))) {
+                  pointallowed = false;
+                }
+              }
+            }
+
             newdel = calculateBlockedAOptimality(temp,vInv);
-            if(newdel < del) {
+            if((newdel > del || mustchange[i]) && pointallowed) {
               found = TRUE;
               entryx = i; entryy = j;
               del = newdel;
+              mustchange[i] = false;
             }
           } catch (std::runtime_error& e) {
             continue;
@@ -815,11 +860,22 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
+
+          pointallowed = true;
+          if(anydisallowed) {
+            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+              if(all(temp.row(i) == disallowed.row(k))) {
+                pointallowed = false;
+              }
+            }
+          }
+
           newdel = calculateBlockedEOptimality(temp, vInv);
-          if(newdel > del) {
+          if((newdel > del || mustchange[i]) && pointallowed) {
             found = TRUE;
             entryx = i; entryy = j;
             del = newdel;
+            mustchange[i] = false;
           }
         }
         if (found) {

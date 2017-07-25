@@ -277,6 +277,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
   #---------------- Run Simulations ---------------#
   if(!parallel) {
     pvallist = list()
+    stderrlist = list()
+    iterlist = list()
     power_values = rep(0, ncol(ModelMatrix))
     estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
     for (j in 1:nsim) {
@@ -301,12 +303,20 @@ eval_design_mc = function(RunMatrix, model, alpha,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       pvallist[[j]] = pvals
+      stderrlist[[j]] = coef(summary(fit))[,2]
+      if (!blocking) {
+        iterlist[[j]] = fit$iter
+      } else {
+        iterlist[[j]] = NA
+      }
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
     }
     #We are going to output a tidy data.frame with the results, so just append the effect powers
     #to the parameter powers. We'll use another column of that dataframe to label whether it is parameter
     #or effect power.\
     attr(power_values, "pvals") = do.call(rbind,pvallist)
+    attr(power_values, "stderrors") = do.call(rbind,stderrlist)
+    attr(power_values, "fisheriterations") = do.call(rbind,iterlist)
     power_values = power_values / nsim
 
   } else {
@@ -334,15 +344,22 @@ eval_design_mc = function(RunMatrix, model, alpha,
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
+      stderrval = coef(summary(fit))[,2]
       power_values[pvals < alpha] = 1
-
-      c(power_values, estimates, pvals)
+      if (!blocking) {
+        iterval = fit$iter
+      } else {
+        iterval = NA
+      }
+      c(power_values, estimates, pvals, stderrval, iterval)
     }
     dfsplit = ncol(ModelMatrix)
     parallel::stopCluster(cl)
     power_values = apply(power_estimates[, 1:dfsplit], 2, sum) / nsim
     estimates = power_estimates[, (dfsplit + 1):(2*dfsplit)]
-    attr(power_values,"pvals") = power_estimates[, (2*dfsplit + 1):ncol(power_estimates)]
+    attr(power_values,"pvals") = power_estimates[, (2*dfsplit + 1):(3*dfsplit)]
+    attr(power_values,"stderrors") = power_estimates[, (3*dfsplit + 1):(4*dfsplit)]
+    attr(power_values,"fisheriterations") = power_estimates[, (4*dfsplit + 1)]
   }
   #output the results (tidy data format)
   retval = data.frame(parameters=parameter_names,
@@ -374,6 +391,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
   colnames(estimates) = parameter_names
   attr(retval, 'estimates') = estimates
   attr(retval, 'pvals') = attr(power_values, "pvals")
-  retval
+  attr(retval, 'stderrors') = attr(power_values, "stderrors")
+  attr(retval, 'fisheriterations') = attr(power_values,"fisheriterations")
+  return(retval)
 }
 globalVariables('i')

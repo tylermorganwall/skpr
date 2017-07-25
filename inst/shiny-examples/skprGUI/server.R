@@ -77,136 +77,79 @@ function(input, output) {
     inputlist1
   })
 
-  inputstring_htc = reactive({
-    commacount = sum("htc" == c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)[1:input$numberfactors])-1
-    finalstring = c()
+  inputlist_htctext = reactive({
+    input$submitbutton
+    inputlist1 = list()
     for(i in 1:6) {
-      if(i == 1 && (input$numberfactors) > 0) {
-        if(input$blockdepth1 == "htc") {
-          finalstring = c(finalstring,(input$factorname1)," = ")
-          if((input$factortype1) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=",input$numericlength1,")")
-          }
-          if((input$factortype1) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels1),")")
-          }
-          if((input$factortype1) == "cat") {
-            len = length(strsplit(input$levels1,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels1,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",31)),collapse=""))
-          }
+      if((i == 1 && (input$numberfactors) > 0) && (input$blockdepth1) == "htc") {
+        if((input$factortype1) == "numeric") {
+          inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
+        }
+        if((input$factortype1) == "discnum") {
+          inputlist1[[(input$factorname1)]] = as.numeric(strsplit((input$disclevels1),split=",")[[1]])
+        }
+        if((input$factortype1) == "cat") {
+          inputlist1[[(input$factorname1)]] = strsplit((input$levels1),split=",")[[1]]
         }
       }
-      if((i == 2 && (input$numberfactors) > 1)) {
-        if(input$blockdepth2 == "htc") {
-          finalstring = c(finalstring, input$factorname2," = ")
-          if((input$factortype2) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=",input$numericlength2,")")
-          }
-          if((input$factortype2) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels2),")")
-          }
-          if((input$factortype2) == "cat") {
-            len = length(strsplit(input$levels2,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels2,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",31)),collapse=""))
-          }
+      if((i == 2 && (input$numberfactors) > 1) && (input$blockdepth2) == "htc") {
+        if((input$factortype2) == "numeric") {
+          inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
+        }
+        if((input$factortype2) == "discnum") {
+          inputlist1[[(input$factorname2)]] = as.numeric(strsplit((input$disclevels2),split=",")[[1]])
+        }
+        if((input$factortype2) == "cat") {
+          inputlist1[[(input$factorname2)]] = strsplit((input$levels2),split=",")[[1]]
         }
       }
-      if(i == 3 && (input$numberfactors) > 2) {
-        if(input$blockdepth3 == "htc") {
-          finalstring = c(finalstring,input$factorname3," = ")
-          if((input$factortype3) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=",input$numericlength3,")")
-          }
-          if((input$factortype3) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels3),")")
-          }
-          if((input$factortype3) == "cat") {
-            len = length(strsplit(input$levels3,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels3,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",31)),collapse=""))
-          }
+      if((i == 3 && (input$numberfactors) > 2) && (input$blockdepth3) == "htc") {
+        if((input$factortype3) == "numeric") {
+          inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
+        }
+        if((input$factortype3) == "discnum") {
+          inputlist1[[(input$factorname3)]] = as.numeric(strsplit((input$disclevels3),split=",")[[1]])
+        }
+        if((input$factortype3) == "cat") {
+          inputlist1[[(input$factorname3)]] = strsplit((input$levels3),split=",")[[1]]
         }
       }
-      if(i == 4 && (input$numberfactors) > 3) {
-        if(input$blockdepth4 == "htc") {
-          finalstring = c(finalstring,input$factorname4," = ")
-          if((input$factortype4) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=",input$numericlength4,")")
-          }
-          if((input$factortype4) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels4),")")
-          }
-          if((input$factortype4) == "cat") {
-            len = length(strsplit(input$levels4,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels4,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",31)),collapse=""))
-          }
+      if((i == 4 && (input$numberfactors) > 3) && (input$blockdepth4) == "htc") {
+        if((input$factortype4) == "numeric") {
+          inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
+        }
+        if((input$factortype4) == "discnum") {
+          inputlist1[[(input$factorname4)]] = as.numeric(strsplit((input$disclevels4),split=",")[[1]])
+        }
+        if((input$factortype4) == "cat") {
+          inputlist1[[(input$factorname4)]] = strsplit((input$levels4),split=",")[[1]]
         }
       }
-      if(i == 5 && (input$numberfactors) > 4) {
-        if(input$blockdepth5 == "htc") {
-          finalstring = c(finalstring,input$factorname5," = ")
-          if((input$factortype5) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=",input$numericlength5,")")
-          }
-          if((input$factortype5) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels5),")")
-          }
-          if((input$factortype5) == "cat") {
-            len = length(strsplit(input$levels5,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels5,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",31)),collapse=""))
-          }
+      if((i == 5 && (input$numberfactors) > 4) && (input$blockdepth5) == "htc") {
+        if((input$factortype5) == "numeric") {
+          inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
+        }
+        if((input$factortype5) == "discnum") {
+          inputlist1[[(input$factorname5)]] = as.numeric(strsplit((input$disclevels5),split=",")[[1]])
+        }
+        if((input$factortype5) == "cat") {
+          inputlist1[[(input$factorname5)]] = strsplit((input$levels5),split=",")[[1]]
         }
       }
-      if(i == 6 && (input$numberfactors) > 5) {
-        if(input$blockdepth6 == "htc") {
-          finalstring = c(finalstring,input$factorname6," = ")
-          if((input$factortype6) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow6),",",(input$numerichigh6),", length.out=",input$numericlength6,")")
-          }
-          if((input$factortype6) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels6),")")
-          }
-          if((input$factortype6) == "cat") {
-            len = length(strsplit(input$levels6,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels6,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
+      if((i == 6 && (input$numberfactors) > 5) && (input$blockdepth6) == "htc") {
+        if((input$factortype6) == "numeric") {
+          inputlist1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
+        }
+        if((input$factortype6) == "discnum") {
+          inputlist1[[(input$factorname6)]] = as.numeric(strsplit((input$disclevels6),split=",")[[1]])
+        }
+        if((input$factortype6) == "cat") {
+          inputlist1[[(input$factorname6)]] = strsplit((input$levels6),split=",")[[1]]
         }
       }
     }
-    finalstring
+    inputlist1
   })
-
 
   inputlist = reactive({
     input$submitbutton
@@ -295,129 +238,117 @@ function(input, output) {
   })
 
   inputstring = reactive({
-    commacount = sum("etc" == c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)[1:input$numberfactors])-1
+    commacount = input$numberfactors-1
     finalstring = c()
     for(i in 1:6) {
       if(i == 1 && (input$numberfactors) > 0) {
-        if(input$blockdepth1 == "etc") {
-          finalstring = c(finalstring,(input$factorname1)," = ")
-          if((input$factortype1) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=",input$numericlength1,")")
-          }
-          if((input$factortype1) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels1),")")
-          }
-          if((input$factortype1) == "cat") {
-            len = length(strsplit(input$levels1,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels1,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
-          }
+        finalstring = c(finalstring,(input$factorname1)," = ")
+        if((input$factortype1) == "numeric") {
+          finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=",input$numericlength1,")")
+        }
+        if((input$factortype1) == "discnum") {
+          finalstring = c(finalstring, "c(",(input$disclevels1),")")
+        }
+        if((input$factortype1) == "cat") {
+          len = length(strsplit(input$levels1,split=",")[[1]])
+          levelstring = paste0(c("\""),strsplit(input$levels1,split=",")[[1]],c("\","),collapse="")
+          levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+          finalstring = c(finalstring, "c(",levelstring,")")
+        }
+        if(commacount > 0) {
+          commacount = commacount - 1
+          finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
         }
       }
       if((i == 2 && (input$numberfactors) > 1)) {
-        if(input$blockdepth2 == "etc") {
-          finalstring = c(finalstring, input$factorname2," = ")
-          if((input$factortype2) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=",input$numericlength2,")")
-          }
-          if((input$factortype2) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels2),")")
-          }
-          if((input$factortype2) == "cat") {
-            len = length(strsplit(input$levels2,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels2,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
-          }
+        finalstring = c(finalstring, input$factorname2," = ")
+        if((input$factortype2) == "numeric") {
+          finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=",input$numericlength2,")")
+        }
+        if((input$factortype2) == "discnum") {
+          finalstring = c(finalstring, "c(",(input$disclevels2),")")
+        }
+        if((input$factortype2) == "cat") {
+          len = length(strsplit(input$levels2,split=",")[[1]])
+          levelstring = paste0(c("\""),strsplit(input$levels2,split=",")[[1]],c("\","),collapse="")
+          levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+          finalstring = c(finalstring, "c(",levelstring,")")
+        }
+        if(commacount > 0) {
+          commacount = commacount - 1
+          finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
         }
       }
       if(i == 3 && (input$numberfactors) > 2) {
-        if(input$blockdepth3 == "etc") {
-          finalstring = c(finalstring,input$factorname3," = ")
-          if((input$factortype3) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=",input$numericlength3,")")
-          }
-          if((input$factortype3) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels3),")")
-          }
-          if((input$factortype3) == "cat") {
-            len = length(strsplit(input$levels3,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels3,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
-          }
+        finalstring = c(finalstring,input$factorname3," = ")
+        if((input$factortype3) == "numeric") {
+          finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=",input$numericlength3,")")
+        }
+        if((input$factortype3) == "discnum") {
+          finalstring = c(finalstring, "c(",(input$disclevels3),")")
+        }
+        if((input$factortype3) == "cat") {
+          len = length(strsplit(input$levels3,split=",")[[1]])
+          levelstring = paste0(c("\""),strsplit(input$levels3,split=",")[[1]],c("\","),collapse="")
+          levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+          finalstring = c(finalstring, "c(",levelstring,")")
+        }
+        if(commacount > 0) {
+          commacount = commacount - 1
+          finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
         }
       }
       if(i == 4 && (input$numberfactors) > 3) {
-        if(input$blockdepth4 == "etc") {
-          finalstring = c(finalstring,input$factorname4," = ")
-          if((input$factortype4) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=",input$numericlength4,")")
-          }
-          if((input$factortype4) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels4),")")
-          }
-          if((input$factortype4) == "cat") {
-            len = length(strsplit(input$levels4,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels4,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
-          }
+        finalstring = c(finalstring,input$factorname4," = ")
+        if((input$factortype4) == "numeric") {
+          finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=",input$numericlength4,")")
+        }
+        if((input$factortype4) == "discnum") {
+          finalstring = c(finalstring, "c(",(input$disclevels4),")")
+        }
+        if((input$factortype4) == "cat") {
+          len = length(strsplit(input$levels4,split=",")[[1]])
+          levelstring = paste0(c("\""),strsplit(input$levels4,split=",")[[1]],c("\","),collapse="")
+          levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+          finalstring = c(finalstring, "c(",levelstring,")")
+        }
+        if(commacount > 0) {
+          commacount = commacount - 1
+          finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
         }
       }
       if(i == 5 && (input$numberfactors) > 4) {
-        if(input$blockdepth5 == "etc") {
-          finalstring = c(finalstring,input$factorname5," = ")
-          if((input$factortype5) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=",input$numericlength5,")")
-          }
-          if((input$factortype5) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels5),")")
-          }
-          if((input$factortype5) == "cat") {
-            len = length(strsplit(input$levels5,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels5,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
-          if(commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
-          }
+        finalstring = c(finalstring,input$factorname5," = ")
+        if((input$factortype5) == "numeric") {
+          finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=",input$numericlength5,")")
+        }
+        if((input$factortype5) == "discnum") {
+          finalstring = c(finalstring, "c(",(input$disclevels5),")")
+        }
+        if((input$factortype5) == "cat") {
+          len = length(strsplit(input$levels5,split=",")[[1]])
+          levelstring = paste0(c("\""),strsplit(input$levels5,split=",")[[1]],c("\","),collapse="")
+          levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+          finalstring = c(finalstring, "c(",levelstring,")")
+        }
+        if(commacount > 0) {
+          commacount = commacount - 1
+          finalstring = c(finalstring,paste0(c(",\n",rep("&nbsp;",27)),collapse=""))
         }
       }
       if(i == 6 && (input$numberfactors) > 5) {
-        if(input$blockdepth6 == "etc") {
-          finalstring = c(finalstring,input$factorname6," = ")
-          if((input$factortype6) == "numeric") {
-            finalstring = c(finalstring, "seq(",(input$numericlow6),",",(input$numerichigh6),", length.out=",input$numericlength6,")")
-          }
-          if((input$factortype6) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels6),")")
-          }
-          if((input$factortype6) == "cat") {
-            len = length(strsplit(input$levels6,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels6,split=",")[[1]],c("\","),collapse="")
-            levelstring = substr(levelstring, 1, nchar(levelstring)-1)
-            finalstring = c(finalstring, "c(",levelstring,")")
-          }
+        finalstring = c(finalstring,input$factorname6," = ")
+        if((input$factortype6) == "numeric") {
+          finalstring = c(finalstring, "seq(",(input$numericlow6),",",(input$numerichigh6),", length.out=",input$numericlength6,")")
+        }
+        if((input$factortype6) == "discnum") {
+          finalstring = c(finalstring, "c(",(input$disclevels6),")")
+        }
+        if((input$factortype6) == "cat") {
+          len = length(strsplit(input$levels6,split=",")[[1]])
+          levelstring = paste0(c("\""),strsplit(input$levels6,split=",")[[1]],c("\","),collapse="")
+          levelstring = substr(levelstring, 1, nchar(levelstring)-1)
+          finalstring = c(finalstring, "c(",levelstring,")")
         }
       }
     }
@@ -432,15 +363,13 @@ function(input, output) {
                      ifelse(input$setseed,
                             paste0("<code style=\"color:#468449\">#Setting random number generator seed:</code><br>",
                                    "set.seed(", input$seed, ")<br><br>"),""),
-                     ifelse(blocking,
-                            paste0(c("<code style=\"color:#468449\"># Generating Hard-to-change candidate set:</code><br>candidateset_htc = expand.grid(",
-                                     inputstring_htc(), ")<br><br>",
-                                     "<code style=\"color:#468449\"># Generating design for hard-to-change factors:</code> <br>",
-                                     "design_htc = gen_design(candidateset = candidateset_htc, <br>", rep("&nbsp;",24),
-                                     "model = ", as.character(blockmodel()), ",<br>", rep("&nbsp;",24),
-                                     "trials = ", as.character(input$numberblocks),")<br><br>"),collapse=""),""),
                      "<code style=\"color:#468449\"># Generating candidate set:</code><br>",
                      "candidateset = expand.grid(", inputstring(), ")<br><br>",
+                     ifelse(blocking,
+                            paste0(c("<code style=\"color:#468449\"># Generating design for hard-to-change factors:</code> <br>",
+                                     "design_htc = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",24),
+                                     "model = ", as.character(blockmodel()), ",<br>", rep("&nbsp;",24),
+                                     "trials = ", as.character(input$numberblocks),")<br><br>"),collapse=""),""),
                      "<code style=\"color:#468449\"># Generating design:</code><br>",
                      "design = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",20),
                      "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",20),
@@ -615,7 +544,7 @@ function(input, output) {
 
   blockmodel = reactive({
     if(input$model == "~.") {
-      as.formula(paste0("~",paste(names(inputlist_htc()),collapse=" + ")))
+      as.formula(paste0("~",paste(names(inputlist_htctext()),collapse=" + ")))
     } else {
       names = names(inputlist())
       modelsplit = attr(terms.formula(as.formula(input$model)), "term.labels")

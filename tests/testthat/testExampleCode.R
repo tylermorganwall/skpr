@@ -51,12 +51,11 @@ test_that("gen_design example code runs without errors", {
   #'#This generates an optimal subplot design that accounts for the existing split-plot settings.
   #'#See the accompannying paper "___________" for details of the implementation.
   #'
-  hardtochangefactor = expand.grid(Altitude=c(-1,1))
-  expect_silent({hardtochangedesign = gen_design(candidateset = hardtochangefactor, model=~Altitude, trials=11)})
+  candlist1 = expand.grid(Altitude=c(-1,1),Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
+  expect_silent({hardtochangedesign = gen_design(candidateset = candlist1, model=~Altitude, trials=11)})
   #'
   #'#Now we can use the D-optimal blocked design as an input to our full design.
   #'
-  easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
   #'
   #'#Here, we specify the easy to change factors for the factorial design, and input the hard-to-change design
   #'#along with a vector listing the number of repetitions within each block for the blocked design. There should be
@@ -70,16 +69,16 @@ test_that("gen_design example code runs without errors", {
   #'
   #'#Putting this all together:
   expect_silent({
-    designsplitplot = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33, splitplotdesign=hardtochangedesign,
+    designsplitplot = gen_design(candlist1, ~Altitude+Range+Power, trials=33, splitplotdesign=hardtochangedesign,
                                  splitplotsizes = splitplotblocksize)})
 
-  expect_silent({design = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33,
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
                                      splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="I")})
-  expect_silent({design = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33,
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
                                      splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="A")})
-  expect_silent({design = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33,
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
                                      splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="D")})
-  expect_silent({design = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33,
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
                                      splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="E")})
   #'
   #'#The split-plot structure is encoded into the row names, with a period demarcating the blocking level. This process
@@ -87,15 +86,15 @@ test_that("gen_design example code runs without errors", {
   #'#to produce a split-split-plot design, which can be passed as another hard-to-change design to produce a
   #'#split-split-split plot design, etc).
   #'
-  extremelyhtcfactors = expand.grid(Location=as.character(c("East","West")))
-  veryhtcfactors = expand.grid(Climate = as.factor(c("Dry","Wet","Arid")))
-  htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
-  etcfactors = expand.grid(Age = c(1,-1))
+  candlist3 = expand.grid(Location=as.character(c("East","West")),
+                          Climate = as.factor(c("Dry","Wet","Arid")),
+                          Vineyard = as.factor(c("A","B","C","D")),
+                          Age = c(1,-1))
   #'
-  expect_silent(gen_design(extremelyhtcfactors, ~Location, trials=6) -> temp)
-  expect_silent(gen_design(veryhtcfactors, ~Location+Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp)
-  expect_silent(gen_design(htcfactors, ~Location+Climate+Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp)
-  expect_silent(gen_design(etcfactors, ~Location+Climate+Vineyard+Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) -> splitsplitsplitplotdesign)
+  expect_silent(gen_design(candlist3, ~Location, trials=6) -> temp)
+  expect_silent(gen_design(candlist3, ~Location+Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp)
+  expect_silent(gen_design(candlist3, ~Location+Climate+Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp)
+  expect_silent(gen_design(candlist3, ~Location+Climate+Vineyard+Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) -> splitsplitsplitplotdesign)
   #'
   #'#A design's diagnostics can be accessed via the following attributes:
   #'
@@ -131,7 +130,8 @@ test_that("eval_design example code runs without errors", {
   #'#setting all anticipated coefficients in a factor to zero except for one. We can specify this
   #'#option with the "conservative" argument.
   #'
-  expect_silent({factorialcoffee = expand.grid(cost=c(1,2),
+  expect_silent({factorialcoffee = expand.grid(caffeine=c(1,-1),
+                                               cost=c(1,2),
                                 type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
                                 size=as.factor(c("Short","Grande","Venti")))})
   #'
@@ -156,8 +156,7 @@ test_that("eval_design example code runs without errors", {
   #'#Blocked designs can also be evaluated by specifying the blocking model.
   #'
   #'#Generating blocked design
-  coffeeblocks = expand.grid(caffeine=c(1,-1))
-  expect_silent({coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)})
+  expect_silent({coffeeblockdesign = gen_design(factorialcoffee, ~caffeine, trials=12)})
   expect_silent({coffeefinaldesign = gen_design(factorialcoffee, model=~caffeine+cost+size+type,trials=36,
                                  splitplotdesign=coffeeblockdesign, splitplotsizes=3)})
   #'
@@ -173,9 +172,6 @@ test_that("eval_design example code runs without errors", {
 
 test_that("eval_design_mc example code runs without errors", {
   #'@examples #We first generate a full factorial design using expand.grid:
-  factorialcoffee = expand.grid(cost=c(-1, 1),
-                                type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-                                size=as.factor(c("Short", "Grande", "Venti")))
   factorialcoffee = expand.grid(cost=c(-1, 1),
                                 type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
                                 size=as.factor(c("Short", "Grande", "Venti")))
@@ -196,11 +192,14 @@ test_that("eval_design_mc example code runs without errors", {
   #'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
   #'               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
   #'
-  vhtc = expand.grid(Store=as.factor(c("A","B")))
-  htc = expand.grid(Temp = c(1,-1))
+  factorialcoffee = expand.grid(Temp = c(1,-1),
+                                Store=as.factor(c("A","B")),
+                                cost=c(-1, 1),
+                                type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+                                size=as.factor(c("Short", "Grande", "Venti")))
 
-  vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=8)
-  htcdesign = gen_design(candidateset=htc, model=~Store+Temp, trials=24, splitplotdesign=vhtcdesign, splitplotsizes=3)
+  vhtcdesign = gen_design(candidateset=factorialcoffee, model=~Store, trials=8)
+  htcdesign = gen_design(candidateset=factorialcoffee, model=~Store+Temp, trials=24, splitplotdesign=vhtcdesign, splitplotsizes=3)
   expect_silent({
     splitplotdesign = gen_design(candidateset=factorialcoffee, model=~Store+Temp+cost+type+size, trials=96,
                                splitplotdesign=htcdesign, splitplotsizes=4)

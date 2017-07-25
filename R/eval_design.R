@@ -72,9 +72,13 @@
 #'#Split plot designs can also be evaluated by setting the blocking parameter as TRUE.
 #'
 #'#Generating split plot design
-#'coffeeblocks = expand.grid(caffeine=c(1,-1))
-#'coffeeblockdesign = gen_design(coffeeblocks, ~caffeine, trials=12)
-#'coffeefinaldesign = gen_design(factorialcoffee, model=~caffeine+cost+size+type,trials=36,
+#'splitfactorialcoffee = expand.grid(caffeine=c(1,-1),
+#'                              cost=c(1,2),
+#'                              type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
+#'                              size=as.factor(c("Short","Grande","Venti")))
+#'
+#'coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials=12)
+#'coffeefinaldesign = gen_design(splitfactorialcoffee, model=~caffeine+cost+size+type,trials=36,
 #'                               splitplotdesign=coffeeblockdesign, splitplotsizes=3)
 #'
 #'#Evaluating design

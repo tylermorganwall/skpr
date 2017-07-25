@@ -73,13 +73,16 @@
 #'
 #'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
 #'
-#'vhtc = expand.grid(Store=as.factor(c("A","B")))
-#'htc = expand.grid(Temp = c(1,-1))
+#'factorialcoffee2 = expand.grid(Temp = c(1,-1),
+#'                               Store=as.factor(c("A","B")),
+#'                               cost=c(-1, 1),
+#'                               type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                               size=as.factor(c("Short", "Grande", "Venti")))
 #'
-#'vhtcdesign = gen_design(candidateset=vhtc, model=~Store, trials=6, varianceratio=1)
-#'htcdesign = gen_design(candidateset=htc, model=~Store+Temp, trials=18,
+#'vhtcdesign = gen_design(candidateset=factorialcoffee2, model=~Store, trials=6, varianceratio=1)
+#'htcdesign = gen_design(candidateset=factorialcoffee2, model=~Store+Temp, trials=18,
 #'                       splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
-#'splitplotdesign = gen_design(candidateset=factorialcoffee,
+#'splitplotdesign = gen_design(candidateset=factorialcoffee2,
 #'                             model=~Store+Temp+cost+type+size, trials=54,
 #'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
 #'

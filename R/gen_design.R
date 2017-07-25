@@ -72,14 +72,14 @@
 #'#This generates an optimal subplot design that accounts for the existing split-plot settings.
 #'#See the accompannying paper "___________" for details of the implementation.
 #'
-#'hardtochangefactor = expand.grid(Altitude=c(-1,1))
-#'hardtochangedesign = gen_design(candidateset = hardtochangefactor, model=~Altitude, trials=11)
+#'splitplotcandidateset = expand.grid(Altitude=c(-1,1),
+#'                                    Range=as.factor(c("Close","Medium","Far")),
+#'                                    Power=c(1,-1))
+#'hardtochangedesign = gen_design(candidateset = splitplotcandidateset, model=~Altitude, trials=11)
 #'
 #'#Now we can use the D-optimal blocked design as an input to our full design.
 #'
-#'easytochangefactors = expand.grid(Range=as.factor(c("Close","Medium","Far")), Power=c(1,-1))
-#'
-#'#Here, we specify the easy to change factors for the candidate set,
+#'#Here, we add the easy to change factors from the candidate set to the model,
 #'#and input the hard-to-change design along with a vector listing the number
 #'#of repetitions within each block for the blocked design. There should be a size entry
 #'#for every block and the number of runs specified in the trials argument needs to equal the
@@ -92,7 +92,7 @@
 #'splitplotblocksize = rep(3,11)
 #'
 #'#Putting this all together:
-#'designsplitplot = gen_design(easytochangefactors, ~Altitude+Range+Power, trials=33,
+#'designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trials=33,
 #'                             splitplotdesign=hardtochangedesign,
 #'                             splitplotsizes = splitplotblocksize)
 #'
@@ -102,19 +102,19 @@
 #'#to produce a split-split-plot design, which can be passed as another
 #'#hard-to-change design to produce a split-split-split plot design, etc).
 #'
-#'extremelyhtcfactors = expand.grid(Location=as.character(c("East","West")))
-#'veryhtcfactors = expand.grid(Climate = as.factor(c("Dry","Wet","Arid")))
-#'htcfactors = expand.grid(Vineyard = as.factor(c("A","B","C","D")))
-#'etcfactors = expand.grid(Age = c(1,-1))
+#'splitplotcandidateset2 = expand.grid(Location=as.character(c("East","West")),
+#'                                  Climate = as.factor(c("Dry","Wet","Arid")),
+#'                                  Vineyard = as.factor(c("A","B","C","D")),
+#'                                  Age = c(1,-1))
 #'
-#'gen_design(extremelyhtcfactors, ~Location, trials=6,varianceratio=2) -> temp
-#'gen_design(veryhtcfactors, ~Location+Climate,
+#'gen_design(splitplotcandidateset2, ~Location, trials=6,varianceratio=2) -> temp
+#'gen_design(splitplotcandidateset2, ~Location+Climate,
 #'           trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
 #'           varianceratio=1) -> temp
-#'gen_design(htcfactors, ~Location+Climate+Vineyard,
+#'gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard,
 #'           trials=48, splitplotdesign = temp, splitplotsizes = rep(4,12),
 #'           varianceratio=1) -> temp
-#'gen_design(etcfactors, ~Location+Climate+Vineyard+Age,
+#'gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard+Age,
 #'          trials=192, splitplotdesign = temp, splitplotsizes = rep(4,48),
 #'           varianceratio=1) -> splitsplitsplitplotdesign
 #'
@@ -184,8 +184,6 @@ gen_design = function(candidateset, model, trials,
 
     if(model != "~.") {
       model = as.formula(paste0("~",paste(attr(terms.formula(model), "term.labels"),collapse = " + ")))
-      # subplotterms = colnames(model.matrix(~.,data = candidateset,contrasts.arg = contrastslistsubplot))[-1]
-      # wholeplotterms = colnames(model.matrix(~.,data = splitplotdesign,contrasts.arg = contrastslistspd))[-1]
 
       wholeplotterms = colnames(splitplotdesign)
       subplotterms = colnames(candidateset)
@@ -249,7 +247,7 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  fullcandidateset = candidateset
+  fullcandidateset = unique(reduceRunMatrix(candidateset, model))
 
   if(is.null(splitplotdesign)) {
     candidateset = unique(reduceRunMatrix(candidateset, model))
@@ -388,7 +386,7 @@ gen_design = function(candidateset, model, trials,
     }
   } else {
     if(is.null(splitplotdesign)) {
-      candidatesetmm = model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist)
+      candidatesetmm = suppressWarnings(model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist))
     } else {
       candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
     }
@@ -507,7 +505,7 @@ gen_design = function(candidateset, model, trials,
     disallowedcombdf = disallowed_combinations(fullcandidateset)
     if(nrow(disallowedcombdf) > 0) {
       anydisallowed = TRUE
-      disallowedcomb = model.matrix(model,disallowedcombdf,contrasts.arg=fullcontrastlist)
+      disallowedcomb = suppressWarnings(model.matrix(model,disallowedcombdf,contrasts.arg=fullcontrastlist))
     } else {
       anydisallowed = FALSE
       disallowedcomb = matrix()

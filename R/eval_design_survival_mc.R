@@ -68,6 +68,9 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    rfunctionsurv=NULL, anticoef=NULL, delta=2, contrasts = contr.sum,
                                    parallel=FALSE, detailedoutput=FALSE, ...) {
 
+  #covert tibbles
+  RunMatrix = as.data.frame(RunMatrix)
+
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if(is.na(censorpoint)) {
     censorfunction = function(data, point) {return(rep(FALSE,length(data)))}

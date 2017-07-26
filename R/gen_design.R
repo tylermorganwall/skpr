@@ -146,6 +146,12 @@ gen_design = function(candidateset, model, trials,
                       aliaspower = 2, minDopt = 0.95,
                       parallel=FALSE, timer=FALSE) {
 
+  #covert tibbles
+  candidateset = as.data.frame(candidateset)
+  if(!is.null(splitplotdesign)){
+    splitplotdesign = as.data.frame(splitplotdesign)
+  }
+
   if(is.null(contrast)) {
     contrast = function(n) contr.simplex(n,size=sqrt(n-1))
   }

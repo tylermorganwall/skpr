@@ -124,6 +124,13 @@ eval_design_mc = function(RunMatrix, model, alpha,
                           varianceratios = NULL, rfunction=NULL, anticoef=NULL, delta=2,
                           contrasts=contr.sum, binomialprobs = NULL,
                           parallel=FALSE, detailedoutput=FALSE) {
+
+  if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
+    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Coverting input to data frame:")
+  }
+  #covert tibbles
+  RunMatrix = as.data.frame(RunMatrix)
+
   glmfamilyname = glmfamily
   #------Auto-set random generating function----#
   if(is.null(rfunction)) {
@@ -199,11 +206,10 @@ eval_design_mc = function(RunMatrix, model, alpha,
             binomialprobs for more realistic effect sizes.")
   }
   if(!is.null(binomialprobs)) {
-    if (glmfamilyname != "binomial") {
-      stop("binomialprobs can only be used with glmfamilyname = \"binomial\"")
-    }
-    anticoef = gen_binomial_anticoef(gen_anticoef(RunMatrixReduced, model),
+    if (glmfamilyname == "binomial") {
+      anticoef = gen_binomial_anticoef(gen_anticoef(RunMatrixReduced, model),
                                      binomialprobs[1],binomialprobs[2]) #ignore delta argument
+    }
   }
 
   #-------------- Blocking errors --------------#

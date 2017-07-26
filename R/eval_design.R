@@ -104,6 +104,13 @@
 eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
                        delta=2, varianceratios=1, contrasts=contr.sum, conservative=FALSE,
                        detailedoutput=FALSE) {
+
+  if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
+    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Coverting input to data frame")
+  }
+  #covert tibbles
+  RunMatrix = as.data.frame(RunMatrix)
+
   RunMatrix = reduceRunMatrix(RunMatrix,model)
   #---Develop contrast lists for model matrix---#
   contrastslist = list()

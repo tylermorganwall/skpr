@@ -76,6 +76,9 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
                                  parameternames = NULL,
                                  parallel=FALSE, parallelpackages=NULL) {
 
+  #covert tibbles
+  RunMatrix = as.data.frame(RunMatrix)
+
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
     if(class(RunMatrix[,column]) == "numeric") {

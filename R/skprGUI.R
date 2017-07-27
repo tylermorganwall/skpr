@@ -31,7 +31,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                     12, label = "Trials"),
                        textInput(inputId = "model",
                                  "~.", label = "Model"),
-                       conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc'",
+                       conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc' || input.blockdepth6 == 'htc'",
                                         fluidRow(
                                           column(width=12,numericInput(inputId = "numberblocks",
                                                                        4, label = "Number of blocks"))
@@ -458,6 +458,9 @@ skprGUI = function(inputValue1,inputValue2) {
                                            label = "Parallel"),
                               checkboxInput(inputId = "detailedoutput",
                                             label = "Detailed Output",
+                                            value=FALSE),
+                              checkboxInput(inputId = "advanceddiagnostics",
+                                            label = "Advanced Design Diagnostics",
                                             value=FALSE)
                      ),
                      tabPanel("Power",
@@ -547,7 +550,38 @@ skprGUI = function(inputValue1,inputValue2) {
                                            plotOutput(outputId = "fdsplot")
                                     )
                            ),
-                           hr()
+                           hr(),
+                           conditionalPanel(
+                             condition = "input.advanceddiagnostics",
+                             fluidRow(align="left",
+                                      column(width=6,
+                                             conditionalPanel(
+                                               condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
+                                               h3("Criteria"),
+                                               h4("D"),
+                                               textOutput(outputId = "dopt"),
+                                               h4("A"),
+                                               textOutput(outputId = "aopt")
+                                             ),
+                                             h4("I (Average prediction variance)"),
+                                             textOutput(outputId = "iopt"),
+                                               conditionalPanel(
+                                               condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
+                                               h4("E"),
+                                               textOutput(outputId = "eopt"),
+                                               h4("G"),
+                                               textOutput(outputId = "gopt"),
+                                               h4("T"),
+                                               textOutput(outputId = "topt")
+                                             )
+                                      ),
+                                      column(width=6,
+                                             h3("Optimal Search Values"),
+                                             plotOutput(outputId = "optimalsearch")
+                                      )
+                             ),
+                             hr()
+                           )
                   ),
                   tabPanel("Generating Code",
                            htmlOutput(outputId = "code")
@@ -1277,6 +1311,36 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$code = renderUI({
       HTML(code())
+    })
+
+    output$dopt = renderText({
+      input$evalbutton
+      isolate(attr(runmatrix(),"D"))
+    })
+    output$aopt = renderText({
+      input$evalbutton
+      isolate(attr(runmatrix(),"A"))
+    })
+    output$iopt = renderText({
+      input$evalbutton
+      isolate(attr(runmatrix(),"I"))
+    })
+    output$eopt = renderText({
+      input$evalbutton
+      isolate(attr(runmatrix(),"E"))
+    })
+    output$gopt = renderText({
+      input$evalbutton
+      isolate(attr(runmatrix(),"G"))
+    })
+    output$topt = renderText({
+      input$evalbutton
+      isolate(attr(runmatrix(),"T"))
+    })
+    output$optimalsearch = renderPlot({
+      input$evalbutton
+      isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Criteria Value",type = 'p', col = 'red', pch=16))
+      isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
     })
   }
 

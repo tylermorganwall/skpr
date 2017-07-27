@@ -21,16 +21,16 @@ shinyUI(fluidPage(
                                   12, label = "Trials"),
                      textInput(inputId = "model",
                                "~.", label = "Model"),
-                     conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc'",
+                     conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc' || input.blockdepth6 == 'htc'",
                                       fluidRow(
                                         column(width=12,numericInput(inputId = "numberblocks",
-                                                                    4, label = "Number of blocks"))
+                                                                     4, label = "Number of blocks"))
                                       )
                      ),
                      conditionalPanel(condition = "input.numberfactors == 6",
                                       fluidRow(
                                         column(width=12,
-                                          HTML("<p style=\"color: #F00;\">skprGUI only supports up to 6 factors. Alter the generated code to add more.</p>")
+                                               HTML("<p style=\"color: #F00;\">skprGUI only supports up to 6 factors. Alter the generated code to add more.</p>")
                                         )
                                       )
                      ),
@@ -448,6 +448,9 @@ shinyUI(fluidPage(
                                          label = "Parallel"),
                             checkboxInput(inputId = "detailedoutput",
                                           label = "Detailed Output",
+                                          value=FALSE),
+                            checkboxInput(inputId = "advanceddiagnostics",
+                                          label = "Advanced Design Diagnostics",
                                           value=FALSE)
                    ),
                    tabPanel("Power",
@@ -537,7 +540,38 @@ shinyUI(fluidPage(
                                          plotOutput(outputId = "fdsplot")
                                   )
                          ),
-                         hr()
+                         hr(),
+                         conditionalPanel(
+                           condition = "input.advanceddiagnostics",
+                           fluidRow(align="left",
+                                    column(width=6,
+                                           conditionalPanel(
+                                             condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
+                                             h3("Criteria"),
+                                             h4("D"),
+                                             textOutput(outputId = "dopt"),
+                                             h4("A"),
+                                             textOutput(outputId = "aopt")
+                                           ),
+                                           h4("I (Average prediction variance)"),
+                                           textOutput(outputId = "iopt"),
+                                           conditionalPanel(
+                                             condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
+                                             h4("E"),
+                                             textOutput(outputId = "eopt"),
+                                             h4("G"),
+                                             textOutput(outputId = "gopt"),
+                                             h4("T"),
+                                             textOutput(outputId = "topt")
+                                           )
+                                    ),
+                                    column(width=6,
+                                           h3("Optimal Search Values"),
+                                           plotOutput(outputId = "optimalsearch")
+                                    )
+                           ),
+                           hr()
+                         )
                 ),
                 tabPanel("Generating Code",
                          htmlOutput(outputId = "code")

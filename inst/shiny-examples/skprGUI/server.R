@@ -78,7 +78,6 @@ function(input, output) {
   })
 
   inputlist_htctext = reactive({
-    input$submitbutton
     inputlist1 = list()
     for(i in 1:6) {
       if((i == 1 && (input$numberfactors) > 0) && (input$blockdepth1) == "htc") {
@@ -150,6 +149,7 @@ function(input, output) {
     }
     inputlist1
   })
+
 
   inputlist = reactive({
     input$submitbutton
@@ -238,6 +238,7 @@ function(input, output) {
   })
 
   inputstring = reactive({
+    updatevector = c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)
     commacount = input$numberfactors-1
     finalstring = c()
     for(i in 1:6) {
@@ -357,6 +358,7 @@ function(input, output) {
 
   code = reactive({
     blocking = any("htc" %in% c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)[1:input$numberfactors])
+
     first = paste0(c("<br><pre>",
                      "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                      "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
@@ -368,7 +370,7 @@ function(input, output) {
                      ifelse(blocking,
                             paste0(c("<code style=\"color:#468449\"># Generating design for hard-to-change factors:</code> <br>",
                                      "design_htc = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",24),
-                                     "model = ", as.character(blockmodel()), ",<br>", rep("&nbsp;",24),
+                                     "model = ", blockmodel(), ",<br>", rep("&nbsp;",24),
                                      "trials = ", as.character(input$numberblocks),")<br><br>"),collapse=""),""),
                      "<code style=\"color:#468449\"># Generating design:</code><br>",
                      "design = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",20),
@@ -719,6 +721,36 @@ function(input, output) {
 
   output$code = renderUI({
     HTML(code())
+  })
+
+  output$dopt = renderText({
+    input$evalbutton
+    isolate(attr(runmatrix(),"D"))
+  })
+  output$aopt = renderText({
+    input$evalbutton
+    isolate(attr(runmatrix(),"A"))
+  })
+  output$iopt = renderText({
+    input$evalbutton
+    isolate(attr(runmatrix(),"I"))
+  })
+  output$eopt = renderText({
+    input$evalbutton
+    isolate(attr(runmatrix(),"E"))
+  })
+  output$gopt = renderText({
+    input$evalbutton
+    isolate(attr(runmatrix(),"G"))
+  })
+  output$topt = renderText({
+    input$evalbutton
+    isolate(attr(runmatrix(),"T"))
+  })
+  output$optimalsearch = renderPlot({
+    input$evalbutton
+    isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Criteria Value",type = 'p', col = 'red', pch=16))
+    isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
   })
 }
 )

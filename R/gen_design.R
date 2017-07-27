@@ -168,9 +168,6 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(!is.null(splitplotdesign)) {
-    # if(any(colnames(splitplotdesign) %in% colnames(candidateset))) {
-    #   stop("Error: Shared variable name in splitplotdesign and candidate set.")
-    # }
     contrastslistspd = list()
     for(x in names(splitplotdesign[lapply(splitplotdesign,class) %in% c("factor","character")])) {
       contrastslistspd[[x]] = contrast
@@ -712,6 +709,24 @@ gen_design = function(candidateset, model, trials,
   }, error = function(e) {})
 
   attr(design,"contrastslist") = contrastslist
+  if(optimality == "D") {
+    if(blocking) {
+      attr(design,"optimalsearchvalues") = unlist(criteria)
+    } else {
+      attr(design,"optimalsearchvalues") = unlist(criteria)^(1/ncol(designmm))/nrow(designmm)
+    }
+  }
+  if(optimality == "A") {
+    if(blocking) {
+      attr(design,"optimalsearchvalues") = unlist(criteria)
+    } else {
+      attr(design,"optimalsearchvalues") = 100/(nrow(designmm)*unlist(criteria)/ncol(designmm))
+    }
+  }
+  if(optimality %in% c("Alias","I","E","T","G")) {
+    attr(design,"optimalsearchvalues") = unlist(criteria)
+  }
+  attr(design,"bestiterations") = best
 
   return(design)
 }

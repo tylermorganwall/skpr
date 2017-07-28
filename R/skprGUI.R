@@ -526,33 +526,47 @@ skprGUI = function(inputValue1,inputValue2) {
                            hr()
                   ),
                   tabPanel("Design Evaluation",
-                           h2("Power Results"),
-                           conditionalPanel(
-                             condition = "input.evaltype == \'lm\'",
-                             tableOutput(outputId = "powerresults")
+                           fluidRow(
+                             column(width=6,
+                               h2("Power Results"),
+                               conditionalPanel(
+                                 condition = "input.evaltype == \'lm\'",
+                                 tableOutput(outputId = "powerresults")
+                               ),
+                               conditionalPanel(
+                                 condition = "input.evaltype == \'glm\'",
+                                 tableOutput(outputId = "powerresultsglm")
+                               ),
+                               conditionalPanel(
+                                 condition = "input.evaltype == \'surv\'",
+                                 tableOutput(outputId = "powerresultssurv")
+                               )
+                             ),
+                             column(width=6,
+                               conditionalPanel(align="left",
+                                 condition = "output.separationwarning != \'\'",
+                                 h2("Note:"),
+                                 htmlOutput(outputId = "separationwarning")
+                               )
+                             )
                            ),
                            conditionalPanel(
-                             condition = "input.evaltype == \'glm\'",
-                             tableOutput(outputId = "powerresultsglm")
+                             condition = "input.numberfactors > 1",
+                             hr(),
+                             fluidRow(align="center",
+                                      column(width=6,
+                                             h3("Correlation Map"),
+                                             plotOutput(outputId = "aliasplot")
+                                      ),
+                                      column(width=6,
+                                             (h3("Fraction of Design Space")),
+                                             plotOutput(outputId = "fdsplot")
+                                      )
+                             )
                            ),
-                           conditionalPanel(
-                             condition = "input.evaltype == \'surv\'",
-                             tableOutput(outputId = "powerresultssurv")
-                           ),
-                           hr(),
-                           fluidRow(align="center",
-                                    column(width=6,
-                                           h3("Correlation Map"),
-                                           plotOutput(outputId = "aliasplot")
-                                    ),
-                                    column(width=6,
-                                           (h3("Fraction of Design Space")),
-                                           plotOutput(outputId = "fdsplot")
-                                    )
-                           ),
-                           hr(),
                            conditionalPanel(
                              condition = "input.advanceddiagnostics",
+                             hr(),
                              fluidRow(align="left",
                                       column(width=6,
                                              conditionalPanel(
@@ -578,9 +592,38 @@ skprGUI = function(inputValue1,inputValue2) {
                                       column(width=6,
                                              h3("Optimal Search Values"),
                                              plotOutput(outputId = "optimalsearch")
+                                      ),
+                                      hr(),
+                                      fluidRow(
+                                        conditionalPanel(
+                                          condition = "input.evaltype != \'lm\'",
+                                          column(width=12,
+                                                 h3("Simulated P-Values"),
+                                                 plotOutput(outputId = "simulatedpvalues")
+                                          )
+                                        )
                                       )
-                             ),
-                             hr()
+                             )
+                           ),
+                           conditionalPanel(
+                             condition = "input.evaltype == \'glm\'",
+                             fluidRow(
+                               hr(),
+                               column(width=12,
+                                      h3("Simulated Response"),
+                                      plotOutput(outputId = "responsehistogram")
+                               )
+                             )
+                           ),
+                           conditionalPanel(
+                             condition = "input.evaltype == \'glm\'",
+                             fluidRow(
+                               hr(),
+                               column(width=12,
+                                      h3("Simulated Estimates"),
+                                      plotOutput(outputId = "parameterestimates")
+                               )
+                             )
                            )
                   ),
                   tabPanel("Generating Code",
@@ -1286,7 +1329,7 @@ skprGUI = function(inputValue1,inputValue2) {
     },digits=4,hover=TRUE,align="c")
 
     output$aliasplot = renderPlot({
-      input$evalbutton
+      input$submitbutton
       if(isolate(input$numberfactors) == 1) {
       } else {
         if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
@@ -1298,7 +1341,7 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
     output$fdsplot = renderPlot({
-      input$evalbutton
+      input$submitbutton
       if(isolate(input$numberfactors) == 1) {
       } else {
         if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
@@ -1314,34 +1357,99 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
     output$dopt = renderText({
-      input$evalbutton
-      isolate(attr(runmatrix(),"D"))
+      input$submitbutton
+      isolate(substr(attr(runmatrix(),"D"),5,nchar(attr(runmatrix(),"D"))))
     })
     output$aopt = renderText({
-      input$evalbutton
-      isolate(attr(runmatrix(),"A"))
+      input$submitbutton
+      isolate(substr(attr(runmatrix(),"A"),5,nchar(attr(runmatrix(),"A"))))
     })
     output$iopt = renderText({
-      input$evalbutton
+      input$submitbutton
       isolate(attr(runmatrix(),"I"))
     })
     output$eopt = renderText({
-      input$evalbutton
+      input$submitbutton
       isolate(attr(runmatrix(),"E"))
     })
     output$gopt = renderText({
-      input$evalbutton
+      input$submitbutton
       isolate(attr(runmatrix(),"G"))
     })
     output$topt = renderText({
-      input$evalbutton
+      input$submitbutton
       isolate(attr(runmatrix(),"T"))
     })
     output$optimalsearch = renderPlot({
-      input$evalbutton
+      input$submitbutton
       isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Criteria Value",type = 'p', col = 'red', pch=16))
       isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
     })
+    output$simulatedpvalues = renderPlot({
+      input$evalbutton
+      pvalrows = isolate(floor(ncol(attr(powerresultsglm(),"pvals"))/3)+1)
+      if(!is.null(attr(powerresultsglm(),"pvals"))) {
+        par(mfrow=c(pvalrows,3))
+        for(col in 1:isolate(ncol(attr(powerresultsglm(),"pvals")))) {
+          isolate(hist(attr(powerresultsglm(),"pvals")[,col],breaks=seq(0,1,0.05),main = colnames(attr(powerresultsglm(),"pvals"))[col],xlim=c(0,1),xlab="p values",ylab="Count", col = 'red', pch=16))
+        }
+      }
+    })
+    output$parameterestimates = renderPlot({
+      input$evalbutton
+      if(!is.null(attr(powerresultsglm(),"estimates"))) {
+        ests = apply(attr(powerresultsglm(),"estimates"),2,quantile,c(0.05,0.5,0.95))
+
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        plot(x=1:length(colnames(ests)),y=ests[2,],ylim=c(min(as.vector(ests)),max(as.vector(ests))),
+             xaxt = "n",
+             xlab = "Parameters",
+             ylab = "Parameter Estimates",
+             xlim=c(0.5,length(colnames(ests))+0.5),type="p",pch=16,col="red",cex=1)
+        axis(1,at=1:length(colnames(ests)),labels=colnames(ests), las = 2)
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+        grid(nx=NA,ny=NULL)
+        arrows(x0=1:length(colnames(ests)),y0=ests[1,],x1=1:length(colnames(ests)),y1=ests[3,],length=0.05,angle=90,code=3)
+        points(x=1:length(colnames(ests)),y=attr(powerresultsglm(),"anticoef"),pch=16,col="blue",cex=1)
+        title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
+      }
+    })
+    output$responsehistogram = renderPlot({
+      input$evalbutton
+      if(!is.null(attr(powerresultsglm(),"estimates"))) {
+        responses = as.vector(attr(powerresultsglm(),"estimates") %*% t(attr(powerresultsglm(),"modelmatrix")))
+        if(isolate(input$glmfamily) == "binomial") {
+          responses = exp(responses)/(1+exp(responses))
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlim=c(0,1),xlab="Response (Probability)")
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses for Given Design",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
+        } else {
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response")
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses for Given Design",xlab="Response",ylab="Count",col = "red",border="red")
+        }
+      }
+    })
+    output$separationwarning = renderText({
+      input$evalbutton
+      likelyseparation = FALSE
+      if(isolate(input$evaltype) == "glm" && isolate(input$glmfamily) == "binomial") {
+        if(!is.null(attr((powerresultsglm()),"pvals"))) {
+          pvalmat = attr((powerresultsglm()),"pvals")
+          for(i in 2:ncol(pvalmat)) {
+            pvalcount = hist(pvalmat[,i],breaks=seq(0,1,0.05),plot=FALSE)
+            likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim)/10)
+          }
+        }
+      }
+      if(likelyseparation) {
+        "<p style=\"color: #F00;\">Partial or complete separation likely detected in your binomial Monte Carlo simulation. Increase the number of runs in your design or decrease the number of model parameters to improve power.</p>"
+      } else {
+        ""
+      }
+    })
+    outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
   }
 
   runGadget(shinyApp(ui, server),viewer = dialogViewer(dialogName = "skprGUI", width = 1200,height=1000))

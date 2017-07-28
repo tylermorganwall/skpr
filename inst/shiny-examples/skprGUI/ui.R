@@ -516,33 +516,47 @@ shinyUI(fluidPage(
                          hr()
                 ),
                 tabPanel("Design Evaluation",
-                         h2("Power Results"),
-                         conditionalPanel(
-                           condition = "input.evaltype == \'lm\'",
-                           tableOutput(outputId = "powerresults")
-                         ),
-                         conditionalPanel(
-                           condition = "input.evaltype == \'glm\'",
-                           tableOutput(outputId = "powerresultsglm")
-                         ),
-                         conditionalPanel(
-                           condition = "input.evaltype == \'surv\'",
-                           tableOutput(outputId = "powerresultssurv")
-                         ),
-                         hr(),
-                         fluidRow(align="center",
-                                  column(width=6,
-                                         h3("Correlation Map"),
-                                         plotOutput(outputId = "aliasplot")
+                         fluidRow(
+                           column(width=6,
+                                  h2("Power Results"),
+                                  conditionalPanel(
+                                    condition = "input.evaltype == \'lm\'",
+                                    tableOutput(outputId = "powerresults")
                                   ),
-                                  column(width=6,
-                                         (h3("Fraction of Design Space")),
-                                         plotOutput(outputId = "fdsplot")
+                                  conditionalPanel(
+                                    condition = "input.evaltype == \'glm\'",
+                                    tableOutput(outputId = "powerresultsglm")
+                                  ),
+                                  conditionalPanel(
+                                    condition = "input.evaltype == \'surv\'",
+                                    tableOutput(outputId = "powerresultssurv")
                                   )
+                           ),
+                           column(width=6,
+                                  conditionalPanel(align="left",
+                                                   condition = "output.separationwarning != \'\'",
+                                                   h2("Note:"),
+                                                   htmlOutput(outputId = "separationwarning")
+                                  )
+                           )
                          ),
-                         hr(),
+                         conditionalPanel(
+                           condition = "input.numberfactors > 1",
+                           hr(),
+                           fluidRow(align="center",
+                                    column(width=6,
+                                           h3("Correlation Map"),
+                                           plotOutput(outputId = "aliasplot")
+                                    ),
+                                    column(width=6,
+                                           (h3("Fraction of Design Space")),
+                                           plotOutput(outputId = "fdsplot")
+                                    )
+                           )
+                         ),
                          conditionalPanel(
                            condition = "input.advanceddiagnostics",
+                           hr(),
                            fluidRow(align="left",
                                     column(width=6,
                                            conditionalPanel(
@@ -568,9 +582,38 @@ shinyUI(fluidPage(
                                     column(width=6,
                                            h3("Optimal Search Values"),
                                            plotOutput(outputId = "optimalsearch")
+                                    ),
+                                    hr(),
+                                    fluidRow(
+                                      conditionalPanel(
+                                        condition = "input.evaltype != \'lm\'",
+                                        column(width=12,
+                                               h3("Simulated P-Values"),
+                                               plotOutput(outputId = "simulatedpvalues")
+                                        )
+                                      )
                                     )
-                           ),
-                           hr()
+                           )
+                         ),
+                         conditionalPanel(
+                           condition = "input.evaltype == \'glm\'",
+                           fluidRow(
+                             hr(),
+                             column(width=12,
+                                    h3("Simulated Response"),
+                                    plotOutput(outputId = "responsehistogram")
+                             )
+                           )
+                         ),
+                         conditionalPanel(
+                           condition = "input.evaltype == \'glm\'",
+                           fluidRow(
+                             hr(),
+                             column(width=12,
+                                    h3("Simulated Estimates"),
+                                    plotOutput(outputId = "parameterestimates")
+                             )
+                           )
                          )
                 ),
                 tabPanel("Generating Code",

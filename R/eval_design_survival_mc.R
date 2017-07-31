@@ -208,6 +208,8 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
                       power=power_values)
   colnames(estimates) = parameter_names
   attr(retval, 'estimates') = estimates
+  attr(retval, "modelmatrix") = ModelMatrix
+  attr(retval, "anticoef") = anticoef
 
   if(detailedoutput) {
     retval$anticoef = anticoef

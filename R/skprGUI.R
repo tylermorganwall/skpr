@@ -550,18 +550,45 @@ skprGUI = function(inputValue1,inputValue2) {
                                )
                              )
                            ),
+                           hr(),
+                           fluidRow(align="center",
+                                    column(width=6,
+                                           h3("Correlation Map"),
+                                           plotOutput(outputId = "aliasplot")
+                                    ),
+                                    column(width=6,
+                                           (h3("Fraction of Design Space")),
+                                           plotOutput(outputId = "fdsplot")
+                                    )
+                           ),
                            conditionalPanel(
-                             condition = "input.numberfactors > 1",
-                             hr(),
-                             fluidRow(align="center",
-                                      column(width=6,
-                                             h3("Correlation Map"),
-                                             plotOutput(outputId = "aliasplot")
-                                      ),
-                                      column(width=6,
-                                             (h3("Fraction of Design Space")),
-                                             plotOutput(outputId = "fdsplot")
-                                      )
+                             condition = "input.evaltype == \'glm\'",
+                             fluidRow(
+                               hr(),
+                               column(width=12,
+                                      h3("Simulated Response"),
+                                      plotOutput(outputId = "responsehistogram")
+                               )
+                             )
+                           ),
+                           conditionalPanel(
+                             condition = "input.evaltype == \'surv\'",
+                             fluidRow(
+                               hr(),
+                               column(width=12,
+                                      h3("Simulated Response"),
+                                      plotOutput(outputId = "responsehistogramsurv")
+                               )
+                             )
+                           ),
+                           conditionalPanel(
+                             condition = "input.evaltype == \'glm\'",
+                             fluidRow(
+                               hr(),
+                               column(width=12,
+                                      h3("Simulated Estimates"),
+                                      plotOutput(outputId = "parameterestimates")
+                               )
                              )
                            ),
                            conditionalPanel(
@@ -579,7 +606,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                              ),
                                              h4("I (Average prediction variance)"),
                                              textOutput(outputId = "iopt"),
-                                               conditionalPanel(
+                                             conditionalPanel(
                                                condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
                                                h4("E"),
                                                textOutput(outputId = "eopt"),
@@ -603,26 +630,6 @@ skprGUI = function(inputValue1,inputValue2) {
                                           )
                                         )
                                       )
-                             )
-                           ),
-                           conditionalPanel(
-                             condition = "input.evaltype == \'glm\'",
-                             fluidRow(
-                               hr(),
-                               column(width=12,
-                                      h3("Simulated Response"),
-                                      plotOutput(outputId = "responsehistogram")
-                               )
-                             )
-                           ),
-                           conditionalPanel(
-                             condition = "input.evaltype == \'glm\'",
-                             fluidRow(
-                               hr(),
-                               column(width=12,
-                                      h3("Simulated Estimates"),
-                                      plotOutput(outputId = "parameterestimates")
-                               )
                              )
                            )
                   ),
@@ -1329,10 +1336,10 @@ skprGUI = function(inputValue1,inputValue2) {
     },digits=4,hover=TRUE,align="c")
 
     output$aliasplot = renderPlot({
-      input$submitbutton
+      input$evalbutton
       if(isolate(input$numberfactors) == 1) {
       } else {
-        if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+        if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
           print("No design generated")
         } else {
           isolate(plot_correlations(runmatrix()))
@@ -1341,14 +1348,11 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
     output$fdsplot = renderPlot({
-      input$submitbutton
-      if(isolate(input$numberfactors) == 1) {
+      input$evalbutton
+      if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
+        print("No design generated")
       } else {
-        if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
-          print("No design generated")
-        } else {
-          isolate(plot_fds(runmatrix()))
-        }
+        isolate(plot_fds(runmatrix()))
       }
     })
 
@@ -1423,12 +1427,21 @@ skprGUI = function(inputValue1,inputValue2) {
           responses = exp(responses)/(1+exp(responses))
           hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlim=c(0,1),xlab="Response (Probability)")
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses for Given Design",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
         } else {
           hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response")
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses for Given Design",xlab="Response",ylab="Count",col = "red",border="red")
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
         }
+      }
+    })
+    output$responsehistogramsurv = renderPlot({
+      input$evalbutton
+      if(!is.null(attr(powerresultssurv(),"estimates"))) {
+        responses = as.vector(attr(powerresultssurv(),"estimates") %*% t(attr(powerresultssurv(),"modelmatrix")))
+        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response")
+        grid(nx=NA,ny=NULL)
+        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
       }
     })
     output$separationwarning = renderText({

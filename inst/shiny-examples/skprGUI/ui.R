@@ -540,18 +540,45 @@ shinyUI(fluidPage(
                                   )
                            )
                          ),
+                         hr(),
+                         fluidRow(align="center",
+                                  column(width=6,
+                                         h3("Correlation Map"),
+                                         plotOutput(outputId = "aliasplot")
+                                  ),
+                                  column(width=6,
+                                         (h3("Fraction of Design Space")),
+                                         plotOutput(outputId = "fdsplot")
+                                  )
+                         ),
                          conditionalPanel(
-                           condition = "input.numberfactors > 1",
-                           hr(),
-                           fluidRow(align="center",
-                                    column(width=6,
-                                           h3("Correlation Map"),
-                                           plotOutput(outputId = "aliasplot")
-                                    ),
-                                    column(width=6,
-                                           (h3("Fraction of Design Space")),
-                                           plotOutput(outputId = "fdsplot")
-                                    )
+                           condition = "input.evaltype == \'glm\'",
+                           fluidRow(
+                             hr(),
+                             column(width=12,
+                                    h3("Simulated Response"),
+                                    plotOutput(outputId = "responsehistogram")
+                             )
+                           )
+                         ),
+                         conditionalPanel(
+                           condition = "input.evaltype == \'surv\'",
+                           fluidRow(
+                             hr(),
+                             column(width=12,
+                                    h3("Simulated Response"),
+                                    plotOutput(outputId = "responsehistogramsurv")
+                             )
+                           )
+                         ),
+                         conditionalPanel(
+                           condition = "input.evaltype == \'glm\'",
+                           fluidRow(
+                             hr(),
+                             column(width=12,
+                                    h3("Simulated Estimates"),
+                                    plotOutput(outputId = "parameterestimates")
+                             )
                            )
                          ),
                          conditionalPanel(
@@ -593,26 +620,6 @@ shinyUI(fluidPage(
                                         )
                                       )
                                     )
-                           )
-                         ),
-                         conditionalPanel(
-                           condition = "input.evaltype == \'glm\'",
-                           fluidRow(
-                             hr(),
-                             column(width=12,
-                                    h3("Simulated Response"),
-                                    plotOutput(outputId = "responsehistogram")
-                             )
-                           )
-                         ),
-                         conditionalPanel(
-                           condition = "input.evaltype == \'glm\'",
-                           fluidRow(
-                             hr(),
-                             column(width=12,
-                                    h3("Simulated Estimates"),
-                                    plotOutput(outputId = "parameterestimates")
-                             )
                            )
                          )
                 ),

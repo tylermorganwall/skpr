@@ -21,7 +21,7 @@
 #'cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
 #'
 #'plot_fds(cardesign)
-plot_fds = function(genoutput,model=NULL,continuouslength = 9) {
+plot_fds = function(genoutput,model=NULL,continuouslength = 11) {
 
   Iopt = attr(genoutput,"I")
   V = attr(genoutput,"variance.matrix")
@@ -48,12 +48,19 @@ plot_fds = function(genoutput,model=NULL,continuouslength = 9) {
       factorrange[[colnames(genoutput)[col]]] = unique(genoutput[,col])
     }
     if(class(genoutput[,col]) == "numeric") {
+      if(ncol(genoutput) == 1) {
+        continuouslength = 51
+      }
       factorrange[[colnames(genoutput)[col]]] = seq(-1,1,length.out=continuouslength)
     }
   }
   fullgrid = expand.grid(factorrange)
-
-  samples = fullgrid[sample(1:nrow(fullgrid),10000,replace=TRUE),]
+  if(ncol(fullgrid) > 1) {
+    samples = fullgrid[sample(1:nrow(fullgrid),10000,replace=TRUE),]
+  } else {
+    samples = data.frame(fullgrid[sample(1:nrow(fullgrid),10000,replace=TRUE),])
+    colnames(samples) = colnames(fullgrid)
+  }
 
   mm = model.matrix(model,genoutput,contrasts.arg = contrastlist)
   samplemm = model.matrix(model,samples,contrasts.arg = contrastlist)

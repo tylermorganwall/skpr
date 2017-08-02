@@ -28,6 +28,7 @@
 #'@param minDopt Default 0.95. Minimum value for the D-Optimality of a design when searching for alias optimal designs.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
+#'@param splitcolumns Default FALSE. If TRUE, will convert row name split-plot structure to columns to output the design in a ready-to-analyze format. If no blocking is detected, no columns will be added.
 #'@return The optimal design. Attributes can be accessed with the attr function.
 #'@export
 #'@examples #Generate the basic factorial design used in generating the optimal design with expand.grid.
@@ -144,7 +145,17 @@ gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
                       repeats=10, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.95,
-                      parallel=FALSE, timer=FALSE) {
+                      parallel=FALSE, timer=FALSE, splitcolumns=FALSE) {
+
+  #Remove skpr-generated REML blocking indicators if present
+  if(!is.null(attr(splitplotdesign,"splitanalyzable"))) {
+    if(attr(splitplotdesign,"splitanalyzable")) {
+      allattr = attributes(splitplotdesign)
+      splitplotdesign = splitplotdesign[,-1:-length(allattr$splitcolumns)]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(splitplotdesign) = allattr
+    }
+  }
 
   #covert tibbles
   candidateset = as.data.frame(candidateset)
@@ -246,7 +257,7 @@ gen_design = function(candidateset, model, trials,
     } else {
       interactionlist = list()
       modelwholeformula = as.formula(paste("~", paste(colnames(splitplotdesign), collapse=" + "), sep=""))
-      modelnowholeformula = as.formula(paste("~", paste(colnames(candidateset), collapse=" + "), sep=""))
+      modelnowholeformula = as.formula(paste("~", paste(colnames(candidateset)[!(colnames(candidateset) %in% colnames(splitplotdesign))], collapse=" + "), sep=""))
     }
   }
 
@@ -727,6 +738,36 @@ gen_design = function(candidateset, model, trials,
     attr(design,"optimalsearchvalues") = unlist(criteria)
   }
   attr(design,"bestiterations") = best
+  attr(design,"splitanalyzable") = FALSE
+
+  #Add split plot columns if splitanalyzable is TRUE
+  if(blocking) {
+    finalrownames = rownames(design)
+    blocklist = strsplit(finalrownames,".",fixed=TRUE)
+    existingBlockStructure = do.call(rbind,blocklist)
+    blockgroups = apply(existingBlockStructure,2,blockingstructure)
+    blocklengths = lapply(blockgroups,length)
+    blockcols = list()
+    blocknames = paste0("Block",1:(ncol(existingBlockStructure)-1))
+    attr(design,"splitcolumns") = blocknames
+    if(splitcolumns) {
+      #Save attributes
+      allattr = attributes(design)
+
+      for(level in 1:length(blockgroups)) {
+        blockcols[[level]] = unlist(lapply(list(blockgroups[[level]]),(function(x) rep(1:blocklengths[[level]],x))))
+      }
+      blockcolumns = do.call(cbind,blockcols)
+      blockcolumns = blockcolumns[,-ncol(blockcolumns),drop=FALSE]
+      for(col in ncol(blockcolumns):1) {
+        design[blocknames[col]] = blockcolumns[,col]
+        design = design[,c(ncol(design),1:(ncol(design)-1))]
+      }
+      attributes(design) = allattr
+      attr(design,"names") = c(paste0("Block",1:ncol(blockcolumns)),allattr$names)
+      attr(design,"splitanalyzable") = TRUE
+    }
+  }
 
   return(design)
 }

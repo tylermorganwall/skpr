@@ -68,6 +68,16 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    rfunctionsurv=NULL, anticoef=NULL, delta=2, contrasts = contr.sum,
                                    parallel=FALSE, detailedoutput=FALSE, ...) {
 
+  #Remove skpr-generated REML blocking indicators if present
+  if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
+    if(attr(RunMatrix,"splitanalyzable")) {
+      allattr = attributes(RunMatrix)
+      RunMatrix = RunMatrix[,-1:-length(allattr$splitcolumns)]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(RunMatrix) = allattr
+    }
+  }
+
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 

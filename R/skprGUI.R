@@ -452,10 +452,12 @@ skprGUI = function(inputValue1,inputValue2) {
                                 numericInput(inputId = "seed",
                                              1, label = "Random Seed")
                               ),
-                              radioButtons(inputId = "parallel",
-                                           choiceNames = list("Single Core","Multicore"),
-                                           choiceValues = list("FALSE","TRUE"),
-                                           label = "Parallel"),
+                              checkboxInput(inputId = "parallel",
+                                           label = "Parallel Evaluation",
+                                           value = FALSE),
+                              checkboxInput(inputId = "splitanalyzable",
+                                            label = "Include Blocking Columns in Run Matrix",
+                                            value=FALSE),
                               checkboxInput(inputId = "detailedoutput",
                                             label = "Detailed Output",
                                             value=FALSE),
@@ -652,10 +654,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
           }
           if((input$factortype1) == "discnum") {
-            inputlist1[[(input$factorname1)]] = as.numeric(strsplit((input$disclevels1),split=",")[[1]])
+            inputlist1[[(input$factorname1)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype1) == "cat") {
-            inputlist1[[(input$factorname1)]] = strsplit((input$levels1),split=",")[[1]]
+            inputlist1[[(input$factorname1)]] = strsplit(gsub(" ", "", input$levels1,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 2 && (input$numberfactors) > 1) && isolate(input$blockdepth2) == "htc") {
@@ -663,10 +665,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
           }
           if((input$factortype2) == "discnum") {
-            inputlist1[[(input$factorname2)]] = as.numeric(strsplit((input$disclevels2),split=",")[[1]])
+            inputlist1[[(input$factorname2)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype2) == "cat") {
-            inputlist1[[(input$factorname2)]] = strsplit((input$levels2),split=",")[[1]]
+            inputlist1[[(input$factorname2)]] = strsplit(gsub(" ", "", input$levels2,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 3 && (input$numberfactors) > 2) && isolate(input$blockdepth3) == "htc") {
@@ -674,10 +676,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
           }
           if((input$factortype3) == "discnum") {
-            inputlist1[[(input$factorname3)]] = as.numeric(strsplit((input$disclevels3),split=",")[[1]])
+            inputlist1[[(input$factorname3)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype3) == "cat") {
-            inputlist1[[(input$factorname3)]] = strsplit((input$levels3),split=",")[[1]]
+            inputlist1[[(input$factorname3)]] = strsplit(gsub(" ", "", input$levels3,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 4 && (input$numberfactors) > 3) && isolate(input$blockdepth4) == "htc") {
@@ -685,10 +687,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
           }
           if((input$factortype4) == "discnum") {
-            inputlist1[[(input$factorname4)]] = as.numeric(strsplit((input$disclevels4),split=",")[[1]])
+            inputlist1[[(input$factorname4)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype4) == "cat") {
-            inputlist1[[(input$factorname4)]] = strsplit((input$levels4),split=",")[[1]]
+            inputlist1[[(input$factorname4)]] = strsplit(gsub(" ", "", input$levels4,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 5 && (input$numberfactors) > 4) && isolate(input$blockdepth5) == "htc") {
@@ -696,10 +698,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
           }
           if((input$factortype5) == "discnum") {
-            inputlist1[[(input$factorname5)]] = as.numeric(strsplit((input$disclevels5),split=",")[[1]])
+            inputlist1[[(input$factorname5)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype5) == "cat") {
-            inputlist1[[(input$factorname5)]] = strsplit((input$levels5),split=",")[[1]]
+            inputlist1[[(input$factorname5)]] = strsplit(gsub(" ", "", input$levels5,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 6 && (input$numberfactors) > 5) && isolate(input$blockdepth6) == "htc") {
@@ -707,10 +709,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
           }
           if((input$factortype6) == "discnum") {
-            inputlist1[[(input$factorname6)]] = as.numeric(strsplit((input$disclevels6),split=",")[[1]])
+            inputlist1[[(input$factorname6)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype6) == "cat") {
-            inputlist1[[(input$factorname6)]] = strsplit((input$levels6),split=",")[[1]]
+            inputlist1[[(input$factorname6)]] = strsplit(gsub(" ", "", input$levels6,fixed=TRUE),split=",")[[1]]
           }
         }
       }
@@ -725,10 +727,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
           }
           if((input$factortype1) == "discnum") {
-            inputlist1[[(input$factorname1)]] = as.numeric(strsplit((input$disclevels1),split=",")[[1]])
+            inputlist1[[(input$factorname1)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype1) == "cat") {
-            inputlist1[[(input$factorname1)]] = strsplit((input$levels1),split=",")[[1]]
+            inputlist1[[(input$factorname1)]] = strsplit(gsub(" ", "", input$levels1,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 2 && (input$numberfactors) > 1) && (input$blockdepth2) == "htc") {
@@ -736,10 +738,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
           }
           if((input$factortype2) == "discnum") {
-            inputlist1[[(input$factorname2)]] = as.numeric(strsplit((input$disclevels2),split=",")[[1]])
+            inputlist1[[(input$factorname2)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype2) == "cat") {
-            inputlist1[[(input$factorname2)]] = strsplit((input$levels2),split=",")[[1]]
+            inputlist1[[(input$factorname2)]] = strsplit(gsub(" ", "", input$levels2,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 3 && (input$numberfactors) > 2) && (input$blockdepth3) == "htc") {
@@ -747,10 +749,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
           }
           if((input$factortype3) == "discnum") {
-            inputlist1[[(input$factorname3)]] = as.numeric(strsplit((input$disclevels3),split=",")[[1]])
+            inputlist1[[(input$factorname3)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype3) == "cat") {
-            inputlist1[[(input$factorname3)]] = strsplit((input$levels3),split=",")[[1]]
+            inputlist1[[(input$factorname3)]] = strsplit(gsub(" ", "", input$levels3,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 4 && (input$numberfactors) > 3) && (input$blockdepth4) == "htc") {
@@ -758,10 +760,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
           }
           if((input$factortype4) == "discnum") {
-            inputlist1[[(input$factorname4)]] = as.numeric(strsplit((input$disclevels4),split=",")[[1]])
+            inputlist1[[(input$factorname4)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype4) == "cat") {
-            inputlist1[[(input$factorname4)]] = strsplit((input$levels4),split=",")[[1]]
+            inputlist1[[(input$factorname4)]] = strsplit(gsub(" ", "", input$levels4,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 5 && (input$numberfactors) > 4) && (input$blockdepth5) == "htc") {
@@ -769,10 +771,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
           }
           if((input$factortype5) == "discnum") {
-            inputlist1[[(input$factorname5)]] = as.numeric(strsplit((input$disclevels5),split=",")[[1]])
+            inputlist1[[(input$factorname5)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype5) == "cat") {
-            inputlist1[[(input$factorname5)]] = strsplit((input$levels5),split=",")[[1]]
+            inputlist1[[(input$factorname5)]] = strsplit(gsub(" ", "", input$levels5,fixed=TRUE),split=",")[[1]]
           }
         }
         if((i == 6 && (input$numberfactors) > 5) && (input$blockdepth6) == "htc") {
@@ -780,10 +782,10 @@ skprGUI = function(inputValue1,inputValue2) {
             inputlist1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
           }
           if((input$factortype6) == "discnum") {
-            inputlist1[[(input$factorname6)]] = as.numeric(strsplit((input$disclevels6),split=",")[[1]])
+            inputlist1[[(input$factorname6)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6,fixed=TRUE),split=",")[[1]])
           }
           if((input$factortype6) == "cat") {
-            inputlist1[[(input$factorname6)]] = strsplit((input$levels6),split=",")[[1]]
+            inputlist1[[(input$factorname6)]] = strsplit(gsub(" ", "", input$levels6,fixed=TRUE),split=",")[[1]]
           }
         }
       }
@@ -792,7 +794,6 @@ skprGUI = function(inputValue1,inputValue2) {
 
 
     inputlist = reactive({
-      input$submitbutton
       inputlist1 = list()
       for(i in 1:6) {
         if(i == 1 && (input$numberfactors) > 0 ) {
@@ -801,10 +802,10 @@ skprGUI = function(inputValue1,inputValue2) {
               inputlist1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
             }
             if((input$factortype1) == "discnum") {
-              inputlist1[[(input$factorname1)]] = as.numeric(strsplit((input$disclevels1),split=",")[[1]])
+              inputlist1[[(input$factorname1)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1,fixed=TRUE),split=",")[[1]])
             }
             if((input$factortype1) == "cat") {
-              inputlist1[[(input$factorname1)]] = strsplit((input$levels1),split=",")[[1]]
+              inputlist1[[(input$factorname1)]] = strsplit(gsub(" ", "", input$levels1,fixed=TRUE),split=",")[[1]]
             }
           }
         }
@@ -814,10 +815,10 @@ skprGUI = function(inputValue1,inputValue2) {
               inputlist1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
             }
             if((input$factortype2) == "discnum") {
-              inputlist1[[(input$factorname2)]] = as.numeric(strsplit((input$disclevels2),split=",")[[1]])
+              inputlist1[[(input$factorname2)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2,fixed=TRUE),split=",")[[1]])
             }
             if((input$factortype2) == "cat") {
-              inputlist1[[(input$factorname2)]] = strsplit((input$levels2),split=",")[[1]]
+              inputlist1[[(input$factorname2)]] = strsplit(gsub(" ", "", input$levels2,fixed=TRUE),split=",")[[1]]
             }
           }
         }
@@ -827,10 +828,10 @@ skprGUI = function(inputValue1,inputValue2) {
               inputlist1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
             }
             if((input$factortype3) == "discnum") {
-              inputlist1[[(input$factorname3)]] = as.numeric(strsplit((input$disclevels3),split=",")[[1]])
+              inputlist1[[(input$factorname3)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3,fixed=TRUE),split=",")[[1]])
             }
             if((input$factortype3) == "cat") {
-              inputlist1[[(input$factorname3)]] = strsplit((input$levels3),split=",")[[1]]
+              inputlist1[[(input$factorname3)]] = strsplit(gsub(" ", "", input$levels3,fixed=TRUE),split=",")[[1]]
             }
           }
         }
@@ -840,10 +841,10 @@ skprGUI = function(inputValue1,inputValue2) {
               inputlist1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
             }
             if((input$factortype4) == "discnum") {
-              inputlist1[[(input$factorname4)]] = as.numeric(strsplit((input$disclevels4),split=",")[[1]])
+              inputlist1[[(input$factorname4)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4,fixed=TRUE),split=",")[[1]])
             }
             if((input$factortype4) == "cat") {
-              inputlist1[[(input$factorname4)]] = strsplit((input$levels4),split=",")[[1]]
+              inputlist1[[(input$factorname4)]] = strsplit(gsub(" ", "", input$levels4,fixed=TRUE),split=",")[[1]]
             }
           }
         }
@@ -853,10 +854,10 @@ skprGUI = function(inputValue1,inputValue2) {
               inputlist1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
             }
             if((input$factortype5) == "discnum") {
-              inputlist1[[(input$factorname5)]] = as.numeric(strsplit((input$disclevels5),split=",")[[1]])
+              inputlist1[[(input$factorname5)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5,fixed=TRUE),split=",")[[1]])
             }
             if((input$factortype5) == "cat") {
-              inputlist1[[(input$factorname5)]] = strsplit((input$levels5),split=",")[[1]]
+              inputlist1[[(input$factorname5)]] = strsplit(gsub(" ", "", input$levels5,fixed=TRUE),split=",")[[1]]
             }
           }
         }
@@ -866,16 +867,18 @@ skprGUI = function(inputValue1,inputValue2) {
               inputlist1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
             }
             if((input$factortype6) == "discnum") {
-              inputlist1[[(input$factorname6)]] = as.numeric(strsplit((input$disclevels6),split=",")[[1]])
+              inputlist1[[(input$factorname6)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6,fixed=TRUE),split=",")[[1]])
             }
             if((input$factortype6) == "cat") {
-              inputlist1[[(input$factorname6)]] = strsplit((input$levels6),split=",")[[1]]
+              inputlist1[[(input$factorname6)]] = strsplit(gsub(" ", "", input$levels6,fixed=TRUE),split=",")[[1]]
             }
           }
         }
       }
       inputlist1
     })
+
+
 
     inputstring = reactive({
       updatevector = c(input$blockdepth1,input$blockdepth2,input$blockdepth3,input$blockdepth4,input$blockdepth5,input$blockdepth6)
@@ -888,11 +891,11 @@ skprGUI = function(inputValue1,inputValue2) {
             finalstring = c(finalstring, "seq(",(input$numericlow1),",",(input$numerichigh1),", length.out=",input$numericlength1,")")
           }
           if((input$factortype1) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels1),")")
+            finalstring = c(finalstring, "c(",gsub(" ", "", input$disclevels1,fixed=TRUE),")")
           }
           if((input$factortype1) == "cat") {
             len = length(strsplit(input$levels1,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels1,split=",")[[1]],c("\","),collapse="")
+            levelstring = paste0(c("\""),strsplit(gsub(" ", "", input$levels1,fixed=TRUE),split=",")[[1]],c("\","),collapse="")
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
@@ -907,11 +910,11 @@ skprGUI = function(inputValue1,inputValue2) {
             finalstring = c(finalstring, "seq(",(input$numericlow2),",",(input$numerichigh2),", length.out=",input$numericlength2,")")
           }
           if((input$factortype2) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels2),")")
+            finalstring = c(finalstring, "c(",gsub(" ", "", input$disclevels2,fixed=TRUE),")")
           }
           if((input$factortype2) == "cat") {
             len = length(strsplit(input$levels2,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels2,split=",")[[1]],c("\","),collapse="")
+            levelstring = paste0(c("\""),strsplit(gsub(" ", "", input$levels2,fixed=TRUE),split=",")[[1]],c("\","),collapse="")
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
@@ -926,11 +929,11 @@ skprGUI = function(inputValue1,inputValue2) {
             finalstring = c(finalstring, "seq(",(input$numericlow3),",",(input$numerichigh3),", length.out=",input$numericlength3,")")
           }
           if((input$factortype3) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels3),")")
+            finalstring = c(finalstring, "c(",gsub(" ", "", input$disclevels3,fixed=TRUE),")")
           }
           if((input$factortype3) == "cat") {
             len = length(strsplit(input$levels3,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels3,split=",")[[1]],c("\","),collapse="")
+            levelstring = paste0(c("\""),strsplit(gsub(" ", "", input$levels3,fixed=TRUE),split=",")[[1]],c("\","),collapse="")
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
@@ -945,11 +948,11 @@ skprGUI = function(inputValue1,inputValue2) {
             finalstring = c(finalstring, "seq(",(input$numericlow4),",",(input$numerichigh4),", length.out=",input$numericlength4,")")
           }
           if((input$factortype4) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels4),")")
+            finalstring = c(finalstring, "c(",gsub(" ", "", input$disclevels4,fixed=TRUE),")")
           }
           if((input$factortype4) == "cat") {
             len = length(strsplit(input$levels4,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels4,split=",")[[1]],c("\","),collapse="")
+            levelstring = paste0(c("\""),strsplit(gsub(" ", "", input$levels4,fixed=TRUE),split=",")[[1]],c("\","),collapse="")
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
@@ -964,11 +967,11 @@ skprGUI = function(inputValue1,inputValue2) {
             finalstring = c(finalstring, "seq(",(input$numericlow5),",",(input$numerichigh5),", length.out=",input$numericlength5,")")
           }
           if((input$factortype5) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels5),")")
+            finalstring = c(finalstring, "c(",gsub(" ", "", input$disclevels5,fixed=TRUE),")")
           }
           if((input$factortype5) == "cat") {
             len = length(strsplit(input$levels5,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels5,split=",")[[1]],c("\","),collapse="")
+            levelstring = paste0(c("\""),strsplit(gsub(" ", "", input$levels5,fixed=TRUE),split=",")[[1]],c("\","),collapse="")
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
@@ -983,17 +986,57 @@ skprGUI = function(inputValue1,inputValue2) {
             finalstring = c(finalstring, "seq(",(input$numericlow6),",",(input$numerichigh6),", length.out=",input$numericlength6,")")
           }
           if((input$factortype6) == "discnum") {
-            finalstring = c(finalstring, "c(",(input$disclevels6),")")
+            finalstring = c(finalstring, "c(",gsub(" ", "", input$disclevels6,fixed=TRUE),")")
           }
           if((input$factortype6) == "cat") {
             len = length(strsplit(input$levels6,split=",")[[1]])
-            levelstring = paste0(c("\""),strsplit(input$levels6,split=",")[[1]],c("\","),collapse="")
+            levelstring = paste0(c("\""),strsplit(gsub(" ", "", input$levels6,fixed=TRUE),split=",")[[1]],c("\","),collapse="")
             levelstring = substr(levelstring, 1, nchar(levelstring)-1)
             finalstring = c(finalstring, "c(",levelstring,")")
           }
         }
       }
       finalstring
+    })
+
+    regularmodelstring = reactive({
+      if(input$model == "~.") {
+        paste0("~ ",paste(c(names(inputlist())),collapse=" + "))
+      } else {
+        as.character(as.formula(input$model))
+      }
+    })
+
+    modelwithblocks = reactive({
+      if(isblockingtext()) {
+        if(input$model == "~.") {
+          inputterms = c(input$factorname1,input$factorname2,input$factorname3,input$factorname4,input$factorname5,input$factorname6)[1:input$numberfactors]
+          basemodel = paste0("~",paste(inputterms,collapse=" + "))
+        } else {
+          basemodel = input$model
+        }
+        basemodel = gsub(pattern="~",replacement = "",x=basemodel,fixed=TRUE)
+        blockingmodelterms = "~ (1|Block1) + "
+        paste0(blockingmodelterms,basemodel)
+      }
+    })
+
+    contraststring = reactive({
+      factorcat = c(input$factortype1,input$factortype2,input$factortype3,input$factortype4,input$factortype5,input$factortype6) == "cat"
+      namecat = c(input$factorname1,input$factorname2,input$factorname3,input$factorname4,input$factorname5,input$factorname6)[factorcat]
+      contrasttemp = "list("
+      for(i in 1:length(namecat)) {
+        if(i != length(namecat)) {
+          contrasttemp = paste0(contrasttemp, namecat[i] , " = ","contr.sum, ")
+        } else {
+          contrasttemp = paste0(contrasttemp, namecat[i] , " = ","contr.sum)")
+        }
+      }
+      contrasttemp
+    })
+
+    anyfactors = reactive({
+      any(c(input$factortype1,input$factortype2,input$factortype3,input$factortype4,input$factortype5,input$factortype6) == "cat")
     })
 
     code = reactive({
@@ -1057,6 +1100,10 @@ skprGUI = function(inputValue1,inputValue2) {
         first = paste(c(first, ",<br>", rep("&nbsp;",20),
                         "parallel = TRUE"),collapse = "")
       }
+      if(isblockingtext()) {
+        first = paste(c(first, ",<br>", rep("&nbsp;",20),
+                        "splitcolumns = TRUE"),collapse = "")
+      }
       first = paste0(c(first,")<br><br>"),collapse="")
       if(input$evaltype == "lm") {
         first = paste0(c(first,
@@ -1085,6 +1132,25 @@ skprGUI = function(inputValue1,inputValue2) {
                           "detailedoutput = TRUE"),collapse = "")
         }
         first = paste0(c(first,")<br><br>"),collapse="")
+        first = paste0(first,
+                         "<code style=\"color:#468449\">## How to analyze this experiment when the data have been collected:</code><br>",
+                         "<code style=\"color:#468449\">## (to run, remove one # from this section) </code><br>",
+                         "<code style=\"color:#468449\">## First, assign the results to a column in the data frame. Each </code><br>",
+                         "<code style=\"color:#468449\">## entry in the vector corresponds to the result from that run in the design. <br><br></code>",
+                         "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
+                         ifelse(!isblockingtext(),
+                                "<code style=\"color:#468449\">## Now analyze the linear model with lm:</code><br>",
+                                "<code style=\"color:#468449\">## Now analyze the blocked linear model with lmer (from the lme4 package):<br><br></code>"),
+                         ifelse(!isblockingtext(),
+                                paste0("<code style=\"color:#468449\">#lm(formula = Y ", regularmodelstring(),
+                                       ", data = design" ,
+                                       ifelse(anyfactors(),
+                                              paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ",contraststring(),")</code>"),
+                                              ")<br><br></code>")),
+                                paste0("<code style=\"color:#468449\">#lme4::lmer(formula = Y ",
+                                  modelwithblocks(),
+                                  ", data = design",
+                                  ifelse(anyfactors(),paste0(",<br>#          ","contrasts = ",contraststring(),"))<br><br>"),"))<br><br></code>"))))
       }
       if(input$evaltype == "glm") {
         first = paste0(c(first,
@@ -1125,6 +1191,27 @@ skprGUI = function(inputValue1,inputValue2) {
                           "detailedoutput = TRUE"),collapse = "")
         }
         first = paste0(c(first,")<br><br>"),collapse="")
+        first = paste0(first,
+                       "<code style=\"color:#468449\">## How to analyze this experiment when the data have been collected:</code><br>",
+                       "<code style=\"color:#468449\">## (to run, remove one # from this section) </code><br>",
+                       "<code style=\"color:#468449\">## First, assign the results to a column in the data frame. Each </code><br>",
+                       "<code style=\"color:#468449\">## entry in the vector corresponds to the result from that run in the design. <br><br></code>",
+                       "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
+                       ifelse(!isblockingtext(),
+                              "<code style=\"color:#468449\">## Now analyze the generalized linear model with glm:</code><br>",
+                              "<code style=\"color:#468449\">## Now analyze the blocked generalized linear model with glmer (from the lme4 package):<br><br></code>"),
+                       ifelse(!isblockingtext(),
+                              paste0("<code style=\"color:#468449\">#glm(formula = Y ", regularmodelstring(),
+                                     ", data = design" ,
+                                     ",<br>#   family = ", ifelse(input$glmfamily == "exponential", "Gamma(link=\"log\")",paste0("\"",input$glmfamily,"\"")),
+                                     ifelse(anyfactors(),
+                                            paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ",contraststring(),")</code>"),
+                                            ")<br><br></code>")),
+                              paste0("<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
+                                     modelwithblocks(),
+                                     ", data = design",
+                                     ",<br>#          family = ", ifelse(input$glmfamily == "exponential", "Gamma(link=\"log\")",paste0("\"",input$glmfamily,"\"")),
+                                     ifelse(anyfactors(),paste0(",<br>#          ","contrasts = ",contraststring(),")"),")</code>"))))
       }
       if(input$evaltype == "surv") {
         first = paste0(c(first,
@@ -1161,7 +1248,23 @@ skprGUI = function(inputValue1,inputValue2) {
                           "detailedoutput = TRUE"),collapse = "")
         }
         first = paste0(c(first,")<br><br>"),collapse="")
+        first = paste0(first,
+                       "<code style=\"color:#468449\">## How to analyze this experiment when the data have been collected:</code><br>",
+                       "<code style=\"color:#468449\">## (to run, remove one # from this section) </code><br>",
+                       "<code style=\"color:#468449\">## This is a survival model, so first create a Surv object that marks the censored runs.</code><br>",
+                       "<code style=\"color:#468449\">## Each entry in the results vector corresponds to the result from that run in the design.</code><br>",
+                       "<code style=\"color:#468449\">## Here, the raw censored responses are given as NA. We replace those values with the</code><br>",
+                       "<code style=\"color:#468449\">## censor point and use the event argument to mark them as censored. </code><br>",
+                       "<code style=\"color:#468449\">## (Surv argument \"event\" is TRUE when \"results\" is not censored, and FALSE when censored).<br><br></code>",
+                       "<code style=\"color:#468449\">#notcensored = !is.na(results) </code><br>",
+                       ifelse(!is.na(input$censorpoint),paste0("<code style=\"color:#468449\">#results[is.na(results)] = ", input$censorpoint, "</code><br>"),
+                              ""),
+                       "<code style=\"color:#468449\">#design$Y = Surv(time=results, event = notcensored, type = \"", input$censortype,"\") <br><br></code>",
+                       "<code style=\"color:#468449\">## Now analyze the linear model with survreg (from the survival package):</code><br>",
+                        paste0("<code style=\"color:#468449\">#survival::survreg(formula = Y ", regularmodelstring(),
+                                     ", data = design, dist = \"", input$distribution,"\")"))
       }
+
       first = paste0(c(first,"</pre></code>"),collapse="")
       first
     })
@@ -1245,7 +1348,8 @@ skprGUI = function(inputValue1,inputValue2) {
                      varianceratio = isolate(input$varianceratio),
                      aliaspower = isolate(input$aliaspower),
                      minDopt = isolate(input$mindopt),
-                     parallel = isolate(as.logical(input$parallel)))
+                     parallel = isolate(as.logical(input$parallel)),
+                     splitcolumns = TRUE)
         }
       }
     })
@@ -1423,15 +1527,30 @@ skprGUI = function(inputValue1,inputValue2) {
       input$evalbutton
       if(!is.null(attr(powerresultsglm(),"estimates"))) {
         responses = as.vector(attr(powerresultsglm(),"estimates") %*% t(attr(powerresultsglm(),"modelmatrix")))
+        uniquevalues = length(table(responses))
+        breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
         if(isolate(input$glmfamily) == "binomial") {
           responses = exp(responses)/(1+exp(responses))
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlim=c(0,1),xlab="Response (Probability)")
+          hist(responses,breaks=breakvalues,xlim=c(0,1),xlab="Response (Probability)",main="Distribution of Simulated Responses")
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
-        } else {
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response")
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
+        }
+        if(isolate(input$glmfamily) == "poisson") {
+          responses = exp(responses)
+          hist(responses,breaks=breakvalues,xlab="Response (Number of events)",main="Distribution of Simulated Responses")
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",ylab="Count",col = "red",border="red")
+        }
+        if(isolate(input$glmfamily) == "exponential") {
+          responses = exp(-responses)
+          hist(responses,breaks=breakvalues,xlab="Response (Rates)",main="Distribution of Simulated Responses")
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",ylab="Count",col = "red",border="red")
+        }
+        if(isolate(input$glmfamily) == "gaussian") {
+          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Responses")
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
         }
       }
     })
@@ -1439,9 +1558,19 @@ skprGUI = function(inputValue1,inputValue2) {
       input$evalbutton
       if(!is.null(attr(powerresultssurv(),"estimates"))) {
         responses = as.vector(attr(powerresultssurv(),"estimates") %*% t(attr(powerresultssurv(),"modelmatrix")))
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response")
-        grid(nx=NA,ny=NULL)
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+        uniquevalues = length(table(responses))
+        breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
+        if(isolate(input$distribution) == "exponential") {
+          responses = exp(responses)
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)")
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+        }
+        if(isolate(input$distribution) %in% c("gaussian", "lognormal")) {
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)")
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+        }
       }
     })
     output$separationwarning = renderText({

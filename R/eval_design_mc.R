@@ -126,12 +126,70 @@ eval_design_mc = function(RunMatrix, model, alpha,
                           parallel=FALSE, detailedoutput=FALSE) {
 
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
-    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Coverting input to data frame:")
+    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Coverting input to data frame")
   }
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
+  #Detect externally generated blocking columns and convert to rownames
+  if(is.null(attr(RunMatrix,"splitanalyzable")) &&
+     any(grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE)) ||
+     any(grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE))) {
+    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE) | grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE)
+    if(blocking) {
+      warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
+      blockmatrix = RunMatrix[,blockcols]
+      blockvals = lapply(blockmatrix,unique)
+      rownamematrix = matrix(nrow=nrow(RunMatrix),ncol=ncol(blockmatrix) + 1)
+      for(col in 1:ncol(blockmatrix)) {
+        uniquevals = blockvals[[col]]
+        blockcounter = 1
+        for(block in uniquevals) {
+          if(col == 1) {
+            rownamematrix[blockmatrix[,col] == block,col] = blockcounter
+            blockcounter = blockcounter + 1
+          }
+          if(col != 1) {
+            superblock = rownamematrix[blockmatrix[,col] == block,col-1][1]
+            modop = length(unique(blockmatrix[blockmatrix[,col-1] == superblock,col]))
+            if(blockcounter %% modop == 0) {
+              rownamematrix[blockmatrix[,col] == block,col] = modop
+            } else {
+              rownamematrix[blockmatrix[,col] == block,col] = blockcounter %% modop
+            }
+            blockcounter = blockcounter + 1
+          }
+          if(col == ncol(blockmatrix)) {
+            rownamematrix[blockmatrix[,col] == block,col+1] = 1:sum(blockmatrix[,col] == block)
+          }
+        }
+        blockcounter = blockcounter + 1
+      }
+      allattr = attributes(RunMatrix)
+      allattr$names = allattr$names[!blockcols]
+      RunMatrix = RunMatrix[,!blockcols]
+      attributes(RunMatrix) = allattr
+      rownames(RunMatrix) = apply(rownamematrix,1,paste,collapse=".")
+    } else {
+      warning("Detected externally generated blocking columns but blocking not turned on: ignoring blocking structure and removing blocking columns.")
+      allattr = attributes(RunMatrix)
+      allattr$names = allattr$names[!blockcols]
+      RunMatrix = RunMatrix[,!blockcols]
+      attributes(RunMatrix) = allattr
+    }
+  }
+  #Remove skpr-generated REML blocking indicators if present
+  if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
+    if(attr(RunMatrix,"splitanalyzable")) {
+      allattr = attributes(RunMatrix)
+      RunMatrix = RunMatrix[,-1:-length(allattr$splitcolumns)]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(RunMatrix) = allattr
+    }
+  }
+
   glmfamilyname = glmfamily
+
   #------Auto-set random generating function----#
   if(is.null(rfunction)) {
     if(glmfamily == "gaussian") {
@@ -148,6 +206,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       rfunction = function(X,b,blockvector) {return(rexp(n=nrow(X), rate = exp(X %*% b + blockvector)))}
     }
   }
+
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
     if(class(RunMatrix[,column]) == "numeric") {
@@ -158,6 +217,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
+  #Variables used later: contrastslist, contrastslist_correlationmatrix
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
 
   contrastslist_correlationmatrix = list()
@@ -173,6 +233,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #---------- Convert dot formula to terms -----#
+  #Variables used later: model, ModelMatrix
   if((as.character(model)[2] == ".")) {
     model = as.formula(paste("~", paste(attr(RunMatrixReduced, "names"), collapse=" + "), sep=""))
   }
@@ -188,11 +249,12 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
-  #We'll need the parameter and effect names for output
+
+  #Parameter names for final output
   parameter_names = colnames(ModelMatrix)
-  effect_names = c("(Intercept)", attr(terms(model), 'term.labels'))
 
   #-----Autogenerate Anticipated Coefficients---#
+  #Variables used later: anticoef
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced, model)
   }
@@ -213,11 +275,11 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #-------------- Blocking errors --------------#
+  #Variables used later: blockgroups, varianceratios
   blocknames = rownames(RunMatrix)
   blocklist = strsplit(blocknames,".",fixed=TRUE)
 
   if(any(lapply(blocklist,length) > 1)) {
-    # if(blocking && (is.null(varianceratios) || max(unlist(lapply(blocklist,length)))-1 != length(varianceratios))) {
     if(blocking) {
 
       blockstructure = do.call(rbind,blocklist)
@@ -256,7 +318,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #------------ Generate Responses -------------#
-
+  #Variables used later: responses
   responses = matrix(ncol=nsim,nrow=nrow(ModelMatrix))
   if(blocking) {
     for(i in 1:nsim) {
@@ -265,12 +327,12 @@ eval_design_mc = function(RunMatrix, model, alpha,
   } else {
     responses = replicate(nsim, rfunction(ModelMatrix,anticoef,rep(0,nrow(ModelMatrix))))
   }
-  #-------Update formula with random blocks------#
 
+  #-------Update formula with random blocks------#
+  #Variables used later: model, model_formula
   if(blocking) {
     genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
     blockindicators = lapply(blockgroups,genBlockIndicators)
-    blocknumber = length(blockgroups)-1
     randomeffects = c()
     for(i in 1:(length(blockgroups)-1)) {
       RunMatrixReduced[paste("Block",i,sep="")] = blockindicators[[i]]
@@ -286,6 +348,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   RunMatrixReduced$Y = 1
 
   #---------------- Run Simulations ---------------#
+
   if(!parallel) {
     pvallist = list()
     stderrlist = list()
@@ -322,9 +385,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       }
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
     }
-    #We are going to output a tidy data.frame with the results, so just append the effect powers
-    #to the parameter powers. We'll use another column of that dataframe to label whether it is parameter
-    #or effect power.\
+    #We are going to output a tidy data.frame with the results.
     attr(power_values, "pvals") = do.call(rbind,pvallist)
     attr(power_values, "stderrors") = do.call(rbind,stderrlist)
     attr(power_values, "fisheriterations") = do.call(rbind,iterlist)
@@ -372,6 +433,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
     attr(power_values,"stderrors") = power_estimates[, (3*dfsplit + 1):(4*dfsplit)]
     attr(power_values,"fisheriterations") = power_estimates[, (4*dfsplit + 1)]
   }
+
   #output the results (tidy data format)
   retval = data.frame(parameters=parameter_names,
                     type="parameter.power.mc",

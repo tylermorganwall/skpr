@@ -23,6 +23,16 @@
 #'plot_fds(cardesign)
 plot_fds = function(genoutput,model=NULL,continuouslength = 11) {
 
+  #Remove skpr-generated REML blocking indicators if present
+  if(!is.null(attr(genoutput,"splitanalyzable"))) {
+    if(attr(genoutput,"splitanalyzable")) {
+      allattr = attributes(genoutput)
+      genoutput = genoutput[,-1:-length(allattr$splitcolumns)]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(genoutput) = allattr
+    }
+  }
+
   Iopt = attr(genoutput,"I")
   V = attr(genoutput,"variance.matrix")
 
@@ -94,3 +104,4 @@ plot_fds = function(genoutput,model=NULL,continuouslength = 11) {
   lines(1:length(varsorderedscaled)/length(varsorderedscaled),varsorderedscaled,lwd = 2,col="blue")
 
 }
+

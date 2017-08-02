@@ -8,7 +8,7 @@ and desired number of runs.}
 gen_design(candidateset, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
   varianceratio = 1, contrast = contr.simplex, aliaspower = 2,
-  minDopt = 0.95, parallel = FALSE, timer = FALSE)
+  minDopt = 0.95, parallel = FALSE, timer = FALSE, splitcolumns = FALSE)
 }
 \arguments{
 \item{candidateset}{A data frame of candidate test points. Usually this is a full factorial test matrix
@@ -47,6 +47,8 @@ a split plot design.}
 \item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.}
 
 \item{timer}{Default FALSE. If TRUE, will print an estimate of the optimal design search time.}
+
+\item{splitcolumns}{Default FALSE. If TRUE, will convert row name split-plot structure to columns to output the design in a ready-to-analyze format. If no blocking is detected, no columns will be added.}
 }
 \value{
 The optimal design. Attributes can be accessed with the attr function.

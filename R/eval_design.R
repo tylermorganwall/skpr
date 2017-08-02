@@ -111,8 +111,68 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
+  #Detect externally generated blocking columns and convert to rownames
+  if(is.null(attr(RunMatrix,"splitanalyzable")) &&
+     any(grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE)) ||
+     any(grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE))) {
+    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE) | grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE)
+    if(blocking) {
+      warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
+      blockmatrix = RunMatrix[,blockcols]
+      blockvals = lapply(blockmatrix,unique)
+      rownamematrix = matrix(nrow=nrow(RunMatrix),ncol=ncol(blockmatrix) + 1)
+      for(col in 1:ncol(blockmatrix)) {
+        uniquevals = blockvals[[col]]
+        blockcounter = 1
+        for(block in uniquevals) {
+          if(col == 1) {
+            rownamematrix[blockmatrix[,col] == block,col] = blockcounter
+            blockcounter = blockcounter + 1
+          }
+          if(col != 1) {
+            superblock = rownamematrix[blockmatrix[,col] == block,col-1][1]
+            modop = length(unique(blockmatrix[blockmatrix[,col-1] == superblock,col]))
+            if(blockcounter %% modop == 0) {
+              rownamematrix[blockmatrix[,col] == block,col] = modop
+            } else {
+              rownamematrix[blockmatrix[,col] == block,col] = blockcounter %% modop
+            }
+            blockcounter = blockcounter + 1
+          }
+          if(col == ncol(blockmatrix)) {
+            rownamematrix[blockmatrix[,col] == block,col+1] = 1:sum(blockmatrix[,col] == block)
+          }
+        }
+        blockcounter = blockcounter + 1
+      }
+      allattr = attributes(RunMatrix)
+      allattr$names = allattr$names[!blockcols]
+      RunMatrix = RunMatrix[,!blockcols]
+      attributes(RunMatrix) = allattr
+      rownames(RunMatrix) = apply(rownamematrix,1,paste,collapse=".")
+    } else {
+      warning("Detected externally generated blocking columns but blocking not turned on: ignoring blocking structure and removing blocking columns.")
+      allattr = attributes(RunMatrix)
+      allattr$names = allattr$names[!blockcols]
+      RunMatrix = RunMatrix[,!blockcols]
+      attributes(RunMatrix) = allattr
+    }
+  }
+
+  #Remove skpr-generated REML blocking columns if present
+  if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
+    if(attr(RunMatrix,"splitanalyzable")) {
+      allattr = attributes(RunMatrix)
+      RunMatrix = RunMatrix[,-1:-length(allattr$splitcolumns)]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(RunMatrix) = allattr
+    }
+  }
+
   RunMatrix = reduceRunMatrix(RunMatrix,model)
+
   #---Develop contrast lists for model matrix---#
+  #Variables used later: contrastslist, contrastslist_correlationmatrix
   contrastslist = list()
   contrastslist_correlationmatrix = list()
   for(x in names(RunMatrix[lapply(RunMatrix,class) == "factor"])) {
@@ -125,6 +185,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   }
 
   #----- Convert dot/quad formula to terms -----#
+  #Variables used later: model
   if((as.character(model)[2] == ".")) {
     model = as.formula(paste("~", paste(attr(RunMatrix, "names"), collapse=" + "), sep=""))
   }
@@ -148,7 +209,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   }
 
   #-Generate Model Matrix & Anticipated Coefficients-#
-
+  #Variables used later: anticoef
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
   if(missing(anticoef)) {
@@ -161,7 +222,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
 
   #-----Generate V inverse matrix-----X
-
+  #Variables used later: V, vInv
   if(blocking) {
     blocklist = strsplit(rownames(RunMatrix),".",fixed=TRUE)
 
@@ -175,8 +236,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       stop("No blocking detected. Specify block structure in row names or set blocking=FALSE")
     }
     if(length(blockgroups) > 2 && length(varianceratios) == 1) {
-      warning("Only one variance ratio specified for several levels of blocking, applying that variance ratio to all substrata")
-      varianceratios = rep(varianceratios,length(blockgroups))
+      varianceratios = rep(varianceratios,length(blockgroups)-1)
     }
     if(length(blockgroups) > 2 && length(varianceratios) != 1 && length(blockgroups)-1 != length(varianceratios)) {
       stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")

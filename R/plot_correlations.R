@@ -26,6 +26,16 @@
 #'plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
 plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
 
+  #Remove skpr-generated REML blocking indicators if present
+  if(!is.null(attr(genoutput,"splitanalyzable"))) {
+    if(attr(genoutput,"splitanalyzable")) {
+      allattr = attributes(genoutput)
+      genoutput = genoutput[,-1:-length(allattr$splitcolumns)]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(genoutput) = allattr
+    }
+  }
+
   if(is.null(model)) {
     if(!is.null(attr(genoutput,"runmatrix"))) {
       variables = colnames(attr(genoutput,"runmatrix"))

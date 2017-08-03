@@ -546,7 +546,18 @@ shinyUI(fluidPage(
                          fluidRow(align="center",
                                   column(width=6,
                                          h3("Correlation Map"),
-                                         plotOutput(outputId = "aliasplot")
+                                         conditionalPanel("input.numberfactors > 1",
+                                                          plotOutput(outputId = "aliasplot")),
+                                         conditionalPanel("input.numberfactors == 1",
+                                                          br(),
+                                                          br(),
+                                                          br(),
+                                                          br(),
+                                                          br(),
+                                                          br(),
+                                                          br(),
+                                                          br(),
+                                                          HTML("<font color=#898989> One Parameter: <br>No Correlation Map</font>"))
                                   ),
                                   column(width=6,
                                          (h3("Fraction of Design Space")),
@@ -558,8 +569,18 @@ shinyUI(fluidPage(
                            fluidRow(
                              hr(),
                              column(width=12,
-                                    h3("Simulated Response"),
+                                    h3("Simulated Response Estimates"),
                                     plotOutput(outputId = "responsehistogram")
+                             ),
+                             column(width=6,
+                                    numericInput(inputId = "estimatesxminglm",
+                                                 value=NA,
+                                                 label = "x-min")
+                             ),
+                             column(width=6,
+                                    numericInput(inputId = "estimatesxmaxglm",
+                                                 value=NA,
+                                                 label = "x-max")
                              )
                            )
                          ),
@@ -568,8 +589,18 @@ shinyUI(fluidPage(
                            fluidRow(
                              hr(),
                              column(width=12,
-                                    h3("Simulated Response"),
+                                    h3("Simulated Response Estimates"),
                                     plotOutput(outputId = "responsehistogramsurv")
+                             ),
+                             column(width=6,
+                                    numericInput(inputId = "estimatesxminsurv",
+                                                 value=NA,
+                                                 label = "x-min")
+                             ),
+                             column(width=6,
+                                    numericInput(inputId = "estimatesxmaxsurv",
+                                                 value=NA,
+                                                 label = "x-max")
                              )
                            )
                          ),

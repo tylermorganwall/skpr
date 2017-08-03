@@ -909,6 +909,79 @@ skprGUI = function(inputValue1,inputValue2) {
       inputlist1
     })
 
+    candidatesetall = reactive({
+      candidateset1 = list()
+      for(i in 1:6) {
+        if(i == 1 && (input$numberfactors) > 0 ) {
+          if((input$factortype1) == "numeric") {
+            candidateset1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
+          }
+          if((input$factortype1) == "discnum") {
+            candidateset1[[(input$factorname1)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1,fixed=TRUE),split=",")[[1]])
+          }
+          if((input$factortype1) == "cat") {
+            candidateset1[[(input$factorname1)]] = strsplit(gsub(" ", "", input$levels1,fixed=TRUE),split=",")[[1]]
+          }
+        }
+        if(i == 2 && (input$numberfactors) > 1) {
+          if((input$factortype2) == "numeric") {
+            candidateset1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
+          }
+          if((input$factortype2) == "discnum") {
+            candidateset1[[(input$factorname2)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2,fixed=TRUE),split=",")[[1]])
+          }
+          if((input$factortype2) == "cat") {
+            candidateset1[[(input$factorname2)]] = strsplit(gsub(" ", "", input$levels2,fixed=TRUE),split=",")[[1]]
+          }
+        }
+        if(i == 3 && (input$numberfactors) > 2) {
+          if((input$factortype3) == "numeric") {
+            candidateset1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
+          }
+          if((input$factortype3) == "discnum") {
+            candidateset1[[(input$factorname3)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3,fixed=TRUE),split=",")[[1]])
+          }
+          if((input$factortype3) == "cat") {
+            candidateset1[[(input$factorname3)]] = strsplit(gsub(" ", "", input$levels3,fixed=TRUE),split=",")[[1]]
+          }
+        }
+        if(i == 4 && (input$numberfactors) > 3) {
+          if((input$factortype4) == "numeric") {
+            candidateset1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
+          }
+          if((input$factortype4) == "discnum") {
+            candidateset1[[(input$factorname4)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4,fixed=TRUE),split=",")[[1]])
+          }
+          if((input$factortype4) == "cat") {
+            candidateset1[[(input$factorname4)]] = strsplit(gsub(" ", "", input$levels4,fixed=TRUE),split=",")[[1]]
+          }
+        }
+        if(i == 5 && (input$numberfactors) > 4) {
+          if((input$factortype5) == "numeric") {
+            candidateset1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
+          }
+          if((input$factortype5) == "discnum") {
+            candidateset1[[(input$factorname5)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5,fixed=TRUE),split=",")[[1]])
+          }
+          if((input$factortype5) == "cat") {
+            candidateset1[[(input$factorname5)]] = strsplit(gsub(" ", "", input$levels5,fixed=TRUE),split=",")[[1]]
+          }
+        }
+        if(i == 6 && (input$numberfactors) > 5) {
+          if((input$factortype6) == "numeric") {
+            candidateset1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
+          }
+          if((input$factortype6) == "discnum") {
+            candidateset1[[(input$factorname6)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6,fixed=TRUE),split=",")[[1]])
+          }
+          if((input$factortype6) == "cat") {
+            candidateset1[[(input$factorname6)]] = strsplit(gsub(" ", "", input$levels6,fixed=TRUE),split=",")[[1]]
+          }
+        }
+      }
+      candidateset1
+    })
+
 
 
     inputstring = reactive({
@@ -1170,7 +1243,7 @@ skprGUI = function(inputValue1,inputValue2) {
                          "<code style=\"color:#468449\">## entry in the vector corresponds to the result from that run in the design. <br><br></code>",
                          "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
                          ifelse(!isblockingtext(),
-                                "<code style=\"color:#468449\">## Now analyze the linear model with lm:</code><br>",
+                                "<code style=\"color:#468449\">## Now analyze the linear model with lm:</code><br><br>",
                                 "<code style=\"color:#468449\">## Now analyze the blocked linear model with lmer (from the lme4 package):<br><br></code>"),
                          ifelse(!isblockingtext(),
                                 paste0("<code style=\"color:#468449\">#lm(formula = Y ", regularmodelstring(),
@@ -1229,7 +1302,7 @@ skprGUI = function(inputValue1,inputValue2) {
                        "<code style=\"color:#468449\">## entry in the vector corresponds to the result from that run in the design. <br><br></code>",
                        "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
                        ifelse(!isblockingtext(),
-                              "<code style=\"color:#468449\">## Now analyze the generalized linear model with glm:</code><br>",
+                              "<code style=\"color:#468449\">## Now analyze the generalized linear model with glm:</code><br><br>",
                               "<code style=\"color:#468449\">## Now analyze the blocked generalized linear model with glmer (from the lme4 package):<br><br></code>"),
                        ifelse(!isblockingtext(),
                               paste0("<code style=\"color:#468449\">#glm(formula = Y ", regularmodelstring(),
@@ -1291,7 +1364,7 @@ skprGUI = function(inputValue1,inputValue2) {
                        ifelse(!is.na(input$censorpoint),paste0("<code style=\"color:#468449\">#results[is.na(results)] = ", input$censorpoint, "</code><br>"),
                               ""),
                        "<code style=\"color:#468449\">#design$Y = Surv(time=results, event = notcensored, type = \"", input$censortype,"\") <br><br></code>",
-                       "<code style=\"color:#468449\">## Now analyze the linear model with survreg (from the survival package):</code><br>",
+                       "<code style=\"color:#468449\">## Now analyze the linear model with survreg (from the survival package):</code><br><br>",
                         paste0("<code style=\"color:#468449\">#survival::survreg(formula = Y ", regularmodelstring(),
                                      ", data = design, dist = \"", input$distribution,"\")"))
       }
@@ -1330,6 +1403,7 @@ skprGUI = function(inputValue1,inputValue2) {
           regularmodel = regularmodel | grepl(regex,modelsplit,perl=TRUE)
         }
         paste0("~",paste(modelsplit[!regularmodel],collapse=" + "))
+
       }
     })
 
@@ -1343,7 +1417,7 @@ skprGUI = function(inputValue1,inputValue2) {
       } else {
 
         if(!isblocking()) {
-          gen_design(candidateset = isolate(expand.grid(inputlist())),
+          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                      model = isolate(as.formula(input$model)),
                      trials = isolate(input$trials),
                      optimality = isolate(input$optimality),
@@ -1352,7 +1426,7 @@ skprGUI = function(inputValue1,inputValue2) {
                      minDopt = isolate(input$mindopt),
                      parallel = isolate(as.logical(input$parallel)))
         } else {
-          spd = gen_design(candidateset = isolate(expand.grid(inputlist_htc())),
+          spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                            model = isolate(as.formula(blockmodel())),
                            trials = isolate(input$numberblocks),
                            optimality = isolate(input$optimality),
@@ -1368,8 +1442,7 @@ skprGUI = function(inputValue1,inputValue2) {
             unbalancedruns = ceiling(isolate(input$trials)/isolate(input$numberblocks))*isolate(input$numberblocks) - isolate(input$trials)
             sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
           }
-
-          gen_design(candidateset = isolate(expand.grid(inputlist())),
+          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                      model = isolate(as.formula(input$model)),
                      trials = isolate(input$trials),
                      splitplotdesign = spd,
@@ -1473,7 +1546,7 @@ skprGUI = function(inputValue1,inputValue2) {
     output$aliasplot = renderPlot({
       input$evalbutton
       input$submitbutton
-      if(isolate(input$numberfactors) != isolate(ncol(runmatrix()))) {
+      if(isolate(input$numberfactors) != isolate(ncol(runmatrix()))-ifelse(isolate(isblocking()),1,0)) {
         plot(1, type="n", axes=F, main = "Number of Factors Does \nNot Equal Current Design: \nClick Generate Design", xlab="", ylab="")
       } else {
         if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {

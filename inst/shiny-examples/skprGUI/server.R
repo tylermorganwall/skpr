@@ -236,6 +236,79 @@ function(input, output) {
     inputlist1
   })
 
+  candidatesetall = reactive({
+    candidateset1 = list()
+    for(i in 1:6) {
+      if(i == 1 && (input$numberfactors) > 0 ) {
+        if((input$factortype1) == "numeric") {
+          candidateset1[[(input$factorname1)]] = seq((input$numericlow1),(input$numerichigh1),length.out = input$numericlength1)
+        }
+        if((input$factortype1) == "discnum") {
+          candidateset1[[(input$factorname1)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1,fixed=TRUE),split=",")[[1]])
+        }
+        if((input$factortype1) == "cat") {
+          candidateset1[[(input$factorname1)]] = strsplit(gsub(" ", "", input$levels1,fixed=TRUE),split=",")[[1]]
+        }
+      }
+      if(i == 2 && (input$numberfactors) > 1) {
+        if((input$factortype2) == "numeric") {
+          candidateset1[[(input$factorname2)]] = seq((input$numericlow2),(input$numerichigh2),length.out = input$numericlength2)
+        }
+        if((input$factortype2) == "discnum") {
+          candidateset1[[(input$factorname2)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2,fixed=TRUE),split=",")[[1]])
+        }
+        if((input$factortype2) == "cat") {
+          candidateset1[[(input$factorname2)]] = strsplit(gsub(" ", "", input$levels2,fixed=TRUE),split=",")[[1]]
+        }
+      }
+      if(i == 3 && (input$numberfactors) > 2) {
+        if((input$factortype3) == "numeric") {
+          candidateset1[[(input$factorname3)]] = seq((input$numericlow3),(input$numerichigh3),length.out = input$numericlength3)
+        }
+        if((input$factortype3) == "discnum") {
+          candidateset1[[(input$factorname3)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3,fixed=TRUE),split=",")[[1]])
+        }
+        if((input$factortype3) == "cat") {
+          candidateset1[[(input$factorname3)]] = strsplit(gsub(" ", "", input$levels3,fixed=TRUE),split=",")[[1]]
+        }
+      }
+      if(i == 4 && (input$numberfactors) > 3) {
+        if((input$factortype4) == "numeric") {
+          candidateset1[[(input$factorname4)]] = seq((input$numericlow4),(input$numerichigh4),length.out = input$numericlength4)
+        }
+        if((input$factortype4) == "discnum") {
+          candidateset1[[(input$factorname4)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4,fixed=TRUE),split=",")[[1]])
+        }
+        if((input$factortype4) == "cat") {
+          candidateset1[[(input$factorname4)]] = strsplit(gsub(" ", "", input$levels4,fixed=TRUE),split=",")[[1]]
+        }
+      }
+      if(i == 5 && (input$numberfactors) > 4) {
+        if((input$factortype5) == "numeric") {
+          candidateset1[[(input$factorname5)]] = seq((input$numericlow5),(input$numerichigh5),length.out = input$numericlength5)
+        }
+        if((input$factortype5) == "discnum") {
+          candidateset1[[(input$factorname5)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5,fixed=TRUE),split=",")[[1]])
+        }
+        if((input$factortype5) == "cat") {
+          candidateset1[[(input$factorname5)]] = strsplit(gsub(" ", "", input$levels5,fixed=TRUE),split=",")[[1]]
+        }
+      }
+      if(i == 6 && (input$numberfactors) > 5) {
+        if((input$factortype6) == "numeric") {
+          candidateset1[[(input$factorname6)]] = seq((input$numericlow6),(input$numerichigh6),length.out = input$numericlength6)
+        }
+        if((input$factortype6) == "discnum") {
+          candidateset1[[(input$factorname6)]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6,fixed=TRUE),split=",")[[1]])
+        }
+        if((input$factortype6) == "cat") {
+          candidateset1[[(input$factorname6)]] = strsplit(gsub(" ", "", input$levels6,fixed=TRUE),split=",")[[1]]
+        }
+      }
+    }
+    candidateset1
+  })
+
 
 
   inputstring = reactive({
@@ -497,7 +570,7 @@ function(input, output) {
                      "<code style=\"color:#468449\">## entry in the vector corresponds to the result from that run in the design. <br><br></code>",
                      "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
                      ifelse(!isblockingtext(),
-                            "<code style=\"color:#468449\">## Now analyze the linear model with lm:</code><br>",
+                            "<code style=\"color:#468449\">## Now analyze the linear model with lm:</code><br><br>",
                             "<code style=\"color:#468449\">## Now analyze the blocked linear model with lmer (from the lme4 package):<br><br></code>"),
                      ifelse(!isblockingtext(),
                             paste0("<code style=\"color:#468449\">#lm(formula = Y ", regularmodelstring(),
@@ -556,7 +629,7 @@ function(input, output) {
                      "<code style=\"color:#468449\">## entry in the vector corresponds to the result from that run in the design. <br><br></code>",
                      "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
                      ifelse(!isblockingtext(),
-                            "<code style=\"color:#468449\">## Now analyze the generalized linear model with glm:</code><br>",
+                            "<code style=\"color:#468449\">## Now analyze the generalized linear model with glm:</code><br><br>",
                             "<code style=\"color:#468449\">## Now analyze the blocked generalized linear model with glmer (from the lme4 package):<br><br></code>"),
                      ifelse(!isblockingtext(),
                             paste0("<code style=\"color:#468449\">#glm(formula = Y ", regularmodelstring(),
@@ -618,7 +691,7 @@ function(input, output) {
                      ifelse(!is.na(input$censorpoint),paste0("<code style=\"color:#468449\">#results[is.na(results)] = ", input$censorpoint, "</code><br>"),
                             ""),
                      "<code style=\"color:#468449\">#design$Y = Surv(time=results, event = notcensored, type = \"", input$censortype,"\") <br><br></code>",
-                     "<code style=\"color:#468449\">## Now analyze the linear model with survreg (from the survival package):</code><br>",
+                     "<code style=\"color:#468449\">## Now analyze the linear model with survreg (from the survival package):</code><br><br>",
                      paste0("<code style=\"color:#468449\">#survival::survreg(formula = Y ", regularmodelstring(),
                             ", data = design, dist = \"", input$distribution,"\")"))
     }
@@ -657,6 +730,7 @@ function(input, output) {
         regularmodel = regularmodel | grepl(regex,modelsplit,perl=TRUE)
       }
       paste0("~",paste(modelsplit[!regularmodel],collapse=" + "))
+
     }
   })
 
@@ -670,7 +744,7 @@ function(input, output) {
     } else {
 
       if(!isblocking()) {
-        gen_design(candidateset = isolate(expand.grid(inputlist())),
+        gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                    model = isolate(as.formula(input$model)),
                    trials = isolate(input$trials),
                    optimality = isolate(input$optimality),
@@ -679,7 +753,7 @@ function(input, output) {
                    minDopt = isolate(input$mindopt),
                    parallel = isolate(as.logical(input$parallel)))
       } else {
-        spd = gen_design(candidateset = isolate(expand.grid(inputlist_htc())),
+        spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                          model = isolate(as.formula(blockmodel())),
                          trials = isolate(input$numberblocks),
                          optimality = isolate(input$optimality),
@@ -695,8 +769,7 @@ function(input, output) {
           unbalancedruns = ceiling(isolate(input$trials)/isolate(input$numberblocks))*isolate(input$numberblocks) - isolate(input$trials)
           sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
         }
-
-        gen_design(candidateset = isolate(expand.grid(inputlist())),
+        gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                    model = isolate(as.formula(input$model)),
                    trials = isolate(input$trials),
                    splitplotdesign = spd,
@@ -799,7 +872,9 @@ function(input, output) {
 
   output$aliasplot = renderPlot({
     input$evalbutton
-    if(isolate(input$numberfactors) == 1) {
+    input$submitbutton
+    if(isolate(input$numberfactors) != isolate(ncol(runmatrix()))-ifelse(isolate(isblocking()),1,0)) {
+      plot(1, type="n", axes=F, main = "Number of Factors Does \nNot Equal Current Design: \nClick Generate Design", xlab="", ylab="")
     } else {
       if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
         print("No design generated")
@@ -811,6 +886,7 @@ function(input, output) {
 
   output$fdsplot = renderPlot({
     input$evalbutton
+    input$submitbutton
     if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
       print("No design generated")
     } else {
@@ -881,37 +957,63 @@ function(input, output) {
       title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
     }
   })
+
   output$responsehistogram = renderPlot({
     input$evalbutton
     if(!is.null(attr(powerresultsglm(),"estimates"))) {
       responses = as.vector(attr(powerresultsglm(),"estimates") %*% t(attr(powerresultsglm(),"modelmatrix")))
+      trueresponses = as.vector(attr(powerresultsglm(),"anticoef") %*% t(attr(powerresultsglm(),"modelmatrix")))
+      widths = hist(trueresponses,plot=FALSE)$counts
+      widths = widths[widths != 0]
+      widths= sqrt(widths)
       uniquevalues = length(table(responses))
       breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
       if(isolate(input$glmfamily) == "binomial") {
         responses = exp(responses)/(1+exp(responses))
-        hist(responses,breaks=breakvalues,xlim=c(0,1),xlab="Response (Probability)",main="Distribution of Simulated Responses")
+        trueresponses = exp(trueresponses)/(1+exp(trueresponses))
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        hist(responses,breaks=breakvalues,xlab="Response (Probability)",main="Distribution of Simulated Response Estimates")
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
-        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
+        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses Estimates",xlab="Response",ylab="Count",col = "red",border="red")
+        abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40) ,lwd=widths)
       }
       if(isolate(input$glmfamily) == "poisson") {
         responses = exp(responses)
-        hist(responses,breaks=breakvalues,xlab="Response (Number of events)",main="Distribution of Simulated Responses")
+        trueresponses = exp(trueresponses)
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
-        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",ylab="Count",col = "red",border="red")
+        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses ",xlab="Response",ylab="Count",col = "red",border="red")
+        abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
       }
       if(isolate(input$glmfamily) == "exponential") {
         responses = exp(-responses)
-        hist(responses,breaks=breakvalues,xlab="Response (Rates)",main="Distribution of Simulated Responses")
-        grid(nx=NA,ny=NULL)
-        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",ylab="Count",col = "red",border="red")
-      }
-      if(isolate(input$glmfamily) == "gaussian") {
-        hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Responses")
+        trueresponses = exp(trueresponses)
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
         hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+        abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
+      }
+      if(isolate(input$glmfamily) == "gaussian") {
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+        grid(nx=NA,ny=NULL)
+        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+        abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
+
       }
     }
   })
+
   output$responsehistogramsurv = renderPlot({
     input$evalbutton
     if(!is.null(attr(powerresultssurv(),"estimates"))) {
@@ -920,12 +1022,12 @@ function(input, output) {
       breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
       if(isolate(input$distribution) == "exponential") {
         responses = exp(responses)
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)")
+        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
         grid(nx=NA,ny=NULL)
         hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
       }
       if(isolate(input$distribution) %in% c("gaussian", "lognormal")) {
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)")
+        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
         grid(nx=NA,ny=NULL)
         hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
       }
@@ -939,7 +1041,7 @@ function(input, output) {
         pvalmat = attr((powerresultsglm()),"pvals")
         for(i in 2:ncol(pvalmat)) {
           pvalcount = hist(pvalmat[,i],breaks=seq(0,1,0.05),plot=FALSE)
-          likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim)/10)
+          likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim)/15)
         }
       }
     }

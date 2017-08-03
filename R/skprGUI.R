@@ -556,7 +556,18 @@ skprGUI = function(inputValue1,inputValue2) {
                            fluidRow(align="center",
                                     column(width=6,
                                            h3("Correlation Map"),
-                                           plotOutput(outputId = "aliasplot")
+                                           conditionalPanel("input.numberfactors > 1",
+                                                            plotOutput(outputId = "aliasplot")),
+                                           conditionalPanel("input.numberfactors == 1",
+                                                            br(),
+                                                            br(),
+                                                            br(),
+                                                            br(),
+                                                            br(),
+                                                            br(),
+                                                            br(),
+                                                            br(),
+                                                            HTML("<font color=#898989> One Parameter: <br>No Correlation Map</font>"))
                                     ),
                                     column(width=6,
                                            (h3("Fraction of Design Space")),
@@ -568,8 +579,18 @@ skprGUI = function(inputValue1,inputValue2) {
                              fluidRow(
                                hr(),
                                column(width=12,
-                                      h3("Simulated Response"),
+                                      h3("Simulated Response Estimates"),
                                       plotOutput(outputId = "responsehistogram")
+                               ),
+                               column(width=6,
+                                      numericInput(inputId = "estimatesxminglm",
+                                                   value=NA,
+                                                   label = "x-min")
+                               ),
+                               column(width=6,
+                                      numericInput(inputId = "estimatesxmaxglm",
+                                                   value=NA,
+                                                   label = "x-max")
                                )
                              )
                            ),
@@ -578,8 +599,18 @@ skprGUI = function(inputValue1,inputValue2) {
                              fluidRow(
                                hr(),
                                column(width=12,
-                                      h3("Simulated Response"),
+                                      h3("Simulated Response Estimates"),
                                       plotOutput(outputId = "responsehistogramsurv")
+                               ),
+                               column(width=6,
+                                      numericInput(inputId = "estimatesxminsurv",
+                                                   value=NA,
+                                                   label = "x-min")
+                               ),
+                               column(width=6,
+                                      numericInput(inputId = "estimatesxmaxsurv",
+                                                   value=NA,
+                                                   label = "x-max")
                                )
                              )
                            ),
@@ -1441,7 +1472,9 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$aliasplot = renderPlot({
       input$evalbutton
-      if(isolate(input$numberfactors) == 1) {
+      input$submitbutton
+      if(isolate(input$numberfactors) != isolate(ncol(runmatrix()))) {
+        plot(1, type="n", axes=F, main = "Number of Factors Does \nNot Equal Current Design: \nClick Generate Design", xlab="", ylab="")
       } else {
         if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
           print("No design generated")
@@ -1453,6 +1486,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$fdsplot = renderPlot({
       input$evalbutton
+      input$submitbutton
       if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
@@ -1523,37 +1557,63 @@ skprGUI = function(inputValue1,inputValue2) {
         title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
       }
     })
+
     output$responsehistogram = renderPlot({
       input$evalbutton
       if(!is.null(attr(powerresultsglm(),"estimates"))) {
         responses = as.vector(attr(powerresultsglm(),"estimates") %*% t(attr(powerresultsglm(),"modelmatrix")))
+        trueresponses = as.vector(attr(powerresultsglm(),"anticoef") %*% t(attr(powerresultsglm(),"modelmatrix")))
+        widths = hist(trueresponses,plot=FALSE)$counts
+        widths = widths[widths != 0]
+        widths= sqrt(widths)
         uniquevalues = length(table(responses))
         breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
         if(isolate(input$glmfamily) == "binomial") {
           responses = exp(responses)/(1+exp(responses))
-          hist(responses,breaks=breakvalues,xlim=c(0,1),xlab="Response (Probability)",main="Distribution of Simulated Responses")
+          trueresponses = exp(trueresponses)/(1+exp(trueresponses))
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+          hist(responses,breaks=breakvalues,xlab="Response (Probability)",main="Distribution of Simulated Response Estimates")
+          legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response (Probability)",xlim=c(0,1),ylab="Count",col = "red",border="red")
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses Estimates",xlab="Response",ylab="Count",col = "red",border="red")
+          abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40) ,lwd=widths)
         }
         if(isolate(input$glmfamily) == "poisson") {
           responses = exp(responses)
-          hist(responses,breaks=breakvalues,xlab="Response (Number of events)",main="Distribution of Simulated Responses")
+          trueresponses = exp(trueresponses)
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
+          legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",ylab="Count",col = "red",border="red")
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses ",xlab="Response",ylab="Count",col = "red",border="red")
+          abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
         }
         if(isolate(input$glmfamily) == "exponential") {
           responses = exp(-responses)
-          hist(responses,breaks=breakvalues,xlab="Response (Rates)",main="Distribution of Simulated Responses")
-          grid(nx=NA,ny=NULL)
-          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",ylab="Count",col = "red",border="red")
-        }
-        if(isolate(input$glmfamily) == "gaussian") {
-          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Responses")
+          trueresponses = exp(trueresponses)
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
+          legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
           grid(nx=NA,ny=NULL)
           hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+          abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
+        }
+        if(isolate(input$glmfamily) == "gaussian") {
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
+          legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+          grid(nx=NA,ny=NULL)
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+          abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
+
         }
       }
     })
+
     output$responsehistogramsurv = renderPlot({
       input$evalbutton
       if(!is.null(attr(powerresultssurv(),"estimates"))) {
@@ -1562,12 +1622,12 @@ skprGUI = function(inputValue1,inputValue2) {
         breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
         if(isolate(input$distribution) == "exponential") {
           responses = exp(responses)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)")
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
           grid(nx=NA,ny=NULL)
           hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
         }
         if(isolate(input$distribution) %in% c("gaussian", "lognormal")) {
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)")
+          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
           grid(nx=NA,ny=NULL)
           hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
         }
@@ -1581,7 +1641,7 @@ skprGUI = function(inputValue1,inputValue2) {
           pvalmat = attr((powerresultsglm()),"pvals")
           for(i in 2:ncol(pvalmat)) {
             pvalcount = hist(pvalmat[,i],breaks=seq(0,1,0.05),plot=FALSE)
-            likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim)/10)
+            likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim)/15)
           }
         }
       }

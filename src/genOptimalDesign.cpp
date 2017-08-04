@@ -4,6 +4,14 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
 
+//implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
+arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTrials);
+
+//helper functions for orthogonal_initial
+unsigned int longest_row(const arma::mat& X, const std::vector<bool>& rows_used);
+void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used);
+
+
 double delta(arma::mat V, arma::mat x, arma::mat y) {
   return(as_scalar(-x*V*x.t() + y*V*y.t() + (y*V*x.t())*(y*V*x.t()) - (x*V*x.t())*(y*V*y.t())));
 }
@@ -69,7 +77,6 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
                       const arma::mat momentsmatrix, NumericVector initialRows,
                       arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt) {
   RNGScope rngScope;
-  unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*100;
   unsigned int totalPoints = candidatelist.n_rows;
@@ -84,32 +91,29 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
     }
   }
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
-  while(check < maxSingularityChecks) {
-    if(!inv_sympd(test,initialdesign.t() * initialdesign)) {
-      if (nTrials < totalPoints) {
-        arma::vec shuffledindices = RcppArmadillo::sample(arma::regspace(0,totalPoints-1),totalPoints,false);
-        arma::vec indices(nTrials);
-        for(unsigned int i = 0; i < nTrials; i++) {
-          indices(i) = shuffledindices(i);
-          initialRows(i) = shuffledindices(i) + 1;
-        }
-        for(unsigned int row = 0; row < nTrials; row++) {
-          initialdesign.row(row) = candidatelist.row(indices(row));
-          aliasdesign.row(row) = aliascandidatelist.row(indices(row));
-        }
-      } else {
-        arma::vec randomrows = RcppArmadillo::sample(arma::regspace(0,totalPoints-1), nTrials, true);
-        for(unsigned int i = 0; i < nTrials; i++) {
-          initialdesign.row(i) = candidatelist.row(randomrows(i));
-          aliasdesign.row(i) = aliascandidatelist.row(randomrows(i));
-          initialRows(i) = randomrows(i) + 1;
-        }
-      }
-      check++;
-    } else {
-      break;
+  for (unsigned int check = 0; check < maxSingularityChecks; check++) {
+    if(inv_sympd(test, initialdesign.t() * initialdesign)) {
+      break; //design is nonsingular
+    }
+    arma::uvec shuffledindices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, totalPoints-1), totalPoints, false);
+    for (unsigned int i = 0; i < nTrials; i++) {
+      initialdesign.row(i) = candidatelist.row(shuffledindices(i % totalPoints));
+      aliasdesign.row(i) = aliascandidatelist.row(shuffledindices(i % totalPoints));
+      initialRows(i) = shuffledindices(i % totalPoints) + 1; //R indexes start at 1
     }
   }
+  //If initialdesign is still singular, use the Gram-Schmidt orthogonalization procedure, which
+  //should return a non-singular matrix if one can be constructed from the candidate set
+  if (!inv_sympd(test, initialdesign.t() * initialdesign)) {
+    arma::uvec initrows = orthogonal_initial(candidatelist, nTrials);
+    arma::uvec initrows_shuffled = RcppArmadillo::sample(initrows, initrows.n_rows, false);
+    for (unsigned int i = 0; i < nTrials; i++) {
+      initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
+      aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
+      initialRows(i) = initrows_shuffled(i) + 1; //R indexes start at 1
+    }
+  }
+
   //If still no non-singular design, returns NA.
   if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
@@ -900,5 +904,74 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign, _["criterion"] = newOptimum));
+}
+
+arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTrials) {
+  //Construct a nonsingular design matrix from candidatelist using the nullify procedure
+  //Returns a vector of rownumbers indicating which runs from candidatelist to use
+  //These rownumbers are not shuffled; you must do that yourself if randomizing the order is important
+  //If we cannot find a nonsingular design, returns a vector of zeros.
+
+  //First, find the p rows that come from the nullify procedure:
+  //    find the longest row vector in the candidatelist
+  //    orthogonalize the rest of the candidatelist to this vector
+  arma::mat candidatelist2(candidatelist); //local copy we will orthogonalize
+  std::vector<bool> design_flag(candidatelist2.n_rows, false); //indicates that a candidate row has been used in the design
+  arma::uvec design_rows(nTrials);  //return value
+
+  double tolerance = 1e-8;
+  const unsigned int p = candidatelist2.n_cols;
+  for (unsigned int i = 0; i < p; i++) {
+    unsigned int nextrow = longest_row(candidatelist2, design_flag);
+    double nextrow_length = arma::norm(candidatelist2.row(nextrow));
+    if (i == 0) {
+      tolerance = tolerance * nextrow_length; //scale tolerance to candidate list's longest vector
+    }
+    if (nextrow_length < tolerance) {
+      return arma::uvec(nTrials, arma::fill::zeros); //rank-deficient candidate list, return error state
+    }
+    design_flag[nextrow] = true;
+    design_rows[i] = nextrow;
+    if (i != (p-1)) {
+      orthogonalize_input(candidatelist2, nextrow, design_flag);
+    }
+  }
+  //Then fill in the design with N - p randomly chosen rows from the candidatelist
+  arma::uvec random_indices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, candidatelist2.n_rows-1), nTrials, true);
+  for (unsigned int i = p; i < nTrials; i++) {
+    design_rows(i) = random_indices(i);
+  }
+
+  return design_rows;
+}
+
+
+unsigned int longest_row(const arma::mat& V, const std::vector<bool>& rows_used) {
+  //Return the index of the longest unused row in V
+  double longest = -1;
+  unsigned int index = 0;
+  for (unsigned int i = 0; i < V.n_rows; i++) {
+    if (!rows_used[i]) {
+      double this_len = arma::dot(V.row(i), V.row(i));
+      if (this_len > longest) {
+        longest = this_len;
+        index = i;
+      }
+    }
+  }
+  return index;
+}
+
+
+void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used) {
+  //Gram-Schmidt orthogonalize <X> - in place - with respect to its rownumber <basis_row>
+  //Only unused rows (as indicated by <rows_used>) are considered.
+  double basis_norm = arma::dot(X.row(basis_row), X.row(basis_row));
+  for (unsigned int i = 0; i < X.n_rows; i++) {
+    if (!rows_used[i]) {
+      double dotprod = arma::dot(X.row(i), X.row(basis_row));
+      X.row(i) -= X.row(basis_row)*dotprod/basis_norm;
+    }
+  }
 }
 

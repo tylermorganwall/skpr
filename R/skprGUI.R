@@ -582,15 +582,18 @@ skprGUI = function(inputValue1,inputValue2) {
                                       h3("Simulated Response Estimates"),
                                       plotOutput(outputId = "responsehistogram")
                                ),
-                               column(width=6,
+                               conditionalPanel(
+                                 condition = "input.glmfamily != \'binomial\'",
+                                 column(width=6,
                                       numericInput(inputId = "estimatesxminglm",
                                                    value=NA,
                                                    label = "x-min")
-                               ),
-                               column(width=6,
-                                      numericInput(inputId = "estimatesxmaxglm",
-                                                   value=NA,
-                                                   label = "x-max")
+                                 ),
+                                 column(width=6,
+                                        numericInput(inputId = "estimatesxmaxglm",
+                                                     value=NA,
+                                                     label = "x-max")
+                                 )
                                )
                              )
                            ),
@@ -1645,7 +1648,7 @@ skprGUI = function(inputValue1,inputValue2) {
           responses = exp(responses)/(1+exp(responses))
           trueresponses = exp(trueresponses)/(1+exp(trueresponses))
           par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
-          hist(responses,breaks=breakvalues,xlab="Response (Probability)",main="Distribution of Simulated Response Estimates")
+          hist(responses,breaks=breakvalues,xlab="Response (Probability)",main="Distribution of Simulated Response Estimates",xlim=c(0,1))
           legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
           par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
           grid(nx=NA,ny=NULL)

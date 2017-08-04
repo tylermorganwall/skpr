@@ -91,6 +91,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
         arma::vec indices(nTrials);
         for(unsigned int i = 0; i < nTrials; i++) {
           indices(i) = shuffledindices(i);
+          initialRows(i) = shuffledindices(i) + 1;
         }
         for(unsigned int row = 0; row < nTrials; row++) {
           initialdesign.row(row) = candidatelist.row(indices(row));
@@ -101,6 +102,7 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
         for(unsigned int i = 0; i < nTrials; i++) {
           initialdesign.row(i) = candidatelist.row(randomrows(i));
           aliasdesign.row(i) = aliascandidatelist.row(randomrows(i));
+          initialRows(i) = randomrows(i) + 1;
         }
       }
       check++;

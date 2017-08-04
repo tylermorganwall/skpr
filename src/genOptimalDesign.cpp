@@ -551,6 +551,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         for(unsigned int i = 0; i < nTrials; i++) {
           indices(i) = shuffledindices(i);
           candidateRow(i) = shuffledindices(i) + 1;
+          initialRows(i) = shuffledindices(i) + 1;
         }
         for(unsigned int i = 0; i < nTrials; i++) {
           combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(indices(i));
@@ -565,6 +566,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         for(unsigned int i = 0; i < nTrials; i++) {
           combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
           candidateRow(i) = randomrows(i) + 1;
+          initialRows(i) = randomrows(i) + 1;
           if(interstrata) {
             for(unsigned int j = 0; j < numberinteractions; j++) {
               combinedDesign(i,blockedCols+designCols + j) = combinedDesign(i,as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[j])[1]-1);

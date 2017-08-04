@@ -524,7 +524,6 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   candidatelist.shed_col(0);
   initialdesign.shed_col(0);
 
-  unsigned int check = 0;
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*10;
   unsigned int totalPoints = candidatelist.n_rows;
@@ -547,40 +546,20 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   if(nTrials < candidatelist.n_cols + blockedCols + numberinteractions) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
-  while(check < maxSingularityChecks) {
-    if(!inv(test,combinedDesign.t() * vInv * combinedDesign)){
-      if (nTrials < totalPoints) {
-        arma::vec shuffledindices = RcppArmadillo::sample(arma::regspace(0,totalPoints-1),totalPoints,false);
-        arma::vec indices(nTrials);
-        for(unsigned int i = 0; i < nTrials; i++) {
-          indices(i) = shuffledindices(i);
-          candidateRow(i) = shuffledindices(i) + 1;
-          initialRows(i) = shuffledindices(i) + 1;
-        }
-        for(unsigned int i = 0; i < nTrials; i++) {
-          combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(indices(i));
-          if(interstrata) {
-            for(unsigned int j = 0; j < numberinteractions; j++) {
-              combinedDesign(i,blockedCols+designCols + j) = combinedDesign(i,as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[j])[1]-1);
-            }
-          }
-        }
-      } else {
-        arma::vec randomrows = RcppArmadillo::sample(arma::regspace(0,totalPoints-1), nTrials, true);
-        for(unsigned int i = 0; i < nTrials; i++) {
-          combinedDesign(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(randomrows(i));
-          candidateRow(i) = randomrows(i) + 1;
-          initialRows(i) = randomrows(i) + 1;
-          if(interstrata) {
-            for(unsigned int j = 0; j < numberinteractions; j++) {
-              combinedDesign(i,blockedCols+designCols + j) = combinedDesign(i,as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[j])[1]-1);
-            }
-          }
+  for (unsigned int check = 0; check < maxSingularityChecks; check++) {
+    if (inv(test, combinedDesign.t() * vInv * combinedDesign)){
+      break;
+    }
+    arma::uvec shuffledindices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, totalPoints-1), totalPoints, false);
+    for (unsigned int i = 0; i < nTrials; i++) {
+      candidateRow(i) = shuffledindices(i % totalPoints) + 1;
+      initialRows(i) = shuffledindices(i % totalPoints) + 1;
+      combinedDesign(i, arma::span(blockedCols, blockedCols+designCols-1)) = candidatelist.row(shuffledindices(i % totalPoints));
+      if (interstrata) {
+        for(unsigned int j = 0; j < numberinteractions; j++) {
+          combinedDesign(i, blockedCols+designCols + j) = combinedDesign(i, as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i, as<NumericVector>(interactions[j])[1]-1);
         }
       }
-      check++;
-    } else {
-      break;
     }
   }
   // If still no non-singular design, returns NA.

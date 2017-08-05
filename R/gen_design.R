@@ -268,7 +268,6 @@ gen_design = function(candidateset, model, trials,
   } else {
     candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
   }
-  candidatesetnormalized = candidateset
 
   #----- Convert dot/quad formula to terms -----#
   if((as.character(model)[2] == ".")) {
@@ -290,10 +289,17 @@ gen_design = function(candidateset, model, trials,
   }
 
   #------Normalize/Center numeric columns ------#
+  candidatesetnormalized = candidateset
+
   for(column in 1:ncol(candidateset)) {
-    if(class(candidatesetnormalized[,column]) == "numeric") {
-      midvalue = mean(c(max(candidatesetnormalized[,column]),min(candidatesetnormalized[,column])))
-      candidatesetnormalized[,column] = (candidatesetnormalized[,column]-midvalue)/(max(candidatesetnormalized[,column])-midvalue)
+    if(class(candidateset[,column]) == "numeric") {
+      maxvalue = max(candidateset[, column])
+      minvalue = min(candidateset[, column])
+      midvalue = mean(c(maxvalue, minvalue))
+      if (minvalue == maxvalue) {
+        stop(paste("Column", colnames(candidateset)[column], "of the candidateset contains only a single value."))
+      }
+      candidatesetnormalized[, column] = (candidateset[, column] - midvalue) / (maxvalue - midvalue)
     }
   }
   if(!is.null(splitplotdesign)) {
@@ -405,7 +411,11 @@ gen_design = function(candidateset, model, trials,
       candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
     }
   }
-
+  if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
+    stop(paste("The candidateset does not support the specified model - its rank is too low.",
+               "This usually happens if disallowed combinations",
+               "have introduced a perfect correlation between some variables in the candidate set."))
+  }
   if(optimality %in% c("Alias","G","T") && !is.null(splitplotdesign)) {
     stop("Generating Alias, G, and T optimal designs not presently supported with split plot designs.")
   }

@@ -4,6 +4,6 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-arma::mat covarianceMatrix(arma::mat design) {
+arma::mat covarianceMatrix(const arma::mat& design) {
   return(inv_sympd(design.t()*design));
 }

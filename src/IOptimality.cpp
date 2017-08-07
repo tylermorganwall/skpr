@@ -4,7 +4,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double IOptimality(arma::mat currentDesign, const arma::mat momentsMatrix, const arma::mat blockedVar) {
+double IOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix, const arma::mat& blockedVar) {
   return(arma::trace(arma::inv_sympd(currentDesign.t()*arma::inv_sympd(blockedVar)*currentDesign)*momentsMatrix));
 }
 

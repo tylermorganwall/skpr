@@ -12,53 +12,53 @@ unsigned int longest_row(const arma::mat& X, const std::vector<bool>& rows_used)
 void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used);
 
 
-double delta(arma::mat V, arma::mat x, arma::mat y) {
+double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y) {
   return(as_scalar(-x*V*x.t() + y*V*y.t() + (y*V*x.t())*(y*V*x.t()) - (x*V*x.t())*(y*V*y.t())));
 }
 
-double calculateDOptimality(arma::mat currentDesign) {
+double calculateDOptimality(const arma::mat& currentDesign) {
   return(arma::det(currentDesign.t()*currentDesign));
 }
 
-double calculateIOptimality(arma::mat currentDesign, const arma::mat momentsMatrix) {
+double calculateIOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix) {
   return(trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix));
 }
 
-double calculateGOptimality(arma::mat currentDesign, const arma::mat candidateSet) {
+double calculateGOptimality(const arma::mat& currentDesign, const arma::mat& candidateSet) {
   arma::mat results = candidateSet*inv_sympd(currentDesign.t()*currentDesign)*candidateSet.t();
   return(results.diag().max());
 }
 
-double calculateTOptimality(arma::mat currentDesign) {
+double calculateTOptimality(const arma::mat& currentDesign) {
   return(trace(currentDesign.t()*currentDesign));
 }
 
-double calculateEOptimality(arma::mat currentDesign) {
+double calculateEOptimality(const arma::mat& currentDesign) {
   arma::vec eigval;
   arma::eig_sym(eigval,currentDesign.t()*currentDesign);
   return(eigval.min());
 }
 
-double calculateAOptimality(arma::mat currentDesign) {
+double calculateAOptimality(const arma::mat& currentDesign) {
   return(trace(inv_sympd(currentDesign.t()*currentDesign)));
 }
 
-double calculateAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix) {
+double calculateAliasTrace(const arma::mat& currentDesign, const arma::mat& aliasMatrix) {
   arma::mat A = inv_sympd(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
   return(trace(A.t() * A));
 }
 
-double calculateAliasTracePseudoInv(arma::mat currentDesign, arma::mat aliasMatrix) {
+double calculateAliasTracePseudoInv(const arma::mat& currentDesign, const arma::mat& aliasMatrix) {
   arma::mat A = arma::pinv(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
   return(trace(A.t() * A));
 }
 
 
-double calculateDEff(arma::mat currentDesign) {
+double calculateDEff(const arma::mat& currentDesign) {
   return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
 }
 
-double calculateDEffNN(arma::mat currentDesign) {
+double calculateDEffNN(const arma::mat& currentDesign) {
   return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols))));
 }
 
@@ -73,9 +73,9 @@ Rcpp::NumericVector arma2vec(const T& x) {
 //`@param x an x
 //`@return stufff
 // [[Rcpp::export]]
-List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std::string condition,
-                      const arma::mat momentsmatrix, NumericVector initialRows,
-                      arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt) {
+List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,const std::string condition,
+                      const arma::mat& momentsmatrix, NumericVector initialRows,
+                      arma::mat aliasdesign, const arma::mat& aliascandidatelist, double minDopt) {
   RNGScope rngScope;
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*100;
@@ -456,44 +456,44 @@ List genOptimalDesign(arma::mat initialdesign, arma::mat candidatelist,const std
 //Everything below is for generating blocked optimal designs
 //**********************************************************
 
-double calculateBlockedDOptimality(const arma::mat currentDesign, const arma::mat gls) {
+double calculateBlockedDOptimality(const arma::mat& currentDesign, const arma::mat& gls) {
   return(arma::det(currentDesign.t()*gls*currentDesign));
 }
 
-double calculateBlockedIOptimality(const arma::mat currentDesign, const arma::mat momentsMatrix,const arma::mat gls) {
+double calculateBlockedIOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix,const arma::mat& gls) {
   return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)*momentsMatrix));
 }
 
 //Function to calculate the A-optimality
-double calculateBlockedAOptimality(arma::mat currentDesign,const arma::mat gls) {
+double calculateBlockedAOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
   return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)));
 }
 
-double calculateBlockedAliasTrace(arma::mat currentDesign, arma::mat aliasMatrix,const arma::mat gls) {
+double calculateBlockedAliasTrace(const arma::mat& currentDesign, const arma::mat& aliasMatrix,const arma::mat& gls) {
   arma::mat A = inv_sympd(currentDesign.t()*gls*currentDesign)*currentDesign.t()*aliasMatrix;
   return(trace(A.t() * A));
 }
 
-double calculateBlockedGOptimality(arma::mat currentDesign, const arma::mat candidateSet, const arma::mat gls) {
+double calculateBlockedGOptimality(const arma::mat& currentDesign, const arma::mat& candidateSet, const arma::mat& gls) {
   arma::mat results = candidateSet*inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t();
   return(results.diag().max());
 }
 
-double calculateBlockedTOptimality(arma::mat currentDesign,const arma::mat gls) {
+double calculateBlockedTOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
   return(trace(currentDesign.t()*gls*currentDesign));
 }
 
-double calculateBlockedEOptimality(arma::mat currentDesign,const arma::mat gls) {
+double calculateBlockedEOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
   arma::vec eigval;
   arma::eig_sym(eigval,currentDesign.t()*gls*currentDesign);
   return(eigval.min());
 }
 
-double calculateBlockedDEff(arma::mat currentDesign,const arma::mat gls) {
+double calculateBlockedDEff(const arma::mat& currentDesign,const arma::mat& gls) {
   return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
 }
 
-double calculateBlockedDEffNN(arma::mat currentDesign,const arma::mat gls) {
+double calculateBlockedDEffNN(const arma::mat& currentDesign,const arma::mat& gls) {
   return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols))));
 }
 
@@ -501,11 +501,11 @@ double calculateBlockedDEffNN(arma::mat currentDesign,const arma::mat gls) {
 //`@param x an x
 //`@return stufff
 // [[Rcpp::export]]
-List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat blockeddesign,
-                             const std::string condition, const arma::mat momentsmatrix, IntegerVector initialRows,
-                             const arma::mat blockedVar,
-                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions,
-                             arma::mat disallowed, const bool anydisallowed) {
+List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign,
+                             const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows,
+                             const arma::mat& blockedVar,
+                             const arma::mat& aliasdesign, const arma::mat& aliascandidatelist, double minDopt, List interactions,
+                             const arma::mat& disallowed, const bool anydisallowed) {
   //Load the R RNG
   RNGScope rngScope;
 

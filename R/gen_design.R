@@ -289,10 +289,10 @@ gen_design = function(candidateset, model, trials,
   }
 
   #------Ensure the candidate set has no single-valued columns------#
-  if (nrow(foo) == 0) {
+  if (nrow(candidateset) == 0) {
     stop("The candidate set has zero rows. This won't do.")
   }
-  if (ncol(foo) == 0) {
+  if (ncol(candidateset) == 0) {
     stop("The candidate set has zero columns. This won't do.")
   }
   for (colno in 1:ncol(candidateset)) {

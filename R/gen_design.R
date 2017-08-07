@@ -288,6 +288,13 @@ gen_design = function(candidateset, model, trials,
     model = quad(as.formula(modellinear))
   }
 
+  #------Ensure the candidate set has no single-valued columns------#
+  for (colno in seq_along(candidateset)) {
+    if (length(unique(candidateset[[colno]])) == 1) {
+      stop(paste("Column", colnames(candidateset)[colno], "of the candidateset contains only a single value."))
+    }
+  }
+
   #------Normalize/Center numeric columns ------#
   candidatesetnormalized = candidateset
 
@@ -296,9 +303,6 @@ gen_design = function(candidateset, model, trials,
       maxvalue = max(candidateset[, column])
       minvalue = min(candidateset[, column])
       midvalue = mean(c(maxvalue, minvalue))
-      if (minvalue == maxvalue) {
-        stop(paste("Column", colnames(candidateset)[column], "of the candidateset contains only a single value."))
-      }
       candidatesetnormalized[, column] = (candidateset[, column] - midvalue) / (maxvalue - midvalue)
     }
   }

@@ -289,7 +289,13 @@ gen_design = function(candidateset, model, trials,
   }
 
   #------Ensure the candidate set has no single-valued columns------#
-  for (colno in seq_along(candidateset)) {
+  if (nrow(foo) == 0) {
+    stop("The candidate set has zero rows. This won't do.")
+  }
+  if (ncol(foo) == 0) {
+    stop("The candidate set has zero columns. This won't do.")
+  }
+  for (colno in 1:ncol(candidateset)) {
     if (length(unique(candidateset[[colno]])) == 1) {
       stop(paste("Column", colnames(candidateset)[colno], "of the candidateset contains only a single value."))
     }

@@ -5,15 +5,19 @@
 #'@param inputValue1 It's the #1 input value.
 #'@param inputValue2 Runner up input value, participation award pending
 #'
-#'@import shiny
+#'@import shiny rintrojs
 #'@export
 
 skprGUI = function(inputValue1,inputValue2) {
 
   ui = fluidPage(
+    introjsUI(),
+    HTML("<style>div[data-step='27'] {
+            min-height: 200px;
+          }</style>"),
     sidebarLayout(
       sidebarPanel(h1("Inputs"),
-                   fluidRow(
+                   introBox(fluidRow(
                      column(width=6,
                             actionButton("submitbutton", "Generate Design",
                                          style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
@@ -22,15 +26,15 @@ skprGUI = function(inputValue1,inputValue2) {
                             actionButton("evalbutton", "Evaluate Design",
                                          style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
                      )
-                   ),
+                   ), data.step = 1, data.intro="Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
                    br(),br(),
                    tabsetPanel(
                      tabPanel(
                        "Basic",
-                       numericInput(inputId = "trials",
-                                    12, label = "Trials"),
-                       textInput(inputId = "model",
-                                 "~.", label = "Model"),
+                       introBox(numericInput(inputId = "trials",
+                                    12, label = "Trials"), data.step = 2, data.intro = "This is the number of runs in your experiment."),
+                       introBox(textInput(inputId = "model",
+                                 "~.", label = "Model"), data.step = 3, data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."),
                        conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc' || input.blockdepth6 == 'htc'",
                                         fluidRow(
                                           column(width=12,numericInput(inputId = "numberblocks",
@@ -44,10 +48,10 @@ skprGUI = function(inputValue1,inputValue2) {
                                           )
                                         )
                        ),
-                       numericInput(inputId = "numberfactors",
-                                    min=1,max=6, 1, label = "Number of Factors"),
+                       introBox(numericInput(inputId = "numberfactors",
+                                    min=1,max=6, 1, label = "Number of Factors"), data.step = 4, data.intro = "This is the number of factors in your experiment. skprGUI supports up to 6 factors, but the underlying code supports any number of factors by calling the code directly. If you require more factors, use the generating code as a template and add more terms to the candidate set."),
                        br(),
-                       wellPanel(h3("Factor 1"),
+                       introBox(wellPanel(h3("Factor 1"),
                                  fluidRow(
                                    column(width=5,
                                           selectInput(inputId = "blockdepth1",
@@ -107,7 +111,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                      )
                                    )
                                  )
-                       ),
+                       ), data.step = 5, data.intro = "This pane is where you change your factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."),
                        conditionalPanel(
                          condition = "input.numberfactors > 1",
                          wellPanel(h3("Factor 2"),
@@ -430,13 +434,13 @@ skprGUI = function(inputValue1,inputValue2) {
                        )
                      ),
                      tabPanel("Advanced",
-                              selectInput(inputId = "optimality",
+                              introBox(selectInput(inputId = "optimality",
                                           choices = c("D","I","A","Alias","G","E","T"),
-                                          label = "Optimality"),
-                              numericInput(inputId = "repeats",
-                                           10, label = "Repeats"),
-                              numericInput(inputId = "varianceratio",
-                                           1, label = "Variance Ratio"),
+                                          label = "Optimality"),data.step = 6, data.intro = "Change the optimality criterion. If Alias-optimal selected, additional Alias-optimal specific options (minimum D-optimality and Alias-interaction level) will become available to change."),
+                              introBox(numericInput(inputId = "repeats",
+                                           10, label = "Repeats"),data.step = 7, data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."),
+                              introBox(numericInput(inputId = "varianceratio",
+                                           1, label = "Variance Ratio"), data.step = 8, data.intro = "The ratio of the variance between whole plots and subplots for split-plot designs."),
                               conditionalPanel(
                                 condition = "input.optimality == \'Alias\'",
                                 numericInput(inputId = "aliaspower",
@@ -444,61 +448,62 @@ skprGUI = function(inputValue1,inputValue2) {
                                 sliderInput(inputId = "mindopt",
                                             min=0,max=1,value=0.95, label = "Minimum D Optimality")
                               ),
-                              checkboxInput(inputId = "setseed",
+                              introBox(checkboxInput(inputId = "setseed",
                                             label = "Set Random Number Generator Seed",
-                                            value=FALSE),
+                                            value=FALSE),data.step = 9, data.intro = "Set the random seed for both design generation and evaluation. This allows for completely reproducible designs and Monte Carlo simulations."),
                               conditionalPanel(
                                 condition = "input.setseed",
                                 numericInput(inputId = "seed",
                                              1, label = "Random Seed")
                               ),
-                              checkboxInput(inputId = "parallel",
+                              introBox(checkboxInput(inputId = "parallel",
                                            label = "Parallel Evaluation",
-                                           value = FALSE),
-                              checkboxInput(inputId = "splitanalyzable",
+                                           value = FALSE), data.step = 10, data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."),
+                              introBox(checkboxInput(inputId = "splitanalyzable",
                                             label = "Include Blocking Columns in Run Matrix",
-                                            value=FALSE),
-                              checkboxInput(inputId = "detailedoutput",
+                                            value=TRUE), data.step=11, data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."),
+                              introBox(checkboxInput(inputId = "detailedoutput",
                                             label = "Detailed Output",
-                                            value=FALSE),
-                              checkboxInput(inputId = "advanceddiagnostics",
+                                            value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients, design size, and the specified value of delta."),
+                              introBox(checkboxInput(inputId = "advanceddiagnostics",
                                             label = "Advanced Design Diagnostics",
-                                            value=FALSE)
+                                            value=FALSE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histgram of p-values for each parameter in Monte Carlo simulations.")
                      ),
                      tabPanel("Power",
-                              radioButtons(inputId = "evaltype",
+                              introBox(introBox(introBox(radioButtons(inputId = "evaltype",
                                            label="Model Type",
                                            choiceNames = c("Linear Model","Generalized Linear Model","Survival Model"),
-                                           choiceValues = c("lm","glm","surv")),
-                              sliderInput(inputId = "alpha",
-                                          min=0,max=1,value=0.05, label = "Alpha"),
-                              numericInput(inputId = "delta",
-                                           value=2, step=0.1, label = "Delta"),
-                              conditionalPanel(
+                                           choiceValues = c("lm","glm","surv")), data.step=14, data.intro = "Change the type of analysis. Linear model calculates power with parametric assumptions, while the Generalized Linear Model and Survival Model both calculate power using a Monte Carlo approach."),
+                                           data.step=18,data.intro="Changing the evaluation type to a GLM Monte Carlo open up several additional controls."),
+                                           data.step=22,data.intro="Survival analysis Monte Carlo power generation. This simulates data according to your design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."),
+                              introBox(sliderInput(inputId = "alpha",
+                                          min=0,max=1,value=0.05, label = "Alpha"), data.step=15, data.intro = "Specify the acceptable Type-I error (false positive rate)"),
+                              introBox(numericInput(inputId = "delta",
+                                           value=2, step=0.1, label = "Delta"), data.step=16, data.intro = "Signal-to-noise ratio. Assumes a root mean squared error (RMSE) of 1."),
+                              introBox(conditionalPanel(
                                 condition = "input.evaltype == \'lm\'",
                                 checkboxInput(inputId = "conservative",
                                               label = "Conservative Power",
                                               value=FALSE)
-                              ),
+                              ), data.step=17, data.intro = "Calculates conservative effect power for 3+ level categorical factors. Calculates power once, and then sets the anticipated coefficient corresponding to the highest power level in each factor to zero. The effect power for those factors then show the most conservative power estimate."),
 
                               conditionalPanel(
                                 condition = "input.evaltype == \'glm\'",
-                                numericInput(inputId = "nsim",
+                                introBox(numericInput(inputId = "nsim",
                                              value=1000,
-                                             label = "Number of Simulations"),
-                                selectInput(inputId = "glmfamily",
+                                             label = "Number of Simulations"), data.step=19, data.intro = "The number of Monte Carlo simulations to run. More simulations will result in a more precise power estimation."),
+                                introBox(selectInput(inputId = "glmfamily",
                                             choices = c("gaussian","binomial","poisson","exponential"),
-                                            label = "GLM Family"),
+                                            label = "GLM Family"), data.step=20, data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."),
                                 conditionalPanel(
                                   condition = "input.glmfamily == \'binomial\'",
                                   sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",
                                               min = 0, max = 1, value = c(0.4,0.6))
                                 ),
-                                checkboxInput(inputId = "parallel_eval_glm",
+                                introBox(checkboxInput(inputId = "parallel_eval_glm",
                                               label = "Parallel",
-                                              value=FALSE)
+                                              value=FALSE), data.step=21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
                               ),
-
                               conditionalPanel(
                                 condition = "input.evaltype == \'surv\'",
                                 numericInput(inputId = "nsim_surv",
@@ -507,12 +512,12 @@ skprGUI = function(inputValue1,inputValue2) {
                                 selectInput(inputId = "distribution",
                                             choices = c("gaussian","lognormal","exponential"),
                                             label = "Distribution"),
-                                numericInput(inputId = "censorpoint",
+                                introBox(numericInput(inputId = "censorpoint",
                                              value=NA,
-                                             label = "Censor Point"),
-                                selectInput(inputId = "censortype",
+                                             label = "Censor Point"),data.step=23, data.intro = "The value after (if right censored) or before (if left censored) data will be censored. The default is no censoring."),
+                                introBox(selectInput(inputId = "censortype",
                                             choices = c("right","left"),
-                                            label = "Censoring Type"),
+                                            label = "Censoring Type"), data.step=24, data.intro = "The type of censoring."),
                                 checkboxInput(inputId = "parallel_eval_surv",
                                               label = "Parallel",
                                               value=FALSE)
@@ -520,25 +525,30 @@ skprGUI = function(inputValue1,inputValue2) {
                      )
                    )
       ),
-      mainPanel(h1("Results"),
+      mainPanel(fluidRow(
+                  column(width=6,h1("Results")),
+                  column(width=4),
+                  column(width=2,actionButton(inputId = "tutorial","Help")),
+                  tags$style(type='text/css', "#tutorial {margin-top: 25px;}")
+                ),
                 tabsetPanel(
                   tabPanel("Design",
                            h2("Design"),
-                           tableOutput(outputId = "runmatrix"),
+                           introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                            hr()
                   ),
-                  tabPanel("Design Evaluation",
-                           fluidRow(
+                 tabPanel("Design Evaluation",
+                          introBox(fluidRow(
                              column(width=6,
                                h2("Power Results"),
                                conditionalPanel(
                                  condition = "input.evaltype == \'lm\'",
                                  tableOutput(outputId = "powerresults")
                                ),
-                               conditionalPanel(
+                               introBox(conditionalPanel(
                                  condition = "input.evaltype == \'glm\'",
                                  tableOutput(outputId = "powerresultsglm")
-                               ),
+                               ),data.step=27,data.intro = "The power of the design (allow for a moment to appear). Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation."),
                                conditionalPanel(
                                  condition = "input.evaltype == \'surv\'",
                                  tableOutput(outputId = "powerresultssurv")
@@ -551,13 +561,13 @@ skprGUI = function(inputValue1,inputValue2) {
                                  htmlOutput(outputId = "separationwarning")
                                )
                              )
-                           ),
+                           ),data.step = 26,data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics."),
                            hr(),
                            fluidRow(align="center",
                                     column(width=6,
                                            h3("Correlation Map"),
-                                           conditionalPanel("input.numberfactors > 1",
-                                                            plotOutput(outputId = "aliasplot")),
+                                           introBox(conditionalPanel("input.numberfactors > 1",
+                                                            plotOutput(outputId = "aliasplot")),data.step=28,data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs ideally minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."),
                                            conditionalPanel("input.numberfactors == 1",
                                                             br(),
                                                             br(),
@@ -570,8 +580,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                                             HTML("<font color=#898989> One Parameter: <br>No Correlation Map</font>"))
                                     ),
                                     column(width=6,
-                                           (h3("Fraction of Design Space")),
-                                           plotOutput(outputId = "fdsplot")
+                                           h3("Fraction of Design Space"),
+                                           introBox(plotOutput(outputId = "fdsplot"), data.step=29,data.intro = "Fraction of design space plot. The horizontal line corresponds to the average prediction variance for the design.")
                                     )
                            ),
                            conditionalPanel(
@@ -580,7 +590,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                hr(),
                                column(width=12,
                                       h3("Simulated Response Estimates"),
-                                      plotOutput(outputId = "responsehistogram")
+                                      introBox(plotOutput(outputId = "responsehistogram"),data.step=30, data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue).")
                                ),
                                conditionalPanel(
                                  condition = "input.glmfamily != \'binomial\'",
@@ -623,7 +633,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                hr(),
                                column(width=12,
                                       h3("Simulated Estimates"),
-                                      plotOutput(outputId = "parameterestimates")
+                                      introBox(plotOutput(outputId = "parameterestimates"),data.step=31, data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values.")
                                )
                              )
                            ),
@@ -677,7 +687,7 @@ skprGUI = function(inputValue1,inputValue2) {
     )
   )
 
-  server = function(input, output) {
+  server = function(input, output, session) {
 
     inputlist_htc = reactive({
       input$submitbutton
@@ -1209,7 +1219,7 @@ skprGUI = function(inputValue1,inputValue2) {
       }
       if(isblockingtext()) {
         first = paste(c(first, ",<br>", rep("&nbsp;",20),
-                        "splitcolumns = TRUE"),collapse = "")
+                        "splitcolumns = ", ifelse(input$splitanalyzable, "TRUE","FALSE")),collapse = "")
       }
       first = paste0(c(first,")<br><br>"),collapse="")
       if(input$evaltype == "lm") {
@@ -1254,7 +1264,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                        ifelse(anyfactors(),
                                               paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ",contraststring(),")</code>"),
                                               ")<br><br></code>")),
-                                paste0("<code style=\"color:#468449\">#lme4::lmer(formula = Y ",
+                                paste0(ifelse(input$splitanalyzable,"","<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                                  "<code style=\"color:#468449\">#lme4::lmer(formula = Y ",
                                   modelwithblocks(),
                                   ", data = design",
                                   ifelse(anyfactors(),paste0(",<br>#          ","contrasts = ",contraststring(),"))<br><br>"),"))<br><br></code>"))))
@@ -1314,7 +1325,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                      ifelse(anyfactors(),
                                             paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ",contraststring(),")</code>"),
                                             ")<br><br></code>")),
-                              paste0("<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
+                              paste0(ifelse(input$splitanalyzable,"","<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                                     "<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
                                      modelwithblocks(),
                                      ", data = design",
                                      ",<br>#          family = ", ifelse(input$glmfamily == "exponential", "Gamma(link=\"log\")",paste0("\"",input$glmfamily,"\"")),
@@ -1456,7 +1468,7 @@ skprGUI = function(inputValue1,inputValue2) {
                      aliaspower = isolate(input$aliaspower),
                      minDopt = isolate(input$mindopt),
                      parallel = isolate(as.logical(input$parallel)),
-                     splitcolumns = TRUE)
+                     splitcolumns = isolate(input$splitanalyzable))
         }
       }
     })
@@ -1617,19 +1629,60 @@ skprGUI = function(inputValue1,inputValue2) {
       input$evalbutton
       if(!is.null(attr(powerresultsglm(),"estimates"))) {
         ests = apply(attr(powerresultsglm(),"estimates"),2,quantile,c(0.05,0.5,0.95))
-
+        truth = attr(powerresultsglm(),"anticoef")
+        if(isolate(input$glmfamily) == "binomial") {
+          ests = exp(ests)/(1+exp(ests))
+          truth = exp(truth)/(1+exp(truth))
+        }
+        if(isolate(input$glmfamily) == "poisson") {
+          ests = exp(ests)
+          truth = exp(truth)
+        }
+        if(isolate(input$glmfamily) == "exponential") {
+          ests = exp(-ests)
+          truth = exp(-truth)
+        }
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
-        plot(x=1:length(colnames(ests)),y=ests[2,],ylim=c(min(as.vector(ests)),max(as.vector(ests))),
+        plot(x=1:length(colnames(ests)),y=ests[2,],
              xaxt = "n",
              xlab = "Parameters",
-             ylab = "Parameter Estimates",
-             xlim=c(0.5,length(colnames(ests))+0.5),type="p",pch=16,col="red",cex=1)
+             ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)","Parameter Estimates"),
+             ylim = ifelse(rep(isolate(input$glmfamily) == "binomial",2), c(0,1), c(min(as.vector(ests)),max(as.vector(ests)))),
+             xlim = c(0.5,length(colnames(ests))+0.5),
+             type = "p",pch = 16,col = "red",cex = 1)
         axis(1,at=1:length(colnames(ests)),labels=colnames(ests), las = 2)
         legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
         arrows(x0=1:length(colnames(ests)),y0=ests[1,],x1=1:length(colnames(ests)),y1=ests[3,],length=0.05,angle=90,code=3)
-        points(x=1:length(colnames(ests)),y=attr(powerresultsglm(),"anticoef"),pch=16,col="blue",cex=1)
+        points(x=1:length(colnames(ests)),y=truth,pch=16,col="blue",cex=1)
+        title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
+      }
+    })
+
+    output$parameterestimatessurv = renderPlot({
+      input$evalbutton
+      if(!is.null(attr(powerresultssurv(),"estimates"))) {
+        ests = apply(attr(powerresultssurv(),"estimates"),2,quantile,c(0.05,0.5,0.95))
+        truth = attr(powerresultssurv(),"anticoef")
+        if(isolate(input$distibution) == "exponential") {
+          ests = exp(ests)
+          truth = exp(truth)
+        }
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        plot(x=1:length(colnames(ests)),y=ests[2,],
+             xaxt = "n",
+             xlab = "Parameters",
+             ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)","Parameter Estimates"),
+             ylim = ifelse(rep(isolate(input$glmfamily) == "binomial",2), c(0,1), c(min(as.vector(ests)),max(as.vector(ests)))),
+             xlim = c(0.5,length(colnames(ests))+0.5),
+             type = "p",pch = 16,col = "red",cex = 1)
+        axis(1,at=1:length(colnames(ests)),labels=colnames(ests), las = 2)
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+        grid(nx=NA,ny=NULL)
+        arrows(x0=1:length(colnames(ests)),y0=ests[1,],x1=1:length(colnames(ests)),y1=ests[3,],length=0.05,angle=90,code=3)
+        points(x=1:length(colnames(ests)),y=truth,pch=16,col="blue",cex=1)
         title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
       }
     })
@@ -1694,18 +1747,31 @@ skprGUI = function(inputValue1,inputValue2) {
       input$evalbutton
       if(!is.null(attr(powerresultssurv(),"estimates"))) {
         responses = as.vector(attr(powerresultssurv(),"estimates") %*% t(attr(powerresultssurv(),"modelmatrix")))
+        trueresponses = as.vector(attr(powerresultssurv(),"anticoef") %*% t(attr(powerresultssurv(),"modelmatrix")))
+        widths = hist(trueresponses,plot=FALSE)$counts
+        widths = widths[widths != 0]
+        widths= sqrt(widths)
         uniquevalues = length(table(responses))
         breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
         if(isolate(input$distribution) == "exponential") {
           responses = exp(responses)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+          trueresponses = exp(trueresponses)
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+          legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+          abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
         }
         if(isolate(input$distribution) %in% c("gaussian", "lognormal")) {
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+          hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+          legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+          par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
           grid(nx=NA,ny=NULL)
-          hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+          hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+          abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
         }
       }
     })
@@ -1727,6 +1793,59 @@ skprGUI = function(inputValue1,inputValue2) {
         ""
       }
     })
+    observeEvent(input$tutorial,
+                 introjs(session,
+                 events = list(
+                   "onchange" = I("if (this._currentStep==0) {
+                                       $('a[data-value=\"Advanced\"]').removeClass('active');
+                                       $('a[data-value=\"Power\"]').removeClass('active');
+                                       $('a[data-value=\"Basic\"]').addClass('active');
+                                       $('a[data-value=\"Basic\"]').trigger('click');
+                                    }
+                                    if (this._currentStep==5) {
+                                       $('a[data-value=\"Power\"]').removeClass('active');
+                                       $('a[data-value=\"Basic\"]').removeClass('active');
+                                       $('a[data-value=\"Advanced\"]').addClass('active');
+                                       $('a[data-value=\"Advanced\"]').trigger('click');
+                                    }
+                                    if (this._currentStep==13) {
+                                       $('a[data-value=\"Advanced\"]').removeClass('active');
+                                       $('a[data-value=\"Power\"]').addClass('active');
+                                       $('a[data-value=\"Power\"]').trigger('click');
+                                    }
+                                    if (this._currentStep==17) {
+                                       $('input[value=\"glm\"]').trigger('click');
+                                    }
+                                    if (this._currentStep==21) {
+                                       $('input[value=\"surv\"]').trigger('click');
+                                    }
+                                    if (this._currentStep==24) {
+                                       $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                       $('a[data-value=\"Generating Code\"]').removeClass('active');
+                                       $('a[data-value=\"Design\"]').addClass('active');
+                                       $('a[data-value=\"Design\"]').trigger('click');
+                                       $('#evaltype').val('glm');
+                                       Shiny.onInputChange('evaltype','glm');
+                                       $('#numberfactors').val('3');
+                                       Shiny.onInputChange('numberfactors',3);
+                                       $('#trials').val('12');
+                                       Shiny.onInputChange('trials',12);
+                                       $('#submitbutton').trigger('click');
+                                       $('#evalbutton').trigger('click');
+                                    }
+                                    if (this._currentStep==25) {
+                                       $('#evalbutton').trigger('click');
+                                       $('a[data-value=\"Design\"]').removeClass('active');
+                                       $('a[data-value=\"Design Evaluation\"]').addClass('active');
+                                       $('a[data-value=\"Design Evaluation\"]').trigger('click');
+                                    }
+                                    if (this._currentStep==60) {
+                                       $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                       $('a[data-value=\"Generating Code\"]').addClass('active');
+                                       $('a[data-value=\"Generating Code\"]').trigger('click');
+                                    }"
+                  ))
+                ))
     outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
   }
 

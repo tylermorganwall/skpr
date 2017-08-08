@@ -1,7 +1,8 @@
 library(skpr)
+library(rintrojs)
 
 shinyServer(
-function(input, output) {
+function(input, output, session) {
 
   inputlist_htc = reactive({
     input$submitbutton

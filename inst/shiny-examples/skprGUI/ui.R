@@ -1,3 +1,6 @@
+library(shinythemes)
+library(rintrojs)
+
 #ui.R for skprGUI
 
 shinyUI(fluidPage(theme = shinytheme("yeti"),

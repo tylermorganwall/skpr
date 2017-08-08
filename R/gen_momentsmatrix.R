@@ -7,34 +7,18 @@
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)
 gen_momentsmatrix = function(modelfactors,levelvector,classvector) {
-
+  #set numeric levels to one
   levelvector[!classvector] = 1
-  isfactor = c()
-  for(i in 1:length(classvector)) {
-    if(classvector[i]) {
-      isfactor = c(isfactor,rep(classvector[i],levelvector[i] - 1))
-    } else {
-      isfactor = c(isfactor,FALSE)
-    }
-  }
 
-  isfactor = c(FALSE,isfactor)
-  linearfactors = c()
-  for(i in 1:length(isfactor)) {
-    if(isfactor[i]) {
-      linearfactors = c(linearfactors,modelfactors[i])
-    }
-  }
-
+  #parse factor types
   isintercept = modelfactors == "(Intercept)"
   ishigherorder = lapply(strsplit(modelfactors,split="^",fixed=TRUE),length) > 1
   isinteraction = lapply(strsplit(modelfactors,split=":",fixed=TRUE),length) > 1
-  isfullfactor = c(isfactor,rep(FALSE,length(modelfactors)-length(isfactor)))
-  for(i in linearfactors) {
-    isfullfactor[grep(paste0("\\b",i,"\\b"),modelfactors)] = TRUE
-  }
+  isnumeric = modelfactors %in% names(classvector)[!classvector]
   islinear = rep(TRUE,length(modelfactors)) & !isintercept & !ishigherorder & !isinteraction
+  isfullfactor = !isintercept & !ishigherorder & !isinteraction & !isnumeric
 
+  linearfactors = modelfactors[isfullfactor]
   linearterms = modelfactors[islinear]
 
   if(!all(islinear) && all(isinteraction[-1])) {
@@ -83,11 +67,12 @@ gen_momentsmatrix = function(modelfactors,levelvector,classvector) {
     for(j in 1:length(modelfactors)) {
       if((isfullfactor[j] || isfullfactor[i]) && !(isinteraction[i] || isinteraction[j])) {
         momentsmatrixresults[i,j] = 3*momentsmatrixresults[i,j]
-      }
-      if((isfullfactor[j] || isfullfactor[i]) && (isinteraction[i] || isinteraction[j])) {
-        term = strsplit(modelfactors[i],split=":",fixed=TRUE)[[1]]
-        catterms = sum(term %in% linearfactors)
-        momentsmatrixresults[i,j] = 3^catterms*momentsmatrixresults[i,j]
+      } else {
+        if((isfullfactor[j] || isfullfactor[i]) || (isinteraction[i] || isinteraction[j])) {
+          term = strsplit(modelfactors[i],split=":",fixed=TRUE)[[1]]
+          catterms = sum(term %in% linearfactors)
+          momentsmatrixresults[i,j] = 3^catterms*momentsmatrixresults[i,j]
+        }
       }
     }
   }

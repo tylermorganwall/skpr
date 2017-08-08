@@ -16,7 +16,7 @@ double calculateIOptimality(arma::mat currentDesign, const arma::mat momentsMatr
   return(trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix));
 }
 
-double calculateGOptimality(arma::mat currentDesign, const arma::mat candidateSet) {
+double calculateGOptimality(arma::mat currentDesign, const arma::mat& candidateSet) {
   arma::mat results = candidateSet*inv_sympd(currentDesign.t()*currentDesign)*candidateSet.t();
   return(results.diag().max());
 }

@@ -433,6 +433,7 @@ gen_design = function(candidateset, model, trials,
     factors = colnames(candidatesetmm)
     levelvector = sapply(lapply(candidateset,unique),length)
     classvector = sapply(lapply(candidateset,unique),class) == "factor"
+
     mm = gen_momentsmatrix(factors,levelvector,classvector)
     if(!parallel) {
       if(!timer) {
@@ -653,7 +654,7 @@ gen_design = function(candidateset, model, trials,
     }, error = function(e) {})
   if(!blocking) {
     tryCatch({
-      attr(design,"G") = max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm)))
+      attr(design,"G") = 100*(ncol(designmm))/(nrow(designmm)*max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm))))
       attr(design,"T") = sum(diag(t(designmm) %*% designmm))
       attr(design,"E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
       attr(design,"variance.matrix") = diag(nrow(designmm))

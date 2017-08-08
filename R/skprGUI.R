@@ -5,34 +5,36 @@
 #'@param inputValue1 It's the #1 input value.
 #'@param inputValue2 Runner up input value, participation award pending
 #'
-#'@import shiny rintrojs
+#'@import shiny rintrojs shinythemes
 #'@export
 
 skprGUI = function(inputValue1,inputValue2) {
 
-  ui = fluidPage(
+  ui = fluidPage(theme = shinytheme("yeti"),
     introjsUI(),
-    HTML("<style>div[data-step='27'] {
-            min-height: 200px;
-          }</style>"),
+    HTML("<style> table {font-size=14px;}
+                  .btn2 {color: #fff; background-color: #337ab7; border-color: #2e6da4}
+                  .btn2:hover {color: #fff; background-color: #609dd2; border-color: #2e6da4}
+                  .btn2:active {color: #fff; background-color: #38475e; border-color: #2e6da4}
+                  .btn2:focus {color: #fff; background-color: #337ab7; border-color: #2e6da4}</style>"),
     sidebarLayout(
-      sidebarPanel(h1("Inputs"),
+      sidebarPanel(HTML("<h1 style='margin-top: 0px;'>skpr<strong style='color=red;'>GUI</strong></h1>"),
                    introBox(fluidRow(
                      column(width=6,
                             actionButton("submitbutton", "Generate Design",
-                                         style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+                                         class="btn2")
                      ),
                      column(width=6,
                             actionButton("evalbutton", "Evaluate Design",
-                                         style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+                                         class="btn2")
                      )
-                   ), data.step = 1, data.intro="Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
-                   br(),br(),
+                   ), data.step = 1, data.intro="<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the code, and skpr provides the code used to do that, based on your inputs. Additional advanced capabilities can be accessed through the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
+                   hr(),
                    tabsetPanel(
                      tabPanel(
                        "Basic",
                        introBox(numericInput(inputId = "trials",
-                                    12, label = "Trials"), data.step = 2, data.intro = "This is the number of runs in your experiment."),
+                                    12, label = "Trials"), data.step = 2, data.intro = "This is the number of runs in the experiment."),
                        introBox(textInput(inputId = "model",
                                  "~.", label = "Model"), data.step = 3, data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."),
                        conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc' || input.blockdepth6 == 'htc'",
@@ -49,7 +51,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                         )
                        ),
                        introBox(numericInput(inputId = "numberfactors",
-                                    min=1,max=6, 1, label = "Number of Factors"), data.step = 4, data.intro = "This is the number of factors in your experiment. skprGUI supports up to 6 factors, but the underlying code supports any number of factors by calling the code directly. If you require more factors, use the generating code as a template and add more terms to the candidate set."),
+                                    min=1,max=6, 1, label = "Number of Factors"), data.step = 4, data.intro = "This is the number of factors in the experiment. skprGUI supports up to 6 factors, but the underlying code supports any number of factors by calling the code directly. If you require more factors, use the generating code as a template and add more terms to the candidate set."),
                        br(),
                        introBox(wellPanel(h3("Factor 1"),
                                  fluidRow(
@@ -111,7 +113,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                      )
                                    )
                                  )
-                       ), data.step = 5, data.intro = "This pane is where you change your factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."),
+                       ), data.step = 5, data.intro = "This pane allows you to change the factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."),
                        conditionalPanel(
                          condition = "input.numberfactors > 1",
                          wellPanel(h3("Factor 2"),
@@ -467,15 +469,15 @@ skprGUI = function(inputValue1,inputValue2) {
                                             value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients, design size, and the specified value of delta."),
                               introBox(checkboxInput(inputId = "advanceddiagnostics",
                                             label = "Advanced Design Diagnostics",
-                                            value=FALSE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histgram of p-values for each parameter in Monte Carlo simulations.")
+                                            value=FALSE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
                      ),
                      tabPanel("Power",
                               introBox(introBox(introBox(radioButtons(inputId = "evaltype",
                                            label="Model Type",
                                            choiceNames = c("Linear Model","Generalized Linear Model","Survival Model"),
                                            choiceValues = c("lm","glm","surv")), data.step=14, data.intro = "Change the type of analysis. Linear model calculates power with parametric assumptions, while the Generalized Linear Model and Survival Model both calculate power using a Monte Carlo approach."),
-                                           data.step=18,data.intro="Changing the evaluation type to a GLM Monte Carlo open up several additional controls."),
-                                           data.step=22,data.intro="Survival analysis Monte Carlo power generation. This simulates data according to your design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."),
+                                           data.step=18,data.intro="Changing the evaluation type to a GLM Monte Carlo reveals several additional controls."),
+                                           data.step=22,data.intro="Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."),
                               introBox(sliderInput(inputId = "alpha",
                                           min=0,max=1,value=0.05, label = "Alpha"), data.step=15, data.intro = "Specify the acceptable Type-I error (false positive rate)"),
                               introBox(numericInput(inputId = "delta",
@@ -528,7 +530,7 @@ skprGUI = function(inputValue1,inputValue2) {
       mainPanel(fluidRow(
                   column(width=6,h1("Results")),
                   column(width=4),
-                  column(width=2,actionButton(inputId = "tutorial","Help")),
+                  column(width=2,actionButton(inputId = "tutorial","Tutorial")),
                   tags$style(type='text/css', "#tutorial {margin-top: 25px;}")
                 ),
                 tabsetPanel(
@@ -548,7 +550,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                introBox(conditionalPanel(
                                  condition = "input.evaltype == \'glm\'",
                                  tableOutput(outputId = "powerresultsglm")
-                               ),data.step=27,data.intro = "The power of the design (allow for a moment to appear). Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation."),
+                               ),data.step=27,data.intro = "The power of the design. Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation."),
                                conditionalPanel(
                                  condition = "input.evaltype == \'surv\'",
                                  tableOutput(outputId = "powerresultssurv")
@@ -561,7 +563,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                  htmlOutput(outputId = "separationwarning")
                                )
                              )
-                           ),data.step = 26,data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics."),
+                           ),data.step = 26,data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"),
                            hr(),
                            fluidRow(align="center",
                                     column(width=6,
@@ -590,7 +592,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                hr(),
                                column(width=12,
                                       h3("Simulated Response Estimates"),
-                                      introBox(plotOutput(outputId = "responsehistogram"),data.step=30, data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue).")
+                                      introBox(plotOutput(outputId = "responsehistogram"),data.step=30, data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue). ")
                                ),
                                conditionalPanel(
                                  condition = "input.glmfamily != \'binomial\'",
@@ -680,7 +682,7 @@ skprGUI = function(inputValue1,inputValue2) {
                            )
                   ),
                   tabPanel("Generating Code",
-                           htmlOutput(outputId = "code")
+                           introBox(htmlOutput(outputId = "code"),data.step=32,data.intro="The skpr code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. ")
                   )
                 )
       )
@@ -1559,17 +1561,12 @@ skprGUI = function(inputValue1,inputValue2) {
     },digits=4,hover=TRUE,align="c")
 
     output$aliasplot = renderPlot({
-      input$evalbutton
       input$submitbutton
-      if(isolate(input$numberfactors) != isolate(ncol(runmatrix()))-ifelse(isolate(isblocking()),1,0)) {
-        plot(1, type="n", axes=F, main = "Number of Factors Does \nNot Equal Current Design: \nClick Generate Design", xlab="", ylab="")
-      } else {
         if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
           print("No design generated")
         } else {
           isolate(plot_correlations(runmatrix()))
         }
-      }
     })
 
     output$fdsplot = renderPlot({
@@ -1788,15 +1785,18 @@ skprGUI = function(inputValue1,inputValue2) {
         }
       }
       if(likelyseparation) {
-        "<p style=\"color: #F00;\">Partial or complete separation likely detected in your binomial Monte Carlo simulation. Increase the number of runs in your design or decrease the number of model parameters to improve power.</p>"
+        "<p style=\"color: #F00;\">Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.</p>"
       } else {
         ""
       }
     })
     observeEvent(input$tutorial,
                  introjs(session,
-                 events = list(
-                   "onchange" = I("if (this._currentStep==0) {
+                         options = list("showProgress" = 'true',
+                                        "showBullets" = 'false'),
+                         events = list(
+                   "onchange" = I("
+                                    if (this._currentStep==0) {
                                        $('a[data-value=\"Advanced\"]').removeClass('active');
                                        $('a[data-value=\"Power\"]').removeClass('active');
                                        $('a[data-value=\"Basic\"]').addClass('active');
@@ -1839,7 +1839,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                        $('a[data-value=\"Design Evaluation\"]').addClass('active');
                                        $('a[data-value=\"Design Evaluation\"]').trigger('click');
                                     }
-                                    if (this._currentStep==60) {
+                                    if (this._currentStep==31) {
                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
                                        $('a[data-value=\"Generating Code\"]').addClass('active');
                                        $('a[data-value=\"Generating Code\"]').trigger('click');
@@ -1849,5 +1849,5 @@ skprGUI = function(inputValue1,inputValue2) {
     outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
   }
 
-  runGadget(shinyApp(ui, server),viewer = dialogViewer(dialogName = "skprGUI", width = 1200,height=1000))
+  runGadget(shinyApp(ui, server),viewer = dialogViewer(dialogName = "skprGUI", width = 1200,height=1200))
 }

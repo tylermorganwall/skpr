@@ -533,7 +533,7 @@ function(input, output) {
     }
     if(isblockingtext()) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
-                      "splitcolumns = TRUE"),collapse = "")
+                      "splitcolumns = ", ifelse(input$splitanalyzable, "TRUE","FALSE")),collapse = "")
     }
     first = paste0(c(first,")<br><br>"),collapse="")
     if(input$evaltype == "lm") {
@@ -578,7 +578,8 @@ function(input, output) {
                                    ifelse(anyfactors(),
                                           paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ",contraststring(),")</code>"),
                                           ")<br><br></code>")),
-                            paste0("<code style=\"color:#468449\">#lme4::lmer(formula = Y ",
+                            paste0(ifelse(input$splitanalyzable,"","<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                                   "<code style=\"color:#468449\">#lme4::lmer(formula = Y ",
                                    modelwithblocks(),
                                    ", data = design",
                                    ifelse(anyfactors(),paste0(",<br>#          ","contrasts = ",contraststring(),"))<br><br>"),"))<br><br></code>"))))
@@ -638,7 +639,8 @@ function(input, output) {
                                    ifelse(anyfactors(),
                                           paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ",contraststring(),")</code>"),
                                           ")<br><br></code>")),
-                            paste0("<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
+                            paste0(ifelse(input$splitanalyzable,"","<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                                   "<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
                                    modelwithblocks(),
                                    ", data = design",
                                    ",<br>#          family = ", ifelse(input$glmfamily == "exponential", "Gamma(link=\"log\")",paste0("\"",input$glmfamily,"\"")),
@@ -780,7 +782,7 @@ function(input, output) {
                    aliaspower = isolate(input$aliaspower),
                    minDopt = isolate(input$mindopt),
                    parallel = isolate(as.logical(input$parallel)),
-                   splitcolumns = TRUE)
+                   splitcolumns = isolate(input$splitanalyzable))
       }
     }
   })
@@ -871,16 +873,11 @@ function(input, output) {
   },digits=4,hover=TRUE,align="c")
 
   output$aliasplot = renderPlot({
-    input$evalbutton
     input$submitbutton
-    if(isolate(input$numberfactors) != isolate(ncol(runmatrix()))-ifelse(isolate(isblocking()),1,0)) {
-      plot(1, type="n", axes=F, main = "Number of Factors Does \nNot Equal Current Design: \nClick Generate Design", xlab="", ylab="")
+    if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
+      print("No design generated")
     } else {
-      if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        isolate(plot_correlations(runmatrix()))
-      }
+      isolate(plot_correlations(runmatrix()))
     }
   })
 
@@ -941,19 +938,60 @@ function(input, output) {
     input$evalbutton
     if(!is.null(attr(powerresultsglm(),"estimates"))) {
       ests = apply(attr(powerresultsglm(),"estimates"),2,quantile,c(0.05,0.5,0.95))
-
+      truth = attr(powerresultsglm(),"anticoef")
+      if(isolate(input$glmfamily) == "binomial") {
+        ests = exp(ests)/(1+exp(ests))
+        truth = exp(truth)/(1+exp(truth))
+      }
+      if(isolate(input$glmfamily) == "poisson") {
+        ests = exp(ests)
+        truth = exp(truth)
+      }
+      if(isolate(input$glmfamily) == "exponential") {
+        ests = exp(-ests)
+        truth = exp(-truth)
+      }
       par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
-      plot(x=1:length(colnames(ests)),y=ests[2,],ylim=c(min(as.vector(ests)),max(as.vector(ests))),
+      plot(x=1:length(colnames(ests)),y=ests[2,],
            xaxt = "n",
            xlab = "Parameters",
-           ylab = "Parameter Estimates",
-           xlim=c(0.5,length(colnames(ests))+0.5),type="p",pch=16,col="red",cex=1)
+           ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)","Parameter Estimates"),
+           ylim = ifelse(rep(isolate(input$glmfamily) == "binomial",2), c(0,1), c(min(as.vector(ests)),max(as.vector(ests)))),
+           xlim = c(0.5,length(colnames(ests))+0.5),
+           type = "p",pch = 16,col = "red",cex = 1)
       axis(1,at=1:length(colnames(ests)),labels=colnames(ests), las = 2)
       legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
       par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
       grid(nx=NA,ny=NULL)
       arrows(x0=1:length(colnames(ests)),y0=ests[1,],x1=1:length(colnames(ests)),y1=ests[3,],length=0.05,angle=90,code=3)
-      points(x=1:length(colnames(ests)),y=attr(powerresultsglm(),"anticoef"),pch=16,col="blue",cex=1)
+      points(x=1:length(colnames(ests)),y=truth,pch=16,col="blue",cex=1)
+      title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
+    }
+  })
+
+  output$parameterestimatessurv = renderPlot({
+    input$evalbutton
+    if(!is.null(attr(powerresultssurv(),"estimates"))) {
+      ests = apply(attr(powerresultssurv(),"estimates"),2,quantile,c(0.05,0.5,0.95))
+      truth = attr(powerresultssurv(),"anticoef")
+      if(isolate(input$distibution) == "exponential") {
+        ests = exp(ests)
+        truth = exp(truth)
+      }
+      par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+      plot(x=1:length(colnames(ests)),y=ests[2,],
+           xaxt = "n",
+           xlab = "Parameters",
+           ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)","Parameter Estimates"),
+           ylim = ifelse(rep(isolate(input$glmfamily) == "binomial",2), c(0,1), c(min(as.vector(ests)),max(as.vector(ests)))),
+           xlim = c(0.5,length(colnames(ests))+0.5),
+           type = "p",pch = 16,col = "red",cex = 1)
+      axis(1,at=1:length(colnames(ests)),labels=colnames(ests), las = 2)
+      legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+      par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
+      grid(nx=NA,ny=NULL)
+      arrows(x0=1:length(colnames(ests)),y0=ests[1,],x1=1:length(colnames(ests)),y1=ests[3,],length=0.05,angle=90,code=3)
+      points(x=1:length(colnames(ests)),y=truth,pch=16,col="blue",cex=1)
       title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
     }
   })
@@ -972,7 +1010,7 @@ function(input, output) {
         responses = exp(responses)/(1+exp(responses))
         trueresponses = exp(trueresponses)/(1+exp(trueresponses))
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
-        hist(responses,breaks=breakvalues,xlab="Response (Probability)",main="Distribution of Simulated Response Estimates")
+        hist(responses,breaks=breakvalues,xlab="Response (Probability)",main="Distribution of Simulated Response Estimates",xlim=c(0,1))
         legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
@@ -1018,18 +1056,31 @@ function(input, output) {
     input$evalbutton
     if(!is.null(attr(powerresultssurv(),"estimates"))) {
       responses = as.vector(attr(powerresultssurv(),"estimates") %*% t(attr(powerresultssurv(),"modelmatrix")))
+      trueresponses = as.vector(attr(powerresultssurv(),"anticoef") %*% t(attr(powerresultssurv(),"modelmatrix")))
+      widths = hist(trueresponses,plot=FALSE)$counts
+      widths = widths[widths != 0]
+      widths= sqrt(widths)
       uniquevalues = length(table(responses))
       breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
       if(isolate(input$distribution) == "exponential") {
         responses = exp(responses)
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+        trueresponses = exp(trueresponses)
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+        abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
       }
       if(isolate(input$distribution) %in% c("gaussian", "lognormal")) {
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,xlab="Response",main="Distribution of Simulated Responses (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+        hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates (from survival analysis)",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
+        legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
+        par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=FALSE)
         grid(nx=NA,ny=NULL)
-        hist(responses,breaks=isolate(input$nsim)*isolate(input$trials)/10,add=TRUE,main="Distribution of Simulated Responses (from survival analysis)",xlab="Response",ylab="Count",col = "red",border="red")
+        hist(responses,breaks=breakvalues,add=TRUE,main="Distribution of Simulated Responses",xlab="Response",ylab="Count",col = "red",border="red")
+        abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
       }
     }
   })
@@ -1046,11 +1097,67 @@ function(input, output) {
       }
     }
     if(likelyseparation) {
-      "<p style=\"color: #F00;\">Partial or complete separation likely detected in your binomial Monte Carlo simulation. Increase the number of runs in your design or decrease the number of model parameters to improve power.</p>"
+      "<p style=\"color: #F00;\">Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.</p>"
     } else {
       ""
     }
   })
-  outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
+  observeEvent(input$tutorial,
+               introjs(session,
+                       options = list("showProgress" = 'true',
+                                      "showBullets" = 'false'),
+                       events = list(
+                         "onchange" = I("
+                                        if (this._currentStep==0) {
+                                        $('a[data-value=\"Advanced\"]').removeClass('active');
+                                        $('a[data-value=\"Power\"]').removeClass('active');
+                                        $('a[data-value=\"Basic\"]').addClass('active');
+                                        $('a[data-value=\"Basic\"]').trigger('click');
+                                        }
+                                        if (this._currentStep==5) {
+                                        $('a[data-value=\"Power\"]').removeClass('active');
+                                        $('a[data-value=\"Basic\"]').removeClass('active');
+                                        $('a[data-value=\"Advanced\"]').addClass('active');
+                                        $('a[data-value=\"Advanced\"]').trigger('click');
+                                        }
+                                        if (this._currentStep==13) {
+                                        $('a[data-value=\"Advanced\"]').removeClass('active');
+                                        $('a[data-value=\"Power\"]').addClass('active');
+                                        $('a[data-value=\"Power\"]').trigger('click');
+                                        }
+                                        if (this._currentStep==17) {
+                                        $('input[value=\"glm\"]').trigger('click');
+                                        }
+                                        if (this._currentStep==21) {
+                                        $('input[value=\"surv\"]').trigger('click');
+                                        }
+                                        if (this._currentStep==24) {
+                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                        $('a[data-value=\"Generating Code\"]').removeClass('active');
+                                        $('a[data-value=\"Design\"]').addClass('active');
+                                        $('a[data-value=\"Design\"]').trigger('click');
+                                        $('#evaltype').val('glm');
+                                        Shiny.onInputChange('evaltype','glm');
+                                        $('#numberfactors').val('3');
+                                        Shiny.onInputChange('numberfactors',3);
+                                        $('#trials').val('12');
+                                        Shiny.onInputChange('trials',12);
+                                        $('#submitbutton').trigger('click');
+                                        $('#evalbutton').trigger('click');
+                                        }
+                                        if (this._currentStep==25) {
+                                        $('#evalbutton').trigger('click');
+                                        $('a[data-value=\"Design\"]').removeClass('active');
+                                        $('a[data-value=\"Design Evaluation\"]').addClass('active');
+                                        $('a[data-value=\"Design Evaluation\"]').trigger('click');
+                                        }
+                                        if (this._currentStep==31) {
+                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                        $('a[data-value=\"Generating Code\"]').addClass('active');
+                                        $('a[data-value=\"Generating Code\"]').trigger('click');
+                                        }"
+                  ))
+                ))
+    outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
 }
 )

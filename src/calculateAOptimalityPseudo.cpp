@@ -4,6 +4,6 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double calculateAOptimalityPseudo(arma::mat currentDesign) {
+double calculateAOptimalityPseudo(const arma::mat& currentDesign) {
   return(trace(arma::pinv(currentDesign.t()*currentDesign)));
 }

@@ -305,7 +305,7 @@ gen_design = function(candidateset, model, trials,
   candidatesetnormalized = candidateset
 
   for(column in 1:ncol(candidateset)) {
-    if(class(candidateset[,column]) == "numeric") {
+    if(is.numeric(candidateset[,column])) {
       maxvalue = max(candidateset[, column])
       minvalue = min(candidateset[, column])
       midvalue = mean(c(maxvalue, minvalue))
@@ -315,7 +315,7 @@ gen_design = function(candidateset, model, trials,
   if(!is.null(splitplotdesign)) {
     spdnormalized = splitplotdesign
     for(column in 1:ncol(spdnormalized)) {
-      if(class(spdnormalized[,column]) == "numeric") {
+      if(is.numeric(spdnormalized[,column])) {
         midvalue = mean(c(max(spdnormalized[,column]),min(spdnormalized[,column])))
         spdnormalized[,column] = (spdnormalized[,column]-midvalue)/(max(spdnormalized[,column])-midvalue)
       }
@@ -714,7 +714,7 @@ gen_design = function(candidateset, model, trials,
     }
     finalspddesign = do.call(rbind,finallist)
     for(col in 1:ncol(finalspddesign)) {
-      if(class(finalspddesign[,col]) == "numeric") {
+      if(is.numeric(finalspddesign[,col])) {
         design[,col] = finalspddesign[,col]
       }
     }

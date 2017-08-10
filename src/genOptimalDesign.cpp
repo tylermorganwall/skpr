@@ -63,6 +63,10 @@ double calculateDEffNN(const arma::mat& currentDesign) {
   return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols))));
 }
 
+bool isSingular(const arma::mat& currentDesign) {
+  return(arma::cond(currentDesign.t()*currentDesign) > 1E15);
+}
+
 template <typename T>
 Rcpp::NumericVector arma2vec(const T& x) {
   return Rcpp::NumericVector(x.begin(), x.end());
@@ -93,7 +97,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   }
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   for (unsigned int check = 0; check < maxSingularityChecks; check++) {
-    if(inv_sympd(test, initialdesign.t() * initialdesign)) {
+    if(!isSingular(initialdesign)) {
       break; //design is nonsingular
     }
     arma::uvec shuffledindices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, totalPoints-1), totalPoints, false);
@@ -105,7 +109,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   }
   //If initialdesign is still singular, use the Gram-Schmidt orthogonalization procedure, which
   //should return a non-singular matrix if one can be constructed from the candidate set
-  if (!inv_sympd(test, initialdesign.t() * initialdesign)) {
+  if (isSingular(initialdesign)) {
     arma::uvec initrows = orthogonal_initial(candidatelist, nTrials);
     arma::uvec initrows_shuffled = RcppArmadillo::sample(initrows, initrows.n_rows, false);
     for (unsigned int i = 0; i < nTrials; i++) {
@@ -116,7 +120,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   }
 
   //If still no non-singular design, returns NA.
-  if (!inv_sympd(test,initialdesign.t() * initialdesign)) {
+  if (isSingular(initialdesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
   bool found = FALSE;
@@ -275,7 +279,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       newOptimum = calculateDOptimality(initialdesign);
     }
 
-    double firstA = calculateAliasTrace(initialdesign,aliasdesign);
+    double firstA = calculateAliasTracePseudoInv(initialdesign,aliasdesign);
     double initialD = calculateDEffNN(initialdesign);
     double currentA = firstA;
     double currentD = initialD;
@@ -309,17 +313,21 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           temp = initialdesignTemp;
           tempalias = aliasdesign;
           for (unsigned int j = 0; j < totalPoints; j++) {
-            temp.row(i) = candidatelist.row(j);
-            tempalias.row(i) = aliascandidatelist.row(j);
-            currentA = calculateAliasTrace(temp,tempalias);
-            currentD = calculateDEffNN(temp);
+            try {
+              temp.row(i) = candidatelist.row(j);
+              tempalias.row(i) = aliascandidatelist.row(j);
+              currentA = calculateAliasTrace(temp,tempalias);
+              currentD = calculateDEffNN(temp);
 
-            newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+              newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
 
-            if(newdel > optimum && calculateDEff(temp) > minDopt) {
-              found = TRUE;
-              entryx = i; entryy = j;
-              optimum = newdel;
+              if(newdel > optimum && calculateDEff(temp) > minDopt) {
+                found = TRUE;
+                entryx = i; entryy = j;
+                optimum = newdel;
+              }
+            } catch (std::runtime_error& e) {
+              continue;
             }
           }
           if (found) {
@@ -366,9 +374,11 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
             temp.row(i) = candidatelist.row(j);
             newdel = calculateGOptimality(temp,candidatelist);
             if(newdel < del) {
-              found = TRUE;
-              entryx = i; entryy = j;
-              del = newdel;
+              if(!isSingular(temp)) {
+                found = TRUE;
+                entryx = i; entryy = j;
+                del = newdel;
+              }
             }
           } catch (std::runtime_error& e) {
             continue;
@@ -401,9 +411,11 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           temp.row(i) = candidatelist.row(j);
           newdel = calculateTOptimality(temp);
           if(newdel > del) {
-            found = TRUE;
-            entryx = i; entryy = j;
-            del = newdel;
+            if(!isSingular(temp)) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
           }
         }
         if (found) {
@@ -433,9 +445,11 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           temp.row(i) = candidatelist.row(j);
           newdel = calculateEOptimality(temp);
           if(newdel > del) {
-            found = TRUE;
-            entryx = i; entryy = j;
-            del = newdel;
+            if(!isSingular(temp)) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
           }
         }
         if (found) {

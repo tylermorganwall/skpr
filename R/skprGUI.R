@@ -89,6 +89,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                      column(width=4,
                                             numericInput(inputId = "numericlength1",
                                                          value=3,
+                                                         min = 2,
+                                                         step = 1,
                                                          label="Breaks")
                                      )
                                    )
@@ -152,6 +154,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                        column(width=4,
                                               numericInput(inputId = "numericlength2",
                                                            value=3,
+                                                           min = 2,
+                                                           step = 1,
                                                            label="Breaks")
                                        )
                                      )
@@ -216,6 +220,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                        column(width=4,
                                               numericInput(inputId = "numericlength3",
                                                            value=3,
+                                                           min = 2,
+                                                           step = 1,
                                                            label="Breaks")
                                        )
                                      )
@@ -280,6 +286,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                        column(width=4,
                                               numericInput(inputId = "numericlength4",
                                                            value=3,
+                                                           min = 2,
+                                                           step = 1,
                                                            label="Breaks")
                                        )
                                      )
@@ -344,6 +352,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                        column(width=4,
                                               numericInput(inputId = "numericlength5",
                                                            value=3,
+                                                           min = 2,
+                                                           step = 1,
                                                            label="Breaks")
                                        )
                                      )
@@ -408,6 +418,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                        column(width=4,
                                               numericInput(inputId = "numericlength6",
                                                            value=3,
+                                                           min = 2,
+                                                           step = 1,
                                                            label="Breaks")
                                        )
                                      )
@@ -469,7 +481,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                             value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients, design size, and the specified value of delta."),
                               introBox(checkboxInput(inputId = "advanceddiagnostics",
                                             label = "Advanced Design Diagnostics",
-                                            value=FALSE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
+                                            value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
                      ),
                      tabPanel("Power",
                               introBox(introBox(introBox(radioButtons(inputId = "evaltype",
@@ -569,7 +581,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                     column(width=6,
                                            h3("Correlation Map"),
                                            introBox(conditionalPanel("input.numberfactors > 1",
-                                                            plotOutput(outputId = "aliasplot")),data.step=28,data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs ideally minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."),
+                                                            plotOutput(outputId = "aliasplot")),data.step=28,data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."),
                                            conditionalPanel("input.numberfactors == 1",
                                                             br(),
                                                             br(),
@@ -1565,17 +1577,19 @@ skprGUI = function(inputValue1,inputValue2) {
         if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
           print("No design generated")
         } else {
-          isolate(plot_correlations(runmatrix()))
+          tryCatch({
+            plot_correlations(isolate(runmatrix()))
+          }, error = function(e) {
+          })
         }
     })
 
     output$fdsplot = renderPlot({
-      input$evalbutton
       input$submitbutton
       if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
-        isolate(plot_fds(runmatrix()))
+        plot_fds(isolate(runmatrix()))
       }
     })
 
@@ -1585,11 +1599,11 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$dopt = renderText({
       input$submitbutton
-      isolate(substr(attr(runmatrix(),"D"),5,nchar(attr(runmatrix(),"D"))))
+      isolate(attr(runmatrix(),"D"))
     })
     output$aopt = renderText({
       input$submitbutton
-      isolate(substr(attr(runmatrix(),"A"),5,nchar(attr(runmatrix(),"A"))))
+      isolate(attr(runmatrix(),"A"))
     })
     output$iopt = renderText({
       input$submitbutton
@@ -1609,8 +1623,17 @@ skprGUI = function(inputValue1,inputValue2) {
     })
     output$optimalsearch = renderPlot({
       input$submitbutton
-      isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Criteria Value",type = 'p', col = 'red', pch=16))
-      isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
+      if(isolate(input$optimality) %in% c("D","G","A")) {
+        isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(input$optimality, "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
+        isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2,ylim=c(0,100)))
+      } else {
+        if(isolate(input$optimality) == "I") {
+          isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Average Prediction Variance (lower is better)",type = 'p', col = 'red', pch=16))
+        } else {
+          isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(input$optimality, "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
+        }
+        isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
+      }
     })
     output$simulatedpvalues = renderPlot({
       input$evalbutton

@@ -126,7 +126,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
                           parallel=FALSE, detailedoutput=FALSE) {
 
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
-    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Coverting input to data frame")
+    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
   }
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)

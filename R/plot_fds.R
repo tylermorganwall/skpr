@@ -57,7 +57,7 @@ plot_fds = function(genoutput,model=NULL,continuouslength = 11) {
     if(class(genoutput[,col]) %in% c("factor","character")) {
       factorrange[[colnames(genoutput)[col]]] = unique(genoutput[,col])
     }
-    if(class(genoutput[,col]) == "numeric") {
+    if(is.numeric(genoutput[,col])) {
       if(ncol(genoutput) == 1) {
         continuouslength = 51
       }

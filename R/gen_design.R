@@ -421,10 +421,12 @@ gen_design = function(candidateset, model, trials,
       candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
     }
   }
-  if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
-    stop(paste("The candidateset does not support the specified model - its rank is too low.",
-               "This usually happens if disallowed combinations",
-               "have introduced a perfect correlation between some variables in the candidate set."))
+  if(!blocking) {
+    if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
+      stop(paste("The candidateset does not support the specified model - its rank is too low.",
+                 "This usually happens if disallowed combinations",
+                 "have introduced a perfect correlation between some variables in the candidate set."))
+    }
   }
   if(optimality %in% c("Alias","G","T") && !is.null(splitplotdesign)) {
     stop("Generating Alias, G, and T optimal designs not presently supported with split plot designs.")
@@ -669,9 +671,8 @@ gen_design = function(candidateset, model, trials,
     design = cbind(splitPlotReplicateDesign,design)
   }
 
-  attr(design,"D-Efficiency") =  capture.output(100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm))
-  attr(design,"A-Efficiency") = tryCatch({capture.output(AOptimality(designmm))
-    }, error = function(e) {})
+  attr(design,"D-Efficiency") =  100*DOptimality(designmm)^(1/ncol(designmm))/nrow(designmm)
+  attr(design,"A-Efficiency") = tryCatch({AOptimality(designmm)}, error = function(e) {})
   if(!blocking) {
     tryCatch({
       attr(design,"G") = 100*(ncol(designmm))/(nrow(designmm)*max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm))))
@@ -722,7 +723,7 @@ gen_design = function(candidateset, model, trials,
 
   tryCatch({
     if(ncol(designmm) > 2) {
-      correlation.matrix = capture.output(abs(cov2cor(covarianceMatrix(designmm))[-1,-1]))
+      correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1,-1])
       colnames(correlation.matrix) = colnames(designmm)[-1]
       rownames(correlation.matrix) = colnames(designmm)[-1]
       attr(design,"correlation.matrix") = round(correlation.matrix,8)
@@ -745,7 +746,7 @@ gen_design = function(candidateset, model, trials,
     if(blocking) {
       attr(design,"optimalsearchvalues") = unlist(criteria)
     } else {
-      attr(design,"optimalsearchvalues") = unlist(criteria)^(1/ncol(designmm))/nrow(designmm)
+      attr(design,"optimalsearchvalues") = 100*unlist(criteria)^(1/ncol(designmm))/nrow(designmm)
     }
   }
   if(optimality == "A") {
@@ -755,7 +756,10 @@ gen_design = function(candidateset, model, trials,
       attr(design,"optimalsearchvalues") = 100/(nrow(designmm)*unlist(criteria)/ncol(designmm))
     }
   }
-  if(optimality %in% c("Alias","I","E","T","G")) {
+  if(optimality == "G") {
+    attr(design,"optimalsearchvalues") = 100*(ncol(designmm))/(nrow(designmm)*unlist(criteria))
+  }
+  if(optimality %in% c("Alias","I","E","T")) {
     attr(design,"optimalsearchvalues") = unlist(criteria)
   }
   attr(design,"bestiterations") = best

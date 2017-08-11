@@ -2,7 +2,7 @@
 % Please edit documentation in R/eval_design_mc.R
 \name{eval_design_mc}
 \alias{eval_design_mc}
-\title{Evaluates power for model matrix with a Monte Carlo simulation}
+\title{Monte Carlo Power Evaluation for Experimental Designs}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
@@ -10,45 +10,91 @@ eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE)
 }
 \arguments{
-\item{RunMatrix}{The run matrix of the design.}
+\item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
+to the range [-1, 1].}
 
-\item{model}{The model used in the evaluation.}
+\item{model}{The model used in evaluating the design. It can be a subset of the model used to
+generate the design, or include higher order effects not in the original design generation. It cannot include
+factors that are not present in the run matrix.}
 
 \item{alpha}{The type-I error.}
 
-\item{blocking}{Default FALSE. Set to TRUE if design has blocking structure.}
+\item{blocking}{If TRUE, \code{eval_design_mc} will look at the rownames to determine blocking structure. Default FALSE.}
 
-\item{nsim}{The number of simulations.}
+\item{nsim}{The number of simulations to perform.}
 
 \item{glmfamily}{String indicating the family of distribution for the glm function
-(e.g. "gaussian", "binomial", "poisson")}
+("gaussian", "binomial", "poisson", or "exponential").}
 
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
 
 \item{rfunction}{Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
-model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. typically something like rnorm(nrow(X), X * b + delta, 0)}
+model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 0).
+You only need to specify this if you do not like the default behavior described below.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the delta argument.}
+will be automatically generated based on the \code{delta} or \code{binomialprobs} arguments.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
-and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta.}
+\item{delta}{Loosely speaking, the signal-to-noise ratio. Default 2. For a gaussian model, and for
+continuous factors, this specifies the difference in response between the highest
+and lowest levels of a factor (which are +1 and -1 after normalization).
+More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
+half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.}
 
-\item{contrasts}{The contrasts to use for categorical factors. Defaults to contr.sum.}
+\item{contrasts}{The contrasts to use for categorical factors. Defaults to \code{contr.sum}.}
 
-\item{binomialprobs}{Default NULL. If the glm family is binomial, user should specify a length-two vector consisting of the base probability and the maximum expected probability given all the level settings in the experiment. As an example, if the user wants to detect at an increase in successes from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument}
+\item{binomialprobs}{If the glm family is binomial, user should specify
+a length-two vector consisting of the base probability and the maximum expected probability. Note that
+this effect size is applied to each parameter, so if you have many parameters the actual shift in probability
+across the design space can be much larger than this.
+As an example, if the user wants to detect at an
+change in success rate from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument.
+If this argument is used, the \code{anticoef} and \code{delta} arguments are ignored.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
 
-\item{detailedoutput}{Default FALSE. Returns additional information about evaluation in results.}
+\item{detailedoutput}{If TRUE, return additional information about evaluation in results.}
 }
 \value{
-A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are stored in the 'estimates' attribute.
+A data frame consisting of the parameters and their powers, with supplementary information
+stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
+attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
+also provides the encoding used for categorical factors. If you want to specify the anticipated
+coefficients manually, do so in the order the parameters appear in the model matrix.
 }
 \description{
-Evaluates design, given a run matrix, with a monte carlo simulation and returns
-a data frame of parameter and effect powers.
+Evaluates the power of an experimental design, given its run matrix and the
+statistical model to be fit to the data, using monte carlo simulation. Simulated data is fit using a
+generalized linear model
+and power is estimated by the fraction of times a parameter is significant. Returns
+a data frame of parameter powers.
+}
+\details{
+Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
+with a generalized linear model, and the fraction of simulations in which a parameter is
+significant is the estimate of power for that parameter.
+
+First, the random noise from blocking is generated with \code{rnorm}.
+Each block gets a single sample of Gaussian random noise, with a variance as specified in \code{varianceratios},
+and that sample is copied to each run in the block. Then, \code{rfunction} is called to generate a simulated
+response for each run of the design, and the data is fit using the appropriate fitting function.
+The functions used to simulate the data and fit it are determined by the \code{glmfamily}
+and \code{blocking} arguments
+as follows. Below, X is the model matrix, b is the anticipated coefficients, and d
+is a vector of blocking noise:
+
+\tabular{llrr}{
+\bold{glmfamily}      \tab \bold{blocking} \tab \bold{rfunction} \tab \bold{fit} \cr
+"gaussian"     \tab F        \tab \code{rnorm(mean = X \%*\% b + d, sd = 1)}        \tab \code{lm}         \cr
+"gaussian"     \tab T        \tab \code{rnorm(mean = X \%*\% b + d, sd = 1)}        \tab \code{lme4::lmer} \cr
+"binomial"     \tab F        \tab \code{rbinom(prob = 1/(1+exp(-(X \%*\% b + d))))} \tab \code{glm(family = "binomial")}  \cr
+"binomial"     \tab T        \tab \code{rbinom(prob = 1/(1+exp(-(X \%*\% b + d))))} \tab \code{lme4::glmer(family = "binomial")} \cr
+"poisson"      \tab F        \tab \code{rpois(lambda = exp((X \%*\% b + d)))}       \tab \code{glm(family = "poisson")}         \cr
+"poisson"      \tab T        \tab \code{rpois(lambda = exp((X \%*\% b + d)))}       \tab \code{lme4::glmer(family = "poisson")} \cr
+"exponential"  \tab F        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{glm(family = Gamma(link="log"))} \cr
+"exponential"  \tab T        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{lme4:glmer(family = Gamma(link="log"))} \cr
+}
 }
 \examples{
 #We first generate a full factorial design using expand.grid:
@@ -67,7 +113,7 @@ eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 
 #To evaluate this design with a Monte Carlo method, we enter the same information
 #used in eval_design, with the addition of the number of simulations "nsim" and the distribution
-#family used in fitting for the glm "glmfamily". For gaussian, binomial, expontial, and poisson
+#family used in fitting for the glm "glmfamily". For gaussian, binomial, exponential, and poisson
 #families, a default random generating function (rfunction) will be supplied. If another glm
 #family is used or the default random generating function is not adequate, a custom generating
 #function can be supplied by the user.
@@ -117,32 +163,35 @@ splitplotdesign = gen_design(candidateset=factorialcoffee2,
 #each split-plot level. This is equivalent to specifying a variance ratio of one between
 #the whole plots and the sub-plots for gaussian models.
 
-#Evaluate the design. Note the decreased power for the blocking factors. If
+#Evaluate the design. Note the decreased power for the blocking factors.
 eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
               nsim=100, glmfamily="gaussian", varianceratios = c(1,1))
 
 #We can also use this method to evaluate designs that cannot be easily
 #evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
-#if we can detect the difference between each factor changing whether an event
+#whether we can detect the difference between each factor changing whether an event occurs
 #70\% of the time or 90\% of the time.
 
 factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
 designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
 
-eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
               glmfamily="binomial")
 
 #We can also use this method to determine power for poisson response variables.
-#We design our test to detect if each factor changes the base rate of 0.2 by
-#a factor of 2. We generate the design:
+Generate the design:
 
 factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)
+designpois = gen_design(factorialpois, ~a+b, trials=70, optimality="D", repeats=100)
 
-eval_design_mc(designpois,~a+b,0.2,nsim=100,glmfamily="poisson", anticoef=c(log(0.2),log(2),log(2)))
+Evaluate the power:
 
-#where the anticipated coefficients are chosen to set the base rate at 0.2
-#(from the intercept) as well as how each factor changes the rate (a factor of 2, so log(2)).
-#We see here we need about 90 test events to get accurately distinguish the three different
-#rates in each factor to 90\% power.
+eval_design_mc(designpois, ~a+b, 0.05, nsim=1000, glmfamily="poisson",
+               anticoef=log(c(0.2, 2, 2)))
+
+
+The coefficients above set the nominal value -- that is, the expected count when all inputs = 0 -- to 0.2
+(from the intercept), and say that each factor changes this count by a factor of 4
+(multiplied by 2 when x= +1, and divided by 2 when x = -1). Note the use of log() in the anticipated
+coefficients.
 }

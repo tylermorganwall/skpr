@@ -2,49 +2,68 @@
 % Please edit documentation in R/eval_design.R
 \name{eval_design}
 \alias{eval_design}
-\title{Calculates Power Given a Run Matrix}
+\title{Calculate Power of an Experimental Design}
 \usage{
 eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
   delta = 2, varianceratios = 1, contrasts = contr.sum,
   conservative = FALSE, detailedoutput = FALSE)
 }
 \arguments{
-\item{RunMatrix}{The run matrix being evaluated.}
+\item{RunMatrix}{The run matrix being evaluated. Internally, \code{eval_design} rescales each numeric column
+to the range [-1, 1], so you do not need to do this scaling manually.}
 
 \item{model}{The model used in evaluating the design. It can be a subset of the model used to
-generate the design, or include higher order effects not in the original design generation.}
+generate the design, or include higher order effects not in the original design generation. It cannot include
+factors that are not present in the run matrix.}
 
 \item{alpha}{The specified type-I error.}
 
-\item{blocking}{Default FALSE. If TRUE, eval_design will look at the rownames to determine blocking structure.}
+\item{blocking}{If TRUE, \code{eval_design} will look at the rownames to determine blocking structure. Default FALSE.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the delta argument.}
+will be automatically generated based on the \code{delta} argument.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
-and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta. If you do specify anticoef, leave delta at its default of 2.}
+\item{delta}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
+difference between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
+normalizes the input data). If you do not specify \code{anticoef},
+the anticipated coefficients will be half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.}
 
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
 
-\item{contrasts}{A string specifying how to treat the contrasts in calculating the model matrix.}
+\item{contrasts}{The function to use to encode the categorical factors in the model matrix. Default \code{contr.sum}.}
 
-\item{conservative}{Default FALSE. Specifies whether default method for generating
+\item{conservative}{Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in a categorical factor's anticipated coefficients
-to zero.}
+estimate of power by setting all but one level in each categorical factor's anticipated coefficients
+to zero. Default FALSE.}
 
-\item{detailedoutput}{Default FALSE. Returns additional information about evaluation in results.}
+\item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
 }
 \value{
-A data frame with the parameters of the model, the type of power analysis, and the power.
+A data frame with the parameters of the model, the type of power analysis, and the power. Several
+design diagnostics are stored as attributes of the data frame. In particular,
+the \code{modelmatrix} attribute contains the model matrix that was used for power evaluation. This is
+especially useful if you want to specify the anticipated coefficients to use for power evaluation. The model
+matrix provides the order of the model coefficients, as well as the
+encoding used for categorical factors.
 }
 \description{
-Evaluates a design given a run matrix and returns
-a data frame of parameter and effect powers. Designs can
-consist of both continuous and categorical factors. Default
-assumes a signal-to-noise ratio of 2 (can be changed with the
-delta parameter).
+Evaluates the power of an experimental design, for normal response variables,
+given the design's run matrix and the statistical model to be fit to the data.
+Returns a data frame of parameter and effect powers. Designs can
+consist of both continuous and categorical factors. By default, \code{eval_design}
+assumes a signal-to-noise ratio of 2, but this can be changed with the
+\code{delta} or \code{anticoef} parameters.
+}
+\details{
+This function evaluates the power of experimental designs using standard theory
+as described in any DOE textbook. An accesible reference is "Optimal Design of
+Experiments: A Case Study Approach," by Goos and Jones (2011).
+
+When using \code{conservative = TRUE}, \code{eval_design} first evaluates the power with default coefficients. Then,
+for each multi-level categorical, it sets all coefficients to zero except the level that produced the lowest power,
+and then re-evaluates the power with this modified set of anticipated coefficients.
 }
 \examples{
 #Generating a simple 2x3 factorial to feed into our optimal design generation
@@ -56,7 +75,7 @@ optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimalit
 #Now evaluating that design (with default anticipated coefficients and a delta of 2):
 eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2)
 
-#Evaluating a subset of the design (changing the power due to a different number of
+#Evaluating a subset of the design (which changes the power due to a different number of
 #degrees of freedom)
 eval_design(RunMatrix=optdesign, model= ~A+C, alpha=0.2)
 
@@ -75,28 +94,29 @@ factorialcoffee = expand.grid(cost=c(1,2),
 designcoffee = gen_design(factorialcoffee,~cost + size + type,trials=29,optimality="D",repeats=100)
 
 #Evaluate the design, with default anticipated coefficients (conservative is FALSE by default).
-eval_design(designcoffee,model=~cost+size+type, alpha=0.05)
+#(Setting detailedoutput = T provides information on the anticipated coefficients that were used:)
+eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = T)
 
 #Evaluate the design, with conservative anticipated coefficients:
-eval_design(designcoffee,model=~cost+size+type, alpha=0.05,conservative=TRUE)
+eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = T, conservative=TRUE)
 
 #which is the same as the following, but now explicitly entering the coefficients:
-eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,1,0,0,1,0))
+eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,1,0,0,1,0), detailedoutput=T)
 
-#If the first level in a factor is not the one that you want to set to one
-#in the conservative calculation, enter the anticipated coefficients in manually.
+
+#If the defaults do not suit you, enter the anticipated coefficients in manually.
 eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,0,1))
 
-#You can also evaluate the design with higher order effects:
+#You can also evaluate the design with higher order effects, even if they were not used in design generation:
 eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 
 #Split plot designs can also be evaluated by setting the blocking parameter as TRUE.
 
 #Generating split plot design
 splitfactorialcoffee = expand.grid(caffeine=c(1,-1),
-                             cost=c(1,2),
-                             type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
-                             size=as.factor(c("Short","Grande","Venti")))
+                                   cost=c(1,2),
+                                   type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
+                                   size=as.factor(c("Short","Grande","Venti")))
 
 coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials=12)
 coffeefinaldesign = gen_design(splitfactorialcoffee, model=~caffeine+cost+size+type,trials=36,

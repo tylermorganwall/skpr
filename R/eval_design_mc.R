@@ -269,6 +269,9 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
   if(!is.null(binomialprobs)) {
     if (glmfamilyname == "binomial") {
+      if (any(binomialprobs < 0) || any(binomialprobs > 1)) {
+        stop("binomialprobs must be between 0 and 1")
+      }
       anticoef = gen_binomial_anticoef(gen_anticoef(RunMatrixReduced, model),
                                      binomialprobs[1],binomialprobs[2]) #ignore delta argument
     }

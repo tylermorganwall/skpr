@@ -1,81 +1,88 @@
-#'@title Generates the optimal run matrix from candidate set, model, optimality criterion,
-#'and desired number of runs.
+#'@title Generate optimal experimental designs
 #'
-#'@description Creates design given a model and desired number of runs, returning the model matrix. Currently
-#'Used with eval_design/eval_design_mc to produce power estimations for designs.
+#'@description Creates an experimental design given a model, desired number of runs, and a data frame of candidate
+#'test points. \code{gen_design} chooses points from the candidate set and returns a design that is optimal for the given
+#'statistical model.
 #'
-#'@param candidateset A data frame of candidate test points. Usually this is a full factorial test matrix
-#'generated for the factors in the model, but if you have disallowed combinations then make sure the candidate list
-#'is consistent with them (e.g. by generating a full factorial and then removing disallowed combinations). If
-#'the factor is continuous, it should be type numeric. If the factor is categorical, it should be
-#'set as a factor.
-#'@param model The model used to generate the test design.
+#'@param candidateset A data frame of candidate test points; each run of the optimal design will be chosen (with replacement)
+#'from this candidate set. Each row of the data frame is a candidate test point, with factor settings indicated in each column.
+#'No repeated rows allowed! Usually this is a full factorial test matrix
+#'generated for the factors in the model, but if you have disallowed combinations then make sure the candidate set
+#'is consistent with them (e.g. by generating a full factorial and then removing disallowed combinations).
+#'If a factor is continuous, its column should be type \code{numeric}. If a factor is categorical, its column should be type \code{factor}.
+#'@param model The statistical model used to generate the test design.
 #'@param trials The number of runs in the design.
-#'@param splitplotdesign For a split-plot design, this is the design for all of the factors harder to change
-#'than the current set of factors. These rows are replicated to the specified size for each block
-#'(given in the argument splitplotsizes) and the optimal design is found for all of the factors given in the
-#'candidateset argument, taking into consideration the fixed and replicated hard-to-change factors.
+#'@param splitplotdesign If NULL, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
+#'this argument specifies the design for
+#'all of the factors harder to change than the current set of factors.
+#'Each row corresponds to a block in which the harder to change factors will be held
+#'constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{splitplotsizes},
+#'and the optimal design is found for all of the factors given in the
+#'\code{model} argument, taking into consideration the fixed and replicated hard-to-change factors.
 #'@param splitplotsizes Specifies the block size for each row of harder-to-change factors given in the
-#'argument splitplotdesign. If the input is a vector, each entry of the vector determines the size of the sub-plot
-#'for that whole plot setting. If the input is an integer, it generates a balanced design with equal-sized blocks.
+#'argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
+#'for that whole plot setting. If the input is an integer, each block will be of this size.
 #'@param optimality Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-#'only supports the D, I, A, and E criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E"
-#'@param repeats The number of times to repeat the search for the best optimal condition. If missing, this defaults to 10.
-#'@param varianceratio Default 1. The ratio between the interblock and intra-block variance for a given stratum in
-#'a split plot design.
-#'@param contrast Function used to generate the contrasts encoding for categorical variables. Default contr.simplex.
-#'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
-#'@param minDopt Default 0.95. Minimum value for the D-Optimality of a design when searching for alias optimal designs.
-#'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up, for complex designs.
-#'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
-#'@param splitcolumns Default FALSE. If TRUE, will convert row name split-plot structure to columns to output the design in a ready-to-analyze format. If no blocking is detected, no columns will be added.
-#'@return The optimal design. Attributes can be accessed with the attr function.
+#'only supports the "D", "I", "A", and "E" criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E".
+#'@param repeats The number of times to repeat the search for the best optimal design. Default 10.
+#'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
+#'a split plot design. Default 1.
+#'@param contrast Function used to generate the encoding for categorical variables. Default contr.simplex.
+#'@param aliaspower Degree of interactions to be used in calculating the alias matrix for alias optimal designs. Default 2.
+#'@param minDopt Minimum value for the D-Optimality of a design when searching for alias optimal designs. Default 0.95.
+#'@param parallel If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. Default FALSE.
+#'@param timer If TRUE, will print an estimate of the optimal design search time. Default FALSE.
+#'@param splitcolumns The blocking structure of the design will be indicated in the row names of the returned
+#'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added. Default FALSE.
+#'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
+#'information in its attributes, which can be accessed with the attr function.
 #'@export
-#'@examples #Generate the basic factorial design used in generating the optimal design with expand.grid.
-#'#Generating a basic 2 factor design:
-#'basicdesign = expand.grid(x1=c(-1,1), x2=c(-1,1))
+#'@details
+#'Split-plot designs can be generated with repeated applications of \code{gen_design}; see examples for details.
+#'@examples #Generate the basic factorial candidate set with expand.grid.
+#'#Generating a basic 2 factor candidate set:
+#'basic_candidates = expand.grid(x1=c(-1,1), x2=c(-1,1))
 #'
 #'#This candidate set is used as an input in the optimal design generation for a
 #'#D-optimal design with 11 runs.
-#'design = gen_design(candidateset=basicdesign, model=~x1+x2, trials=11)
+#'design = gen_design(candidateset=basic_candidates, model=~x1+x2, trials=11)
 #'
-#'#We can also use the dot operator to automatically use all of the terms in the model:
-#'design = gen_design(candidateset=basicdesign, model=~., trials=11)
+#'#We can also use the dot formula to automatically use all of the terms in the model:
+#'design = gen_design(candidateset=basic_candidates, model=~., trials=11)
 #'
 #'#Here we add categorical factors, specified by using "as.factor" in expand.grid:
-#'categoricaldesign = expand.grid(a=c(-1,1), b=as.factor(c("A","B")),
-#'                                c=as.factor(c("High","Med","Low")))
+#'categorical_candidates = expand.grid(a=c(-1,1),
+#'                                      b=as.factor(c("A","B")),
+#'                                      c=as.factor(c("High","Med","Low")))
 #'
 #'#This candidate set is used as an input in the optimal design generation.
-#'design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19)
+#'design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=19)
 #'
 #'#We can also increase the number of times the algorithm repeats
 #'#the search to increase the probability that the globally optimal design was found.
-#'design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c, trials=19, repeats=100)
+#'design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=19, repeats=100)
 #'
 #'#You can also use a higher order model when generating the design:
-#'design2 = gen_design(candidateset=categoricaldesign, model=~a+b+c+a*b*c, trials=12)
+#'design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c+a*b*c, trials=12)
 #'
 #'#To evaluate a response surface design, include center points
-#'#in the candidate set and do not include
-#'#quadratic effects with categorical factors.
+#'#in the candidate set and include quadratic effects (but not for the categorical factors).
 #'
-#'designquad = expand.grid(a=c(1,0,-1), b=c(-1,0,1), c=c("A","B","C"))
+#'quad_candidates = expand.grid(a=c(1,0,-1), b=c(-1,0,1), c=c("A","B","C"))
 #'
-#'gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20)
+#'gen_design(quad_candidates, ~a+b+I(a^2)+I(b^2)+a*b*c, 20)
 #'
 #'#The optimality criterion can also be changed:
-#'gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="I")
-#'gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="A")
+#'gen_design(quad_candidates, ~a+b+I(a^2)+I(b^2)+a*b*c, 20, optimality="I")
+#'gen_design(quad_candidates, ~a+b+I(a^2)+I(b^2)+a*b*c, 20, optimality="A")
 #'
 #'#A split-plot design can be generated by first generating an optimal blocking design using the
-#'#hard-to-change factors and then using that as the input for the split-plots design.
+#'#hard-to-change factors and then using that as the input for the split-plot design.
 #'#This generates an optimal subplot design that accounts for the existing split-plot settings.
-#'#See the accompannying paper "___________" for details of the implementation.
 #'
 #'splitplotcandidateset = expand.grid(Altitude=c(-1,1),
-#'                                    Range=as.factor(c("Close","Medium","Far")),
-#'                                    Power=c(1,-1))
+#'                                     Range=as.factor(c("Close","Medium","Far")),
+#'                                     Power=c(1,-1))
 #'hardtochangedesign = gen_design(candidateset = splitplotcandidateset, model=~Altitude, trials=11)
 #'
 #'#Now we can use the D-optimal blocked design as an input to our full design.
@@ -87,37 +94,44 @@
 #'#sum of all of the block sizes or else the program will throw an error.
 #'
 #'#Since we have 11 runs in our hard-to-change design, we need a vector
-#'#specifying the size of each 11 runs. Here we specify the blocks be three runs each
+#'#specifying the size of each of the 11 blocks. Here we specify the blocks should be three runs each
 #'#(meaning the final design will be 33 runs):
 #'
 #'splitplotblocksize = rep(3,11)
 #'
 #'#Putting this all together:
 #'designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trials=33,
-#'                             splitplotdesign=hardtochangedesign,
-#'                             splitplotsizes = splitplotblocksize)
+#'                              splitplotdesign=hardtochangedesign,
+#'                              splitplotsizes=splitplotblocksize)
 #'
 #'#The split-plot structure is encoded into the row names, with a period
 #'#demarcating the blocking level. This process can be repeated for arbitrary
 #'#levels of blocking (i.e. a split-plot design can be entered in as the hard-to-change
 #'#to produce a split-split-plot design, which can be passed as another
 #'#hard-to-change design to produce a split-split-split plot design, etc).
+#'#In the following, note that the model builds up as we build up split plot strata.
 #'
-#'splitplotcandidateset2 = expand.grid(Location=as.character(c("East","West")),
-#'                                  Climate = as.factor(c("Dry","Wet","Arid")),
-#'                                  Vineyard = as.factor(c("A","B","C","D")),
-#'                                  Age = c(1,-1))
+#'splitplotcandidateset2 = expand.grid(Location = as.factor(c("East","West")),
+#'                                      Climate = as.factor(c("Dry","Wet","Arid")),
+#'                                      Vineyard = as.factor(c("A","B","C","D")),
+#'                                      Age = c(1,-1))
+#'#6 blocks of \code{Location}:
+#'temp = gen_design(splitplotcandidateset2, ~Location, trials=6,varianceratio=2)
 #'
-#'gen_design(splitplotcandidateset2, ~Location, trials=6,varianceratio=2) -> temp
-#'gen_design(splitplotcandidateset2, ~Location+Climate,
-#'           trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),
-#'           varianceratio=1) -> temp
-#'gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard,
-#'           trials=48, splitplotdesign = temp, splitplotsizes = rep(4,12),
-#'           varianceratio=1) -> temp
-#'gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard+Age,
-#'          trials=192, splitplotdesign = temp, splitplotsizes = rep(4,48),
-#'           varianceratio=1) -> splitsplitsplitplotdesign
+#'#Each \code{Location} block has 2 blocks of \code{climate}:
+#'temp = gen_design(splitplotcandidateset2, ~Location+Climate,
+#'                   trials=12, splitplotdesign = temp, splitplotsizes=2,
+#'                   varianceratio=1)
+#'
+#'#Each \code{climate} block has 4 blocks of \code{Vineyard}:
+#'temp = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard,
+#'                   trials=48, splitplotdesign = temp, splitplotsizes = 4,
+#'                   varianceratio=1)
+#'
+#'#Each \code{Vineyard} block has 4 runs with different \code{Age}:
+#'splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard+Age,
+#'                                        trials=192, splitplotdesign = temp, splitplotsizes = 4,
+#'                                        varianceratio=1, splitcolumns=T)
 #'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'

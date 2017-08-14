@@ -10,47 +10,65 @@ eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE, ...)
 }
 \arguments{
-\item{RunMatrix}{The run matrix of the design.}
+\item{RunMatrix}{The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].}
 
-\item{model}{The model used in the evaluation.}
+\item{model}{The statistical model used to fit the data.}
 
 \item{alpha}{The type-I error.}
 
-\item{nsim}{Default 1000. The number of simulations.}
+\item{nsim}{The number of simulations. Default 1000.}
 
-\item{distribution}{Default "gaussian". Distribution of survival function.}
+\item{distribution}{Distribution of survival function to use when fitting the data. Valid choices are described
+in the documentation for \code{survreg}. \emph{Supported} options are
+"exponential", "lognormal", or "gaussian". Default "gaussian".}
 
-\item{censorpoint}{Default NA for no censoring. The point after/before (for right censored or left censored data, respectively)
-which data should be labelled as censored.}
+\item{censorpoint}{The point after/before (for right-censored or left-censored data, respectively)
+which data should be labelled as censored. Default NA for no censoring.}
 
-\item{censortype}{Default "right". The type of censoring (either "left" or "right")}
+\item{censortype}{The type of censoring (either "left" or "right"). Default "right".}
 
-\item{rfunctionsurv}{Default NULL. Random number generator function. Should be a function of the form f(X,b), where X is the
-model matrix and b are the anticipated coefficients. This function should return a Surv object from
-the survival package. This is available if the user wants to add their own distribution not interally supported
-or modify the existing random generation functions.}
+\item{rfunctionsurv}{Random number generator function. Should be a function of the form f(X,b), where X is the
+model matrix and b are the anticipated coefficients. This function should return a \code{Surv} object from
+the \code{survival} package. You do not need to provide this argument if \code{distribution} is one of
+the supported choices and you are satisfied with the default behavior described below.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the delta argument.}
+will be automatically generated based on the \code{delta} argument.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. This specifies the difference between the high
-and low levels. If you do not specify anticoef, the anticipated coefficients will be half of delta}
+\item{delta}{The signal-to-noise ratio. For a gaussian model, this specifies the difference in
+response between the highest and lowest levels of a factor (which are +1 and -1, respectively, after normalization).
+If you do not specify \code{anticoef}, the anticipated coefficients will be half of \code{delta}. Default 2.}
 
-\item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default contr.sum.}
+\item{contrasts}{Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.}
 
-\item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation of power.}
+\item{parallel}{If TRUE, uses all cores available to speed up computation of power. Default FALSE.}
 
-\item{detailedoutput}{Default FALSE. Returns additional information about evaluation in results.}
+\item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
 
-\item{...}{Any additional arguments to be input into the survreg function during fitting.}
+\item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }
 \value{
 A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
-stored in the 'estimates' attribute.
+stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
+categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
 }
 \description{
-Evaluates power for a right censored survival design with a Monte Carlo simulation,
-using the survival package and survreg to fit the data.
+Evaluates power for an experimental design in which the response variable may be
+right- or left-censored. Power is evaluated with a Monte Carlo simulation,
+using the \code{survival} package and \code{survreg} to fit the data. Split-plot designs are not supported.
+}
+\details{
+If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
+argument as follows:
+\tabular{lr}{
+\bold{distribution}  \tab \bold{generating function} \cr
+"gaussian"                  \tab \code{rnorm(mean = X \%*\% b, sd=1)}           \cr
+"exponential"               \tab \code{rexp(rate = exp(-X \%*\% b))}           \cr
+"lognormal"                 \tab \code{rlnorm(meanlog= X \%*\% b, sdlog=1)}           \cr
+}
+
+In each case, if a simulated data point is past the censorpoint (greater than for right-censored, less than for
+left-censored) it is marked as censored. See the examples below for how to construct your own function.
 }
 \examples{
 #These examples focus on the survival analysis case and assume familiarity

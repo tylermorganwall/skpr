@@ -1,27 +1,33 @@
-#'@title Evaluates power for model matrix with a Monte Carlo simulation for a user supplied library
+#'@title Monte Carlo power evaluation for experimental designs with user-supplied libraries
 #'
-#'@description Evaluates design given a model matrix with a monte carlo simulation and returns
-#'a data frame of parameter powers. Currently only works with linear, non-interacting models.
+#'@description Evaluates the power of an experimental design, given its run matrix and the
+#'statistical model to be fit to the data, using monte carlo simulation. Simulated data is fit using a
+#'user-supplied fitting library and power is estimated by the fraction of times a parameter is significant. Returns
+#'a data frame of parameter powers.
 #'
-#'@param RunMatrix The run matrix of the design.
-#'@param model The model used in the evaluation.
+#'@param RunMatrix The run matrix of the design. Internally, \code{eval_design_custom_mc} rescales each numeric column
+#'to the range [-1, 1].
+#'@param model The statistical model used to fit the data.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations.
 #'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
 #'model matrix and b are the anticipated coefficients.
-#'@param fitfunction Function from library used to evaluate fit. Should be of the form f(formula, X, contrasts)
+#'@param fitfunction Function used to fit the data. Should be of the form f(formula, X, contrasts)
 #'where X is the model matrix. If contrasts do not need to be specified for the user supplied
 #'library, that argument can be ignored.
-#'@param pvalfunction Function that returns a vector of pvals from the object returned from the fitfunction.
+#'@param pvalfunction Function that returns a vector of p-values from the object returned from the fitfunction.
 #'@param coef_function Function that, when applied to a fitfunction return object, returns the estimated coefficients.
 #'@param parameternames Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 #'(e.g. coefficients from an MLE fit).
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
-#'automatically generated.
-#'@param delta The signal-to-noise ratio. Default 2. This specifies the difference between the high and low levels.
-#'Anticipated coefficients will be half of this number.
-#'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default contr.sum.
-#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation of power.
+#'automatically generated based on \code{delta}.
+#'@param delta Loosely speaking, the signal-to-noise ratio. Default 2. For a gaussian model, and for
+#'continuous factors, this specifies the difference in response between the highest
+#'and lowest levels of a factor (which are +1 and -1 after normalization).
+#'More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
+#'half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.
+#'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default \code{contr.sum}.
+#'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
@@ -81,7 +87,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
-    if(class(RunMatrix[,column]) == "numeric") {
+    if(is.numeric(RunMatrix[,column])) {
       midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
       RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
     }

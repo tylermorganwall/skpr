@@ -281,7 +281,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     typevector = rep("effect.power",length(effectresults))
     namevector = colnames(attr(RunMatrix,"modelmatrix"))
 
-    results = data.frame(parameters = namevector, type = typevector, power = effectresults)
+    results = data.frame(parameter = namevector, type = typevector, power = effectresults)
 
     attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
     attr(results, "anticoef") = anticoef
@@ -338,7 +338,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     namevector = c(effectnamevector,parameternamevector)
     powervector = c(effectresults,parameterresults)
 
-    results = data.frame(parameters = namevector, type = typevector, power = powervector)
+    results = data.frame(parameter = namevector, type = typevector, power = powervector)
 
     if(length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")

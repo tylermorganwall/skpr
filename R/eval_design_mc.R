@@ -483,7 +483,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #output the results (tidy data format)
-  retval = data.frame(parameters=parameter_names,
+  retval = data.frame(parameter=parameter_names,
                     type="parameter.power.mc",
                     power=power_values)
   attr(retval, "modelmatrix") = ModelMatrix

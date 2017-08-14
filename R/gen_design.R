@@ -425,7 +425,9 @@ gen_design = function(candidateset, model, trials,
     if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
       stop(paste("The candidateset does not support the specified model - its rank is too low.",
                  "This usually happens if disallowed combinations",
-                 "have introduced a perfect correlation between some variables in the candidate set."))
+                 "have introduced a perfect correlation between some variables in the candidate set.",
+                 "It can also happen if you have specified a quadratic model term but have only two levels",
+                 "of that factor in the candidate set."))
     }
   }
   if(optimality %in% c("Alias","G","T") && !is.null(splitplotdesign)) {

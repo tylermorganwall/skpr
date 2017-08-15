@@ -49,7 +49,7 @@ skprGUI provides an graphical user interface to access all of the main features 
 library(skpr)
 
 #Generate a candidate set of all potential design points to be considered in the experiment
-#The hypothetical experiment here is determining what affects caffiene content in coffee
+#The hypothetical experiment is determining what affects the caffeine content in coffee
 candidate_set = expand.grid(temp = c(80,90,100), 
                             type = c("Kona","Java"),
                             beansize = c("Large","Medium","Small"))

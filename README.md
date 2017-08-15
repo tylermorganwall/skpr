@@ -2,7 +2,7 @@
 Overview
 --------
 
-skpr is an open source design of experiments suite for generating and evaluating optimal designs in R. skpr provides a set of easy-to-use functions to generate optimal designs,
+**skpr** is an open source design of experiments suite for generating and evaluating optimal designs in R. Here is a sampling of what skpr offers:
 
 -   Generates and evaluates D, I, A, Alias, E, T, and G optimal designs.
 -   Supports generation and evaluation of split/split-split/.../N-split plot designs.
@@ -28,9 +28,9 @@ If addition, the package offers two functions to generate common plots related t
 skprGUI
 -------
 
-skprGUI provides an graphical user interface to access all of the main features of skpr. An interactive tutorial is provided to familiarize the user with the available functionality. Type `skprGUI()` or `skprGUIbrowser()` to begin.
+skprGUI provides an graphical user interface to access all of the main features of skpr. An interactive tutorial is provided to familiarize the user with the available functionality. Type `skprGUI()` or `skprGUIbrowser()` to begin. Screenshots:
 
-<img src="man/figures/skprGUIcomp2.png" align="center"></img>
+<img src="man/figures/skprGUIcomp.png" align="center"></img>
 
 Usage
 -----
@@ -72,18 +72,18 @@ design = gen_design(candidateset = candidate_set,
 
 design
 #>    temp type beansize
-#> 1    80 Kona    Large
-#> 2   100 Java    Large
-#> 3    80 Kona    Small
-#> 4    80 Java   Medium
-#> 5   100 Kona   Medium
-#> 6   100 Java    Small
-#> 7    80 Java   Medium
-#> 8    80 Kona    Small
-#> 9    80 Java    Large
-#> 10  100 Kona   Medium
-#> 11  100 Java    Small
-#> 12  100 Kona    Large
+#> 1    80 Java    Small
+#> 2    80 Kona    Small
+#> 3   100 Kona    Large
+#> 4   100 Kona   Medium
+#> 5   100 Java   Medium
+#> 6   100 Java    Large
+#> 7   100 Java    Small
+#> 8    80 Java    Large
+#> 9    80 Kona    Large
+#> 10  100 Kona    Small
+#> 11   80 Java   Medium
+#> 12   80 Kona   Medium
 
 #Evaluate power for the design with an allowable type-I error of 5%
 eval_design(RunMatrix = design,
@@ -107,11 +107,11 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                delta=1.5)
 #>     parameter               type power
-#> 1 (Intercept) parameter.power.mc 0.619
-#> 2        temp parameter.power.mc 0.605
-#> 3       type1 parameter.power.mc 0.630
-#> 4   beansize1 parameter.power.mc 0.355
-#> 5   beansize2 parameter.power.mc 0.352
+#> 1 (Intercept) parameter.power.mc 0.617
+#> 2        temp parameter.power.mc 0.596
+#> 3       type1 parameter.power.mc 0.588
+#> 4   beansize1 parameter.power.mc 0.341
+#> 5   beansize2 parameter.power.mc 0.342
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
@@ -121,13 +121,12 @@ eval_design_mc(RunMatrix = design,
                glmfamily = "poisson",
                alpha=0.05,
                delta=log(8/2))
-#> Warning: glm.fit: fitted rates numerically 0 occurred
 #>     parameter               type  power
-#> 1 (Intercept) parameter.power.mc 0.6282
-#> 2        temp parameter.power.mc 0.9646
-#> 3       type1 parameter.power.mc 0.9648
-#> 4   beansize1 parameter.power.mc 0.8954
-#> 5   beansize2 parameter.power.mc 0.6622
+#> 1 (Intercept) parameter.power.mc 0.6394
+#> 2        temp parameter.power.mc 0.9864
+#> 3       type1 parameter.power.mc 0.9866
+#> 4   beansize1 parameter.power.mc 0.9164
+#> 5   beansize2 parameter.power.mc 0.7100
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
@@ -138,12 +137,12 @@ expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","
   gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") %>%
   eval_design_mc(model = ~temp + type + beansize + beansize:type + I(temp^2), alpha=0.05)
 #>         parameter               type power
-#> 1     (Intercept) parameter.power.mc 0.899
-#> 2            temp parameter.power.mc 0.895
-#> 3           type1 parameter.power.mc 0.995
-#> 4       beansize1 parameter.power.mc 0.894
-#> 5       beansize2 parameter.power.mc 0.893
-#> 6       I(temp^2) parameter.power.mc 0.630
-#> 7 type1:beansize1 parameter.power.mc 0.893
-#> 8 type1:beansize2 parameter.power.mc 0.898
+#> 1     (Intercept) parameter.power.mc 0.895
+#> 2            temp parameter.power.mc 0.903
+#> 3           type1 parameter.power.mc 0.994
+#> 4       beansize1 parameter.power.mc 0.904
+#> 5       beansize2 parameter.power.mc 0.915
+#> 6       I(temp^2) parameter.power.mc 0.634
+#> 7 type1:beansize1 parameter.power.mc 0.912
+#> 8 type1:beansize2 parameter.power.mc 0.896
 ```

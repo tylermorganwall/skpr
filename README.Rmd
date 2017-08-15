@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-skpr is an open source design of experiments suite for generating and evaluating optimal designs in R. skpr provides a set of easy-to-use functions to generate optimal designs,
+**skpr** is an open source design of experiments suite for generating and evaluating optimal designs in R. Here is a sampling of what skpr offers: 
 
 * Generates and evaluates D, I, A, Alias, E, T, and G optimal designs. 
 * Supports generation and evaluation of split/split-split/.../N-split plot designs. 

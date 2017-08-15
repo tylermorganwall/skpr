@@ -29,12 +29,12 @@ knitr::opts_chunk$set(
 * `eval_design_mc()` evaluates power with a Monte Carlo simulation, for linear and generalized linear models. This function also supports calculating power for split-plot designs using REML. 
 * `eval_design_survival_mc()` evaluates power with a Monte Carlo simulation, allowing the user to specify a point at which the data is censored.
 * `eval_design_custom_mc()` allows the user to import their own libraries and use the Monte Carlo framework provided by skpr to calculate power.
-* `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R Studio and an external browser.
+* `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R Studio or an external browser.
 
 If addition, the package offers two functions to generate common plots related to designs:
 
-* `plot_correlations()` generates a color map of correlations between variables
-* `plot_fds()` generates the fraction of design space plot for a given design
+* `plot_correlations()` generates a color map of correlations between variables.
+* `plot_fds()` generates the fraction of design space plot for a given design.
 
 ##skprGUI
  

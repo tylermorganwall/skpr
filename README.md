@@ -18,12 +18,12 @@ Functions
 -   `eval_design_mc()` evaluates power with a Monte Carlo simulation, for linear and generalized linear models. This function also supports calculating power for split-plot designs using REML.
 -   `eval_design_survival_mc()` evaluates power with a Monte Carlo simulation, allowing the user to specify a point at which the data is censored.
 -   `eval_design_custom_mc()` allows the user to import their own libraries and use the Monte Carlo framework provided by skpr to calculate power.
--   `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R Studio and an external browser.
+-   `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R Studio or an external browser.
 
 If addition, the package offers two functions to generate common plots related to designs:
 
--   `plot_correlations()` generates a color map of correlations between variables
--   `plot_fds()` generates the fraction of design space plot for a given design
+-   `plot_correlations()` generates a color map of correlations between variables.
+-   `plot_fds()` generates the fraction of design space plot for a given design.
 
 skprGUI
 -------
@@ -39,7 +39,7 @@ Usage
 library(skpr)
 
 #Generate a candidate set of all potential design points to be considered in the experiment
-#The hypothetical experiment here is determining what affects caffiene content in coffee
+#The hypothetical experiment is determining what affects the caffeine content in coffee
 candidate_set = expand.grid(temp = c(80,90,100), 
                             type = c("Kona","Java"),
                             beansize = c("Large","Medium","Small"))
@@ -72,18 +72,18 @@ design = gen_design(candidateset = candidate_set,
 
 design
 #>    temp type beansize
-#> 1    80 Java    Small
-#> 2    80 Kona    Small
-#> 3   100 Kona    Large
-#> 4   100 Kona   Medium
-#> 5   100 Java   Medium
-#> 6   100 Java    Large
-#> 7   100 Java    Small
-#> 8    80 Java    Large
-#> 9    80 Kona    Large
-#> 10  100 Kona    Small
-#> 11   80 Java   Medium
-#> 12   80 Kona   Medium
+#> 1    80 Kona    Large
+#> 2   100 Kona    Large
+#> 3   100 Java    Large
+#> 4   100 Java   Medium
+#> 5    80 Kona    Small
+#> 6    80 Kona   Medium
+#> 7   100 Kona    Small
+#> 8    80 Java   Medium
+#> 9   100 Kona   Medium
+#> 10  100 Java    Small
+#> 11   80 Java    Small
+#> 12   80 Java    Large
 
 #Evaluate power for the design with an allowable type-I error of 5%
 eval_design(RunMatrix = design,
@@ -107,11 +107,11 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                delta=1.5)
 #>     parameter               type power
-#> 1 (Intercept) parameter.power.mc 0.617
-#> 2        temp parameter.power.mc 0.596
-#> 3       type1 parameter.power.mc 0.588
-#> 4   beansize1 parameter.power.mc 0.341
-#> 5   beansize2 parameter.power.mc 0.342
+#> 1 (Intercept) parameter.power.mc 0.619
+#> 2        temp parameter.power.mc 0.620
+#> 3       type1 parameter.power.mc 0.599
+#> 4   beansize1 parameter.power.mc 0.324
+#> 5   beansize2 parameter.power.mc 0.354
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
@@ -122,11 +122,11 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                delta=log(8/2))
 #>     parameter               type  power
-#> 1 (Intercept) parameter.power.mc 0.6394
-#> 2        temp parameter.power.mc 0.9864
-#> 3       type1 parameter.power.mc 0.9866
-#> 4   beansize1 parameter.power.mc 0.9164
-#> 5   beansize2 parameter.power.mc 0.7100
+#> 1 (Intercept) parameter.power.mc 0.6318
+#> 2        temp parameter.power.mc 0.9848
+#> 3       type1 parameter.power.mc 0.9826
+#> 4   beansize1 parameter.power.mc 0.9142
+#> 5   beansize2 parameter.power.mc 0.7110
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
@@ -137,12 +137,12 @@ expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","
   gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") %>%
   eval_design_mc(model = ~temp + type + beansize + beansize:type + I(temp^2), alpha=0.05)
 #>         parameter               type power
-#> 1     (Intercept) parameter.power.mc 0.895
-#> 2            temp parameter.power.mc 0.903
-#> 3           type1 parameter.power.mc 0.994
-#> 4       beansize1 parameter.power.mc 0.904
-#> 5       beansize2 parameter.power.mc 0.915
-#> 6       I(temp^2) parameter.power.mc 0.634
-#> 7 type1:beansize1 parameter.power.mc 0.912
-#> 8 type1:beansize2 parameter.power.mc 0.896
+#> 1     (Intercept) parameter.power.mc 0.901
+#> 2            temp parameter.power.mc 0.895
+#> 3           type1 parameter.power.mc 0.996
+#> 4       beansize1 parameter.power.mc 0.883
+#> 5       beansize2 parameter.power.mc 0.894
+#> 6       I(temp^2) parameter.power.mc 0.620
+#> 7 type1:beansize1 parameter.power.mc 0.895
+#> 8 type1:beansize2 parameter.power.mc 0.898
 ```

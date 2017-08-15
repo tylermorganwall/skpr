@@ -7,7 +7,8 @@
 eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
   distribution = "gaussian", censorpoint = NA, censortype = "right",
   rfunctionsurv = NULL, anticoef = NULL, delta = 2,
-  contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE, ...)
+  contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
+  progressBarUpdater = NULL, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].}
@@ -44,6 +45,8 @@ If you do not specify \code{anticoef}, the anticipated coefficients will be half
 \item{parallel}{If TRUE, uses all cores available to speed up computation of power. Default FALSE.}
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
+
+\item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }
@@ -98,7 +101,7 @@ rlognorm = function(X, b) {
  Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
  censored = Y > 1.2
  Y[censored] = 1.2
- return(Surv(time=Y, event=!censored, type="right"))
+ return(survival::Surv(time=Y, event=!censored, type="right"))
 }
 
 #Any additional arguments are passed into the survreg function call.  As an example, you

@@ -5,10 +5,9 @@
 #'statistical model.
 #'
 #'@param candidateset A data frame of candidate test points; each run of the optimal design will be chosen (with replacement)
-#'from this candidate set. Each row of the data frame is a candidate test point, with factor settings indicated in each column.
-#'No repeated rows allowed! Usually this is a full factorial test matrix
-#'generated for the factors in the model, but if you have disallowed combinations then make sure the candidate set
-#'is consistent with them (e.g. by generating a full factorial and then removing disallowed combinations).
+#'from this candidate set. Each row of the data frame is a candidate test point. Each row should be unique.
+#'Usually this is a full factorial test matrix generated for the factors in the model unless there are disallowed combinations of runs.
+#'Disallowed combinations can be specified by simply removing them from the candidate set.
 #'If a factor is continuous, its column should be type \code{numeric}. If a factor is categorical, its column should be type \code{factor}.
 #'@param model The statistical model used to generate the test design.
 #'@param trials The number of runs in the design.
@@ -34,6 +33,7 @@
 #'@param timer If TRUE, will print an estimate of the optimal design search time. Default FALSE.
 #'@param splitcolumns The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added. Default FALSE.
+#'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update external progress bar.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the attr function.
 #'@export
@@ -115,29 +115,33 @@
 #'                                      Climate = as.factor(c("Dry","Wet","Arid")),
 #'                                      Vineyard = as.factor(c("A","B","C","D")),
 #'                                      Age = c(1,-1))
-#'#6 blocks of \code{Location}:
+#'#6 blocks of Location:
 #'temp = gen_design(splitplotcandidateset2, ~Location, trials=6,varianceratio=2)
 #'
-#'#Each \code{Location} block has 2 blocks of \code{climate}:
+#'#Each Location block has 2 blocks of Climate:
 #'temp = gen_design(splitplotcandidateset2, ~Location+Climate,
 #'                   trials=12, splitplotdesign = temp, splitplotsizes=2,
 #'                   varianceratio=1)
 #'
-#'#Each \code{climate} block has 4 blocks of \code{Vineyard}:
+#'#Each Climate block has 4 blocks of Vineyard:
 #'temp = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard,
 #'                   trials=48, splitplotdesign = temp, splitplotsizes = 4,
 #'                   varianceratio=1)
 #'
-#'#Each \code{Vineyard} block has 4 runs with different \code{Age}:
+#'#Each Vineyard block has 4 runs with different Age:
 #'splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard+Age,
 #'                                        trials=192, splitplotdesign = temp, splitplotsizes = 4,
-#'                                        varianceratio=1, splitcolumns=T)
+#'                                        varianceratio=1, splitcolumns=TRUE)
 #'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'
 #'attr(design,"D") #D-Efficiency
 #'attr(design,"A") #A-Efficiency
 #'attr(design,"I") #The average prediction variance across the design space
+#'attr(design,"G") #G-Efficiency
+#'attr(design,"E") #The minimum eigenvalue of the information matrix
+#'attr(design,"T") #The trace of the infomration matrix
+#'attr(design,"alias.matrix") #The Alias Matrix
 #'
 #'#The correlation matrix can be accessed via the "correlation.matrix" attribute:
 #'
@@ -159,7 +163,7 @@ gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
                       repeats=10, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.95,
-                      parallel=FALSE, timer=FALSE, splitcolumns=FALSE) {
+                      parallel=FALSE, timer=FALSE, splitcolumns=FALSE,progressBarUpdater = NULL) {
 
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(splitplotdesign,"splitanalyzable"))) {
@@ -476,6 +480,9 @@ gen_design = function(candidateset, model, trials,
     if(!parallel) {
       if(!timer) {
         for(i in 1:repeats) {
+          if(!is.null(progressBarUpdater)) {
+            progressBarUpdater(1/repeats)
+          }
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
@@ -483,8 +490,12 @@ gen_design = function(candidateset, model, trials,
                                           aliascandidatelist = aliasmm, minDopt = minDopt)
         }
       } else {
+        if(!is.null(progressBarUpdater)) {
+          progressBarUpdater(1/repeats)
+        }
         cat("Estimated time to completion ... ")
         ptm = proc.time()
+
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
         genOutput[[1]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
@@ -492,6 +503,9 @@ gen_design = function(candidateset, model, trials,
                                           aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
+          if(!is.null(progressBarUpdater)) {
+            progressBarUpdater(1/repeats)
+          }
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
@@ -505,6 +519,9 @@ gen_design = function(candidateset, model, trials,
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
         genOutput = foreach(i=1:repeats) %dopar% {
+          if(!is.null(progressBarUpdater)) {
+            progressBarUpdater(1/repeats)
+          }
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
@@ -566,6 +583,9 @@ gen_design = function(candidateset, model, trials,
     if (!parallel) {
       if(!timer) {
         for(i in 1:repeats) {
+          if(!is.null(progressBarUpdater)) {
+            progressBarUpdater(1/repeats)
+          }
           randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
@@ -575,6 +595,9 @@ gen_design = function(candidateset, model, trials,
                                                    disallowed = disallowedcomb, anydisallowed = anydisallowed)
         }
       } else {
+        if(!is.null(progressBarUpdater)) {
+          progressBarUpdater(1/repeats)
+        }
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
@@ -586,6 +609,9 @@ gen_design = function(candidateset, model, trials,
                                                  disallowed = disallowedcomb, anydisallowed = anydisallowed)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
+          if(!is.null(progressBarUpdater)) {
+            progressBarUpdater(1/repeats)
+          }
           randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
           genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,

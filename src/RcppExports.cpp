@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // AOptimality
 double AOptimality(const arma::mat& currentDesign);
-RcppExport SEXP skpr_AOptimality(SEXP currentDesignSEXP) {
+RcppExport SEXP _skpr_AOptimality(SEXP currentDesignSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -19,7 +19,7 @@ END_RCPP
 }
 // calcAliasTrace
 double calcAliasTrace(const arma::mat& currentDesign, const arma::mat& aliasMatrix);
-RcppExport SEXP skpr_calcAliasTrace(SEXP currentDesignSEXP, SEXP aliasMatrixSEXP) {
+RcppExport SEXP _skpr_calcAliasTrace(SEXP currentDesignSEXP, SEXP aliasMatrixSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -31,7 +31,7 @@ END_RCPP
 }
 // calculateAOptimalityPseudo
 double calculateAOptimalityPseudo(const arma::mat& currentDesign);
-RcppExport SEXP skpr_calculateAOptimalityPseudo(SEXP currentDesignSEXP) {
+RcppExport SEXP _skpr_calculateAOptimalityPseudo(SEXP currentDesignSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -42,7 +42,7 @@ END_RCPP
 }
 // calculateDEfficiency
 double calculateDEfficiency(const arma::mat& currentDesign);
-RcppExport SEXP skpr_calculateDEfficiency(SEXP currentDesignSEXP) {
+RcppExport SEXP _skpr_calculateDEfficiency(SEXP currentDesignSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -53,7 +53,7 @@ END_RCPP
 }
 // covarianceMatrix
 arma::mat covarianceMatrix(const arma::mat& design);
-RcppExport SEXP skpr_covarianceMatrix(SEXP designSEXP) {
+RcppExport SEXP _skpr_covarianceMatrix(SEXP designSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -64,7 +64,7 @@ END_RCPP
 }
 // covarianceMatrixPseudo
 arma::mat covarianceMatrixPseudo(const arma::mat& design);
-RcppExport SEXP skpr_covarianceMatrixPseudo(SEXP designSEXP) {
+RcppExport SEXP _skpr_covarianceMatrixPseudo(SEXP designSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -75,7 +75,7 @@ END_RCPP
 }
 // DOptimality
 double DOptimality(const arma::mat& currentDesign);
-RcppExport SEXP skpr_DOptimality(SEXP currentDesignSEXP) {
+RcppExport SEXP _skpr_DOptimality(SEXP currentDesignSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -86,7 +86,7 @@ END_RCPP
 }
 // DOptimalityBlocked
 double DOptimalityBlocked(const arma::mat& currentDesign, const arma::mat& blockedVar);
-RcppExport SEXP skpr_DOptimalityBlocked(SEXP currentDesignSEXP, SEXP blockedVarSEXP) {
+RcppExport SEXP _skpr_DOptimalityBlocked(SEXP currentDesignSEXP, SEXP blockedVarSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -98,7 +98,7 @@ END_RCPP
 }
 // genOptimalDesign
 List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist, const std::string condition, const arma::mat& momentsmatrix, NumericVector initialRows, arma::mat aliasdesign, const arma::mat& aliascandidatelist, double minDopt);
-RcppExport SEXP skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
+RcppExport SEXP _skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -116,7 +116,7 @@ END_RCPP
 }
 // genBlockedOptimalDesign
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign, const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows, const arma::mat& blockedVar, const arma::mat& aliasdesign, const arma::mat& aliascandidatelist, double minDopt, List interactions, const arma::mat& disallowed, const bool anydisallowed);
-RcppExport SEXP skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP, SEXP interactionsSEXP, SEXP disallowedSEXP, SEXP anydisallowedSEXP) {
+RcppExport SEXP _skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP, SEXP interactionsSEXP, SEXP disallowedSEXP, SEXP anydisallowedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -139,7 +139,7 @@ END_RCPP
 }
 // getPseudoInverse
 arma::mat getPseudoInverse(const arma::mat& currentDesign);
-RcppExport SEXP skpr_getPseudoInverse(SEXP currentDesignSEXP) {
+RcppExport SEXP _skpr_getPseudoInverse(SEXP currentDesignSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -150,7 +150,7 @@ END_RCPP
 }
 // IOptimality
 double IOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix, const arma::mat& blockedVar);
-RcppExport SEXP skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP, SEXP blockedVarSEXP) {
+RcppExport SEXP _skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP, SEXP blockedVarSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -163,18 +163,18 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"skpr_AOptimality", (DL_FUNC) &skpr_AOptimality, 1},
-    {"skpr_calcAliasTrace", (DL_FUNC) &skpr_calcAliasTrace, 2},
-    {"skpr_calculateAOptimalityPseudo", (DL_FUNC) &skpr_calculateAOptimalityPseudo, 1},
-    {"skpr_calculateDEfficiency", (DL_FUNC) &skpr_calculateDEfficiency, 1},
-    {"skpr_covarianceMatrix", (DL_FUNC) &skpr_covarianceMatrix, 1},
-    {"skpr_covarianceMatrixPseudo", (DL_FUNC) &skpr_covarianceMatrixPseudo, 1},
-    {"skpr_DOptimality", (DL_FUNC) &skpr_DOptimality, 1},
-    {"skpr_DOptimalityBlocked", (DL_FUNC) &skpr_DOptimalityBlocked, 2},
-    {"skpr_genOptimalDesign", (DL_FUNC) &skpr_genOptimalDesign, 8},
-    {"skpr_genBlockedOptimalDesign", (DL_FUNC) &skpr_genBlockedOptimalDesign, 13},
-    {"skpr_getPseudoInverse", (DL_FUNC) &skpr_getPseudoInverse, 1},
-    {"skpr_IOptimality", (DL_FUNC) &skpr_IOptimality, 3},
+    {"_skpr_AOptimality", (DL_FUNC) &_skpr_AOptimality, 1},
+    {"_skpr_calcAliasTrace", (DL_FUNC) &_skpr_calcAliasTrace, 2},
+    {"_skpr_calculateAOptimalityPseudo", (DL_FUNC) &_skpr_calculateAOptimalityPseudo, 1},
+    {"_skpr_calculateDEfficiency", (DL_FUNC) &_skpr_calculateDEfficiency, 1},
+    {"_skpr_covarianceMatrix", (DL_FUNC) &_skpr_covarianceMatrix, 1},
+    {"_skpr_covarianceMatrixPseudo", (DL_FUNC) &_skpr_covarianceMatrixPseudo, 1},
+    {"_skpr_DOptimality", (DL_FUNC) &_skpr_DOptimality, 1},
+    {"_skpr_DOptimalityBlocked", (DL_FUNC) &_skpr_DOptimalityBlocked, 2},
+    {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 8},
+    {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 13},
+    {"_skpr_getPseudoInverse", (DL_FUNC) &_skpr_getPseudoInverse, 1},
+    {"_skpr_IOptimality", (DL_FUNC) &_skpr_IOptimality, 3},
     {NULL, NULL, 0}
 };
 

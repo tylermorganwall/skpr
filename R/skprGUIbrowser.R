@@ -6,7 +6,7 @@
 #'@import shiny
 #'@export
 skprGUIbrowser = function() {
-  appDir = system.file("shiny-examples", "skprGUI", package = "skpr")
+  appDir = system.file("shiny", "skprGUI", package = "skpr")
   if (appDir == "") {
     stop("Could not find example directory. Try re-installing `mypackage`.", call. = FALSE)
   }

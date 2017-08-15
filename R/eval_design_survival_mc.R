@@ -26,6 +26,7 @@
 #'@param contrasts Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
+#'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
@@ -70,7 +71,7 @@
 #'  Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 0.4)
 #'  censored = Y > 1.2
 #'  Y[censored] = 1.2
-#'  return(Surv(time=Y, event=!censored, type="right"))
+#'  return(survival::Surv(time=Y, event=!censored, type="right"))
 #'}
 #'
 #'#Any additional arguments are passed into the survreg function call.  As an example, you
@@ -82,7 +83,7 @@
 eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    nsim=1000, distribution="gaussian", censorpoint=NA, censortype="right",
                                    rfunctionsurv=NULL, anticoef=NULL, delta=2, contrasts = contr.sum,
-                                   parallel=FALSE, detailedoutput=FALSE, ...) {
+                                   parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL, ...) {
 
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
@@ -114,7 +115,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
         Y = rexp(n=nrow(X), rate=exp(-(X %*% b)))
         condition = censorfunction(Y,censorpoint)
         Y[condition] = censorpoint
-        return(Surv(time=Y, event=!condition, type=censortype))
+        return(survival::Surv(time=Y, event=!condition, type=censortype))
       }
     }
     if(distribution == "lognormal") {
@@ -122,7 +123,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
         Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 1)
         condition = censorfunction(Y,censorpoint)
         Y[condition] = censorpoint
-        return(Surv(time=Y, event=!condition, type=censortype))
+        return(survival::Surv(time=Y, event=!condition, type=censortype))
       }
     }
     if(distribution == "gaussian") {
@@ -130,7 +131,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
         Y = rnorm(n=nrow(X), mean=X %*% b, sd=1)
         condition = censorfunction(Y,censorpoint)
         Y[condition] = censorpoint
-        return(Surv(time=Y, event=!condition, type=censortype))
+        return(survival::Surv(time=Y, event=!condition, type=censortype))
       }
     }
   }
@@ -179,10 +180,25 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
 
+  #---------------- Run Simulations ---------------#
+
+  progressbarupdates = floor(seq(1,nsim,length.out=50))
+  progresscurrent = 1
+
   if(!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
     estimates = matrix(0, nrow = nsim, ncol = nparam)
     for (j in 1:nsim) {
+      if(!is.null(progressBarUpdater)) {
+        if(nsim > 50) {
+          if(progressbarupdates[progresscurrent] == j) {
+            progressBarUpdater(1/50)
+            progresscurrent = progresscurrent + 1
+          }
+        } else {
+          progressBarUpdater(1/nsim)
+        }
+      }
 
       #simulate the data.
       anticoef_adjusted = anticoef

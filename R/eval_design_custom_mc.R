@@ -49,7 +49,7 @@
 #'  Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
 #'  censored = Y > 1
 #'  Y[censored] = 1
-#'  return(Surv(time=Y,event=!censored,type="right"))
+#'  return(survival::Surv(time=Y,event=!censored,type="right"))
 #'}
 #'
 #'#We now need to tell the package how we want to fit our data,
@@ -58,7 +58,7 @@
 #'#This should return some type of fit object.
 #'
 #'fitsurv = function(formula, X, contrastlist=NULL) {
-#'  return(survreg(formula, data=X,dist="exponential"))
+#'  return(survival::survreg(formula, data=X,dist="exponential"))
 #'}
 #'
 #'

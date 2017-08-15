@@ -94,20 +94,24 @@ factorialcoffee = expand.grid(cost=c(1,2),
 designcoffee = gen_design(factorialcoffee,~cost + size + type,trials=29,optimality="D",repeats=100)
 
 #Evaluate the design, with default anticipated coefficients (conservative is FALSE by default).
-#(Setting detailedoutput = T provides information on the anticipated coefficients that were used:)
-eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = T)
+#(Setting detailedoutput = TRUE provides information on the anticipated
+#coefficients that were used:)
+eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRUE)
 
 #Evaluate the design, with conservative anticipated coefficients:
-eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = T, conservative=TRUE)
+eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRUE,
+           conservative=TRUE)
 
 #which is the same as the following, but now explicitly entering the coefficients:
-eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,1,0,0,1,0), detailedoutput=T)
+eval_design(designcoffee,model=~cost+size+type, alpha=0.05,
+           anticoef=c(1,1,1,0,0,1,0), detailedoutput = TRUE)
 
 
 #If the defaults do not suit you, enter the anticipated coefficients in manually.
 eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,0,1))
 
-#You can also evaluate the design with higher order effects, even if they were not used in design generation:
+#You can also evaluate the design with higher order effects, even if they were not
+#used in design generation:
 eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
 
 #Split plot designs can also be evaluated by setting the blocking parameter as TRUE.

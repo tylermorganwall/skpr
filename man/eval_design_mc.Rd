@@ -7,7 +7,8 @@
 eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
   anticoef = NULL, delta = 2, contrasts = contr.sum,
-  binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE)
+  binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE,
+  progressBarUpdater = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -55,6 +56,8 @@ If this argument is used, the \code{anticoef} and \code{delta} arguments are ign
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results.}
+
+\item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
 }
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information
@@ -179,19 +182,19 @@ eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
               glmfamily="binomial")
 
 #We can also use this method to determine power for poisson response variables.
-Generate the design:
+#Generate the design:
 
 factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
 designpois = gen_design(factorialpois, ~a+b, trials=70, optimality="D", repeats=100)
 
-Evaluate the power:
+#Evaluate the power:
 
 eval_design_mc(designpois, ~a+b, 0.05, nsim=1000, glmfamily="poisson",
                anticoef=log(c(0.2, 2, 2)))
 
 
-The coefficients above set the nominal value -- that is, the expected count when all inputs = 0 -- to 0.2
-(from the intercept), and say that each factor changes this count by a factor of 4
-(multiplied by 2 when x= +1, and divided by 2 when x = -1). Note the use of log() in the anticipated
-coefficients.
+#The coefficients above set the nominal value -- that is, the expected count
+#when all inputs = 0 -- to 0.2 (from the intercept), and say that each factor
+#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
+#Note the use of log() in the anticipated coefficients.
 }

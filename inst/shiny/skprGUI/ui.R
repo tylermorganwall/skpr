@@ -21,7 +21,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                           actionButton("evalbutton", "Evaluate Design",
                                                        class="btn2")
                                    )
-                                 ), data.step = 1, data.intro="<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the code, and skpr provides the code used to do that, based on your inputs. Additional advanced capabilities can be accessed through the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
+                                 ), data.step = 1, data.intro="<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the console, and skpr provides the full script used to do that, based on your inputs. Additional advanced capabilities not available in the GUI can be accessed via the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
                                  hr(),
                                  tabsetPanel(
                                    tabPanel(
@@ -82,6 +82,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                             column(width=4,
                                                                    numericInput(inputId = "numericlength1",
                                                                                 value=3,
+                                                                                min = 2,
+                                                                                step = 1,
                                                                                 label="Breaks")
                                                             )
                                                           )
@@ -145,6 +147,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                      column(width=4,
                                                             numericInput(inputId = "numericlength2",
                                                                          value=3,
+                                                                         min = 2,
+                                                                         step = 1,
                                                                          label="Breaks")
                                                      )
                                                    )
@@ -209,6 +213,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                      column(width=4,
                                                             numericInput(inputId = "numericlength3",
                                                                          value=3,
+                                                                         min = 2,
+                                                                         step = 1,
                                                                          label="Breaks")
                                                      )
                                                    )
@@ -273,6 +279,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                      column(width=4,
                                                             numericInput(inputId = "numericlength4",
                                                                          value=3,
+                                                                         min = 2,
+                                                                         step = 1,
                                                                          label="Breaks")
                                                      )
                                                    )
@@ -337,6 +345,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                      column(width=4,
                                                             numericInput(inputId = "numericlength5",
                                                                          value=3,
+                                                                         min = 2,
+                                                                         step = 1,
                                                                          label="Breaks")
                                                      )
                                                    )
@@ -401,6 +411,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                      column(width=4,
                                                             numericInput(inputId = "numericlength6",
                                                                          value=3,
+                                                                         min = 2,
+                                                                         step = 1,
                                                                          label="Breaks")
                                                      )
                                                    )
@@ -452,7 +464,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                            1, label = "Random Seed")
                                             ),
                                             introBox(checkboxInput(inputId = "parallel",
-                                                                   label = "Parallel Evaluation",
+                                                                   label = "Parallel Search",
                                                                    value = FALSE), data.step = 10, data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."),
                                             introBox(checkboxInput(inputId = "splitanalyzable",
                                                                    label = "Include Blocking Columns in Run Matrix",
@@ -462,7 +474,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                                    value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients, design size, and the specified value of delta."),
                                             introBox(checkboxInput(inputId = "advanceddiagnostics",
                                                                    label = "Advanced Design Diagnostics",
-                                                                   value=FALSE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
+                                                                   value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
                                    ),
                                    tabPanel("Power",
                                             introBox(introBox(introBox(radioButtons(inputId = "evaltype",
@@ -496,7 +508,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                             min = 0, max = 1, value = c(0.4,0.6))
                                               ),
                                               introBox(checkboxInput(inputId = "parallel_eval_glm",
-                                                                     label = "Parallel",
+                                                                     label = "Parallel Evaluation",
                                                                      value=FALSE), data.step=21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
                                             ),
                                             conditionalPanel(
@@ -548,13 +560,6 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                           condition = "input.evaltype == \'surv\'",
                                           tableOutput(outputId = "powerresultssurv")
                                         )
-                                 ),
-                                 column(width=6,
-                                        conditionalPanel(align="left",
-                                                         condition = "output.separationwarning != \'\'",
-                                                         h2("Note:"),
-                                                         htmlOutput(outputId = "separationwarning")
-                                        )
                                  )
                                ),data.step = 26,data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"),
                                hr(),
@@ -562,7 +567,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                         column(width=6,
                                                h3("Correlation Map"),
                                                introBox(conditionalPanel("input.numberfactors > 1",
-                                                                         plotOutput(outputId = "aliasplot")),data.step=28,data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs ideally minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."),
+                                                                         plotOutput(outputId = "aliasplot")),data.step=28,data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."),
                                                conditionalPanel("input.numberfactors == 1",
                                                                 br(),
                                                                 br(),

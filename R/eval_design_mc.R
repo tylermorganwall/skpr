@@ -38,6 +38,7 @@
 #' If this argument is used, the \code{anticoef} and \code{delta} arguments are ignored.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results.
+#'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
 #' attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
@@ -152,26 +153,26 @@
 #'               glmfamily="binomial")
 #'
 #'#We can also use this method to determine power for poisson response variables.
-#'Generate the design:
+#'#Generate the design:
 #'
 #'factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
 #'designpois = gen_design(factorialpois, ~a+b, trials=70, optimality="D", repeats=100)
 #'
-#'Evaluate the power:
+#'#Evaluate the power:
 #'
 #'eval_design_mc(designpois, ~a+b, 0.05, nsim=1000, glmfamily="poisson",
 #'                anticoef=log(c(0.2, 2, 2)))
 #'
 #'
-#'The coefficients above set the nominal value -- that is, the expected count when all inputs = 0 -- to 0.2
-#'(from the intercept), and say that each factor changes this count by a factor of 4
-#'(multiplied by 2 when x= +1, and divided by 2 when x = -1). Note the use of log() in the anticipated
-#'coefficients.
+#'#The coefficients above set the nominal value -- that is, the expected count
+#'#when all inputs = 0 -- to 0.2 (from the intercept), and say that each factor
+#'#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
+#'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(RunMatrix, model, alpha,
                           blocking=FALSE, nsim=1000, glmfamily="gaussian",
                           varianceratios = NULL, rfunction=NULL, anticoef=NULL, delta=2,
                           contrasts=contr.sum, binomialprobs = NULL,
-                          parallel=FALSE, detailedoutput=FALSE) {
+                          parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL ) {
 
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
     warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
@@ -400,6 +401,9 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #---------------- Run Simulations ---------------#
 
+  progressbarupdates = floor(seq(1,nsim,length.out=50))
+  progresscurrent = 1
+
   if(!parallel) {
     pvallist = list()
     stderrlist = list()
@@ -407,6 +411,16 @@ eval_design_mc = function(RunMatrix, model, alpha,
     power_values = rep(0, ncol(ModelMatrix))
     estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
     for (j in 1:nsim) {
+      if(!is.null(progressBarUpdater)) {
+        if(nsim > 50) {
+          if(progressbarupdates[progresscurrent] == j) {
+            progressBarUpdater(1/50)
+            progresscurrent = progresscurrent + 1
+          }
+        } else {
+          progressBarUpdater(1/nsim)
+        }
+      }
 
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
@@ -444,7 +458,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   } else {
     cl <- parallel::makeCluster(parallel::detectCores())
-    doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+    numbercores = parallel::detectCores()
+    doParallel::registerDoParallel(cl, cores = numbercores)
 
     power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .packages = c("lme4")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
@@ -469,7 +484,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       pvals = extractPvalues(fit)
       stderrval = coef(summary(fit))[,2]
       power_values[pvals < alpha] = 1
-      if (!blocking) {
+      if (!blocking && !is.null(fit$iter)) {
         iterval = fit$iter
       } else {
         iterval = NA

@@ -28,7 +28,7 @@ skprGUI = function(inputValue1,inputValue2) {
                             actionButton("evalbutton", "Evaluate Design",
                                          class="btn2")
                      )
-                   ), data.step = 1, data.intro="<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the code, and skpr provides the code used to do that, based on your inputs. Additional advanced capabilities can be accessed through the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
+                   ), data.step = 1, data.intro="<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the console, and skpr provides the full script used to do that, based on your inputs. Additional advanced capabilities not available in the GUI can be accessed via the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
                    hr(),
                    tabsetPanel(
                      tabPanel(
@@ -471,7 +471,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                              1, label = "Random Seed")
                               ),
                               introBox(checkboxInput(inputId = "parallel",
-                                           label = "Parallel Evaluation",
+                                           label = "Parallel Search",
                                            value = FALSE), data.step = 10, data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."),
                               introBox(checkboxInput(inputId = "splitanalyzable",
                                             label = "Include Blocking Columns in Run Matrix",
@@ -515,7 +515,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                               min = 0, max = 1, value = c(0.4,0.6))
                                 ),
                                 introBox(checkboxInput(inputId = "parallel_eval_glm",
-                                              label = "Parallel",
+                                              label = "Parallel Evaluation",
                                               value=FALSE), data.step=21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
                               ),
                               conditionalPanel(
@@ -566,13 +566,6 @@ skprGUI = function(inputValue1,inputValue2) {
                                conditionalPanel(
                                  condition = "input.evaltype == \'surv\'",
                                  tableOutput(outputId = "powerresultssurv")
-                               )
-                             ),
-                             column(width=6,
-                               conditionalPanel(align="left",
-                                 condition = "output.separationwarning != \'\'",
-                                 h2("Note:"),
-                                 htmlOutput(outputId = "separationwarning")
                                )
                              )
                            ),data.step = 26,data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"),
@@ -702,6 +695,8 @@ skprGUI = function(inputValue1,inputValue2) {
   )
 
   server = function(input, output, session) {
+
+    incProgressSession = function(amount=0.1,message=NULL,detail=NULL) {incProgress(amount,message,detail,session)}
 
     inputlist_htc = reactive({
       input$submitbutton
@@ -1176,6 +1171,7 @@ skprGUI = function(inputValue1,inputValue2) {
       first = paste0(c("<br><pre>",
                        "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                        "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
+                       "library(skpr)<br><br>",
                        ifelse(input$setseed,
                               paste0("<code style=\"color:#468449\">#Setting random number generator seed:</code><br>",
                                      "set.seed(", input$seed, ")<br><br>"),""),
@@ -1436,29 +1432,56 @@ skprGUI = function(inputValue1,inputValue2) {
       }
     })
 
+    optimality = reactive({
+      input$submitbutton
+      if(isolate(input$numberfactors) == 1 && isolate(input$optimality) == "Alias") {
+        showNotification("Alias-optimal design selected with only one factor: Switching to D-optimal.", type="warning",duration=10)
+        updateSelectInput(session,"optimality", choices = c("D","I","A","Alias","G","E","T"), selected="D")
+        "D"
+      } else {
+        isolate(input$optimality)
+      }
+    })
+
     runmatrix = reactive({
       input$submitbutton
       if(isolate(input$setseed)) {
         set.seed(isolate(input$seed))
+      }
+      if(isolate(input$parallel)) {
+        showNotification("Searching (no progress bar with multicore on):",type="message")
       }
       if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
         print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
       } else {
 
         if(!isblocking()) {
-          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+          if(isolate(as.logical(input$parallel))) {
+            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                      model = isolate(as.formula(input$model)),
                      trials = isolate(input$trials),
-                     optimality = isolate(input$optimality),
+                     optimality = isolate(optimality()),
                      repeats = isolate(input$repeats),
                      aliaspower = isolate(input$aliaspower),
                      minDopt = isolate(input$mindopt),
                      parallel = isolate(as.logical(input$parallel)))
+          } else {
+            withProgress(message = "Generating design:", value=0, min = 0, max = 1, expr = {
+              gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                         model = isolate(as.formula(input$model)),
+                         trials = isolate(input$trials),
+                         optimality = isolate(optimality()),
+                         repeats = isolate(input$repeats),
+                         aliaspower = isolate(input$aliaspower),
+                         minDopt = isolate(input$mindopt),
+                         parallel = isolate(as.logical(input$parallel)),
+                         progressBarUpdater = incProgressSession)})
+          }
         } else {
           spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                            model = isolate(as.formula(blockmodel())),
                            trials = isolate(input$numberblocks),
-                           optimality = isolate(input$optimality),
+                           optimality = isolate(optimality()),
                            repeats = isolate(input$repeats),
                            varianceratio = isolate(input$varianceratio),
                            aliaspower = isolate(input$aliaspower),
@@ -1471,18 +1494,35 @@ skprGUI = function(inputValue1,inputValue2) {
             unbalancedruns = ceiling(isolate(input$trials)/isolate(input$numberblocks))*isolate(input$numberblocks) - isolate(input$trials)
             sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
           }
-          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                     model = isolate(as.formula(input$model)),
-                     trials = isolate(input$trials),
-                     splitplotdesign = spd,
-                     splitplotsizes = sizevector,
-                     optimality = isolate(input$optimality),
-                     repeats = isolate(input$repeats),
-                     varianceratio = isolate(input$varianceratio),
-                     aliaspower = isolate(input$aliaspower),
-                     minDopt = isolate(input$mindopt),
-                     parallel = isolate(as.logical(input$parallel)),
-                     splitcolumns = isolate(input$splitanalyzable))
+          if(isolate(as.logical(input$parallel))) {
+            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                       model = isolate(as.formula(input$model)),
+                       trials = isolate(input$trials),
+                       splitplotdesign = spd,
+                       splitplotsizes = sizevector,
+                       optimality = isolate(optimality()),
+                       repeats = isolate(input$repeats),
+                       varianceratio = isolate(input$varianceratio),
+                       aliaspower = isolate(input$aliaspower),
+                       minDopt = isolate(input$mindopt),
+                       parallel = isolate(as.logical(input$parallel)),
+                       splitcolumns = isolate(input$splitanalyzable))
+          } else {
+            withProgress(message = "Generating design", value=0, min = 0, max = 1, expr = {
+              gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                         model = isolate(as.formula(input$model)),
+                         trials = isolate(input$trials),
+                         splitplotdesign = spd,
+                         splitplotsizes = sizevector,
+                         optimality = isolate(optimality()),
+                         repeats = isolate(input$repeats),
+                         varianceratio = isolate(input$varianceratio),
+                         aliaspower = isolate(input$aliaspower),
+                         minDopt = isolate(input$mindopt),
+                         parallel = isolate(as.logical(input$parallel)),
+                         splitcolumns = isolate(input$splitanalyzable),
+                         progressBarUpdater = incProgressSession)})
+          }
         }
       }
     })
@@ -1494,7 +1534,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
     powerresults = reactive({
       input$evalbutton
-      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
         if(evaluationtype() == "lm") {
@@ -1513,20 +1553,40 @@ skprGUI = function(inputValue1,inputValue2) {
       if(isolate(input$setseed)) {
         set.seed(isolate(input$seed))
       }
-      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      if(isolate(input$parallel_eval_glm)) {
+        showNotification("Simulating (no progress bar with multicore on):",type="message")
+      }
+      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
         if(evaluationtype() == "glm") {
-          eval_design_mc(RunMatrix = isolate(runmatrix()),
-                         model = isolate(as.formula(input$model)),
-                         alpha = isolate(input$alpha),
-                         blocking = isblocking(),
-                         nsim = isolate(input$nsim),
-                         varianceratios = isolate(input$varianceratio),
-                         glmfamily = isolate(input$glmfamily),
-                         delta = isolate(input$delta),
-                         binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
-                         detailedoutput = isolate(input$detailedoutput))
+          if(isolate(input$parallel_eval_glm)) {
+              eval_design_mc(RunMatrix = isolate(runmatrix()),
+                             model = isolate(as.formula(input$model)),
+                             alpha = isolate(input$alpha),
+                             blocking = isblocking(),
+                             nsim = isolate(input$nsim),
+                             varianceratios = isolate(input$varianceratio),
+                             glmfamily = isolate(input$glmfamily),
+                             delta = isolate(input$delta),
+                             binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                             parallel = isolate(input$parallel_eval_glm),
+                             detailedoutput = isolate(input$detailedoutput))
+            } else {
+              withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
+                eval_design_mc(RunMatrix = isolate(runmatrix()),
+                               model = isolate(as.formula(input$model)),
+                               alpha = isolate(input$alpha),
+                               blocking = isblocking(),
+                               nsim = isolate(input$nsim),
+                               varianceratios = isolate(input$varianceratio),
+                               glmfamily = isolate(input$glmfamily),
+                               delta = isolate(input$delta),
+                               binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                               parallel = isolate(input$parallel_eval_glm),
+                               detailedoutput = isolate(input$detailedoutput),
+                               progressBarUpdater = incProgressSession)})
+            }
         }
       }
     })
@@ -1535,22 +1595,42 @@ skprGUI = function(inputValue1,inputValue2) {
       if(isolate(input$setseed)) {
         set.seed(isolate(input$seed))
       }
+      if(isolate(input$parallel_eval_glm)) {
+        showNotification("Simulating (no progress bar with multicore on):",type="message")
+      }
       if(isblocking()) {
         print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
       }
-      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
         if(evaluationtype() == "surv") {
-          eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
-                                  model = isolate(as.formula(input$model)),
-                                  alpha = isolate(input$alpha),
-                                  nsim = isolate(input$nsim),
-                                  censorpoint = isolate(input$censorpoint),
-                                  censortype = isolate(input$censortype),
-                                  distribution = isolate(input$distribution),
-                                  delta = isolate(input$delta),
-                                  detailedoutput = isolate(input$detailedoutput))
+          if(isolate(input$parallel_eval_glm)) {
+            eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
+                                    model = isolate(as.formula(input$model)),
+                                    alpha = isolate(input$alpha),
+                                    nsim = isolate(input$nsim),
+                                    censorpoint = isolate(input$censorpoint),
+                                    censortype = isolate(input$censortype),
+                                    distribution = isolate(input$distribution),
+                                    delta = isolate(input$delta),
+                                    detailedoutput = isolate(input$detailedoutput),
+                                    parallel = isolate(input$parallel_eval_glm))
+          } else {
+            withProgress(message = "Simulating:", value=0, min = 0, max = 1, expr = {
+              eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
+                                    model = isolate(as.formula(input$model)),
+                                    alpha = isolate(input$alpha),
+                                    nsim = isolate(input$nsim),
+                                    censorpoint = isolate(input$censorpoint),
+                                    censortype = isolate(input$censortype),
+                                    distribution = isolate(input$distribution),
+                                    delta = isolate(input$delta),
+                                    detailedoutput = isolate(input$detailedoutput),
+                                    parallel = isolate(input$parallel_eval_glm),
+                                    progressBarUpdater = incProgressSession)
+            })
+          }
         }
       }
     })
@@ -1574,7 +1654,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$aliasplot = renderPlot({
       input$submitbutton
-        if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
+        if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
           print("No design generated")
         } else {
           tryCatch({
@@ -1586,7 +1666,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$fdsplot = renderPlot({
       input$submitbutton
-      if(isolate(isblocking()) && isolate(input$optimality) %in% c("Alias","T","G")) {
+      if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
         plot_fds(isolate(runmatrix()))
@@ -1623,14 +1703,14 @@ skprGUI = function(inputValue1,inputValue2) {
     })
     output$optimalsearch = renderPlot({
       input$submitbutton
-      if(isolate(input$optimality) %in% c("D","G","A")) {
-        isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(input$optimality, "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
+      if(isolate(optimality()) %in% c("D","G","A")) {
+        isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
         isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2,ylim=c(0,100)))
       } else {
-        if(isolate(input$optimality) == "I") {
+        if(isolate(optimality()) == "I") {
           isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Average Prediction Variance (lower is better)",type = 'p', col = 'red', pch=16))
         } else {
-          isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(input$optimality, "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
+          isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
         }
         isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
       }
@@ -1659,8 +1739,8 @@ skprGUI = function(inputValue1,inputValue2) {
           truth = exp(truth)
         }
         if(isolate(input$glmfamily) == "exponential") {
-          ests = exp(-ests)
-          truth = exp(-truth)
+          ests = exp(ests)
+          truth = exp(truth)
         }
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
         plot(x=1:length(colnames(ests)),y=ests[2,],
@@ -1741,7 +1821,7 @@ skprGUI = function(inputValue1,inputValue2) {
         }
         if(isolate(input$glmfamily) == "exponential") {
           responses = exp(-responses)
-          trueresponses = exp(trueresponses)
+          trueresponses = exp(-trueresponses)
           par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
           hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
           legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
@@ -1774,8 +1854,8 @@ skprGUI = function(inputValue1,inputValue2) {
         uniquevalues = length(table(responses))
         breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
         if(isolate(input$distribution) == "exponential") {
-          responses = exp(responses)
-          trueresponses = exp(trueresponses)
+          responses = exp(-responses)
+          trueresponses = exp(-trueresponses)
           par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
           hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
           legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
@@ -1808,9 +1888,7 @@ skprGUI = function(inputValue1,inputValue2) {
         }
       }
       if(likelyseparation) {
-        "<p style=\"color: #F00;\">Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.</p>"
-      } else {
-        ""
+        showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type="warning",duration=10)
       }
     })
     observeEvent(input$tutorial,

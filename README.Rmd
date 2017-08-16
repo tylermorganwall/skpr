@@ -12,6 +12,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+# skpr
+
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
 
 ## Overview

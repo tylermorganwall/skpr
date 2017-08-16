@@ -6,7 +6,8 @@ Authors@R: c(person("Tyler", "Morgan-Wall", email = "tylermw@gmail.com", role = 
 Description: Generates and evaluates D, I, A, Alias, E, T, and G optimal designs. Supports generation and evaluation of split/split-split/.../N-split plot designs. Includes parametric and Monte Carlo power evaluation functions, and supports calculating power for censored responses. Provides a framework for the user to evaluate power using their own libraries. Includes a Shiny graphical user interface that auto-generates working skpr code to improve ease-of-use and enhance reproducibility.
 Date: 2017-08-16
 Copyright: Institute for Defense Analyses
-Depends:
+Depends: 
+  R (>= 3.0.2),
   shiny
 License: GPL-3
 LazyData: true

@@ -14,3 +14,11 @@ Versioned 'LinkingTo' value for 'RcppArmadillo' is only usable in R >= 3.0.2
 
 This version of RcppArmadillo is required for this package to function.
 
+Additionally, there was another NOTE only on the Ubuntu system related to the package size:
+
+* checking installed package size ... NOTE
+installed size is  7.5Mb
+sub-directories of 1Mb or more:
+  libs   6.8Mb
+
+This is due to RcppEigen/RcppArmadillo, which are required for this package to function.

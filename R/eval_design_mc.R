@@ -160,7 +160,7 @@
 #'
 #'#Evaluate the power:
 #'
-#'eval_design_mc(designpois, ~a+b, 0.05, nsim=1000, glmfamily="poisson",
+#'eval_design_mc(designpois, ~a+b, 0.05, nsim=100, glmfamily="poisson",
 #'                anticoef=log(c(0.2, 2, 2)))
 #'
 #'

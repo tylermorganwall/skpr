@@ -5,6 +5,7 @@ context("Run Examples")
 test_that("gen_design example code runs without errors", {
   #'#Generating a basic 2 factor design:
   basicdesign <- expand.grid(x1=c(-1,1), x2=c(-1,1))
+  set.seed(1)
   #'
   #'#This factorial design is used as an input in the optimal design generation for a
   #'#D-optimal design with 11 runs.

@@ -2,7 +2,7 @@
 skpr
 ====
 
-[![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
+[![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr) [![codecov](https://codecov.io/gh/tylermorganwall/skpr/branch/master/graph/badge.svg)](https://codecov.io/gh/tylermorganwall/skpr)
 
 Overview
 --------
@@ -77,18 +77,18 @@ design = gen_design(candidateset = candidate_set,
 
 design
 #>    temp type beansize
-#> 1    80 Kona   Medium
-#> 2   100 Java    Small
+#> 1   100 Kona   Medium
+#> 2    80 Kona   Medium
 #> 3    80 Java    Small
-#> 4   100 Kona   Medium
-#> 5    80 Kona    Small
-#> 6    80 Java    Large
-#> 7   100 Java   Medium
-#> 8    80 Java   Medium
-#> 9   100 Java    Large
-#> 10  100 Kona    Large
-#> 11  100 Kona    Small
-#> 12   80 Kona    Large
+#> 4   100 Kona    Small
+#> 5    80 Kona    Large
+#> 6   100 Kona    Large
+#> 7    80 Java   Medium
+#> 8    80 Kona    Small
+#> 9   100 Java   Medium
+#> 10   80 Java    Large
+#> 11  100 Java    Large
+#> 12  100 Java    Small
 
 #Evaluate power for the design with an allowable type-I error of 5%
 eval_design(RunMatrix = design,
@@ -112,11 +112,11 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                delta=1.5)
 #>     parameter               type power
-#> 1 (Intercept) parameter.power.mc 0.626
-#> 2        temp parameter.power.mc 0.599
-#> 3       type1 parameter.power.mc 0.607
-#> 4   beansize1 parameter.power.mc 0.336
-#> 5   beansize2 parameter.power.mc 0.369
+#> 1 (Intercept) parameter.power.mc 0.574
+#> 2        temp parameter.power.mc 0.581
+#> 3       type1 parameter.power.mc 0.599
+#> 4   beansize1 parameter.power.mc 0.351
+#> 5   beansize2 parameter.power.mc 0.351
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
@@ -127,11 +127,11 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                delta=log(8/2))
 #>     parameter               type  power
-#> 1 (Intercept) parameter.power.mc 0.6312
-#> 2        temp parameter.power.mc 0.9868
-#> 3       type1 parameter.power.mc 0.9868
-#> 4   beansize1 parameter.power.mc 0.9072
-#> 5   beansize2 parameter.power.mc 0.6878
+#> 1 (Intercept) parameter.power.mc 0.6246
+#> 2        temp parameter.power.mc 0.9846
+#> 3       type1 parameter.power.mc 0.9872
+#> 4   beansize1 parameter.power.mc 0.9194
+#> 5   beansize2 parameter.power.mc 0.7188
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
@@ -142,12 +142,12 @@ expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","
   gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") %>%
   eval_design_mc(model = ~temp + type + beansize + beansize:type + I(temp^2), alpha=0.05)
 #>         parameter               type power
-#> 1     (Intercept) parameter.power.mc 0.906
-#> 2            temp parameter.power.mc 0.884
-#> 3           type1 parameter.power.mc 0.995
-#> 4       beansize1 parameter.power.mc 0.906
-#> 5       beansize2 parameter.power.mc 0.893
-#> 6       I(temp^2) parameter.power.mc 0.616
-#> 7 type1:beansize1 parameter.power.mc 0.917
+#> 1     (Intercept) parameter.power.mc 0.891
+#> 2            temp parameter.power.mc 0.901
+#> 3           type1 parameter.power.mc 0.996
+#> 4       beansize1 parameter.power.mc 0.910
+#> 5       beansize2 parameter.power.mc 0.917
+#> 6       I(temp^2) parameter.power.mc 0.632
+#> 7 type1:beansize1 parameter.power.mc 0.899
 #> 8 type1:beansize2 parameter.power.mc 0.910
 ```

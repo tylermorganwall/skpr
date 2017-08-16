@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
 # skpr
 
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
+[![codecov](https://codecov.io/gh/tylermorganwall/skpr/branch/master/graph/badge.svg)](https://codecov.io/gh/tylermorganwall/skpr)
 
 ## Overview
 
@@ -48,6 +49,10 @@ skprGUI provides an graphical user interface to access all of the main features 
 
 
 ## Usage
+
+```{r, include=FALSE}
+set.seed(2)
+```
 
 ```{r example, message = FALSE}
 library(skpr)

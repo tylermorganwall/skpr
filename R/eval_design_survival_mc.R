@@ -31,7 +31,7 @@
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
 #'categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
-#'@import foreach doParallel survival stats
+#'@import foreach doParallel survival stats iterators
 #'@details If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
 #'argument as follows:
 #'\tabular{lr}{

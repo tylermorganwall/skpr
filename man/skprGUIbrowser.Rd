@@ -2,13 +2,15 @@
 % Please edit documentation in R/skprGUIbrowser.R
 \name{skprGUIbrowser}
 \alias{skprGUIbrowser}
-\title{skprGUI}
+\title{skprGUIbrowser}
 \usage{
 skprGUIbrowser()
 }
-\value{
-skprGUI
-}
 \description{
-skprGUI
+skprGUI provides a graphical user interface to skpr, in an external browser.
+}
+\examples{
+#Type skprGUIbrowser() to begin
+
+\dontrun{skprGUIbrowser()}
 }

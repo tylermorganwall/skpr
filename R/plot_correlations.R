@@ -17,13 +17,17 @@
 #'#First generate the design:
 #'
 #'candidatelist = expand.grid(cost=c(15000,20000),year=c("2001","2002","2003","2004"),
-#'                            type=c("SUV","Sedan","Hybrid"),color=c("red","black","white"))
-#'cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
+#'                            type=c("SUV","Sedan","Hybrid"))
+#'cardesign = gen_design(candidatelist,~(cost+type+year)^2,30)
 #'plot_correlations(cardesign)
 #'
-#'#You can also pass a custom color map to be used with.
+#'#We can also increase the level of interactions that are shown by default.
+#'
+#'plot_correlations(cardesign,pow=3)
+#'
+#'#You can also pass in a custom color map.
 #'plot_correlations(cardesign,customcolors=c("blue","grey","red"))
-#'plot_correlations(cardesign,customcolors=c("red","orange","yellow","green","blue"))
+#'plot_correlations(cardesign,customcolors=c("blue","green","yellow","orange","red"))
 plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
 
   #Remove skpr-generated REML blocking indicators if present

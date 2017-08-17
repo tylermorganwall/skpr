@@ -138,8 +138,8 @@
 #'#the whole plots and the sub-plots for gaussian models.
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors.
-#'eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", varianceratios = c(1,1))
+#'\dontrun{eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
+#'               blocking=TRUE, nsim=100, glmfamily="gaussian", varianceratios = c(1,1))}
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
@@ -149,8 +149,8 @@
 #'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
 #'designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
 #'
-#'eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
-#'               glmfamily="binomial")
+#'\dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
+#'               glmfamily="binomial")}
 #'
 #'#We can also use this method to determine power for poisson response variables.
 #'#Generate the design:
@@ -160,8 +160,8 @@
 #'
 #'#Evaluate the power:
 #'
-#'eval_design_mc(designpois, ~a+b, 0.05, nsim=100, glmfamily="poisson",
-#'                anticoef=log(c(0.2, 2, 2)))
+#'\dontrun{eval_design_mc(designpois, ~a+b, 0.05, nsim=100, glmfamily="poisson",
+#'                anticoef=log(c(0.2, 2, 2)))}
 #'
 #'
 #'#The coefficients above set the nominal value -- that is, the expected count

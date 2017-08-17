@@ -1,12 +1,16 @@
 #'@title Graphical User Interface for skpr
 #'
-#'@description skprGUI provides a graphical user interface to skpr.
+#'@description skprGUI provides a graphical user interface to skpr, within R Studio.
 #'
-#'@param inputValue1 It's the #1 input value.
-#'@param inputValue2 Runner up input value, participation award pending
+#'@param inputValue1 Required by Shiny
+#'@param inputValue2 Required by Shiny
 #'
 #'@import shiny rintrojs shinythemes
 #'@export
+#'@examples
+#'#Type skprGUI() to begin
+#'
+#'\dontrun{skprGUI()}
 
 skprGUI = function(inputValue1,inputValue2) {
 
@@ -687,7 +691,7 @@ skprGUI = function(inputValue1,inputValue2) {
                            )
                   ),
                   tabPanel("Generating Code",
-                           introBox(htmlOutput(outputId = "code"),data.step=32,data.intro="The skpr code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. ")
+                           introBox(htmlOutput(outputId = "code"),data.step=32,data.intro="The R code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. ")
                   )
                 )
       )

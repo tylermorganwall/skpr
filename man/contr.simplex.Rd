@@ -11,9 +11,11 @@ contr.simplex(n, size = NULL)
 
 \item{size}{The length of the simplex vector. Default 1.}
 }
+\value{
+A matrix of orthogonal contrasts.
+}
 \description{
-Evaluates power for a right censored survival design with a Monte Carlo simulation,
-using the survival package and survreg to fit the data.
+Generates orthogonal contrasts. Each row is the vertex of an N-dimensional simplex. The only exception are contrasts for the 2-level case, which return 1 and -1.
 }
 \examples{
 contr.simplex(4)

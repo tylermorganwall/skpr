@@ -7,10 +7,15 @@
 skprGUI(inputValue1, inputValue2)
 }
 \arguments{
-\item{inputValue1}{It's the #1 input value.}
+\item{inputValue1}{Required by Shiny}
 
-\item{inputValue2}{Runner up input value, participation award pending}
+\item{inputValue2}{Required by Shiny}
 }
 \description{
-skprGUI provides a graphical user interface to skpr.
+skprGUI provides a graphical user interface to skpr, within R Studio.
+}
+\examples{
+#Type skprGUI() to begin
+
+\dontrun{skprGUI()}
 }

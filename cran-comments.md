@@ -1,4 +1,4 @@
-Resubmission:
+Re-submission:
 
 "Please omit 'for the user' in your description."
 

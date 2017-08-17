@@ -26,10 +26,9 @@ Plots design diagnostics
 
 #First generate the design:
 
-candidatelist = expand.grid(cost=c(15000,20000),year=c("2001","2002","2003","2004"),
-                           type=c("SUV","Sedan","Hybrid"),color=c("red","black","white"))
+candidatelist = expand.grid(X1=c(1,-1),X2 = c(1,-1))
 
-cardesign = gen_design(candidatelist,~(cost+type+color+year)^2,40)
+design = gen_design(candidatelist,~(X1+X2),15)
 
-plot_fds(cardesign)
+plot_fds(design)
 }

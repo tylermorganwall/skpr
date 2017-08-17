@@ -121,25 +121,25 @@ eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 #family is used or the default random generating function is not adequate, a custom generating
 #function can be supplied by the user.
 
-eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=100,
-              glmfamily="gaussian")
+\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=100,
+              glmfamily="gaussian")}
 
 #We see here we generate approximately the same parameter powers as we do
 #using the normal approximation in eval_design. Like eval_design, we can also change
 #delta to produce a different signal-to-noise ratio:
 
-eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-              nsim=100, glmfamily="gaussian", delta=1)
+\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
+              nsim=100, glmfamily="gaussian", delta=1)}
 
 #Like eval_design, we can also evaluate the design with a different model than
 #the one that generated the design.
-eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
-              nsim=100, glmfamily="gaussian")
+\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
+              nsim=100, glmfamily="gaussian")}
 
 
 #And here it is evaluated with interactions included:
-eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
-              nsim=100, glmfamily="gaussian")
+\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
+              nsim=100, glmfamily="gaussian")}
 
 #We can also set "parallel=TRUE" to turn use all the cores available to speed up
 #computation.
@@ -176,7 +176,7 @@ splitplotdesign = gen_design(candidateset=factorialcoffee2,
 #70\% of the time or 90\% of the time.
 
 factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
-designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
+designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D")
 
 \dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
               glmfamily="binomial")}
@@ -185,7 +185,7 @@ designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repe
 #Generate the design:
 
 factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-designpois = gen_design(factorialpois, ~a+b, trials=70, optimality="D", repeats=100)
+designpois = gen_design(factorialpois, ~a+b, trials=70, optimality="D")
 
 #Evaluate the power:
 

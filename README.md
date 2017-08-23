@@ -13,7 +13,19 @@ Overview
 -   Supports generation and evaluation of split/split-split/.../N-split plot designs.
 -   Includes parametric and Monte Carlo power evaluation functions, and supports calculating power for censored responses.
 -   Provides an extensible framework for the user to evaluate Monte Carlo power using their own libraries.
--   Includes a Shiny graphical user interface, skprGUI, that auto-generates working skpr code to improve ease-of-use and enhance reproducibility.
+-   Includes a Shiny graphical user interface, skprGUI, that auto-generates the R code used to create and evaluate the design to improve ease-of-use and enhance reproducibility.
+
+Installation
+------------
+
+``` r
+# To install:
+install.packages("skpr")
+
+# To install the latest version from Github:
+# install.packages("devtools")
+devtools::install_github("tylermorganwall/skpr")
+```
 
 Functions
 ---------

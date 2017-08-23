@@ -27,6 +27,17 @@ knitr::opts_chunk$set(
 * Provides an extensible framework for the user to evaluate Monte Carlo power using their own libraries. 
 * Includes a Shiny graphical user interface, skprGUI, that auto-generates the R code used to create and evaluate the design to improve ease-of-use and enhance reproducibility.
 
+## Installation
+
+```{r, eval=FALSE}
+# To install:
+install.packages("skpr")
+
+# To install the latest version from Github:
+# install.packages("devtools")
+devtools::install_github("tylermorganwall/skpr")
+```
+
 ## Functions
 
 * `gen_design()` generates optimal designs from a candidate set, given a model and the desired number of runs.

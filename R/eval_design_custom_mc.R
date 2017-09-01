@@ -107,6 +107,11 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   }
 
   #---------- Convert dot formula to terms -----#
+
+  if(model == as.formula("~.*.")) {
+    model = as.formula(paste0("~(",paste(colnames(RunMatrixReduced),collapse = " + "),")^2"))
+  }
+
   if((as.character(model)[2] == ".")) {
     model = as.formula(paste("~",paste(attr(RunMatrixReduced,"names"),collapse=" + "),sep=""))
   }

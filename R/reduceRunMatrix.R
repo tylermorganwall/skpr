@@ -7,7 +7,7 @@
 #'@return The reduced model matrix.
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix,model) {
-  if((as.character(model)[2] == "." || as.character(model)[2] == "quad(.)")) {
+  if((as.character(model)[2] == "." || as.character(model)[2] == "quad(.)") || model == as.formula("~.*.")) {
     ReduceRM = RunMatrix
   } else {
     orderone = attr(terms(model),"term.labels")[attr(terms(model),"order")==1]
@@ -15,7 +15,7 @@ reduceRunMatrix = function(RunMatrix,model) {
     ReduceRM = RunMatrix[nohighorder]
   }
 
-  if(length(as.character(model)) == 2 && (as.character(model)[2] == "." || as.character(model)[2] == "quad(.)")) {
+  if(length(as.character(model)) == 2 && (as.character(model)[2] == "." || as.character(model)[2] == "quad(.)") || model == as.formula("~.*.")) {
     return(ReduceRM)
   }
   for (var in colnames(ReduceRM)) {

@@ -125,6 +125,10 @@ test_that("eval_design example code runs without errors", {
   #'
   #'#Halving the signal-to-noise ratio by setting a different delta (default is 2):
   expect_silent(eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,delta=1))
+
+  #'#Trying with ~.*. operator
+  expect_silent(eval_design(RunMatrix=optdesign, model= ~.*., alpha=0.2,delta=1))
+
   #'
   #'#With 3+ level categorical factors, the choice of anticipated coefficients directly changes the
   #'#final power calculation. For the most conservative power calculation, that involves
@@ -193,6 +197,11 @@ test_that("eval_design_mc example code runs without errors", {
   #'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
   #'               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
   #'
+  #'
+  #'#Trying with ~.*. operator
+  expect_silent(eval_design_mc(RunMatrix=designcoffee,model=~.*., 0.05,
+                               nsim=100, glmfamily="gaussian"))
+
   factorialcoffee = expand.grid(Temp = c(1,-1),
                                 Store=as.factor(c("A","B")),
                                 cost=c(-1, 1),
@@ -289,6 +298,10 @@ test_that("eval_design_custom_mc example code runs without errors", {
   #'
   expect_silent(eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
                         fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1))
+
+  #trying with ~. operator
+  expect_silent(eval_design_custom_mc(RunMatrix=design,model=~.,alpha=0.05,nsim=100,
+                                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1))
   #'
   #'#This has the exact same behavior as eval_design_survival_mc.
   #'

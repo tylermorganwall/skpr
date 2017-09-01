@@ -227,6 +227,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       attributes(RunMatrix) = allattr
     }
   }
+
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
     if(attr(RunMatrix,"splitanalyzable")) {
@@ -282,6 +283,11 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #---------- Convert dot formula to terms -----#
+
+  if(model == as.formula("~.*.")) {
+    model = as.formula(paste0("~(",paste(colnames(RunMatrixReduced),collapse = " + "),")^2"))
+  }
+
   #Variables used later: model, ModelMatrix
   if((as.character(model)[2] == ".")) {
     model = as.formula(paste("~", paste(attr(RunMatrixReduced, "names"), collapse=" + "), sep=""))

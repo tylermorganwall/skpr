@@ -175,6 +175,12 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
+  #convert ~.*.
+
+  if(model == as.formula("~.*.")) {
+    model = as.formula(paste0("~(",paste(colnames(candidateset),collapse = " + "),")^2"))
+  }
+
   #covert tibbles
   candidateset = as.data.frame(candidateset)
   if(!is.null(splitplotdesign)){
@@ -214,7 +220,7 @@ gen_design = function(candidateset, model, trials,
       contrastslistsubplot = NULL
     }
 
-    if(model != "~.") {
+    if(model != as.formula("~.")) {
       model = as.formula(paste0("~",paste(attr(terms.formula(model), "term.labels"),collapse = " + ")))
 
       wholeplotterms = colnames(splitplotdesign)

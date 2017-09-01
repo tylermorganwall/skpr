@@ -207,6 +207,11 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   }
 
   #----- Convert dot/quad formula to terms -----#
+
+  if(model == as.formula("~.*.")) {
+    model = as.formula(paste0("~(",paste(colnames(RunMatrix),collapse = " + "),")^2"))
+  }
+
   #Variables used later: model
   if((as.character(model)[2] == ".")) {
     model = as.formula(paste("~", paste(attr(RunMatrix, "names"), collapse=" + "), sep=""))

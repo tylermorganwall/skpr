@@ -33,10 +33,10 @@ gen_anticoef = function(RunMatrix,model) {
   anticoef = c(1)
 
   for(i in 1:length(levels)) {
-    if (type[i] == "factor" && levels[i] %% 2 == 0) {
+    if (type[i] %in% c("character","factor") && levels[i] %% 2 == 0) {
       anticoef = c(anticoef,rep(c(1,-1),levels[i]/2))
     }
-    if (type[i] == "factor" && levels[i] %% 2 == 1) {
+    if (type[i] %in% c("character","factor") && levels[i] %% 2 == 1) {
       anticoef = c(anticoef,1,rep(c(-1,1),(levels[i]-1)/2))
     }
     if (type[i] == "numeric" || type[i] == "integer") {

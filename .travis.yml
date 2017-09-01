@@ -2,7 +2,6 @@
 
 language: R
 sudo: false
-cache: packages
 
 r_packages:
   - covr

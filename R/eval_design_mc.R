@@ -23,19 +23,11 @@
 #'You only need to specify this if you do not like the default behavior described below.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{delta} or \code{binomialprobs} arguments.
-#'@param delta Loosely speaking, the signal-to-noise ratio. Default 2. For a gaussian model, and for
-#'continuous factors, this specifies the difference in response between the highest
-#'and lowest levels of a factor (which are +1 and -1 after normalization).
-#'More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
-#'half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.
+#'@param delta Helper argument to generate anticipated coefficients. See details for more info.
+#'If you specify \code{anticoef}, \code{delta} will be ignored.
 #'@param contrasts The contrasts to use for categorical factors. Defaults to \code{contr.sum}.
-#'@param binomialprobs If the glm family is binomial, user should specify
-#'a length-two vector consisting of the base probability and the maximum expected probability. Note that
-#'this effect size is applied to each parameter, so if you have many parameters the actual shift in probability
-#'across the design space can be much larger than this.
-#'As an example, if the user wants to detect at an
-#' change in success rate from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument.
-#' If this argument is used, the \code{anticoef} and \code{delta} arguments are ignored.
+#'@param binomialprobs Equivalent to delta, maintained for backwards compatibility. See details for more info.
+#'If you specify \code{anticoef}, this argument will be ignored.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
@@ -70,6 +62,10 @@
 #'}
 #'Note that the exponential random generator uses the "rate" parameter, but \code{skpr} and \code{glm} use
 #'the mean value parameterization (= 1 / rate), hence the minus sign above.
+#'
+#'Power is dependent on the anticipated coefficients. You may specify those directly with the anticoef
+#'argument, or you may use the delta argument to specify an effect size and we will auto-generate them. The
+#'behavior of delta depends on the \code{glmfamily} argument as follows:
 #'
 #'@export
 #'@import foreach doParallel nlme stats

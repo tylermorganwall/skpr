@@ -1,7 +1,12 @@
 #'@title Generates Binomial Anticipated Coefficients
 #'
 #'@description Generates Binomial Anticipated Coefficients
-#'
+#'Solves the logistic function
+#'log(p / (1-p)) = beta0 + beta1 * x
+#'such that p = lowprob when x = -1, and p = highprob when x = +1.
+#'Equivalently, solves this set of equations for beta0 and beta1:
+#'log(lowprob / (1 - lowprob)) = beta0 - beta1
+#'log(highprob / (1 - highprob)) = beta0 + beta1
 #'@param runmatrix The Run Matrix
 #'@param model Base model
 #'@param contrastslist Contrasts
@@ -11,19 +16,12 @@
 #'@return Anticipated coefficients.
 #'@keywords internal
 gen_binomial_anticoef = function(anticoef, lowprob, highprob) {
-
-  if(highprob <= lowprob) {
-    stop("Binomial anticipated coefficients generation error: High probabilty must be higher than low probability")
-  }
-  if(highprob > 1 || lowprob > 1) {
+  if (highprob > 1 || highprob < 0 || lowprob > 1 || lowprob < 0) {
     stop("Binomial anticipated coefficients generation error: Probabilities must be between 0 and 1")
   }
-
-  b0 = log(sqrt(highprob*lowprob)/(1-sqrt(highprob*lowprob)))
-  b = 1/2*log(highprob/lowprob*(1-lowprob)/(1-highprob))
+  b0 = 1/2 * log(lowprob * highprob / (1 - lowprob) / (1 - highprob))
+  b = 1/2 * log(highprob * (1 - lowprob) / (1 - highprob) / lowprob)
   newanticoef = anticoef*b
   newanticoef[1] = b0
-
   return(newanticoef)
-
 }

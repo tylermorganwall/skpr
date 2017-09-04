@@ -48,14 +48,14 @@
 #' with a generalized linear model, and the fraction of simulations in which a parameter is
 #'significant is the estimate of power for that parameter.
 #'
-#'First, the random noise from blocking is generated with \code{rnorm}.
+#'First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
 #'Each block gets a single sample of Gaussian random noise, with a variance as specified in \code{varianceratios},
 #'and that sample is copied to each run in the block. Then, \code{rfunction} is called to generate a simulated
 #'response for each run of the design, and the data is fit using the appropriate fitting function.
 #'The functions used to simulate the data and fit it are determined by the \code{glmfamily}
 #'and \code{blocking} arguments
 #'as follows. Below, X is the model matrix, b is the anticipated coefficients, and d
-#'is a vector of blocking noise:
+#'is a vector of blocking noise (if blocking = FALSE then d = 0):
 #'
 #'\tabular{llrr}{
 #'\bold{glmfamily}      \tab \bold{blocking} \tab \bold{rfunction} \tab \bold{fit} \cr
@@ -68,6 +68,8 @@
 #'"exponential"  \tab F        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{glm(family = Gamma(link="log"))} \cr
 #'"exponential"  \tab T        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{lme4:glmer(family = Gamma(link="log"))} \cr
 #'}
+#'Note that the exponential random generator uses the "rate" parameter, but \code{skpr} and \code{glm} use
+#'the mean value parameterization (= 1 / rate), hence the minus sign above.
 #'
 #'@export
 #'@import foreach doParallel nlme stats
@@ -246,7 +248,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
       rfunction = function(X,b,blockvector) {return(rnorm(n=nrow(X), mean = X %*% b + blockvector, sd = 1))}
     }
     if(glmfamily == "binomial") {
-      rfunction = function(X,b,blockvector) {return(rbinom(n=nrow(X), size = 1 ,prob = 1/(1+exp(-(X %*% b + blockvector)))))}
+      rfunction = function(X,b,blockvector) {return(rbinom(n=nrow(X), size = 1, prob = 1/(1+exp(-(X %*% b + blockvector)))))}
     }
     if(glmfamily == "poisson") {
       rfunction = function(X,b,blockvector) {return(rpois(n=nrow(X), lambda = exp((X %*% b + blockvector))))}
@@ -310,26 +312,20 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #-----Autogenerate Anticipated Coefficients---#
   #Variables used later: anticoef
-  if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model)
+  if (!is.null(binomialprobs)) {
+    #delta now has the same functionality as binomialprobs
+    delta = binomialprobs
+    message("binomialprobs is now equivalent to delta")
   }
-  anticoef = anticoef * delta / 2
+  if (!missing(anticoef) && !missing(delta)) {
+    warning("Because you provided anticoef, we will ignore the delta argument.")
+  }
+  if(missing(anticoef)) {
+    default_coef = gen_anticoef(RunMatrixReduced, model)
+    anticoef = anticoef_from_delta(default_coef, delta, glmfamilyname)
+  }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
-  }
-  if(glmfamilyname == "binomial" && is.null(binomialprobs)) {
-    warning("Warning: Binomial model using default (or user supplied) anticipated coefficients. Default anticipated coefficients can result in
-            large shifts in probability throughout the design space. It is recommended to specify probability bounds in the argument
-            binomialprobs for more realistic effect sizes.")
-  }
-  if(!is.null(binomialprobs)) {
-    if (glmfamilyname == "binomial") {
-      if (any(binomialprobs < 0) || any(binomialprobs > 1)) {
-        stop("binomialprobs must be between 0 and 1")
-      }
-      anticoef = gen_binomial_anticoef(gen_anticoef(RunMatrixReduced, model),
-                                     binomialprobs[1],binomialprobs[2]) #ignore delta argument
-    }
   }
 
   #-------------- Blocking errors --------------#
@@ -530,7 +526,6 @@ eval_design_mc = function(RunMatrix, model, alpha,
     retval$trials = nrow(RunMatrix)
     retval$nsim = nsim
     retval$blocking = blocking
-    retval$delta = delta
   }
 
   colnames(estimates) = parameter_names

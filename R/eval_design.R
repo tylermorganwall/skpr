@@ -18,9 +18,9 @@
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{delta} argument.
 #'@param delta The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
-#' difference between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
-#' normalizes the input data). If you do not specify \code{anticoef},
-#' the anticipated coefficients will be half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.
+#' difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
+#' normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
+#' the anticipated coefficients will be half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.
 #'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param contrasts The function to use to encode the categorical factors in the model matrix. Default \code{contr.sum}.
@@ -35,9 +35,8 @@
 #'especially useful if you want to specify the anticipated coefficients to use for power evaluation. The model
 #'matrix provides the order of the model coefficients, as well as the
 #'encoding used for categorical factors.
-#'@details This function evaluates the power of experimental designs using standard theory
-#'as described in any DOE textbook. An accesible reference is "Optimal Design of
-#'Experiments: A Case Study Approach," by Goos and Jones (2011).
+#'@details This function evaluates the power of experimental designs, mostly following the
+#'approach described in "Optimal Design of Experiments: A Case Study Approach," by Goos and Jones (2011).
 #'
 #'When using \code{conservative = TRUE}, \code{eval_design} first evaluates the power with default coefficients. Then,
 #'for each multi-level categorical, it sets all coefficients to zero except the level that produced the lowest power,
@@ -239,10 +238,13 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   #Variables used later: anticoef
   attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
 
-  if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrix,model)
+  if (!missing(anticoef) && !missing(delta)) {
+    warning("Because you provided anticoef, we will ignore the delta argument.")
   }
-  anticoef = anticoef * delta / 2
+  if(missing(anticoef)) {
+    default_coef = gen_anticoef(RunMatrix, model)
+    anticoef = anticoef_from_delta(default_coef, delta, "gaussian")
+  }
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2]) {
     stop("Wrong number of anticipated coefficients")
   }
@@ -330,7 +332,6 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       }
       results$alpha = alpha
       results$trials = nrow(RunMatrix)
-      results$delta = delta
     }
 
 
@@ -394,7 +395,6 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       }
       results$alpha = alpha
       results$trials = nrow(RunMatrix)
-      results$delta = delta
     }
 
     #For conservative coefficients, look for lowest power results from non-conservative calculation and set them to one
@@ -429,10 +429,12 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
           }
         }
       }
+      #at this point, since we are going to specify anticoef, do not use the delta argument
+      #in the subsequent call
       results = eval_design(RunMatrix=RunMatrix, model=model, alpha=alpha, blocking=blocking,
                   anticoef=conservative_anticoef,
                   detailedoutput = detailedoutput,
-                  delta=delta, varianceratios=varianceratios, contrasts=contrasts, conservative=FALSE)
+                  varianceratios=varianceratios, contrasts=contrasts, conservative=FALSE)
     }
 
     return(results)

@@ -215,12 +215,12 @@ test_that("eval_design_mc example code runs without errors", {
                                splitplotdesign=htcdesign, splitplotsizes=4)
   })
   expect_warning(eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05, blocking=TRUE,
-                                nsim=100, glmfamily="gaussian", varianceratios = c(5,4,2)))
+                                nsim=1, glmfamily="gaussian", varianceratios = c(5,4,2)))
   factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
   expect_silent({
     designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
   })
-  expect_warning(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
                  glmfamily="binomial"))
   factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
   designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)

@@ -78,14 +78,14 @@ Evaluates the power of a design with Monte Carlo simulation. Data is simulated a
 with a generalized linear model, and the fraction of simulations in which a parameter is
 significant is the estimate of power for that parameter.
 
-First, the random noise from blocking is generated with \code{rnorm}.
+First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
 Each block gets a single sample of Gaussian random noise, with a variance as specified in \code{varianceratios},
 and that sample is copied to each run in the block. Then, \code{rfunction} is called to generate a simulated
 response for each run of the design, and the data is fit using the appropriate fitting function.
 The functions used to simulate the data and fit it are determined by the \code{glmfamily}
 and \code{blocking} arguments
 as follows. Below, X is the model matrix, b is the anticipated coefficients, and d
-is a vector of blocking noise:
+is a vector of blocking noise (if blocking = FALSE then d = 0):
 
 \tabular{llrr}{
 \bold{glmfamily}      \tab \bold{blocking} \tab \bold{rfunction} \tab \bold{fit} \cr
@@ -98,6 +98,8 @@ is a vector of blocking noise:
 "exponential"  \tab F        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{glm(family = Gamma(link="log"))} \cr
 "exponential"  \tab T        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{lme4:glmer(family = Gamma(link="log"))} \cr
 }
+Note that the exponential random generator uses the "rate" parameter, but \code{skpr} and \code{glm} use
+the mean value parameterization (= 1 / rate), hence the minus sign above.
 }
 \examples{
 #We first generate a full factorial design using expand.grid:

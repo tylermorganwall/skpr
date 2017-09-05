@@ -366,7 +366,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
     for(i in 1:(length(groups)-1)) {
       blocktemp = list()
       for(j in 1:length(groups[[i]])) {
-        row = rnorm(n=1,mean=0,sd=noise[i])
+        row = rnorm(n=1,mean=0,sd=sqrt(noise[i]))
         blocktemp[[j]] = do.call(rbind, replicate(groups[[i]][j],row,simplify = FALSE))
       }
       listblocknoise[[i]] = do.call(rbind,blocktemp)

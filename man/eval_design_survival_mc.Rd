@@ -24,7 +24,9 @@ in the documentation for \code{survreg}. \emph{Supported} options are
 "exponential", "lognormal", or "gaussian". Default "gaussian".}
 
 \item{censorpoint}{The point after/before (for right-censored or left-censored data, respectively)
-which data should be labelled as censored. Default NA for no censoring.}
+which data should be labelled as censored. Default NA for no censoring. This argument is
+used only by the internal random number generators; if you supply your own function to
+the \code{rfunctionsurv} parameter, then this parameter will be ignored.}
 
 \item{censortype}{The type of censoring (either "left" or "right"). Default "right".}
 
@@ -36,9 +38,8 @@ the supported choices and you are satisfied with the default behavior described 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{delta} argument.}
 
-\item{delta}{The signal-to-noise ratio. For a gaussian model, this specifies the difference in
-response between the highest and lowest levels of a factor (which are +1 and -1, respectively, after normalization).
-If you do not specify \code{anticoef}, the anticipated coefficients will be half of \code{delta}. Default 2.}
+\item{delta}{Helper argument to generate anticipated coefficients. See details for more info.
+If you specify \code{anticoef}, \code{delta} will be ignored.}
 
 \item{contrasts}{Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.}
 
@@ -67,17 +68,39 @@ argument as follows:
 \bold{distribution}  \tab \bold{generating function} \cr
 "gaussian"                  \tab \code{rnorm(mean = X \%*\% b, sd=1)}           \cr
 "exponential"               \tab \code{rexp(rate = exp(-X \%*\% b))}           \cr
-"lognormal"                 \tab \code{rlnorm(meanlog= X \%*\% b, sdlog=1)}           \cr
+"lognormal"                 \tab \code{rlnorm(meanlog = X \%*\% b, sdlog=1)}           \cr
 }
 
 In each case, if a simulated data point is past the censorpoint (greater than for right-censored, less than for
 left-censored) it is marked as censored. See the examples below for how to construct your own function.
+
+
+Power is dependent on the anticipated coefficients. You can specify those directly with the \code{anticoef}
+argument, or you can use the \code{delta} argument to specify an effect size and \code{skpr} will auto-generate them.
+You can provide either a length-1 or length-2 vector. If you provide a length-1 vector, the anticipated
+coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
+(for a gaussian model, the mean response; for an exponential model or lognormal model,
+the log of the mean value)
+changes by \code{delta} when a factor goes from its lowest level to its highest level. If you provide a
+length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
+\code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
+that the other factors are inactive (their x-values are zero).
+
+The effect of a length-2 \code{delta} depends on the \code{distribution} argument as follows:
+
+For \code{distribution = 'gaussian'}, the coefficients are set to \code{(delta[2] - delta[1]) / 2}.
+
+For \code{distribution = 'exponential'} or \code{'lognormal'},
+the intercept will be
+\code{1 / 2 * (log(delta[2]) + log(delta[1]))},
+and the other coefficients will be
+\code{1 / 2 * (log(delta[2]) - log(delta[1]))}.
 }
 \examples{
 #These examples focus on the survival analysis case and assume familiarity
 #with the basic functionality of eval_design_mc.
 
-#We first generate simple 2-level design using expand.grid:
+#We first generate a simple 2-level design using expand.grid:
 basicdesign = expand.grid(a=c(-1, 1))
 design = gen_design(candidateset=basicdesign, model=~a, trials=15)
 
@@ -93,9 +116,7 @@ eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
 #and lognormal distributions.
 
 #We can also evaluate different censored distributions by specifying a custom
-#random generating function and changing the distribution argument. You can also
-#specify any additional arguments at the end of the function call and they will be
-#input into the survreg function when it evaluates.
+#random generating function and changing the distribution argument.
 
 rlognorm = function(X, b) {
  Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
@@ -109,5 +130,5 @@ rlognorm = function(X, b) {
 
 eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
                        distribution="lognormal", rfunctionsurv=rlognorm,
-                       anticoef=c(0.184,0.101), delta=2, scale=0.4)
+                       anticoef=c(0.184,0.101), scale=0.4)
 }

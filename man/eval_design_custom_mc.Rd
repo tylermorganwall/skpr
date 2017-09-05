@@ -35,7 +35,7 @@ automatically generated based on \code{delta}.}
 continuous factors, this specifies the difference in response between the highest
 and lowest levels of a factor (which are +1 and -1 after normalization).
 More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
-half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.}
+half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.}
 
 \item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default \code{contr.sum}.}
 

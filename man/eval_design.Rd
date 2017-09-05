@@ -24,8 +24,8 @@ factors that are not present in the run matrix.}
 will be automatically generated based on the \code{delta} argument.}
 
 \item{delta}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
-difference between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
-normalizes the input data). If you do not specify \code{anticoef},
+difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
+normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
 the anticipated coefficients will be half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.}
 
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot

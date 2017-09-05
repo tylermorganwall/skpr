@@ -239,10 +239,12 @@ test_that("eval_design_survival_mc example code runs without errors", {
     Y[censored] = 1
     return(Surv(time=Y, event=!censored, type="right"))
   }
-  expect_silent({
+  expect_warning({
     a = eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05, nsim=100,
                           distribution="exponential", rfunctionsurv=rsurvival, delta=1)
-  })
+  },
+  "default or length 1 delta used with distribution == 'exponential'")
+
   rlognorm = function(X, b) {
     Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 0.4)
     censored = Y > 1.2
@@ -252,7 +254,7 @@ test_that("eval_design_survival_mc example code runs without errors", {
   expect_silent(
     eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
                           distribution="lognormal", rfunctionsurv=rlognorm,
-                          anticoef=c(0.184,0.101), delta=2, scale=0.4)
+                          anticoef=c(0.184,0.101), scale=0.4)
   )
 })
 

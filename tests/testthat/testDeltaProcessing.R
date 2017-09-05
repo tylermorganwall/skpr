@@ -14,6 +14,11 @@ test_that("providing anticoef and delta to eval_design_mc produces a warning", {
                  "Because you provided anticoef, we will ignore the delta argument.")
 })
 
+test_that("providing anticoef and delta to eval_design_survival_mc produces a warning", {
+  des = expand.grid(x = c(-1, 1), y = 10:11)
+  expect_warning(eval_design_survival_mc(des, ~., delta = 2, anticoef = c(1, 1, 1), alpha = 0.2, nsim = 1),
+                 "Because you provided anticoef, we will ignore the delta argument.")
+})
 
 
 test_that("binomial coefficient generation is numerically correct", {
@@ -114,22 +119,100 @@ test_that("poisson coefficient generation rejects invalid parameters", {
   expect_silent(skpr:::gen_poisson_anticoef(acoef, 0.4, 0.3))
 })
 
+
+
 test_that("eval_design_mc processes delta properly for glm", {
-  #TODO: fill this in
   cand = expand.grid(x = c(-1, 1), y = c(-1, 1))
   des = gen_design(cand, ~., trials = 100)
+
   #length = 1 delta, warning except for gaussian:
-  expect_silent(eval_design_mc(des, ~., glmfamily = 'gaussian', delta = 2, alpha = 0.2, nsim = 1))
-  expect_warning(eval_design_mc(des, ~., glmfamily = 'exponential', delta = 2, alpha = 0.2, nsim = 1),
+  expect_silent(
+    res1 <- eval_design_mc(des, ~., glmfamily = 'gaussian', delta = 5,
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res1$anticoef, c(2.5, 2.5, 2.5), tolerance = 1e-8)
+
+  expect_warning(res2 <- eval_design_mc(des, ~., glmfamily = 'exponential', delta = 3,
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE),
                "default or length 1 delta used with glmfamily == 'exponential'")
-  expect_warning(eval_design_mc(des, ~., glmfamily = 'poisson', delta = 2, alpha = 0.2, nsim = 1),
+  expect_equal(res2$anticoef, c(1.5, 1.5, 1.5))
+
+  expect_warning(
+    res3 <- eval_design_mc(des, ~., glmfamily = 'poisson', delta = 1,
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE),
                "default or length 1 delta used with glmfamily == 'poisson'")
-  expect_warning(eval_design_mc(des, ~., glmfamily = 'binomial', delta = 2, alpha = 0.2, nsim = 1),
+  expect_equal(res3$anticoef, c(0.5, 0.5, 0.5))
+
+  expect_warning(
+    res4 <- eval_design_mc(des, ~., glmfamily = 'binomial', delta = 2,
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE),
                "default or length 1 delta used with glmfamily == 'binomial'")
+  expect_equal(res4$anticoef, c(1, 1, 1))
 
   #length = 2 delta, works in all cases:
-  expect_silent(eval_design_mc(des, ~., glmfamily = 'binomial', delta = c(0.6, 0.8), alpha = 0.2, nsim = 1))
-  expect_silent(eval_design_mc(des, ~., glmfamily = 'exponential', delta = c(3, 5), alpha = 0.2, nsim = 1))
-  expect_silent(eval_design_mc(des, ~., glmfamily = 'poisson', delta = c(5.2, 8.3), alpha = 0.2, nsim = 1))
-  expect_silent(eval_design_mc(des, ~., glmfamily = 'gaussian', delta = c(5, 8), alpha = 0.2, nsim = 1))
+  expect_silent(
+    res5 <- eval_design_mc(des, ~., glmfamily = 'binomial', delta = c(0.6, 0.8),
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res5$anticoef, skpr:::gen_binomial_anticoef(c(1,1,1), 0.6, 0.8))
+
+  expect_silent(
+    res6 <- eval_design_mc(des, ~., glmfamily = 'exponential', delta = c(3, 5),
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res6$anticoef, skpr:::gen_exponential_anticoef(c(1,1,1), 3, 5))
+
+  expect_silent(
+    res7 <- eval_design_mc(des, ~., glmfamily = 'poisson', delta = c(5.2, 8.3),
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res7$anticoef, skpr:::gen_poisson_anticoef(c(1,1,1), 5.2, 8.3))
+
+  expect_silent(
+    res8 <- eval_design_mc(des, ~., glmfamily = 'gaussian', delta = c(5, 8),
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res8$anticoef, c(1.5, 1.5, 1.5))
+
+})
+
+test_that("eval_design_survival_mc processes delta properly", {
+  #TODO: fix this
+  cand = expand.grid(x = c(-1, 1), y = c(-1, 1))
+  des = gen_design(cand, ~., trials = 100)
+
+  #length = 1 delta, warning except for gaussian:
+  expect_silent(
+    res1 <- eval_design_survival_mc(des, ~., distribution = 'gaussian', delta = 5,
+                           alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res1$anticoef, c(2.5, 2.5, 2.5), tolerance = 1e-8)
+
+  expect_warning(
+    res2 <- eval_design_survival_mc(des, ~., distribution = 'lognormal', delta = 5,
+                                    alpha = 0.2, nsim = 1, detailedoutput = TRUE),
+    "default or length 1 delta used with distribution == 'lognormal'")
+  expect_equal(res2$anticoef, c(2.5, 2.5, 2.5), tolerance = 1e-8)
+
+  expect_warning(
+    res3 <- eval_design_survival_mc(des, ~., distribution = 'exponential', delta = 4,
+                                    alpha = 0.2, nsim = 1, detailedoutput = TRUE),
+    "default or length 1 delta used with distribution == 'exponential'")
+  expect_equal(res3$anticoef, c(2, 2, 2), tolerance = 1e-8)
+
+  #length = 2 delta, no warnings
+  expect_silent(
+    res4 <- eval_design_survival_mc(des, ~., distribution = 'gaussian', delta = c(2,3),
+                                    alpha = 0.2, nsim = 1, detailedoutput = TRUE))
+  expect_equal(res4$anticoef, c(0.5, 0.5, 0.5), tolerance = 1e-8)
+
+  expect_silent(
+    res5 <- eval_design_survival_mc(des, ~., distribution = 'lognormal', delta = c(1, 5),
+                                    alpha = 0.2, nsim = 1, detailedoutput = TRUE)
+  )
+  expect_equal(res5$anticoef,
+               skpr:::gen_exponential_anticoef(c(1,1,1), 1, 5), tolerance = 1e-8)
+
+  expect_silent(
+    res6 <- eval_design_survival_mc(des, ~., distribution = 'exponential',
+                                    delta = c(4, 7.3),
+                                    alpha = 0.2, nsim = 1, detailedoutput = TRUE)
+  )
+  expect_equal(res6$anticoef,
+               skpr:::gen_exponential_anticoef(c(1,1,1), 4, 7.3), tolerance = 1e-8)
+
 })

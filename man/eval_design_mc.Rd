@@ -18,7 +18,7 @@ to the range [-1, 1].}
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the run matrix.}
 
-\item{alpha}{The type-I error.}
+\item{alpha}{The type-I error. p-values less than this will be counted as significant.}
 
 \item{blocking}{If TRUE, \code{eval_design_mc} will look at the rownames to determine blocking structure. Default FALSE.}
 
@@ -31,27 +31,19 @@ factors that are not present in the run matrix.}
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
 
 \item{rfunction}{Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
-model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 0).
+model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
 You only need to specify this if you do not like the default behavior described below.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{delta} or \code{binomialprobs} arguments.}
 
-\item{delta}{Loosely speaking, the signal-to-noise ratio. Default 2. For a gaussian model, and for
-continuous factors, this specifies the difference in response between the highest
-and lowest levels of a factor (which are +1 and -1 after normalization).
-More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
-half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.}
+\item{delta}{Helper argument to generate anticipated coefficients. See details for more info.
+If you specify \code{anticoef}, \code{delta} will be ignored.}
 
 \item{contrasts}{The contrasts to use for categorical factors. Defaults to \code{contr.sum}.}
 
-\item{binomialprobs}{If the glm family is binomial, user should specify
-a length-two vector consisting of the base probability and the maximum expected probability. Note that
-this effect size is applied to each parameter, so if you have many parameters the actual shift in probability
-across the design space can be much larger than this.
-As an example, if the user wants to detect at an
-change in success rate from 0.5 to 0.8, the user would pass the vector c(0.5,0.8) to the argument.
-If this argument is used, the \code{anticoef} and \code{delta} arguments are ignored.}
+\item{binomialprobs}{Equivalent to delta, maintained for backwards compatibility. See details for more info.
+If you specify \code{anticoef}, this argument will be ignored.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
 
@@ -70,22 +62,25 @@ coefficients manually, do so in the order the parameters appear in the model mat
 Evaluates the power of an experimental design, given its run matrix and the
 statistical model to be fit to the data, using monte carlo simulation. Simulated data is fit using a
 generalized linear model
-and power is estimated by the fraction of times a parameter is significant. Returns
-a data frame of parameter powers.
+and power is estimated by the fraction of times a parameter is significant.
+Returns a data frame of parameter powers.
 }
 \details{
 Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
-with a generalized linear model, and the fraction of simulations in which a parameter is
-significant is the estimate of power for that parameter.
+with a generalized linear model, and the fraction of simulations in which a parameter
+is significant
+ (its p-value is less than the specified \code{alpha})
+is the estimate of power for that parameter.
 
 First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
-Each block gets a single sample of Gaussian random noise, with a variance as specified in \code{varianceratios},
+Each block gets a single sample of Gaussian random noise, with a variance as specified in
+\code{varianceratios},
 and that sample is copied to each run in the block. Then, \code{rfunction} is called to generate a simulated
 response for each run of the design, and the data is fit using the appropriate fitting function.
 The functions used to simulate the data and fit it are determined by the \code{glmfamily}
 and \code{blocking} arguments
 as follows. Below, X is the model matrix, b is the anticipated coefficients, and d
-is a vector of blocking noise (if blocking = FALSE then d = 0):
+is a vector of blocking noise (if \code{blocking = FALSE} then d = 0):
 
 \tabular{llrr}{
 \bold{glmfamily}      \tab \bold{blocking} \tab \bold{rfunction} \tab \bold{fit} \cr
@@ -99,7 +94,36 @@ is a vector of blocking noise (if blocking = FALSE then d = 0):
 "exponential"  \tab T        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{lme4:glmer(family = Gamma(link="log"))} \cr
 }
 Note that the exponential random generator uses the "rate" parameter, but \code{skpr} and \code{glm} use
-the mean value parameterization (= 1 / rate), hence the minus sign above.
+the mean value parameterization (= 1 / rate), hence the minus sign above. Also note that
+the gaussian model assumes a root-mean-square error of 1.
+
+Power is dependent on the anticipated coefficients. You can specify those directly with the \code{anticoef}
+argument, or you can use the \code{delta} argument to specify an effect size and \code{skpr} will auto-generate them.
+You can provide either a length-1 or length-2 vector. If you provide a length-1 vector, the anticipated
+coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
+(for a gaussian model, the mean response; for a binomial model, the log odds ratio; for an exponential model,
+the log of the mean value; for a poisson model, the log of the expected response)
+changes by \code{delta} when a factor goes from its lowest level to its highest level. If you provide a
+length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} (for
+a gaussian model, the mean response; for a binomial model, the probability; for an exponential model, the mean
+response; for a poisson model, the expected response) changes from
+\code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
+that the other factors are inactive (their x-values are zero).
+
+The effect of a length-2 \code{delta} depends on the \code{glmfamily} argument as follows:
+
+For \code{glmfamily = 'gaussian'}, the coefficients are set to \code{(delta[2] - delta[1]) / 2}.
+
+For \code{glmfamily = 'binomial'}, the intercept will be
+\code{1/2 * log(delta[1] * delta[2] / (1 - delta[1]) / (1 - delta[2]))},
+and the other coefficients will be
+\code{1/2 * log(delta[2] * (1 - delta[1]) / (1 - delta[2]) / delta[1])}.
+
+For \code{glmfamily = 'exponential'} or \code{'poisson'},
+the intercept will be
+\code{1 / 2 * (log(delta[2]) + log(delta[1]))},
+and the other coefficients will be
+\code{1 / 2 * (log(delta[2]) - log(delta[1]))}.
 }
 \examples{
 #We first generate a full factorial design using expand.grid:

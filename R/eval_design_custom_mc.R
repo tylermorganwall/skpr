@@ -25,7 +25,7 @@
 #'continuous factors, this specifies the difference in response between the highest
 #'and lowest levels of a factor (which are +1 and -1 after normalization).
 #'More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
-#'half of \code{delta}. If you do specify \code{anticoef}, leave \code{delta} at its default of 2.
+#'half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.
 #'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default \code{contr.sum}.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
@@ -127,10 +127,12 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
 
   # autogenerate anticipated coefficients
-  if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model)
+  if (!missing(delta) && !missing(anticoef)) {
+    warning("Because you provided anticoef, we will ignore the delta argument.")
   }
-  anticoef = anticoef * delta / 2
+  if(missing(anticoef)) {
+    anticoef = gen_anticoef(RunMatrixReduced,model) * delta / 2
+  }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
   }

@@ -33,7 +33,13 @@
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
 #'categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
 #'@import foreach doParallel survival stats iterators
-#'@details If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
+#'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
+#'with a survival model (\code{survival::survreg}), and the fraction of simulations in which a parameter
+#'is significant
+#'(its p-value is less than the specified \code{alpha})
+#'is the estimate of power for that parameter.
+#'
+#'If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
 #'argument as follows:
 #'\tabular{lr}{
 #'\bold{distribution}  \tab \bold{generating function} \cr
@@ -52,7 +58,7 @@
 #'coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
 #'(for a gaussian model, the mean response; for an exponential model or lognormal model,
 #'the log of the mean value)
-#'changes by \code{delta} when a factor goes from its lowest level to its highest level. If you provide a
+#'changes by \code{delta} when a continuous factor goes from its lowest level to its highest level. If you provide a
 #'length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
 #'\code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
 #'that the other factors are inactive (their x-values are zero).

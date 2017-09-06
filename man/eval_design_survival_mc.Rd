@@ -81,7 +81,7 @@ You can provide either a length-1 or length-2 vector. If you provide a length-1 
 coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
 (for a gaussian model, the mean response; for an exponential model or lognormal model,
 the log of the mean value)
-changes by \code{delta} when a factor goes from its lowest level to its highest level. If you provide a
+changes by \code{delta} when a continuous factor goes from its lowest level to its highest level. If you provide a
 length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
 \code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
 that the other factors are inactive (their x-values are zero).

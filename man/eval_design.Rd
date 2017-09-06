@@ -60,6 +60,22 @@ assumes a signal-to-noise ratio of 2, but this can be changed with the
 This function evaluates the power of experimental designs, mostly following the
 approach described in "Optimal Design of Experiments: A Case Study Approach," by Goos and Jones (2011).
 
+Power is calculated under a linear regression framework: you intend to fit a
+linear model to the data, of the form
+
+\eqn{y = X \beta + \epsilon}, (plus blocking terms, if applicable)
+
+where \eqn{y} is the vector of experimental responses, \eqn{X} is the model matrix, \eqn{\beta} is
+the vector of model coefficients, and \eqn{\epsilon} is the statistical noise. \code{eval_design}
+assumes that epsilon is
+normally distributed with zero mean and unit variance (root-mean-square error is 1), and
+calculates both parameter power and effect power.
+Parameter power is the probability of rejecting the hypothesis \eqn{\beta_i = 0}, where \eqn{\beta_i} is a single parameter
+in the model,
+while effect power is the probability of rejecting the hypothesis \eqn{\beta_{i} = 0}, where \eqn{\beta_{i}} is the set of all
+parameters associated with the effect in question. The two powers are equivalent for continuous factors and
+two-level categorical factors, but they can be different for categorical factors with three or more levels.
+
 When using \code{conservative = TRUE}, \code{eval_design} first evaluates the power with default coefficients. Then,
 for each multi-level categorical, it sets all coefficients to zero except the level that produced the lowest power,
 and then re-evaluates the power with this modified set of anticipated coefficients.

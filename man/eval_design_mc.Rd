@@ -69,7 +69,7 @@ Returns a data frame of parameter powers.
 Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
 with a generalized linear model, and the fraction of simulations in which a parameter
 is significant
- (its p-value is less than the specified \code{alpha})
+ (its p-value, according to the fit function used, is less than the specified \code{alpha})
 is the estimate of power for that parameter.
 
 First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
@@ -103,7 +103,7 @@ You can provide either a length-1 or length-2 vector. If you provide a length-1 
 coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
 (for a gaussian model, the mean response; for a binomial model, the log odds ratio; for an exponential model,
 the log of the mean value; for a poisson model, the log of the expected response)
-changes by \code{delta} when a factor goes from its lowest level to its highest level. If you provide a
+changes by \code{delta} when a continuous factor goes from its lowest level to its highest level. If you provide a
 length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} (for
 a gaussian model, the mean response; for a binomial model, the probability; for an exponential model, the mean
 response; for a poisson model, the expected response) changes from

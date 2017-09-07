@@ -6,9 +6,9 @@
 \usage{
 eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
   distribution = "gaussian", censorpoint = NA, censortype = "right",
-  rfunctionsurv = NULL, anticoef = NULL, delta = 2,
+  rfunctionsurv = NULL, anticoef = NULL, effectsize = 2,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
-  progressBarUpdater = NULL, ...)
+  progressBarUpdater = NULL, delta = NULL, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].}
@@ -36,10 +36,10 @@ the \code{survival} package. You do not need to provide this argument if \code{d
 the supported choices and you are satisfied with the default behavior described below.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the \code{delta} argument.}
+will be automatically generated based on the \code{effectsize} argument.}
 
-\item{delta}{Helper argument to generate anticipated coefficients. See details for more info.
-If you specify \code{anticoef}, \code{delta} will be ignored.}
+\item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
+If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{contrasts}{Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.}
 
@@ -48,6 +48,8 @@ If you specify \code{anticoef}, \code{delta} will be ignored.}
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
+
+\item{delta}{Depreciated. Use effectsize instead.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }
@@ -76,25 +78,25 @@ left-censored) it is marked as censored. See the examples below for how to const
 
 
 Power is dependent on the anticipated coefficients. You can specify those directly with the \code{anticoef}
-argument, or you can use the \code{delta} argument to specify an effect size and \code{skpr} will auto-generate them.
+argument, or you can use the \code{effectsize} argument to specify an effect size and \code{skpr} will auto-generate them.
 You can provide either a length-1 or length-2 vector. If you provide a length-1 vector, the anticipated
-coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
+coefficients will be half of \code{effectsize}; this is equivalent to saying that the \emph{linear predictor}
 (for a gaussian model, the mean response; for an exponential model or lognormal model,
 the log of the mean value)
-changes by \code{delta} when a factor goes from its lowest level to its highest level. If you provide a
+changes by \code{effectsize} when a factor goes from its lowest level to its highest level. If you provide a
 length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
-\code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
+\code{effectsize[1]} to \code{effectsize[2]} when a factor goes from its lowest level to its highest level, assuming
 that the other factors are inactive (their x-values are zero).
 
-The effect of a length-2 \code{delta} depends on the \code{distribution} argument as follows:
+The effect of a length-2 \code{effectsize} depends on the \code{distribution} argument as follows:
 
-For \code{distribution = 'gaussian'}, the coefficients are set to \code{(delta[2] - delta[1]) / 2}.
+For \code{distribution = 'gaussian'}, the coefficients are set to \code{(effectsize[2] - effectsize[1]) / 2}.
 
 For \code{distribution = 'exponential'} or \code{'lognormal'},
 the intercept will be
-\code{1 / 2 * (log(delta[2]) + log(delta[1]))},
+\code{1 / 2 * (log(effectsize[2]) + log(effectsize[1]))},
 and the other coefficients will be
-\code{1 / 2 * (log(delta[2]) - log(delta[1]))}.
+\code{1 / 2 * (log(effectsize[2]) - log(effectsize[1]))}.
 }
 \examples{
 #These examples focus on the survival analysis case and assume familiarity

@@ -479,6 +479,7 @@ function(input, output, session) {
     first = paste0(c("<br><pre>",
                      "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                      "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
+                     "library(skpr)<br><br>",
                      ifelse(input$setseed,
                             paste0("<code style=\"color:#468449\">#Setting random number generator seed:</code><br>",
                                    "set.seed(", input$seed, ")<br><br>"),""),
@@ -549,9 +550,9 @@ function(input, output, session) {
         first = paste(c(first, ",<br>", rep("&nbsp;",12),
                         "blocking = TRUE"),collapse = "")
       }
-      if(input$delta != 2) {
+      if(input$snr != 2) {
         first = paste(c(first, ",<br>", rep("&nbsp;",12),
-                        "delta = ",input$delta),collapse = "")
+                        "effectsize = ",input$snr),collapse = "")
       }
       if(input$varianceratio != 1) {
         first = paste(c(first, ",<br>", rep("&nbsp;",12),
@@ -605,17 +606,16 @@ function(input, output, session) {
         first = paste(c(first, ",<br>", rep("&nbsp;",15),
                         "glmfamily = \"",input$glmfamily,"\""),collapse = "")
       }
-      if(input$delta != 2) {
+      if(length(effectsize()) == 1) {
         first = paste(c(first, ",<br>", rep("&nbsp;",15),
-                        "delta = ",input$delta),collapse = "")
+                        "effectsize = ",effectsize()),collapse = "")
+      } else {
+        first = paste(c(first, ",<br>", rep("&nbsp;",15),
+                        "effectsize = c(",effectsize()[1],", ", effectsize()[2],")"),collapse = "")
       }
       if(!is.null(input$varianceratios)) {
         first = paste(c(first, ",<br>", rep("&nbsp;",15),
                         "varianceratios = ",input$varianceratio),collapse = "")
-      }
-      if((input$binomialprobs[1] != 0.4 || input$binomialprobs[2] != 0.6) && input$glmfamily == "binomial") {
-        first = paste(c(first, ",<br>", rep("&nbsp;",15),
-                        "binomialprobs = c(",input$binomialprobs[1],", ",input$binomialprobs[2]),collapse = "")
       }
       if(as.logical(input$parallel_eval_glm)) {
         first = paste(c(first, ",<br>", rep("&nbsp;",15),
@@ -663,6 +663,13 @@ function(input, output, session) {
         first = paste(c(first, ",<br>", rep("&nbsp;",24),
                         "distribution = \"",input$distribution,"\""),collapse = "")
       }
+      if(length(effectsize()) == 1) {
+        first = paste(c(first, ",<br>", rep("&nbsp;",24),
+                        "effectsize = ",effectsize()),collapse = "")
+      } else {
+        first = paste(c(first, ",<br>", rep("&nbsp;",24),
+                        "effectsize = c(",effectsize()[1],", ", effectsize()[2],")"),collapse = "")
+      }
       if(!is.na(input$censorpoint)) {
         first = paste(c(first, ",<br>", rep("&nbsp;",24),
                         "censorpoint = ",input$censorpoint),collapse = "")
@@ -670,10 +677,6 @@ function(input, output, session) {
       if(input$censortype != "right") {
         first = paste(c(first, ",<br>", rep("&nbsp;",24),
                         "censortype = \"",input$censortype,"\""),collapse = "")
-      }
-      if(input$delta != 2) {
-        first = paste(c(first, ",<br>", rep("&nbsp;",24),
-                        "delta = ",input$delta),collapse = "")
       }
       if(as.logical(input$parallel_eval_surv)) {
         first = paste(c(first, ",<br>", rep("&nbsp;",24),
@@ -747,6 +750,37 @@ function(input, output, session) {
       "D"
     } else {
       isolate(input$optimality)
+    }
+  })
+
+  effectsize = reactive({
+    if(input$evaltype == "lm") {
+      return(input$snr)
+    }
+    if(input$evaltype == "glm") {
+      if(input$glmfamily == "gaussian") {
+        return(input$snr)
+      }
+      if(input$glmfamily == "binomial") {
+        return(c(input$binomialprobs[1],input$binomialprobs[2]))
+      }
+      if(input$glmfamily == "poisson") {
+        return((c(input$poislow,input$poishigh)))
+      }
+      if(input$glmfamily == "exponential") {
+        return(c(input$explow,input$exphigh))
+      }
+    }
+    if(input$evaltype == "surv") {
+      if(input$distribution == "gaussian") {
+        return(input$snr)
+      }
+      if(input$distribution == "lognormal") {
+        return(input$snr)
+      }
+      if(input$distribution == "exponential") {
+        return(c(input$explow,input$exphigh))
+      }
     }
   })
 
@@ -849,7 +883,7 @@ function(input, output, session) {
                     model = as.formula(isolate(input$model)),
                     alpha = isolate(input$alpha),
                     blocking = isblocking(),
-                    delta = isolate(input$delta),
+                    effectsize = isolate(effectsize()),
                     conservative = isolate(input$conservative),
                     detailedoutput = isolate(input$detailedoutput))
       }
@@ -875,8 +909,7 @@ function(input, output, session) {
                          nsim = isolate(input$nsim),
                          varianceratios = isolate(input$varianceratio),
                          glmfamily = isolate(input$glmfamily),
-                         delta = isolate(input$delta),
-                         binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                         effectsize = isolate(effectsize()),
                          parallel = isolate(input$parallel_eval_glm),
                          detailedoutput = isolate(input$detailedoutput))
         } else {
@@ -888,8 +921,7 @@ function(input, output, session) {
                            nsim = isolate(input$nsim),
                            varianceratios = isolate(input$varianceratio),
                            glmfamily = isolate(input$glmfamily),
-                           delta = isolate(input$delta),
-                           binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                           effectsize = isolate(effectsize()),
                            parallel = isolate(input$parallel_eval_glm),
                            detailedoutput = isolate(input$detailedoutput),
                            progressBarUpdater = incProgressSession)})
@@ -920,7 +952,7 @@ function(input, output, session) {
                                   censorpoint = isolate(input$censorpoint),
                                   censortype = isolate(input$censortype),
                                   distribution = isolate(input$distribution),
-                                  delta = isolate(input$delta),
+                                  effectsize = isolate(effectsize()),
                                   detailedoutput = isolate(input$detailedoutput),
                                   parallel = isolate(input$parallel_eval_glm))
         } else {
@@ -932,7 +964,7 @@ function(input, output, session) {
                                     censorpoint = isolate(input$censorpoint),
                                     censortype = isolate(input$censortype),
                                     distribution = isolate(input$distribution),
-                                    delta = isolate(input$delta),
+                                    effectsize = isolate(effectsize()),
                                     detailedoutput = isolate(input$detailedoutput),
                                     parallel = isolate(input$parallel_eval_glm),
                                     progressBarUpdater = incProgressSession)
@@ -1127,8 +1159,8 @@ function(input, output, session) {
         abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
       }
       if(isolate(input$glmfamily) == "exponential") {
-        responses = exp(-responses)
-        trueresponses = exp(-trueresponses)
+        responses = exp(responses)
+        trueresponses = exp(trueresponses)
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
         hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
         legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
@@ -1161,8 +1193,8 @@ function(input, output, session) {
       uniquevalues = length(table(responses))
       breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
       if(isolate(input$distribution) == "exponential") {
-        responses = exp(-responses)
-        trueresponses = exp(-trueresponses)
+        responses = exp(responses)
+        trueresponses = exp(trueresponses)
         par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
         hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
         legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
@@ -1253,7 +1285,7 @@ function(input, output, session) {
                                         $('a[data-value=\"Generating Code\"]').trigger('click');
                                         }"
                   ))
-                         ))
-  outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
+                ))
+    outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
 }
 )

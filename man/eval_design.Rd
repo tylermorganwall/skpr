@@ -5,8 +5,8 @@
 \title{Calculate Power of an Experimental Design}
 \usage{
 eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
-  delta = 2, varianceratios = 1, contrasts = contr.sum,
-  conservative = FALSE, detailedoutput = FALSE)
+  effectsize = 2, varianceratios = 1, contrasts = contr.sum,
+  conservative = FALSE, detailedoutput = FALSE, delta = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix being evaluated. Internally, \code{eval_design} rescales each numeric column
@@ -21,12 +21,12 @@ factors that are not present in the run matrix.}
 \item{blocking}{If TRUE, \code{eval_design} will look at the rownames to determine blocking structure. Default FALSE.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the \code{delta} argument.}
+will be automatically generated based on the \code{effectsize} argument.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
+\item{effectsize}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
 difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
 normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
-the anticipated coefficients will be half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.}
+the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
@@ -35,10 +35,12 @@ this ratio can be a vector specifying the variance ratio for each subplot. Other
 
 \item{conservative}{Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in each categorical factor's anticipated coefficients
-to zero. Default FALSE.}
+estimate of power by setting all but one level in each categorical factor's anticipated coefficients}
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
+
+\item{delta}{Depreciated. Use effectsize instead.
+to zero. Default FALSE.}
 }
 \value{
 A data frame with the parameters of the model, the type of power analysis, and the power. Several
@@ -54,7 +56,7 @@ given the design's run matrix and the statistical model to be fit to the data.
 Returns a data frame of parameter and effect powers. Designs can
 consist of both continuous and categorical factors. By default, \code{eval_design}
 assumes a signal-to-noise ratio of 2, but this can be changed with the
-\code{delta} or \code{anticoef} parameters.
+\code{effectsize} or \code{anticoef} parameters.
 }
 \details{
 This function evaluates the power of experimental designs, mostly following the
@@ -71,15 +73,15 @@ factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
 
 optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
 
-#Now evaluating that design (with default anticipated coefficients and a delta of 2):
+#Now evaluating that design (with default anticipated coefficients and a effectsize of 2):
 eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2)
 
 #Evaluating a subset of the design (which changes the power due to a different number of
 #degrees of freedom)
 eval_design(RunMatrix=optdesign, model= ~A+C, alpha=0.2)
 
-#Halving the signal-to-noise ratio by setting a different delta (default is 2):
-eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,delta=1)
+#Halving the signal-to-noise ratio by setting a different effectsize (default is 2):
+eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,effectsize=1)
 
 #With 3+ level categorical factors, the choice of anticipated coefficients directly changes the
 #final power calculation. For the most conservative power calculation, that involves

@@ -20,15 +20,16 @@
 #'@param parameternames Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 #'(e.g. coefficients from an MLE fit).
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
-#'automatically generated based on \code{delta}.
-#'@param delta Loosely speaking, the signal-to-noise ratio. Default 2. For a gaussian model, and for
+#'automatically generated based on \code{effectsize}.
+#'@param effectsize The signal-to-noise ratio. Default 2. For a gaussian model, and for
 #'continuous factors, this specifies the difference in response between the highest
 #'and lowest levels of a factor (which are +1 and -1 after normalization).
 #'More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
-#'half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.
+#'half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default \code{contr.sum}.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
+#'@param delta Depreciated. Use effectsize instead.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
 #'@import foreach doParallel stats
@@ -73,14 +74,19 @@
 #'#in along with the standard inputs for eval_design_mc.
 #'
 #'d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
-#'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, delta=1)
+#'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc.
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, delta=2, contrasts = contr.sum,
+                                 anticoef, effectsize=2, contrasts = contr.sum,
                                  coef_function = coef,
                                  parameternames = NULL,
-                                 parallel=FALSE, parallelpackages=NULL) {
+                                 parallel=FALSE, parallelpackages=NULL,delta=NULL) {
+
+  if(!missing(delta)) {
+    warning("argument delta depreciated. Use effectsize instead. Setting effectsize = delta.")
+    effectsize=delta
+  }
 
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
@@ -127,11 +133,11 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
 
   # autogenerate anticipated coefficients
-  if (!missing(delta) && !missing(anticoef)) {
-    warning("Because you provided anticoef, we will ignore the delta argument.")
+  if (!missing(effectsize) && !missing(anticoef)) {
+    warning("User defined anticipated coefficnets (anticoef) detected; ignoring effectsize argument.")
   }
   if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model) * delta / 2
+    anticoef = gen_anticoef(RunMatrixReduced,model) * effectsize / 2
   }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")

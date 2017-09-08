@@ -178,7 +178,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
 
   contrastslist = list()
-  for(x in names(RunMatrix[lapply(RunMatrixReduced, class) == "factor"])) {
+  for(x in names(RunMatrix[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
     contrastslist[[x]] = contrasts
   }
   if(length(contrastslist) < 1) {

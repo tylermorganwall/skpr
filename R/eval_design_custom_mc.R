@@ -104,7 +104,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
 
   contrastslist = list()
-  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced,class) == "factor"])) {
+  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced,class) %in% c("character", "factor")])) {
     contrastslist[[x]] = contrasts
   }
 
@@ -147,7 +147,6 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
-  contrastlist = attr(attr(RunMatrixReduced,"modelmatrix"),"contrasts")
 
   if(!parallel) {
     power_values = rep(0, length(parameter_names))

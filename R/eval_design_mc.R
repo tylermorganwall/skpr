@@ -305,7 +305,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   contrastslist_correlationmatrix = list()
   contrastslist = list()
-  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) == "factor"])) {
+  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
     contrastslist[[x]] = contrasts
     contrastslist_correlationmatrix[[x]] = contr.simplex
 

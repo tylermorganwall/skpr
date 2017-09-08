@@ -55,10 +55,10 @@
 #'
 #'#We now need to tell the package how we want to fit our data,
 #'#given the formula and the model matrix X (and, if needed, the list of contrasts).
-#'#If the contrasts aren't required, "contrastlist" should be set to NULL.
+#'#If the contrasts aren't required, "contrastslist" should be set to NULL.
 #'#This should return some type of fit object.
 #'
-#'fitsurv = function(formula, X, contrastlist=NULL) {
+#'fitsurv = function(formula, X, contrastslist=NULL) {
 #'  return(survival::survreg(formula, data=X,dist="exponential"))
 #'}
 #'
@@ -157,7 +157,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef)
 
       #fit a model to the simulated data.
-      fit = fitfunction(model_formula, RunMatrixReduced, contrastlist)
+      fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
@@ -176,7 +176,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
       RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef)
 
       #fit a model to the simulated data.
-      fit = fitfunction(model_formula, RunMatrixReduced, contrastlist)
+      fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)

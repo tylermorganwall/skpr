@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
 # skpr
 
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/skpr)](http://cran.r-project.org/package=skpr)
 [![codecov](https://codecov.io/gh/tylermorganwall/skpr/branch/master/graph/badge.svg)](https://codecov.io/gh/tylermorganwall/skpr)
 
 ## Overview
@@ -89,11 +90,11 @@ eval_design(RunMatrix = design,
             alpha=0.05)
 
 #Evaluate power for the design using a Monte Carlo simulation. 
-#Here, we set the delta/sigma (the signal-to-noise ratio) to 1.5.
+#Here, we set the effect size (here, the signal-to-noise ratio) to 1.5.
 eval_design_mc(RunMatrix = design,
                model = ~temp + type + beansize,
                alpha=0.05,
-               delta=1.5)
+               effectsize=1.5)
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
@@ -102,7 +103,7 @@ eval_design_mc(RunMatrix = design,
                nsim=5000,
                glmfamily = "poisson",
                alpha=0.05,
-               delta=log(8/2))
+               effectsize=c(2,6))
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:

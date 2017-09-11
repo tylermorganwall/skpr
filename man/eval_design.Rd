@@ -5,8 +5,8 @@
 \title{Calculate Power of an Experimental Design}
 \usage{
 eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
-  delta = 2, varianceratios = 1, contrasts = contr.sum,
-  conservative = FALSE, detailedoutput = FALSE)
+  effectsize = 2, varianceratios = 1, contrasts = contr.sum,
+  conservative = FALSE, detailedoutput = FALSE, delta = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix being evaluated. Internally, \code{eval_design} rescales each numeric column
@@ -21,12 +21,12 @@ factors that are not present in the run matrix.}
 \item{blocking}{If TRUE, \code{eval_design} will look at the rownames to determine blocking structure. Default FALSE.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the \code{delta} argument.}
+will be automatically generated based on the \code{effectsize} argument.}
 
-\item{delta}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
+\item{effectsize}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
 difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
 normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
-the anticipated coefficients will be half of \code{delta}. If you do specify \code{anticoef}, \code{delta} will be ignored.}
+the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
@@ -39,6 +39,8 @@ estimate of power by setting all but one level in each categorical factor's anti
 to zero. Default FALSE.}
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
+
+\item{delta}{Deprecated. Use effectsize instead.}
 }
 \value{
 A data frame with the parameters of the model, the type of power analysis, and the power. Several
@@ -54,7 +56,7 @@ given the design's run matrix and the statistical model to be fit to the data.
 Returns a data frame of parameter and effect powers. Designs can
 consist of both continuous and categorical factors. By default, \code{eval_design}
 assumes a signal-to-noise ratio of 2, but this can be changed with the
-\code{delta} or \code{anticoef} parameters.
+\code{effectsize} or \code{anticoef} parameters.
 }
 \details{
 This function evaluates the power of experimental designs, mostly following the
@@ -67,7 +69,7 @@ linear model to the data, of the form
 
 where \eqn{y} is the vector of experimental responses, \eqn{X} is the model matrix, \eqn{\beta} is
 the vector of model coefficients, and \eqn{\epsilon} is the statistical noise. \code{eval_design}
-assumes that epsilon is
+assumes that \eqn{\epsilon} is
 normally distributed with zero mean and unit variance (root-mean-square error is 1), and
 calculates both parameter power and effect power.
 Parameter power is the probability of rejecting the hypothesis \eqn{\beta_i = 0}, where \eqn{\beta_i} is a single parameter
@@ -87,15 +89,15 @@ factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
 
 optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
 
-#Now evaluating that design (with default anticipated coefficients and a delta of 2):
+#Now evaluating that design (with default anticipated coefficients and a effectsize of 2):
 eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2)
 
 #Evaluating a subset of the design (which changes the power due to a different number of
 #degrees of freedom)
 eval_design(RunMatrix=optdesign, model= ~A+C, alpha=0.2)
 
-#Halving the signal-to-noise ratio by setting a different delta (default is 2):
-eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,delta=1)
+#Halving the signal-to-noise ratio by setting a different effectsize (default is 2):
+eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,effectsize=1)
 
 #With 3+ level categorical factors, the choice of anticipated coefficients directly changes the
 #final power calculation. For the most conservative power calculation, that involves
@@ -103,8 +105,8 @@ eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,delta=1)
 #option with the "conservative" argument.
 
 factorialcoffee = expand.grid(cost=c(1,2),
-                             type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
-                             size=as.factor(c("Short","Grande","Venti")))
+                              type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
+                              size=as.factor(c("Short","Grande","Venti")))
 
 designcoffee = gen_design(factorialcoffee,~cost + size + type,trials=29,optimality="D",repeats=100)
 
@@ -115,11 +117,11 @@ eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRU
 
 #Evaluate the design, with conservative anticipated coefficients:
 eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRUE,
-           conservative=TRUE)
+            conservative=TRUE)
 
 #which is the same as the following, but now explicitly entering the coefficients:
 eval_design(designcoffee,model=~cost+size+type, alpha=0.05,
-           anticoef=c(1,1,1,0,0,1,0), detailedoutput = TRUE)
+            anticoef=c(1,1,1,0,0,1,0), detailedoutput = TRUE)
 
 
 #If the defaults do not suit you, enter the anticipated coefficients in manually.
@@ -139,15 +141,15 @@ splitfactorialcoffee = expand.grid(caffeine=c(1,-1),
 
 coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials=12)
 coffeefinaldesign = gen_design(splitfactorialcoffee, model=~caffeine+cost+size+type,trials=36,
-                              splitplotdesign=coffeeblockdesign, splitplotsizes=3)
+                               splitplotdesign=coffeeblockdesign, splitplotsizes=3)
 
 #Evaluating design
 eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE)
 
 #We can also evaluate the design with a custom ratio between the whole plot error to
 #the run-to-run error.
-eval_design(coffeefinaldesign, ~caffeine+cost+size+type + caffeine, 0.2, blocking = TRUE,
-           varianceratios=2)
+eval_design(coffeefinaldesign, ~caffeine+cost+size+type+caffeine, 0.2, blocking = TRUE,
+            varianceratios=2)
 
 #If the design was generated outside of skpr and thus the row names do not have the
 #blocking structure encoded already, the user can add these manually. For a 12-run

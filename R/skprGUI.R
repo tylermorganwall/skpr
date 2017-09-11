@@ -482,7 +482,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                             value=TRUE), data.step=11, data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."),
                               introBox(checkboxInput(inputId = "detailedoutput",
                                             label = "Detailed Output",
-                                            value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients, design size, and the specified value of delta."),
+                                            value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."),
                               introBox(checkboxInput(inputId = "advanceddiagnostics",
                                             label = "Advanced Design Diagnostics",
                                             value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
@@ -496,15 +496,48 @@ skprGUI = function(inputValue1,inputValue2) {
                                            data.step=22,data.intro="Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."),
                               introBox(sliderInput(inputId = "alpha",
                                           min=0,max=1,value=0.05, label = "Alpha"), data.step=15, data.intro = "Specify the acceptable Type-I error (false positive rate)"),
-                              introBox(numericInput(inputId = "delta",
-                                           value=2, step=0.1, label = "Delta"), data.step=16, data.intro = "Signal-to-noise ratio. Assumes a root mean squared error (RMSE) of 1."),
+                              conditionalPanel(
+                                condition = "input.evaltype == \'lm\' || (input.evaltype == \'glm\' && input.glmfamily == \'gaussian\') || (input.evaltype == \'surv\' && (input.distribution == \'gaussian\' || input.distribution == \'lognormal\'))",
+                                introBox(numericInput(inputId = "snr",
+                                           value=2, step=0.1, label = "SNR"), data.step=16, data.intro = "Signal-to-noise ratio for linear models.")
+                              ),
+                              conditionalPanel(
+                                condition = "input.evaltype == \'glm\' && input.glmfamily == \'poisson\'",
+                                fluidRow(
+                                  column(width=6,
+                                         numericInput(inputId = "poislow", "Low # of Events:",
+                                                      min = 0, value=1)
+                                  ),
+                                  column(width=6,
+                                         numericInput(inputId = "poishigh", "High # of Events:",
+                                                      min = 0, value=2)
+                                  )
+                                )
+                              ),
+                              conditionalPanel(
+                                condition = "(input.evaltype == \'glm\' && input.glmfamily == \'exponential\') || (input.evaltype == \'surv\' && input.distribution == \'exponential\')",
+                                fluidRow(
+                                  column(width=6,
+                                         numericInput(inputId = "explow", "Low Mean:",
+                                                      min = 0, value=1)
+                                  ),
+                                  column(width=6,
+                                         numericInput(inputId = "exphigh", "High Mean:",
+                                                      min = 0, value=2)
+                                  )
+                                )
+                              ),
+                              conditionalPanel(
+                                condition = "input.evaltype == \'glm\' && input.glmfamily == \'binomial\'",
+                                sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",
+                                            min = 0, max = 1, value = c(0.4,0.6))
+                              ),
                               introBox(conditionalPanel(
                                 condition = "input.evaltype == \'lm\'",
                                 checkboxInput(inputId = "conservative",
                                               label = "Conservative Power",
                                               value=FALSE)
                               ), data.step=17, data.intro = "Calculates conservative effect power for 3+ level categorical factors. Calculates power once, and then sets the anticipated coefficient corresponding to the highest power level in each factor to zero. The effect power for those factors then show the most conservative power estimate."),
-
                               conditionalPanel(
                                 condition = "input.evaltype == \'glm\'",
                                 introBox(numericInput(inputId = "nsim",
@@ -513,11 +546,6 @@ skprGUI = function(inputValue1,inputValue2) {
                                 introBox(selectInput(inputId = "glmfamily",
                                             choices = c("gaussian","binomial","poisson","exponential"),
                                             label = "GLM Family"), data.step=20, data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."),
-                                conditionalPanel(
-                                  condition = "input.glmfamily == \'binomial\'",
-                                  sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",
-                                              min = 0, max = 1, value = c(0.4,0.6))
-                                ),
                                 introBox(checkboxInput(inputId = "parallel_eval_glm",
                                               label = "Parallel Evaluation",
                                               value=FALSE), data.step=21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
@@ -1246,9 +1274,9 @@ skprGUI = function(inputValue1,inputValue2) {
           first = paste(c(first, ",<br>", rep("&nbsp;",12),
                           "blocking = TRUE"),collapse = "")
         }
-        if(input$delta != 2) {
+        if(input$snr != 2) {
           first = paste(c(first, ",<br>", rep("&nbsp;",12),
-                          "delta = ",input$delta),collapse = "")
+                          "effectsize = ",input$snr),collapse = "")
         }
         if(input$varianceratio != 1) {
           first = paste(c(first, ",<br>", rep("&nbsp;",12),
@@ -1302,17 +1330,16 @@ skprGUI = function(inputValue1,inputValue2) {
           first = paste(c(first, ",<br>", rep("&nbsp;",15),
                           "glmfamily = \"",input$glmfamily,"\""),collapse = "")
         }
-        if(input$delta != 2) {
+        if(length(effectsize()) == 1) {
           first = paste(c(first, ",<br>", rep("&nbsp;",15),
-                          "delta = ",input$delta),collapse = "")
+                          "effectsize = ",effectsize()),collapse = "")
+        } else {
+          first = paste(c(first, ",<br>", rep("&nbsp;",15),
+                          "effectsize = c(",effectsize()[1],", ", effectsize()[2],")"),collapse = "")
         }
         if(!is.null(input$varianceratios)) {
           first = paste(c(first, ",<br>", rep("&nbsp;",15),
                           "varianceratios = ",input$varianceratio),collapse = "")
-        }
-        if((input$binomialprobs[1] != 0.4 || input$binomialprobs[2] != 0.6) && input$glmfamily == "binomial") {
-          first = paste(c(first, ",<br>", rep("&nbsp;",15),
-                          "binomialprobs = c(",input$binomialprobs[1],", ",input$binomialprobs[2]),collapse = "")
         }
         if(as.logical(input$parallel_eval_glm)) {
           first = paste(c(first, ",<br>", rep("&nbsp;",15),
@@ -1360,6 +1387,13 @@ skprGUI = function(inputValue1,inputValue2) {
           first = paste(c(first, ",<br>", rep("&nbsp;",24),
                           "distribution = \"",input$distribution,"\""),collapse = "")
         }
+        if(length(effectsize()) == 1) {
+          first = paste(c(first, ",<br>", rep("&nbsp;",24),
+                          "effectsize = ",effectsize()),collapse = "")
+        } else {
+          first = paste(c(first, ",<br>", rep("&nbsp;",24),
+                          "effectsize = c(",effectsize()[1],", ", effectsize()[2],")"),collapse = "")
+        }
         if(!is.na(input$censorpoint)) {
           first = paste(c(first, ",<br>", rep("&nbsp;",24),
                           "censorpoint = ",input$censorpoint),collapse = "")
@@ -1367,10 +1401,6 @@ skprGUI = function(inputValue1,inputValue2) {
         if(input$censortype != "right") {
           first = paste(c(first, ",<br>", rep("&nbsp;",24),
                           "censortype = \"",input$censortype,"\""),collapse = "")
-        }
-        if(input$delta != 2) {
-          first = paste(c(first, ",<br>", rep("&nbsp;",24),
-                          "delta = ",input$delta),collapse = "")
         }
         if(as.logical(input$parallel_eval_surv)) {
           first = paste(c(first, ",<br>", rep("&nbsp;",24),
@@ -1444,6 +1474,37 @@ skprGUI = function(inputValue1,inputValue2) {
         "D"
       } else {
         isolate(input$optimality)
+      }
+    })
+
+    effectsize = reactive({
+      if(input$evaltype == "lm") {
+        return(input$snr)
+      }
+      if(input$evaltype == "glm") {
+        if(input$glmfamily == "gaussian") {
+          return(input$snr)
+        }
+        if(input$glmfamily == "binomial") {
+          return(c(input$binomialprobs[1],input$binomialprobs[2]))
+        }
+        if(input$glmfamily == "poisson") {
+          return((c(input$poislow,input$poishigh)))
+        }
+        if(input$glmfamily == "exponential") {
+          return(c(input$explow,input$exphigh))
+        }
+      }
+      if(input$evaltype == "surv") {
+        if(input$distribution == "gaussian") {
+          return(input$snr)
+        }
+        if(input$distribution == "lognormal") {
+          return(input$snr)
+        }
+        if(input$distribution == "exponential") {
+          return(c(input$explow,input$exphigh))
+        }
       }
     })
 
@@ -1546,7 +1607,7 @@ skprGUI = function(inputValue1,inputValue2) {
                       model = as.formula(isolate(input$model)),
                       alpha = isolate(input$alpha),
                       blocking = isblocking(),
-                      delta = isolate(input$delta),
+                      effectsize = isolate(effectsize()),
                       conservative = isolate(input$conservative),
                       detailedoutput = isolate(input$detailedoutput))
         }
@@ -1572,8 +1633,7 @@ skprGUI = function(inputValue1,inputValue2) {
                              nsim = isolate(input$nsim),
                              varianceratios = isolate(input$varianceratio),
                              glmfamily = isolate(input$glmfamily),
-                             delta = isolate(input$delta),
-                             binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                             effectsize = isolate(effectsize()),
                              parallel = isolate(input$parallel_eval_glm),
                              detailedoutput = isolate(input$detailedoutput))
             } else {
@@ -1585,8 +1645,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                nsim = isolate(input$nsim),
                                varianceratios = isolate(input$varianceratio),
                                glmfamily = isolate(input$glmfamily),
-                               delta = isolate(input$delta),
-                               binomialprobs = isolate(c(input$binomialprobs[1],input$binomialprobs[2])),
+                               effectsize = isolate(effectsize()),
                                parallel = isolate(input$parallel_eval_glm),
                                detailedoutput = isolate(input$detailedoutput),
                                progressBarUpdater = incProgressSession)})
@@ -1617,7 +1676,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                     censorpoint = isolate(input$censorpoint),
                                     censortype = isolate(input$censortype),
                                     distribution = isolate(input$distribution),
-                                    delta = isolate(input$delta),
+                                    effectsize = isolate(effectsize()),
                                     detailedoutput = isolate(input$detailedoutput),
                                     parallel = isolate(input$parallel_eval_glm))
           } else {
@@ -1629,7 +1688,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                     censorpoint = isolate(input$censorpoint),
                                     censortype = isolate(input$censortype),
                                     distribution = isolate(input$distribution),
-                                    delta = isolate(input$delta),
+                                    effectsize = isolate(effectsize()),
                                     detailedoutput = isolate(input$detailedoutput),
                                     parallel = isolate(input$parallel_eval_glm),
                                     progressBarUpdater = incProgressSession)
@@ -1824,8 +1883,8 @@ skprGUI = function(inputValue1,inputValue2) {
           abline(v=unique(trueresponses)[order(unique(trueresponses))],col=adjustcolor("blue",alpha.f=0.40), lwd=widths)
         }
         if(isolate(input$glmfamily) == "exponential") {
-          responses = exp(-responses)
-          trueresponses = exp(-trueresponses)
+          responses = exp(responses)
+          trueresponses = exp(trueresponses)
           par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
           hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminglm),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminglm)),ifelse(is.na(input$estimatesxmaxglm),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxglm))),col = "red",border="red")
           legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")
@@ -1858,8 +1917,8 @@ skprGUI = function(inputValue1,inputValue2) {
         uniquevalues = length(table(responses))
         breakvalues = ifelse(uniquevalues < isolate(input$nsim)*isolate(input$trials)/10,uniquevalues,isolate(input$nsim)*isolate(input$trials)/10)
         if(isolate(input$distribution) == "exponential") {
-          responses = exp(-responses)
-          trueresponses = exp(-trueresponses)
+          responses = exp(responses)
+          trueresponses = exp(trueresponses)
           par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
           hist(responses,breaks=breakvalues,xlab="Response",main="Distribution of Simulated Response Estimates",xlim=c(ifelse(is.na(input$estimatesxminsurv),min(hist(responses,plot=FALSE)$breaks),(input$estimatesxminsurv)),ifelse(is.na(input$estimatesxmaxsurv),max(hist(responses,plot=FALSE)$breaks),(input$estimatesxmaxsurv))),col = "red",border="red")
           legend("topright", inset=c(-0.2,0), legend=c("Truth","Simulated"), pch=c(16,16),col=c("blue","red"), title="Estimates")

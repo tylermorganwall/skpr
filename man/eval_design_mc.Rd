@@ -6,9 +6,9 @@
 \usage{
 eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
-  anticoef = NULL, delta = 2, contrasts = contr.sum,
+  anticoef = NULL, effectsize = 2, contrasts = contr.sum,
   binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE,
-  progressBarUpdater = NULL)
+  progressBarUpdater = NULL, delta = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -35,14 +35,14 @@ model matrix, b are the anticipated coefficients, and delta is a vector of block
 You only need to specify this if you do not like the default behavior described below.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the \code{delta} or \code{binomialprobs} arguments.}
+will be automatically generated based on the \code{effectsize} or \code{binomialprobs} arguments.}
 
-\item{delta}{Helper argument to generate anticipated coefficients. See details for more info.
-If you specify \code{anticoef}, \code{delta} will be ignored.}
+\item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
+If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{contrasts}{The contrasts to use for categorical factors. Defaults to \code{contr.sum}.}
 
-\item{binomialprobs}{Equivalent to delta, maintained for backwards compatibility. See details for more info.
+\item{binomialprobs}{Equivalent to \code{effectsize}, maintained for backwards compatibility. See details for more info.
 If you specify \code{anticoef}, this argument will be ignored.}
 
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
@@ -50,6 +50,8 @@ If you specify \code{anticoef}, this argument will be ignored.}
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results.}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
+
+\item{delta}{Deprecated. Use \code{effectsize} instead.}
 }
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information
@@ -98,45 +100,45 @@ the mean value parameterization (= 1 / rate), hence the minus sign above. Also n
 the gaussian model assumes a root-mean-square error of 1.
 
 Power is dependent on the anticipated coefficients. You can specify those directly with the \code{anticoef}
-argument, or you can use the \code{delta} argument to specify an effect size and \code{skpr} will auto-generate them.
+argument, or you can use the \code{effectsize} argument to specify an effect size and \code{skpr} will auto-generate them.
 You can provide either a length-1 or length-2 vector. If you provide a length-1 vector, the anticipated
-coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
+coefficients will be half of \code{effectsize}; this is equivalent to saying that the \emph{linear predictor}
 (for a gaussian model, the mean response; for a binomial model, the log odds ratio; for an exponential model,
 the log of the mean value; for a poisson model, the log of the expected response)
-changes by \code{delta} when a continuous factor goes from its lowest level to its highest level. If you provide a
+changes by \code{effectsize} when a continuous factor goes from its lowest level to its highest level. If you provide a
 length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} (for
 a gaussian model, the mean response; for a binomial model, the probability; for an exponential model, the mean
 response; for a poisson model, the expected response) changes from
-\code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
+\code{effectsize[1]} to \code{effectsize[2]} when a factor goes from its lowest level to its highest level, assuming
 that the other factors are inactive (their x-values are zero).
 
-The effect of a length-2 \code{delta} depends on the \code{glmfamily} argument as follows:
+The effect of a length-2 \code{effectsize} depends on the \code{glmfamily} argument as follows:
 
-For \code{glmfamily = 'gaussian'}, the coefficients are set to \code{(delta[2] - delta[1]) / 2}.
+For \code{glmfamily = 'gaussian'}, the coefficients are set to \code{(effectsize[2] - effectsize[1]) / 2}.
 
 For \code{glmfamily = 'binomial'}, the intercept will be
-\code{1/2 * log(delta[1] * delta[2] / (1 - delta[1]) / (1 - delta[2]))},
+\code{1/2 * log(effectsize[1] * effectsize[2] / (1 - effectsize[1]) / (1 - effectsize[2]))},
 and the other coefficients will be
-\code{1/2 * log(delta[2] * (1 - delta[1]) / (1 - delta[2]) / delta[1])}.
+\code{1/2 * log(effectsize[2] * (1 - effectsize[1]) / (1 - effectsize[2]) / effectsize[1])}.
 
 For \code{glmfamily = 'exponential'} or \code{'poisson'},
 the intercept will be
-\code{1 / 2 * (log(delta[2]) + log(delta[1]))},
+\code{1 / 2 * (log(effectsize[2]) + log(effectsize[1]))},
 and the other coefficients will be
-\code{1 / 2 * (log(delta[2]) - log(delta[1]))}.
+\code{1 / 2 * (log(effectsize[2]) - log(effectsize[1]))}.
 }
 \examples{
 #We first generate a full factorial design using expand.grid:
 factorialcoffee = expand.grid(cost=c(-1, 1),
-                             type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-                             size=as.factor(c("Short", "Grande", "Venti")))
+                              type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+                              size=as.factor(c("Short", "Grande", "Venti")))
 
 #And then generate the 21-run D-optimal design using gen_design.
 
 designcoffee = gen_design(factorialcoffee, model=~cost + type + size, trials=21, optimality="D")
 
 #To evaluate this design using a normal approximation, we just use eval_design
-#(here using the default settings for contrasts, delta, and the anticipated coefficients):
+#(here using the default settings for contrasts, effectsize, and the anticipated coefficients):
 
 eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 
@@ -152,10 +154,10 @@ eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 
 #We see here we generate approximately the same parameter powers as we do
 #using the normal approximation in eval_design. Like eval_design, we can also change
-#delta to produce a different signal-to-noise ratio:
+#effectsize to produce a different signal-to-noise ratio:
 
 \dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-              nsim=100, glmfamily="gaussian", delta=1)}
+              nsim=100, glmfamily="gaussian", effectsize=1)}
 
 #Like eval_design, we can also evaluate the design with a different model than
 #the one that generated the design.
@@ -167,7 +169,7 @@ eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 \dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
               nsim=100, glmfamily="gaussian")}
 
-#We can also set "parallel=TRUE" to turn use all the cores available to speed up
+#We can also set "parallel=TRUE" to use all the cores available to speed up
 #computation.
 \dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
@@ -175,17 +177,17 @@ eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
 #We can also evaluate split-plot designs. First, let us generate the split-plot design:
 
 factorialcoffee2 = expand.grid(Temp = c(1,-1),
-                              Store=as.factor(c("A","B")),
-                              cost=c(-1, 1),
-                              type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-                              size=as.factor(c("Short", "Grande", "Venti")))
+                               Store=as.factor(c("A","B")),
+                               cost=c(-1, 1),
+                               type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+                               size=as.factor(c("Short", "Grande", "Venti")))
 
 vhtcdesign = gen_design(candidateset=factorialcoffee2, model=~Store, trials=6, varianceratio=1)
 htcdesign = gen_design(candidateset=factorialcoffee2, model=~Store+Temp, trials=18,
-                      splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
+                       splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
 splitplotdesign = gen_design(candidateset=factorialcoffee2,
-                            model=~Store+Temp+cost+type+size, trials=54,
-                            splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
+                             model=~Store+Temp+cost+type+size, trials=54,
+                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
 
 #Each block has an additional noise term associated with it in addition to the normal error
 #term in the model. This is specified by a vector specifying the additional variance for
@@ -204,7 +206,7 @@ splitplotdesign = gen_design(candidateset=factorialcoffee2,
 factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
 designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D")
 
-\dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
+\dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, effectsize = c(0.7, 0.9),
               glmfamily="binomial")}
 
 #We can also use this method to determine power for poisson response variables.

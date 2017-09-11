@@ -21,13 +21,14 @@
 #'the \code{survival} package. You do not need to provide this argument if \code{distribution} is one of
 #' the supported choices and you are satisfied with the default behavior described below.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
-#'will be automatically generated based on the \code{delta} argument.
-#'@param delta Helper argument to generate anticipated coefficients. See details for more info.
-#'If you specify \code{anticoef}, \code{delta} will be ignored.
+#'will be automatically generated based on the \code{effectsize} argument.
+#'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
+#'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
+#'@param delta Deprecated. Use \code{effectsize} instead.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
@@ -53,25 +54,25 @@
 #'
 #'
 #'Power is dependent on the anticipated coefficients. You can specify those directly with the \code{anticoef}
-#'argument, or you can use the \code{delta} argument to specify an effect size and \code{skpr} will auto-generate them.
+#'argument, or you can use the \code{effectsize} argument to specify an effect size and \code{skpr} will auto-generate them.
 #'You can provide either a length-1 or length-2 vector. If you provide a length-1 vector, the anticipated
-#'coefficients will be half of \code{delta}; this is equivalent to saying that the \emph{linear predictor}
+#'coefficients will be half of \code{effectsize}; this is equivalent to saying that the \emph{linear predictor}
 #'(for a gaussian model, the mean response; for an exponential model or lognormal model,
 #'the log of the mean value)
-#'changes by \code{delta} when a continuous factor goes from its lowest level to its highest level. If you provide a
+#'changes by \code{effectsize} when a continuous factor goes from its lowest level to its highest level. If you provide a
 #'length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
-#'\code{delta[1]} to \code{delta[2]} when a factor goes from its lowest level to its highest level, assuming
+#'\code{effectsize[1]} to \code{effectsize[2]} when a factor goes from its lowest level to its highest level, assuming
 #'that the other factors are inactive (their x-values are zero).
 #'
-#'The effect of a length-2 \code{delta} depends on the \code{distribution} argument as follows:
+#'The effect of a length-2 \code{effectsize} depends on the \code{distribution} argument as follows:
 #'
-#'For \code{distribution = 'gaussian'}, the coefficients are set to \code{(delta[2] - delta[1]) / 2}.
+#'For \code{distribution = 'gaussian'}, the coefficients are set to \code{(effectsize[2] - effectsize[1]) / 2}.
 #'
 #'For \code{distribution = 'exponential'} or \code{'lognormal'},
 #'the intercept will be
-#'\code{1 / 2 * (log(delta[2]) + log(delta[1]))},
+#'\code{1 / 2 * (log(effectsize[2]) + log(effectsize[1]))},
 #'and the other coefficients will be
-#'\code{1 / 2 * (log(delta[2]) - log(delta[1]))}.
+#'\code{1 / 2 * (log(effectsize[2]) - log(effectsize[1]))}.
 #'
 #'@export
 #'@examples #These examples focus on the survival analysis case and assume familiarity
@@ -110,8 +111,13 @@
 #'                        anticoef=c(0.184,0.101), scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    nsim=1000, distribution="gaussian", censorpoint=NA, censortype="right",
-                                   rfunctionsurv=NULL, anticoef=NULL, delta=2, contrasts = contr.sum,
-                                   parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL, ...) {
+                                   rfunctionsurv=NULL, anticoef=NULL, effectsize=2, contrasts = contr.sum,
+                                   parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL, delta=NULL, ...) {
+
+  if(!missing(delta)) {
+    warning("argument delta deprecated. Use effectsize instead. Setting effectsize = delta.")
+    effectsize=delta
+  }
 
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
@@ -178,7 +184,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
 
   contrastslist = list()
-  for(x in names(RunMatrix[lapply(RunMatrixReduced, class) == "factor"])) {
+  for(x in names(RunMatrix[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
     contrastslist[[x]] = contrasts
   }
   if(length(contrastslist) < 1) {
@@ -201,12 +207,12 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   effect_names = c("(Intercept)", attr(terms(model), 'term.labels'))
 
   # autogenerate anticipated coefficients
-  if (!missing(anticoef) && !missing(delta)) {
-    warning("Because you provided anticoef, we will ignore the delta argument.")
+  if (!missing(anticoef) && !missing(effectsize)) {
+    warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")
   }
   if(missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrixReduced, model)
-    anticoef = anticoef_from_delta_surv(default_coef, delta, distribution)
+    anticoef = anticoef_from_delta_surv(default_coef, effectsize, distribution)
   }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")

@@ -471,7 +471,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                                    value=TRUE), data.step=11, data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."),
                                             introBox(checkboxInput(inputId = "detailedoutput",
                                                                    label = "Detailed Output",
-                                                                   value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients, design size, and the specified value of delta."),
+                                                                   value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."),
                                             introBox(checkboxInput(inputId = "advanceddiagnostics",
                                                                    label = "Advanced Design Diagnostics",
                                                                    value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
@@ -485,15 +485,48 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                      data.step=22,data.intro="Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."),
                                             introBox(sliderInput(inputId = "alpha",
                                                                  min=0,max=1,value=0.05, label = "Alpha"), data.step=15, data.intro = "Specify the acceptable Type-I error (false positive rate)"),
-                                            introBox(numericInput(inputId = "delta",
-                                                                  value=2, step=0.1, label = "Delta"), data.step=16, data.intro = "Signal-to-noise ratio. Assumes a root mean squared error (RMSE) of 1."),
+                                            conditionalPanel(
+                                              condition = "input.evaltype == \'lm\' || (input.evaltype == \'glm\' && input.glmfamily == \'gaussian\') || (input.evaltype == \'surv\' && (input.distribution == \'gaussian\' || input.distribution == \'lognormal\'))",
+                                              introBox(numericInput(inputId = "snr",
+                                                                    value=2, step=0.1, label = "SNR"), data.step=16, data.intro = "Signal-to-noise ratio for linear models.")
+                                            ),
+                                            conditionalPanel(
+                                              condition = "input.evaltype == \'glm\' && input.glmfamily == \'poisson\'",
+                                              fluidRow(
+                                                column(width=6,
+                                                       numericInput(inputId = "poislow", "Low # of Events:",
+                                                                    min = 0, value=1)
+                                                ),
+                                                column(width=6,
+                                                       numericInput(inputId = "poishigh", "High # of Events:",
+                                                                    min = 0, value=2)
+                                                )
+                                              )
+                                            ),
+                                            conditionalPanel(
+                                              condition = "(input.evaltype == \'glm\' && input.glmfamily == \'exponential\') || (input.evaltype == \'surv\' && input.distribution == \'exponential\')",
+                                              fluidRow(
+                                                column(width=6,
+                                                       numericInput(inputId = "explow", "Low Mean:",
+                                                                    min = 0, value=1)
+                                                ),
+                                                column(width=6,
+                                                       numericInput(inputId = "exphigh", "High Mean:",
+                                                                    min = 0, value=2)
+                                                )
+                                              )
+                                            ),
+                                            conditionalPanel(
+                                              condition = "input.evaltype == \'glm\' && input.glmfamily == \'binomial\'",
+                                              sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",
+                                                          min = 0, max = 1, value = c(0.4,0.6))
+                                            ),
                                             introBox(conditionalPanel(
                                               condition = "input.evaltype == \'lm\'",
                                               checkboxInput(inputId = "conservative",
                                                             label = "Conservative Power",
                                                             value=FALSE)
                                             ), data.step=17, data.intro = "Calculates conservative effect power for 3+ level categorical factors. Calculates power once, and then sets the anticipated coefficient corresponding to the highest power level in each factor to zero. The effect power for those factors then show the most conservative power estimate."),
-
                                             conditionalPanel(
                                               condition = "input.evaltype == \'glm\'",
                                               introBox(numericInput(inputId = "nsim",
@@ -502,11 +535,6 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                               introBox(selectInput(inputId = "glmfamily",
                                                                    choices = c("gaussian","binomial","poisson","exponential"),
                                                                    label = "GLM Family"), data.step=20, data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."),
-                                              conditionalPanel(
-                                                condition = "input.glmfamily == \'binomial\'",
-                                                sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",
-                                                            min = 0, max = 1, value = c(0.4,0.6))
-                                              ),
                                               introBox(checkboxInput(inputId = "parallel_eval_glm",
                                                                      label = "Parallel Evaluation",
                                                                      value=FALSE), data.step=21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
@@ -680,7 +708,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                )
                       ),
                       tabPanel("Generating Code",
-                               introBox(htmlOutput(outputId = "code"),data.step=32,data.intro="The skpr code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. ")
+                               introBox(htmlOutput(outputId = "code"),data.step=32,data.intro="The R code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. ")
                       )
                     )
                     )

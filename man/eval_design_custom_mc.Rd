@@ -82,10 +82,10 @@ rsurvival = function(X,b) {
 
 #We now need to tell the package how we want to fit our data,
 #given the formula and the model matrix X (and, if needed, the list of contrasts).
-#If the contrasts aren't required, "contrastlist" should be set to NULL.
+#If the contrasts aren't required, "contrastslist" should be set to NULL.
 #This should return some type of fit object.
 
-fitsurv = function(formula, X, contrastlist=NULL) {
+fitsurv = function(formula, X, contrastslist=NULL) {
  return(survival::survreg(formula, data=X,dist="exponential"))
 }
 

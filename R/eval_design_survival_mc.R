@@ -28,13 +28,19 @@
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
-#'@param delta Depreciated. Use effectsize instead.
+#'@param delta Deprecated. Use \code{effectsize} instead.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
 #'categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
 #'@import foreach doParallel survival stats iterators
-#'@details If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
+#'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
+#'with a survival model (\code{survival::survreg}), and the fraction of simulations in which a parameter
+#'is significant
+#'(its p-value is less than the specified \code{alpha})
+#'is the estimate of power for that parameter.
+#'
+#'If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
 #'argument as follows:
 #'\tabular{lr}{
 #'\bold{distribution}  \tab \bold{generating function} \cr
@@ -53,7 +59,7 @@
 #'coefficients will be half of \code{effectsize}; this is equivalent to saying that the \emph{linear predictor}
 #'(for a gaussian model, the mean response; for an exponential model or lognormal model,
 #'the log of the mean value)
-#'changes by \code{effectsize} when a factor goes from its lowest level to its highest level. If you provide a
+#'changes by \code{effectsize} when a continuous factor goes from its lowest level to its highest level. If you provide a
 #'length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
 #'\code{effectsize[1]} to \code{effectsize[2]} when a factor goes from its lowest level to its highest level, assuming
 #'that the other factors are inactive (their x-values are zero).
@@ -81,8 +87,8 @@
 #'#the data should be censored:
 #'
 #'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
-#'                        nsim=100, distribution="exponential",
-#'                        censorpoint=5,censortype="right")
+#'                         nsim=100, distribution="exponential",
+#'                         censorpoint=5,censortype="right")
 #'
 #'#Built-in Monte Carlo random generating functions are included for the gaussian, exponential,
 #'#and lognormal distributions.
@@ -91,25 +97,25 @@
 #'#random generating function and changing the distribution argument.
 #'
 #'rlognorm = function(X, b) {
-#'  Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 0.4)
-#'  censored = Y > 1.2
-#'  Y[censored] = 1.2
-#'  return(survival::Surv(time=Y, event=!censored, type="right"))
+#'   Y = rlnorm(n=nrow(X), meanlog = X %*% b, sdlog = 0.4)
+#'   censored = Y > 1.2
+#'   Y[censored] = 1.2
+#'   return(survival::Surv(time=Y, event=!censored, type="right"))
 #'}
 #'
 #'#Any additional arguments are passed into the survreg function call.  As an example, you
 #'#might want to fix the "scale" argument to survreg, when fitting a lognormal:
 #'
 #'eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
-#'                        distribution="lognormal", rfunctionsurv=rlognorm,
-#'                        anticoef=c(0.184,0.101), scale=0.4)
+#'                         distribution="lognormal", rfunctionsurv=rlognorm,
+#'                         anticoef=c(0.184,0.101), scale=0.4)
 eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    nsim=1000, distribution="gaussian", censorpoint=NA, censortype="right",
                                    rfunctionsurv=NULL, anticoef=NULL, effectsize=2, contrasts = contr.sum,
                                    parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL, delta=NULL, ...) {
 
   if(!missing(delta)) {
-    warning("argument delta depreciated. Use effectsize instead. Setting effectsize = delta.")
+    warning("argument delta deprecated. Use effectsize instead. Setting effectsize = delta.")
     effectsize=delta
   }
 

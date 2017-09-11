@@ -1,4 +1,3 @@
-
 #'@title Calculate Power of an Experimental Design
 #'
 #'@description Evaluates the power of an experimental design, for normal response variables,
@@ -28,8 +27,8 @@
 #'@param conservative Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in each categorical factor's anticipated coefficients
-#'@param delta Depreciated. Use effectsize instead.
 #'to zero. Default FALSE.
+#'@param delta Deprecated. Use effectsize instead.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power. Several
 #'design diagnostics are stored as attributes of the data frame. In particular,
 #'the \code{modelmatrix} attribute contains the model matrix that was used for power evaluation. This is
@@ -38,6 +37,22 @@
 #'encoding used for categorical factors.
 #'@details This function evaluates the power of experimental designs, mostly following the
 #'approach described in "Optimal Design of Experiments: A Case Study Approach," by Goos and Jones (2011).
+#'
+#'Power is calculated under a linear regression framework: you intend to fit a
+#'linear model to the data, of the form
+#'
+#'\eqn{y = X \beta + \epsilon}, (plus blocking terms, if applicable)
+#'
+#'where \eqn{y} is the vector of experimental responses, \eqn{X} is the model matrix, \eqn{\beta} is
+#'the vector of model coefficients, and \eqn{\epsilon} is the statistical noise. \code{eval_design}
+#'assumes that \eqn{\epsilon} is
+#'normally distributed with zero mean and unit variance (root-mean-square error is 1), and
+#'calculates both parameter power and effect power.
+#'Parameter power is the probability of rejecting the hypothesis \eqn{\beta_i = 0}, where \eqn{\beta_i} is a single parameter
+#'in the model,
+#'while effect power is the probability of rejecting the hypothesis \eqn{\beta_{i} = 0}, where \eqn{\beta_{i}} is the set of all
+#'parameters associated with the effect in question. The two powers are equivalent for continuous factors and
+#'two-level categorical factors, but they can be different for categorical factors with three or more levels.
 #'
 #'When using \code{conservative = TRUE}, \code{eval_design} first evaluates the power with default coefficients. Then,
 #'for each multi-level categorical, it sets all coefficients to zero except the level that produced the lowest power,
@@ -65,8 +80,8 @@
 #'#option with the "conservative" argument.
 #'
 #'factorialcoffee = expand.grid(cost=c(1,2),
-#'                              type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
-#'                              size=as.factor(c("Short","Grande","Venti")))
+#'                               type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
+#'                               size=as.factor(c("Short","Grande","Venti")))
 #'
 #'designcoffee = gen_design(factorialcoffee,~cost + size + type,trials=29,optimality="D",repeats=100)
 #'
@@ -77,11 +92,11 @@
 #'
 #'#Evaluate the design, with conservative anticipated coefficients:
 #'eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRUE,
-#'            conservative=TRUE)
+#'             conservative=TRUE)
 #'
 #'#which is the same as the following, but now explicitly entering the coefficients:
 #'eval_design(designcoffee,model=~cost+size+type, alpha=0.05,
-#'            anticoef=c(1,1,1,0,0,1,0), detailedoutput = TRUE)
+#'             anticoef=c(1,1,1,0,0,1,0), detailedoutput = TRUE)
 #'
 #'
 #'#If the defaults do not suit you, enter the anticipated coefficients in manually.
@@ -101,15 +116,15 @@
 #'
 #'coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials=12)
 #'coffeefinaldesign = gen_design(splitfactorialcoffee, model=~caffeine+cost+size+type,trials=36,
-#'                               splitplotdesign=coffeeblockdesign, splitplotsizes=3)
+#'                                splitplotdesign=coffeeblockdesign, splitplotsizes=3)
 #'
 #'#Evaluating design
 #'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE)
 #'
 #'#We can also evaluate the design with a custom ratio between the whole plot error to
 #'#the run-to-run error.
-#'eval_design(coffeefinaldesign, ~caffeine+cost+size+type + caffeine, 0.2, blocking = TRUE,
-#'            varianceratios=2)
+#'eval_design(coffeefinaldesign, ~caffeine+cost+size+type+caffeine, 0.2, blocking = TRUE,
+#'             varianceratios=2)
 #'
 #'#If the design was generated outside of skpr and thus the row names do not have the
 #'#blocking structure encoded already, the user can add these manually. For a 12-run
@@ -128,7 +143,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
                        detailedoutput=FALSE, delta=NULL) {
 
   if(!missing(delta)) {
-    warning("argument delta depreciated. Use effectsize instead. Setting effectsize = delta.")
+    warning("argument delta deprecated. Use effectsize instead. Setting effectsize = delta.")
     effectsize=delta
   }
 

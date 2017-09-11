@@ -26,12 +26,12 @@
 #'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts The contrasts to use for categorical factors. Defaults to \code{contr.sum}.
-#'@param binomialprobs Equivalent to delta, maintained for backwards compatibility. See details for more info.
+#'@param binomialprobs Equivalent to \code{effectsize}, maintained for backwards compatibility. See details for more info.
 #'If you specify \code{anticoef}, this argument will be ignored.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
-#'@param delta Depreciated. Use effectsize instead.
+#'@param delta Deprecated. Use \code{effectsize} instead.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
 #' attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
@@ -40,7 +40,7 @@
 #'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
 #' with a generalized linear model, and the fraction of simulations in which a parameter
 #' is significant
-#'  (its p-value is less than the specified \code{alpha})
+#'  (its p-value, according to the fit function used, is less than the specified \code{alpha})
 #' is the estimate of power for that parameter.
 #'
 #'First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
@@ -74,7 +74,7 @@
 #'coefficients will be half of \code{effectsize}; this is equivalent to saying that the \emph{linear predictor}
 #'(for a gaussian model, the mean response; for a binomial model, the log odds ratio; for an exponential model,
 #'the log of the mean value; for a poisson model, the log of the expected response)
-#'changes by \code{effectsize} when a factor goes from its lowest level to its highest level. If you provide a
+#'changes by \code{effectsize} when a continuous factor goes from its lowest level to its highest level. If you provide a
 #'length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} (for
 #'a gaussian model, the mean response; for a binomial model, the probability; for an exponential model, the mean
 #'response; for a poisson model, the expected response) changes from
@@ -101,8 +101,8 @@
 #'@import foreach doParallel nlme stats
 #'@examples #We first generate a full factorial design using expand.grid:
 #'factorialcoffee = expand.grid(cost=c(-1, 1),
-#'                              type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-#'                              size=as.factor(c("Short", "Grande", "Venti")))
+#'                               type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                               size=as.factor(c("Short", "Grande", "Venti")))
 #'
 #'#And then generate the 21-run D-optimal design using gen_design.
 #'
@@ -140,7 +140,7 @@
 #'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
 #'               nsim=100, glmfamily="gaussian")}
 #'
-#'#We can also set "parallel=TRUE" to turn use all the cores available to speed up
+#'#We can also set "parallel=TRUE" to use all the cores available to speed up
 #'#computation.
 #'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
 #'               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
@@ -148,17 +148,17 @@
 #'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
 #'
 #'factorialcoffee2 = expand.grid(Temp = c(1,-1),
-#'                               Store=as.factor(c("A","B")),
-#'                               cost=c(-1, 1),
-#'                               type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-#'                               size=as.factor(c("Short", "Grande", "Venti")))
+#'                                Store=as.factor(c("A","B")),
+#'                                cost=c(-1, 1),
+#'                                type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                                size=as.factor(c("Short", "Grande", "Venti")))
 #'
 #'vhtcdesign = gen_design(candidateset=factorialcoffee2, model=~Store, trials=6, varianceratio=1)
 #'htcdesign = gen_design(candidateset=factorialcoffee2, model=~Store+Temp, trials=18,
-#'                       splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
+#'                        splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
 #'splitplotdesign = gen_design(candidateset=factorialcoffee2,
-#'                             model=~Store+Temp+cost+type+size, trials=54,
-#'                             splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
+#'                              model=~Store+Temp+cost+type+size, trials=54,
+#'                              splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
 #'
 #'#Each block has an additional noise term associated with it in addition to the normal error
 #'#term in the model. This is specified by a vector specifying the additional variance for
@@ -177,7 +177,7 @@
 #'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
 #'designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D")
 #'
-#'\dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, binomialprobs = c(0.7, 0.9),
+#'\dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, effectsize = c(0.7, 0.9),
 #'               glmfamily="binomial")}
 #'
 #'#We can also use this method to determine power for poisson response variables.
@@ -203,7 +203,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
                           parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL,delta=NULL) {
 
   if(!missing(delta)) {
-    warning("argument delta depreciated. Use effectsize instead. Setting effectsize = delta.")
+    warning("argument delta deprecated. Use effectsize instead. Setting effectsize = delta.")
     effectsize=delta
   }
 
@@ -346,7 +346,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   if (!is.null(binomialprobs) && glmfamily == "binomial") {
     #effectsize now has the same functionality as binomialprobs
     effectsize = binomialprobs
-    message("binomialprobs depreciated: binomialprobs is now equivalent to effectsize. ")
+    message("binomialprobs deprecated: binomialprobs is now equivalent to effectsize. ")
   }
   if (!missing(anticoef) && !missing(effectsize)) {
     warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")

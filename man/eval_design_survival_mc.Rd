@@ -49,7 +49,7 @@ If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
 
-\item{delta}{Depreciated. Use effectsize instead.}
+\item{delta}{Deprecated. Use \code{effectsize} instead.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }
@@ -64,6 +64,12 @@ right- or left-censored. Power is evaluated with a Monte Carlo simulation,
 using the \code{survival} package and \code{survreg} to fit the data. Split-plot designs are not supported.
 }
 \details{
+Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
+with a survival model (\code{survival::survreg}), and the fraction of simulations in which a parameter
+is significant
+(its p-value is less than the specified \code{alpha})
+is the estimate of power for that parameter.
+
 If not supplied by the user, \code{rfunctionsurv} will be generated based on the \code{distribution}
 argument as follows:
 \tabular{lr}{
@@ -83,7 +89,7 @@ You can provide either a length-1 or length-2 vector. If you provide a length-1 
 coefficients will be half of \code{effectsize}; this is equivalent to saying that the \emph{linear predictor}
 (for a gaussian model, the mean response; for an exponential model or lognormal model,
 the log of the mean value)
-changes by \code{effectsize} when a factor goes from its lowest level to its highest level. If you provide a
+changes by \code{effectsize} when a continuous factor goes from its lowest level to its highest level. If you provide a
 length-2 vector, the anticipated coefficients will be set such that the \emph{mean response} changes from
 \code{effectsize[1]} to \code{effectsize[2]} when a factor goes from its lowest level to its highest level, assuming
 that the other factors are inactive (their x-values are zero).
@@ -111,8 +117,8 @@ design = gen_design(candidateset=basicdesign, model=~a, trials=15)
 #the data should be censored:
 
 eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
-                       nsim=100, distribution="exponential",
-                       censorpoint=5,censortype="right")
+                        nsim=100, distribution="exponential",
+                        censorpoint=5,censortype="right")
 
 #Built-in Monte Carlo random generating functions are included for the gaussian, exponential,
 #and lognormal distributions.
@@ -121,16 +127,16 @@ eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
 #random generating function and changing the distribution argument.
 
 rlognorm = function(X, b) {
- Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
- censored = Y > 1.2
- Y[censored] = 1.2
- return(survival::Surv(time=Y, event=!censored, type="right"))
+  Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
+  censored = Y > 1.2
+  Y[censored] = 1.2
+  return(survival::Surv(time=Y, event=!censored, type="right"))
 }
 
 #Any additional arguments are passed into the survreg function call.  As an example, you
 #might want to fix the "scale" argument to survreg, when fitting a lognormal:
 
 eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
-                       distribution="lognormal", rfunctionsurv=rlognorm,
-                       anticoef=c(0.184,0.101), scale=0.4)
+                        distribution="lognormal", rfunctionsurv=rlognorm,
+                        anticoef=c(0.184,0.101), scale=0.4)
 }

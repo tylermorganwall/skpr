@@ -117,8 +117,8 @@ design = gen_design(candidateset=basicdesign, model=~a, trials=15)
 #the data should be censored:
 
 eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
-                       nsim=100, distribution="exponential",
-                       censorpoint=5,censortype="right")
+                        nsim=100, distribution="exponential",
+                        censorpoint=5,censortype="right")
 
 #Built-in Monte Carlo random generating functions are included for the gaussian, exponential,
 #and lognormal distributions.
@@ -127,16 +127,16 @@ eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
 #random generating function and changing the distribution argument.
 
 rlognorm = function(X, b) {
- Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
- censored = Y > 1.2
- Y[censored] = 1.2
- return(survival::Surv(time=Y, event=!censored, type="right"))
+  Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
+  censored = Y > 1.2
+  Y[censored] = 1.2
+  return(survival::Surv(time=Y, event=!censored, type="right"))
 }
 
 #Any additional arguments are passed into the survreg function call.  As an example, you
 #might want to fix the "scale" argument to survreg, when fitting a lognormal:
 
 eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
-                       distribution="lognormal", rfunctionsurv=rlognorm,
-                       anticoef=c(0.184,0.101), scale=0.4)
+                        distribution="lognormal", rfunctionsurv=rlognorm,
+                        anticoef=c(0.184,0.101), scale=0.4)
 }

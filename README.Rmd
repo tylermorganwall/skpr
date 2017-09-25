@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# skpr
+# skpr <img src="man/figures/skprlogo.png" align="right" />
 
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/skpr)](http://cran.r-project.org/package=skpr)

@@ -1,6 +1,6 @@
 
-skpr
-====
+skpr <img src="man/figures/skprlogo.png" align="right" />
+=========================================================
 
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr) [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/skpr)](http://cran.r-project.org/package=skpr) [![codecov](https://codecov.io/gh/tylermorganwall/skpr/branch/master/graph/badge.svg)](https://codecov.io/gh/tylermorganwall/skpr)
 
@@ -54,6 +54,7 @@ Usage
 
 ``` r
 library(skpr)
+#> Warning: package 'shiny' was built under R version 3.2.5
 
 #Generate a candidate set of all potential design points to be considered in the experiment
 #The hypothetical experiment is determining what affects the caffeine content in coffee
@@ -89,18 +90,18 @@ design = gen_design(candidateset = candidate_set,
 
 design
 #>    temp type beansize
-#> 1    80 Kona   Medium
-#> 2   100 Java    Small
-#> 3    80 Java    Large
-#> 4   100 Kona    Large
-#> 5   100 Java   Medium
-#> 6    80 Kona    Small
-#> 7   100 Kona    Small
-#> 8    80 Kona    Large
-#> 9   100 Java    Large
-#> 10   80 Java   Medium
-#> 11  100 Kona   Medium
-#> 12   80 Java    Small
+#> 1   100 Kona   Medium
+#> 2    80 Kona   Medium
+#> 3    80 Java    Small
+#> 4   100 Kona    Small
+#> 5    80 Kona    Large
+#> 6   100 Kona    Large
+#> 7    80 Java   Medium
+#> 8    80 Kona    Small
+#> 9   100 Java   Medium
+#> 10   80 Java    Large
+#> 11  100 Java    Large
+#> 12  100 Java    Small
 
 #Evaluate power for the design with an allowable type-I error of 5%
 eval_design(RunMatrix = design,
@@ -124,11 +125,11 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                effectsize=1.5)
 #>     parameter               type power
-#> 1 (Intercept) parameter.power.mc 0.611
-#> 2        temp parameter.power.mc 0.623
-#> 3       type1 parameter.power.mc 0.625
-#> 4   beansize1 parameter.power.mc 0.347
-#> 5   beansize2 parameter.power.mc 0.338
+#> 1 (Intercept) parameter.power.mc 0.574
+#> 2        temp parameter.power.mc 0.581
+#> 3       type1 parameter.power.mc 0.599
+#> 4   beansize1 parameter.power.mc 0.351
+#> 5   beansize2 parameter.power.mc 0.351
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
@@ -139,27 +140,28 @@ eval_design_mc(RunMatrix = design,
                alpha=0.05,
                effectsize=c(2,6))
 #>     parameter               type  power
-#> 1 (Intercept) parameter.power.mc 0.9964
-#> 2        temp parameter.power.mc 0.9796
-#> 3       type1 parameter.power.mc 0.9766
-#> 4   beansize1 parameter.power.mc 0.8854
-#> 5   beansize2 parameter.power.mc 0.7088
+#> 1 (Intercept) parameter.power.mc 0.9962
+#> 2        temp parameter.power.mc 0.9822
+#> 3       type1 parameter.power.mc 0.9792
+#> 4   beansize1 parameter.power.mc 0.8894
+#> 5   beansize2 parameter.power.mc 0.7216
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
 
 library(dplyr)
+#> Warning: package 'dplyr' was built under R version 3.2.5
 
 expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","Medium","Small")) %>%
   gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") %>%
   eval_design_mc(model = ~temp + type + beansize + beansize:type + I(temp^2), alpha=0.05)
 #>         parameter               type power
-#> 1     (Intercept) parameter.power.mc 0.900
-#> 2            temp parameter.power.mc 0.898
-#> 3           type1 parameter.power.mc 0.997
-#> 4       beansize1 parameter.power.mc 0.917
-#> 5       beansize2 parameter.power.mc 0.904
-#> 6       I(temp^2) parameter.power.mc 0.636
-#> 7 type1:beansize1 parameter.power.mc 0.909
-#> 8 type1:beansize2 parameter.power.mc 0.911
+#> 1     (Intercept) parameter.power.mc 0.903
+#> 2            temp parameter.power.mc 0.902
+#> 3           type1 parameter.power.mc 0.996
+#> 4       beansize1 parameter.power.mc 0.910
+#> 5       beansize2 parameter.power.mc 0.908
+#> 6       I(temp^2) parameter.power.mc 0.660
+#> 7 type1:beansize1 parameter.power.mc 0.900
+#> 8 type1:beansize2 parameter.power.mc 0.896
 ```

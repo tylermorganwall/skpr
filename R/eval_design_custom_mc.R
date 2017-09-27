@@ -76,7 +76,7 @@
 #'d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
 #'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1)
 #'
-#'#This has the exact same behavior as eval_design_survival_mc.
+#'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, effectsize=2, contrasts = contr.sum,
                                  coef_function = coef,

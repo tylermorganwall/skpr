@@ -103,5 +103,5 @@ pvalsurv = function(fit) {
 d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1)
 
-#This has the exact same behavior as eval_design_survival_mc.
+#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
 }

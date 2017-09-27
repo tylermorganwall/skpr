@@ -309,9 +309,9 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
-    effectresults = parameterpower(RunMatrix,anticoef,alpha,vInv = vInv)
-    typevector = rep("effect.power",length(effectresults))
-    namevector = colnames(attr(RunMatrix,"modelmatrix"))
+    effectresults = rep(parameterpower(RunMatrix,anticoef,alpha,vInv = vInv),2)
+    typevector = c(rep("effect.power",length(effectresults)/2),rep("parameter.power",length(effectresults)/2))
+    namevector = rep(colnames(attr(RunMatrix,"modelmatrix")),2)
 
     results = data.frame(parameter = namevector, type = typevector, power = effectresults)
 

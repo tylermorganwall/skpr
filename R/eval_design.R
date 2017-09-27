@@ -358,13 +358,28 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
     return(results)
   } else {
+    factornames = attr(terms(model),"term.labels")
+    factormatrix = attr(terms(model),"factors")
+    interactionterms = factornames[apply(factormatrix,2,sum) > 1]
+    higherorderterms = factornames[!(factornames %in% colnames(RunMatrix)) & !(apply(factormatrix,2,sum) > 1)]
     levelvector = sapply(lapply(RunMatrix,unique),length)
+    levelvector[lapply(RunMatrix,class)=="numeric"] = 2
+    levelvector = c(1,levelvector-1)
+    levelvector = c(levelvector,rep(1,length(higherorderterms)))
+
+    for(interaction in interactionterms) {
+      numberlevels = 1
+      for(term in unlist(strsplit(interaction,split=":",fixed=TRUE))) {
+        numberlevels = numberlevels * levelvector[term]
+      }
+      levelvector = c(levelvector, numberlevels)
+    }
 
     effectresults = effectpower(RunMatrix,levelvector,anticoef,alpha,vInv=vInv)
     parameterresults = parameterpower(RunMatrix,anticoef,alpha,vInv=vInv)
 
     typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
-    effectnamevector = c("(Intercept)",names(sapply(lapply(RunMatrix,unique),length)))
+    effectnamevector = c("(Intercept)",factornames)
     parameternamevector = colnames(attr(RunMatrix,"modelmatrix"))
     namevector = c(effectnamevector,parameternamevector)
     powervector = c(effectresults,parameterresults)

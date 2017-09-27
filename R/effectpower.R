@@ -11,16 +11,13 @@
 #'@return The effect power for the parameters
 #'@keywords internal
 effectpower = function(RunMatrix,levelvector,anticoef,alpha,vInv=NULL) {
-  levelvectoradj = levelvector
-  levelvectoradj[sapply(RunMatrix,class)=="numeric"] = 2
-  levelvectoradj = c(1,levelvectoradj-1)
 
-  L = replicate(length(levelvectoradj), matrix(NA, nrow = 0, ncol = 0))
+  L = replicate(length(levelvector), matrix(NA, nrow = 0, ncol = 0))
 
-  g = priorlevels(levelvectoradj)
+  g = priorlevels(levelvector)
 
   for (i in 1:(length(g)-1)) {
-    L[[i]] = genparammatrix(dim(attr(RunMatrix,"modelmatrix"))[2],levelvectoradj[i],g[i])
+    L[[i]] = genparammatrix(dim(attr(RunMatrix,"modelmatrix"))[2],levelvector[i],g[i])
   }
 
   Q = vector("list",dim(attr(RunMatrix,"modelmatrix"))[2])

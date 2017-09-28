@@ -365,11 +365,13 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     levelvector = sapply(lapply(RunMatrix,unique),length)
     levelvector[lapply(RunMatrix,class)=="numeric"] = 2
     levelvector = c(1,levelvector-1)
-    levelvector = c(levelvector,rep(1,length(higherorderterms)))
+    higherorderlevelvector = rep(1,length(higherorderterms))
+    names(higherorderlevelvector) = higherorderterms
+    levelvector = c(levelvector, higherorderlevelvector)
 
     for(interaction in interactionterms) {
       numberlevels = 1
-      for(term in unlist(strsplit(interaction,split=":",fixed=TRUE))) {
+      for(term in unlist(strsplit(interaction,split="(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"))) {
         numberlevels = numberlevels * levelvector[term]
       }
       levelvector = c(levelvector, numberlevels)

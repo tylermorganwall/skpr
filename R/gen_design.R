@@ -537,7 +537,6 @@ gen_design = function(candidateset, model, trials,
                              aliascandidatelist = aliasmm, minDopt = minDopt)
           }
           }, finally = {
-          message("Aborted: Cleaning up parallel processes...")
           parallel::stopCluster(cl)
           closeAllConnections()
         })
@@ -563,7 +562,6 @@ gen_design = function(candidateset, model, trials,
                              aliascandidatelist = aliasmm, minDopt = minDopt)
           }
           }, finally = {
-          message("Aborted: Cleaning up parallel processes...")
           parallel::stopCluster(cl)
           closeAllConnections()
         })
@@ -654,7 +652,6 @@ gen_design = function(candidateset, model, trials,
                                     disallowed = disallowedcomb, anydisallowed = anydisallowed)
           }
           }, finally = {
-            message("Aborted: Cleaning up parallel processes...")
             parallel::stopCluster(cl)
             closeAllConnections()
         })
@@ -684,7 +681,6 @@ gen_design = function(candidateset, model, trials,
                                     disallowed = disallowedcomb, anydisallowed = anydisallowed)
           }
           }, finally = {
-            message("Aborted: Cleaning up parallel processes...")
             parallel::stopCluster(cl)
             closeAllConnections()
         })

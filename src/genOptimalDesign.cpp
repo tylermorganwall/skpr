@@ -142,6 +142,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -175,6 +176,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -213,6 +215,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -254,6 +257,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -308,6 +312,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         first++;
         priorOptimum = optimum;
         for (unsigned int i = 0; i < nTrials; i++) {
+          Rcpp::checkUserInterrupt();
           found = FALSE;
           entryx = 0;
           entryy = 0;
@@ -365,6 +370,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -404,6 +410,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -438,6 +445,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -609,6 +617,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       priorOptimum = newOptimum;
       del = calculateBlockedDOptimality(combinedDesign,vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -665,6 +674,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -728,6 +738,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -852,6 +863,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       priorOptimum = newOptimum;
       del = calculateBlockedEOptimality(combinedDesign,vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
         found = FALSE;
         entryx = 0;
         entryy = 0;

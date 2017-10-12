@@ -521,22 +521,27 @@ gen_design = function(candidateset, model, trials,
       }
     } else {
       if(!timer) {
-        cl <- parallel::makeCluster(parallel::detectCores())
+        cl = parallel::makeCluster(parallel::detectCores())
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-        genOutput = foreach(i=1:repeats) %dopar% {
-          if(!is.null(progressBarUpdater)) {
-            progressBarUpdater(1/repeats)
+        genOutput = tryCatch({
+          foreach(i=1:repeats) %dopar% {
+            if(!is.null(progressBarUpdater)) {
+              progressBarUpdater(1/repeats)
+            }
+            randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+            genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                             aliasdesign = aliasmm[randomIndices,],
+                             aliascandidatelist = aliasmm, minDopt = minDopt)
           }
-          randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-          genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
-                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                           aliasdesign = aliasmm[randomIndices,],
-                           aliascandidatelist = aliasmm, minDopt = minDopt)
-        }
-        parallel::stopCluster(cl)
+          }, finally = {
+          message("Aborted: Cleaning up parallel processes...")
+          parallel::stopCluster(cl)
+          closeAllConnections()
+        })
       } else {
-        cl <- parallel::makeCluster(parallel::detectCores())
+        cl = parallel::makeCluster(parallel::detectCores())
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
         cat("Estimated time to completion ... ")
@@ -548,14 +553,19 @@ gen_design = function(candidateset, model, trials,
                                         aliascandidatelist = aliasmm, minDopt = minDopt)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
-        genOutput = foreach(i=2:repeats) %dopar% {
-          randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-          genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
-                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                           aliasdesign = aliasmm[randomIndices,],
-                           aliascandidatelist = aliasmm, minDopt = minDopt)
-        }
-        parallel::stopCluster(cl)
+        genOutput = tryCatch({
+          foreach(i=2:repeats) %dopar% {
+            randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
+            genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                             aliasdesign = aliasmm[randomIndices,],
+                             aliascandidatelist = aliasmm, minDopt = minDopt)
+          }
+          }, finally = {
+          message("Aborted: Cleaning up parallel processes...")
+          parallel::stopCluster(cl)
+          closeAllConnections()
+        })
         genOutput = as.list(c(genOutputOne,genOutput))
       }
     }
@@ -632,16 +642,21 @@ gen_design = function(candidateset, model, trials,
         cl <- parallel::makeCluster(parallel::detectCores())
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
 
-        genOutput = foreach(i=1:repeats) %dopar% {
-          randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-          genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                  candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
-                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                  blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                  disallowed = disallowedcomb, anydisallowed = anydisallowed)
-        }
-        parallel::stopCluster(cl)
+        genOutput = tryCatch({
+          foreach(i=1:repeats) %dopar% {
+            randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                    aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                    disallowed = disallowedcomb, anydisallowed = anydisallowed)
+          }
+          }, finally = {
+            message("Aborted: Cleaning up parallel processes...")
+            parallel::stopCluster(cl)
+            closeAllConnections()
+        })
       } else {
         cl <- parallel::makeCluster(parallel::detectCores())
         doParallel::registerDoParallel(cl, cores = parallel::detectCores())
@@ -657,16 +672,21 @@ gen_design = function(candidateset, model, trials,
                                                disallowed = disallowedcomb, anydisallowed = anydisallowed)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
 
-        genOutput = foreach(i=2:repeats) %dopar% {
-          randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-          genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                  candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
-                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                  blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                  disallowed = disallowedcomb, anydisallowed = anydisallowed)
-        }
-        parallel::stopCluster(cl)
+        genOutput = tryCatch({
+          foreach(i=2:repeats) %dopar% {
+            randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
+            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
+                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
+                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
+                                    aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                    disallowed = disallowedcomb, anydisallowed = anydisallowed)
+          }
+          }, finally = {
+            message("Aborted: Cleaning up parallel processes...")
+            parallel::stopCluster(cl)
+            closeAllConnections()
+        })
         genOutput = as.list(c(genOutputOne,genOutput))
       }
     }

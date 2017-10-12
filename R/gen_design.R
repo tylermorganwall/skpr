@@ -22,7 +22,8 @@
 #'argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
 #'for that whole plot setting. If the input is an integer, each block will be of this size.
 #'@param optimality Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-#'only supports the "D", "I", "A", and "E" criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E".
+#'only supports the "D", "I", "A", and "E" criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E". For
+#'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
 #'@param repeats The number of times to repeat the search for the best optimal design. Default 10.
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design. Default 1.

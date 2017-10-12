@@ -28,12 +28,12 @@
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design. Default 1.
 #'@param contrast Function used to generate the encoding for categorical variables. Default contr.simplex.
-#'@param aliaspower Degree of interactions to be used in calculating the alias matrix for alias optimal designs. Default 2.
-#'@param minDopt Minimum value for the D-Optimality of a design when searching for alias optimal designs. Default 0.95.
-#'@param parallel If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. Default FALSE.
-#'@param timer If TRUE, will print an estimate of the optimal design search time. Default FALSE.
-#'@param splitcolumns The blocking structure of the design will be indicated in the row names of the returned
-#'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added. Default FALSE.
+#'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
+#'@param minDopt Default 0.95. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
+#'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number.
+#'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
+#'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
+#'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update external progress bar.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the attr function.
@@ -62,6 +62,19 @@
 #'#We can also increase the number of times the algorithm repeats
 #'#the search to increase the probability that the globally optimal design was found.
 #'design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=19, repeats=100)
+#'
+#'#To speed up the design search, you can turn on multicore support with the parallel option.
+#'#You can also customize the number of cores used by setting the cores option. By default,
+#'#all cores are used.
+#'\dontrun{
+#'options(cores=2)
+#'design2 = gen_design(categorical_candidates, model=~a+b+c, trials=19, repeats=1000,parallel=TRUE)
+#'}
+#'
+#'#You can also estimate the time it will take for a search to complete with by setting timer=TRUE.
+#'\dontrun{
+#'design2 = gen_design(categorical_candidates, model=~a+b+c, trials=500, repeats=100,timer=TRUE)
+#'}
 #'
 #'#You can also use a higher order model when generating the design:
 #'design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c+a*b*c, trials=12)
@@ -521,9 +534,14 @@ gen_design = function(candidateset, model, trials,
         }
       }
     } else {
+      if(is.null(options("cores"))) {
+        numbercores = parallel::detectCores()
+      } else {
+        numbercores = options("cores")[[1]]
+      }
       if(!timer) {
-        cl = parallel::makeCluster(parallel::detectCores())
-        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+        cl = parallel::makeCluster(numbercores)
+        doParallel::registerDoParallel(cl, cores = numbercores)
 
         genOutput = tryCatch({
           foreach(i=1:repeats) %dopar% {
@@ -541,8 +559,8 @@ gen_design = function(candidateset, model, trials,
           closeAllConnections()
         })
       } else {
-        cl = parallel::makeCluster(parallel::detectCores())
-        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+        cl = parallel::makeCluster(numbercores)
+        doParallel::registerDoParallel(cl, cores = numbercores)
 
         cat("Estimated time to completion ... ")
         ptm = proc.time()
@@ -551,7 +569,7 @@ gen_design = function(candidateset, model, trials,
                                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                         aliasdesign = aliasmm[randomIndices,],
                                         aliascandidatelist = aliasmm, minDopt = minDopt)
-        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
+        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
           foreach(i=2:repeats) %dopar% {
@@ -637,9 +655,14 @@ gen_design = function(candidateset, model, trials,
         }
       }
     } else {
+      if(is.null(options("cores"))) {
+        numbercores = parallel::detectCores()
+      } else {
+        numbercores = options("cores")[[1]]
+      }
       if(!timer) {
-        cl <- parallel::makeCluster(parallel::detectCores())
-        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+        cl <- parallel::makeCluster(numbercores)
+        doParallel::registerDoParallel(cl, cores = numbercores)
 
         genOutput = tryCatch({
           foreach(i=1:repeats) %dopar% {
@@ -656,8 +679,8 @@ gen_design = function(candidateset, model, trials,
             closeAllConnections()
         })
       } else {
-        cl <- parallel::makeCluster(parallel::detectCores())
-        doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+        cl <- parallel::makeCluster(numbercores)
+        doParallel::registerDoParallel(cl, cores = numbercores)
 
         cat("Estimated time to completion ... ")
         ptm = proc.time()
@@ -668,7 +691,7 @@ gen_design = function(candidateset, model, trials,
                                                blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                                aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
                                                disallowed = disallowedcomb, anydisallowed = anydisallowed)
-        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/parallel::detectCores(logical=FALSE)), " seconds."),collapse=""))
+        cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
           foreach(i=2:repeats) %dopar% {

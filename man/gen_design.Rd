@@ -44,16 +44,16 @@ a split plot design. Default 1.}
 
 \item{contrast}{Function used to generate the encoding for categorical variables. Default contr.simplex.}
 
-\item{aliaspower}{Degree of interactions to be used in calculating the alias matrix for alias optimal designs. Default 2.}
+\item{aliaspower}{Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 
-\item{minDopt}{Minimum value for the D-Optimality of a design when searching for alias optimal designs. Default 0.95.}
+\item{minDopt}{Default 0.95. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.}
 
-\item{parallel}{If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. Default FALSE.}
+\item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number.}
 
-\item{timer}{If TRUE, will print an estimate of the optimal design search time. Default FALSE.}
+\item{timer}{Default FALSE. If TRUE, will print an estimate of the optimal design search time.}
 
-\item{splitcolumns}{The blocking structure of the design will be indicated in the row names of the returned
-design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added. Default FALSE.}
+\item{splitcolumns}{Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
+design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel optimal searches that can be used to update external progress bar.}
 }
@@ -92,6 +92,19 @@ design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=1
 #We can also increase the number of times the algorithm repeats
 #the search to increase the probability that the globally optimal design was found.
 design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=19, repeats=100)
+
+#To speed up the design search, you can turn on multicore support with the parallel option.
+#You can also customize the number of cores used by setting the cores option. By default,
+#all cores are used.
+\dontrun{
+options(cores=2)
+design2 = gen_design(categorical_candidates, model=~a+b+c, trials=19, repeats=1000,parallel=TRUE)
+}
+
+#You can also estimate the time it will take for a search to complete with by setting timer=TRUE.
+\dontrun{
+design2 = gen_design(categorical_candidates, model=~a+b+c, trials=500, repeats=100,timer=TRUE)
+}
 
 #You can also use a higher order model when generating the design:
 design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c+a*b*c, trials=12)

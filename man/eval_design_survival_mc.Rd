@@ -41,7 +41,8 @@ will be automatically generated based on the \code{effectsize} argument.}
 \item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
-\item{contrasts}{Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.}
+\item{contrasts}{Default \code{contr.sum}. Function used to encode categorical variables in the model matrix. If the user has specified their own contrasts
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{parallel}{If TRUE, uses all cores available to speed up computation of power. Default FALSE.}
 

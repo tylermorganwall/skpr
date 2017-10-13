@@ -26,7 +26,8 @@
 #'and lowest levels of a factor (which are +1 and -1 after normalization).
 #'More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
 #'half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.
-#'@param contrasts Function used to generate the contrasts encoding for categorical variables. Default \code{contr.sum}.
+#'@param contrasts  Default \code{contr.sum}. Function used to generate the contrasts encoding for categorical variables. If the user has specified their own contrasts
+#'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@param delta Depreciated. Use effectsize instead.
@@ -88,6 +89,14 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     effectsize=delta
   }
 
+  #detect pre-set contrasts
+  presetcontrasts = list()
+  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
+    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+    }
+  }
+
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
@@ -105,7 +114,11 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   contrastslist = list()
   for(x in names(RunMatrixReduced[lapply(RunMatrixReduced,class) %in% c("character", "factor")])) {
-    contrastslist[[x]] = contrasts
+    if(!(x %in% names(presetcontrasts))) {
+      contrastslist[[x]] = contrasts
+    } else {
+      contrastslist[[x]] = presetcontrasts[[x]]
+    }
   }
 
   if(length(contrastslist) < 1) {

@@ -18,7 +18,7 @@ factors that are not present in the run matrix.}
 
 \item{alpha}{The specified type-I error.}
 
-\item{blocking}{If TRUE, \code{eval_design} will look at the rownames to determine blocking structure. Default FALSE.}
+\item{blocking}{Default FALSE. If TRUE, \code{eval_design} will look at the rownames to determine blocking structure.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}
@@ -31,7 +31,8 @@ the anticipated coefficients will be half of \code{effectsize}. If you do specif
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
 
-\item{contrasts}{The function to use to encode the categorical factors in the model matrix. Default \code{contr.sum}.}
+\item{contrasts}{Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{conservative}{Specifies whether default method for generating
 anticipated coefficents should be conservative or not. TRUE will give the most conservative

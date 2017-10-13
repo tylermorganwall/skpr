@@ -37,7 +37,8 @@ and lowest levels of a factor (which are +1 and -1 after normalization).
 More precisely: If you do not specify \code{anticoef}, the anticipated coefficients will be
 half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.}
 
-\item{contrasts}{Function used to generate the contrasts encoding for categorical variables. Default \code{contr.sum}.}
+\item{contrasts}{Default \code{contr.sum}. Function used to generate the contrasts encoding for categorical variables. If the user has specified their own contrasts
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{coef_function}{Function that, when applied to a fitfunction return object, returns the estimated coefficients.}
 

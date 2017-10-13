@@ -25,7 +25,8 @@
 #'will be automatically generated based on the \code{effectsize} or \code{binomialprobs} arguments.
 #'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
-#'@param contrasts The contrasts to use for categorical factors. Defaults to \code{contr.sum}.
+#'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
+#'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param binomialprobs Equivalent to \code{effectsize}, maintained for backwards compatibility. See details for more info.
 #'If you specify \code{anticoef}, this argument will be ignored.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
@@ -210,6 +211,15 @@ eval_design_mc = function(RunMatrix, model, alpha,
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
     warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
   }
+
+  #detect pre-set contrasts
+  presetcontrasts = list()
+  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
+    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+    }
+  }
+
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
@@ -306,7 +316,11 @@ eval_design_mc = function(RunMatrix, model, alpha,
   contrastslist_correlationmatrix = list()
   contrastslist = list()
   for(x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
-    contrastslist[[x]] = contrasts
+    if(!(x %in% names(presetcontrasts))) {
+      contrastslist[[x]] = contrasts
+    } else {
+      contrastslist[[x]] = presetcontrasts[[x]]
+    }
     contrastslist_correlationmatrix[[x]] = contr.simplex
 
   }

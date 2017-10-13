@@ -40,7 +40,8 @@ will be automatically generated based on the \code{effectsize} or \code{binomial
 \item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
-\item{contrasts}{The contrasts to use for categorical factors. Defaults to \code{contr.sum}.}
+\item{contrasts}{Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{binomialprobs}{Equivalent to \code{effectsize}, maintained for backwards compatibility. See details for more info.
 If you specify \code{anticoef}, this argument will be ignored.}

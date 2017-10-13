@@ -24,7 +24,8 @@
 #'will be automatically generated based on the \code{effectsize} argument.
 #'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
-#'@param contrasts Function used to encode categorical variables in the model matrix. Default \code{contr.sum}.
+#'@param contrasts Default \code{contr.sum}. Function used to encode categorical variables in the model matrix. If the user has specified their own contrasts
+#'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
@@ -119,6 +120,14 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
     effectsize=delta
   }
 
+  #detect pre-set contrasts
+  presetcontrasts = list()
+  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
+    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+    }
+  }
+
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
     if(attr(RunMatrix,"splitanalyzable")) {
@@ -185,7 +194,11 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
 
   contrastslist = list()
   for(x in names(RunMatrix[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
-    contrastslist[[x]] = contrasts
+    if(!(x %in% names(presetcontrasts))) {
+      contrastslist[[x]] = contrasts
+    } else {
+      contrastslist[[x]] = presetcontrasts[[x]]
+    }
   }
   if(length(contrastslist) < 1) {
     contrastslist = NULL

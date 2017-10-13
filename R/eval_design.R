@@ -13,7 +13,7 @@
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the run matrix.
 #'@param alpha The specified type-I error.
-#'@param blocking If TRUE, \code{eval_design} will look at the rownames to determine blocking structure. Default FALSE.
+#'@param blocking Default FALSE. If TRUE, \code{eval_design} will look at the rownames to determine blocking structure.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.
 #'@param effectsize The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
@@ -22,7 +22,8 @@
 #' the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
-#'@param contrasts The function to use to encode the categorical factors in the model matrix. Default \code{contr.sum}.
+#'@param contrasts Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
+#'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
 #'@param conservative Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
@@ -150,6 +151,15 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
     warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
   }
+
+  #detect pre-set contrasts
+  presetcontrasts = list()
+  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
+    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+    }
+  }
+
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
@@ -218,7 +228,11 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   contrastslist = list()
   contrastslist_correlationmatrix = list()
   for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
-    contrastslist[[x]] = contrasts
+    if(!(x %in% names(presetcontrasts))) {
+      contrastslist[[x]] = contrasts
+    } else {
+      contrastslist[[x]] = presetcontrasts[[x]]
+    }
     contrastslist_correlationmatrix[[x]] = contr.simplex
   }
   if(length(contrastslist) < 1) {

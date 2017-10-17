@@ -14,7 +14,7 @@ void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector
 
 
 double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y) {
-  return(as_scalar(-x*V*x.t() + y*V*y.t() + (y*V*x.t())*(y*V*x.t()) - (x*V*x.t())*(y*V*y.t())));
+  return(as_scalar(x*V*x.t() - y*V*y.t() + pow(y*V*x.t(),2) - (x*V*x.t())*(y*V*y.t()) ));
 }
 
 double calculateDOptimality(const arma::mat& currentDesign) {
@@ -124,7 +124,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   if (isSingular(initialdesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
-  bool found = FALSE;
+  bool found = TRUE;
   double del = 0;
   int entryx = 0;
   int entryy = 0;
@@ -143,13 +143,15 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
+        if(found) {
+          V = inv_sympd(initialdesign.t()*initialdesign);
+        }
         found = FALSE;
         entryx = 0;
         entryy = 0;
-        temp = initialdesign;
+        del=0;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateDOptimality(temp);
+          newdel = delta(V,candidatelist.row(j),initialdesign.row(i));
           if(newdel > del) {
             found = TRUE;
             entryx = i; entryy = j;

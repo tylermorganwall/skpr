@@ -167,11 +167,11 @@
 #'#A correlation color map can be produced by calling the plot_correlation command with the output
 #'#of gen_design
 #'
-#'plot_correlations(design2)
+#'\dontrun{plot_correlations(design2)}
 #'
 #'#A fraction of design space plot can be produced by calling the plot_fds command
 #'
-#'plot_fds(design2)
+#'\dontrun{plot_fds(design2)}
 #'
 #'#Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and

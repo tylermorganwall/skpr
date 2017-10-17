@@ -1,0 +1,30 @@
+skpr v0.39.0 (Release date: 2017-10-15):
+================
+
+• All the evaluation functions will now respect pre-set contrasts for categorical factors. If a contrast isn't set for a factor, it will use the contrast set in the contrasts argument. 
+
+• Added the ability for the user to specify the number of cores manually by setting options(cores=). Otherwise, gen_design will use all cores available if parallel=TRUE.
+
+• Added the ability for the user to interrupt the design search in gen_design for both single core and multicore searches. When user interrupts parallel search, gen_design will properly stop and close all connections.
+
+• Added calculation of effect power for interaction terms and higher order terms.
+
+• Changed eval_design so that the output always reports parameter power even if all factors are continuous.
+
+• Fixed bug in eval_design_custom_mc which resulted in imported designs overwriting the generated list of contrasts with NULL.
+
+• Changed delta argument to more descriptive "effectsize". Updated documentation and codebase to reflect this change. Effect size now accepts a length-two vector to either explicitly specify the difference in the high and low levels, or to specify GLM-family specific effect sizes. Updated GUI to reflect effectsize change.
+
+• Changed Monte Carlo simulated estimates plot for exponential GLMs to show mean parameter rather than rate.
+
+• Fixed bug when tibble was converted to data frame and didn't convert the character columns to factors. Turned off OPENMP warning in compilation
+
+• Added support for ~.*. operator, allows user to specify full interaction model (no quadratic terms).
+
+• Updated documentation.
+
+
+skpr v0.35.1 (Release date: 2017-08-17):
+================
+
+Initial release.

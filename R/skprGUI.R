@@ -11,7 +11,7 @@
 #'#Type skprGUI() to begin
 #'
 #'\dontrun{skprGUI()}
-
+# nocov start
 skprGUI = function(inputValue1,inputValue2) {
 
   ui = fluidPage(theme = shinytheme("yeti"),
@@ -2015,3 +2015,4 @@ skprGUI = function(inputValue1,inputValue2) {
 
   runGadget(shinyApp(ui, server),viewer = dialogViewer(dialogName = "skprGUI", width = 1200,height=1200))
 }
+# nocov end

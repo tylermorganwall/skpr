@@ -8,6 +8,7 @@
 #'#Type skprGUIbrowser() to begin
 #'
 #'\dontrun{skprGUIbrowser()}
+#'# nocov start
 skprGUIbrowser = function() {
   appDir = system.file("shiny", "skprGUI", package = "skpr")
   if (appDir == "") {
@@ -16,3 +17,4 @@ skprGUIbrowser = function() {
 
   shiny::runApp(appDir, display.mode = "normal")
 }
+# nocov end

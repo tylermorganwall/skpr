@@ -7,4 +7,4 @@ r_packages:
   - covr
 
 after_success:
-  - Rscript -e 'library(covr); package_coverage(exclusions = list("R/skprGUI.R","R/skprGUIbrowser.R")); codecov()'
+  - Rscript -e 'library(covr); codecov()'

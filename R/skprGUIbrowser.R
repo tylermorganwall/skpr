@@ -8,7 +8,7 @@
 #'#Type skprGUIbrowser() to begin
 #'
 #'\dontrun{skprGUIbrowser()}
-#'# nocov start
+# nocov start
 skprGUIbrowser = function() {
   appDir = system.file("shiny", "skprGUI", package = "skpr")
   if (appDir == "") {

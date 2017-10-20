@@ -555,8 +555,9 @@ gen_design = function(candidateset, model, trials,
                              aliascandidatelist = aliasmm, minDopt = minDopt)
           }
           }, finally = {
-          parallel::stopCluster(cl)
-          closeAllConnections()
+          tryCatch({
+            parallel::stopCluster(cl)
+          }, error = function (e) {})
         })
       } else {
         cl = parallel::makeCluster(numbercores)
@@ -580,8 +581,9 @@ gen_design = function(candidateset, model, trials,
                              aliascandidatelist = aliasmm, minDopt = minDopt)
           }
           }, finally = {
-          parallel::stopCluster(cl)
-          closeAllConnections()
+            tryCatch({
+              parallel::stopCluster(cl)
+            }, error = function (e) {})
         })
         genOutput = as.list(c(genOutputOne,genOutput))
       }
@@ -678,8 +680,9 @@ gen_design = function(candidateset, model, trials,
                                     disallowed = disallowedcomb, anydisallowed = anydisallowed)
           }
           }, finally = {
-            parallel::stopCluster(cl)
-            closeAllConnections()
+            tryCatch({
+              parallel::stopCluster(cl)
+            }, error = function (e) {})
         })
       } else {
         cl = parallel::makeCluster(numbercores)
@@ -707,8 +710,9 @@ gen_design = function(candidateset, model, trials,
                                     disallowed = disallowedcomb, anydisallowed = anydisallowed)
           }
           }, finally = {
-            parallel::stopCluster(cl)
-            closeAllConnections()
+            tryCatch({
+              parallel::stopCluster(cl)
+            }, error = function (e) {})
         })
         genOutput = as.list(c(genOutputOne,genOutput))
       }

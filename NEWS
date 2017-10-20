@@ -1,3 +1,12 @@
+﻿skpr v0.40.1 (Release date: 2017-10-20):
+================
+
+• Fixed significant bug with parallel design generation that broke automatic detection of the number of cores available.
+
+• Changed non-split-plot D-optimal design search to use modified Fedorov's algorithm with delta function (changed from modified Fedorov's, without delta function). Decreases search time for complex designs or designs with many trials.
+
+• Turned off OPENMP warning for all c++ files.
+
 skpr v0.39.0 (Release date: 2017-10-15):
 ================
 

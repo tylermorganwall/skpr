@@ -101,24 +101,51 @@ test_that("gen_design example code runs without errors", {
   expect_silent(gen_design(candlist3, ~Location+Climate+Vineyard, 48, splitplotdesign = temp, splitplotsizes = rep(4,12)) -> temp)
   expect_silent(gen_design(candlist3, ~Location+Climate+Vineyard+Age, 192, splitplotdesign = temp, splitplotsizes = rep(4,48)) -> splitsplitsplitplotdesign)
   #'
-  #'
+  #'test user-supplied block detection
   externaldesign  = data.frame(Block1 = c(1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,8,8,8), var1 = c(-1,1))
   externaldesign2 = data.frame(Block1 = c(1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4), Block2 = c(1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,8,8,8), var1 = c(-1,1))
   externaldesign3 = data.frame(Block2 = c(1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,8,8,8), var1 = c(-1,1), Block1 = c(1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4))
-  expect_warning(eval_design_mc(externaldesign,  ~., 0.2, nsim = 50),"ignoring blocking structure and removing blocking columns.")
-  expect_warning(eval_design_mc(externaldesign2 ,~., 0.2, nsim = 50),"ignoring blocking structure and removing blocking columns.")
-  expect_warning(eval_design_mc(externaldesign3 ,~., 0.2, nsim = 50),"ignoring blocking structure and removing blocking columns.")
-  expect_warning(eval_design_mc(externaldesign, ~. , 0.2, blocking = TRUE, nsim = 50),"attempting to interpret blocking structure.")
-  expect_warning(eval_design_mc(externaldesign2, ~., 0.2, blocking = TRUE, nsim = 50),"attempting to interpret blocking structure.")
-  expect_warning(eval_design_mc(externaldesign3, ~., 0.2, blocking = TRUE, nsim = 50),"attempting to interpret blocking structure.")
+  expect_warning(eval_design_mc(externaldesign,  ~., 0.2, nsim = 10),"ignoring blocking structure and removing blocking columns.")
+  expect_warning(eval_design_mc(externaldesign2 ,~., 0.2, nsim = 10),"ignoring blocking structure and removing blocking columns.")
+  expect_warning(eval_design_mc(externaldesign3 ,~., 0.2, nsim = 10),"ignoring blocking structure and removing blocking columns.")
+  expect_warning(eval_design_mc(externaldesign, ~. , 0.2, blocking = TRUE, nsim = 10),"attempting to interpret blocking structure.")
+  expect_warning(eval_design_mc(externaldesign2, ~., 0.2, blocking = TRUE, nsim = 10),"attempting to interpret blocking structure.")
+  expect_warning(eval_design_mc(externaldesign3, ~., 0.2, blocking = TRUE, nsim = 10),"attempting to interpret blocking structure.")
   expect_warning(eval_design(externaldesign,  ~., 0.2),"ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign2 ,~., 0.2),"ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign3 ,~., 0.2),"ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign, ~. , 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
   expect_warning(eval_design(externaldesign2, ~., 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
   expect_warning(eval_design(externaldesign3, ~., 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
+
+  #test parallel features
+
+  expect_silent(gen_design(candlist3, ~Location, trials=6,parallel=TRUE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location+Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),parallel=TRUE) -> temp)
+  expect_output({gen_design(candlist3, ~Location, trials=6,parallel=TRUE,timer=TRUE) -> temp},"Estimated time to completion")
+  expect_output({gen_design(candlist3, ~Location+Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),parallel=TRUE,timer=TRUE) -> temp},"Estimated time to completion")
+  options(cores=2)
+  expect_silent(gen_design(candlist3, ~Location, trials=6,parallel=TRUE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location+Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),parallel=TRUE) -> temp2)
+  expect_output({gen_design(candlist3, ~Location, trials=18,parallel=TRUE,timer=TRUE) -> temp},"Estimated time to completion")
+  expect_output({gen_design(candlist3, ~Location+Climate, trials=54, splitplotdesign = temp, splitplotsizes=rep(3,18),parallel=TRUE,timer=TRUE) -> temp2},"Estimated time to completion")
+  options(cores=NULL)
+  expect_silent(eval_design_mc(temp,~.,0.2,nsim=10,parallel=TRUE))
+  expect_silent(eval_design_mc(temp2,~.,0.2,nsim=10,parallel=TRUE))
+  expect_silent(eval_design_mc(temp,~.,0.2,nsim=10,glmfamily="poisson",effectsize=c(1,10),parallel=TRUE))
+  expect_silent(eval_design_mc(temp2,~.,0.2,nsim=10,glmfamily="poisson",effectsize=c(1,10),parallel=TRUE))
+  options(cores=2)
+  expect_silent(eval_design_mc(temp,~.,0.2,nsim=10,parallel=TRUE))
+  expect_silent(eval_design_mc(temp2,~.,0.2,nsim=10,parallel=TRUE))
+  expect_silent(eval_design_mc(temp,~.,0.2,nsim=10,glmfamily="poisson",effectsize=c(1,10),parallel=TRUE))
+  expect_silent(eval_design_mc(temp2,~.,0.2,nsim=10,glmfamily="poisson",effectsize=c(1,10),parallel=TRUE))
+  options(cores=NULL)
+  expect_warning(eval_design_mc(temp,~.,0.2,nsim=10,glmfamily="poisson")," This can lead to unrealistic effect sizes")
+
   #'#A design's diagnostics can be accessed via the following attributes:
   #'
+  #'
+
   expect_silent(attr(design,"D")) #D-Efficiency
   expect_silent(attr(design,"A")) #A-Efficiency
   expect_silent(attr(design,"I")) #The average prediction variance across the design space

@@ -111,6 +111,12 @@ test_that("gen_design example code runs without errors", {
   expect_warning(eval_design_mc(externaldesign, ~. , 0.2, blocking = TRUE, nsim = 50),"attempting to interpret blocking structure.")
   expect_warning(eval_design_mc(externaldesign2, ~., 0.2, blocking = TRUE, nsim = 50),"attempting to interpret blocking structure.")
   expect_warning(eval_design_mc(externaldesign3, ~., 0.2, blocking = TRUE, nsim = 50),"attempting to interpret blocking structure.")
+  expect_warning(eval_design(externaldesign,  ~., 0.2),"ignoring blocking structure and removing blocking columns.")
+  expect_warning(eval_design(externaldesign2 ,~., 0.2),"ignoring blocking structure and removing blocking columns.")
+  expect_warning(eval_design(externaldesign3 ,~., 0.2),"ignoring blocking structure and removing blocking columns.")
+  expect_warning(eval_design(externaldesign, ~. , 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
+  expect_warning(eval_design(externaldesign2, ~., 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
+  expect_warning(eval_design(externaldesign3, ~., 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
   #'#A design's diagnostics can be accessed via the following attributes:
   #'
   expect_silent(attr(design,"D")) #D-Efficiency

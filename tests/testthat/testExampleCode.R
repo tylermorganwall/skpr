@@ -122,7 +122,7 @@ test_that("gen_design example code runs without errors", {
 
   #test interaction between whole and subplots
 
-  expect_silent(gen_design(candlist3, ~Location, trials=6,parallel=TRUE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location, trials=6) -> temp)
   expect_silent(gen_design(candlist3, ~Location + Climate + Location:Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp2)
   expect_silent(gen_design(candlist3, ~Location + Climate + Location*Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp2)
 

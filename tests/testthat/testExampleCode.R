@@ -118,9 +118,13 @@ test_that("gen_design example code runs without errors", {
   expect_warning(eval_design(externaldesign2, ~., 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
   expect_warning(eval_design(externaldesign3, ~., 0.2, blocking = TRUE),"attempting to interpret blocking structure.")
 
+  #test timer
+  expect_output(gen_design(candlist3, ~Location, trials=6,timer=TRUE) -> temp)
+
   #test parallel features
 
   options(cores=2)
+
   expect_silent(gen_design(candlist3, ~Location, trials=6,parallel=TRUE) -> temp)
   expect_silent(gen_design(candlist3, ~Location+Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6),parallel=TRUE) -> temp)
   expect_output({gen_design(candlist3, ~Location, trials=6,parallel=TRUE,timer=TRUE) -> temp},"Estimated time to completion")

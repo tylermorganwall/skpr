@@ -149,11 +149,14 @@ test_that("gen_design example code runs without errors", {
   expect_silent(eval_design_mc(temp2,~.,0.2,nsim=10,parallel=TRUE))
   expect_silent(eval_design_mc(temp,~.,0.2,nsim=10,glmfamily="poisson",effectsize=c(1,10),parallel=TRUE))
   expect_silent(eval_design_mc(temp2,~.,0.2,nsim=10,glmfamily="poisson",effectsize=c(1,10),parallel=TRUE))
+
   # options(cores=NULL)
   expect_warning(eval_design_mc(temp,~.,0.2,nsim=10,glmfamily="poisson")," This can lead to unrealistic effect sizes")
 
-  #'#A design's diagnostics can be accessed via the following attributes:
-  #'
+
+
+  #A design's diagnostics can be accessed via the following attributes:
+
   #'
 
   expect_silent(attr(design,"D")) #D-Efficiency
@@ -362,6 +365,32 @@ test_that("eval_design_custom_mc example code runs without errors", {
   #trying with ~. operator
   expect_silent(eval_design_custom_mc(RunMatrix=design,model=~.,alpha=0.05,nsim=100,
                                       fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1))
+
+  #testing parallel
+
+  options(cores=2)
+  basicdesign = expand.grid(a=c(-1,1))
+  design = gen_design(candidateset=basicdesign,model=~a,trials=100,
+                      optimality="D",repeats=100)
+
+  rsurvival = function(X,b) {
+    Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
+    censored = Y > 1
+    Y[censored] = 1
+    return(survival::Surv(time=Y,event=!censored,type="right"))
+  }
+
+  fitsurv = function(formula, X, contrastslist=NULL) {
+    return(survival::survreg(formula, data=X,dist="exponential"))
+  }
+
+  pvalsurv = function(fit) {
+    return(summary(fit)$table[,4])
+  }
+
+  expect_silent({d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
+                          fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1,parallel=TRUE)})
+  options(cores=NULL)
   #'
   #'#This has the exact same behavior as eval_design_survival_mc.
   #'

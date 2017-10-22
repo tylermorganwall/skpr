@@ -505,8 +505,12 @@ eval_design_mc = function(RunMatrix, model, alpha,
     power_values = power_values / nsim
 
   } else {
-    cl <- parallel::makeCluster(parallel::detectCores())
-    numbercores = parallel::detectCores()
+    if(is.null(options("cores")[[1]])) {
+      numbercores = parallel::detectCores()
+    } else {
+      numbercores = options("cores")[[1]]
+    }
+    cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
 
     power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .packages = c("lme4")) %dopar% {

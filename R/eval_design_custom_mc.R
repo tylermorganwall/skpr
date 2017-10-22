@@ -180,8 +180,13 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     power_values = power_values / nsim
 
   } else {
-    cl <- parallel::makeCluster(parallel::detectCores())
-    doParallel::registerDoParallel(cl, cores = parallel::detectCores())
+    if(is.null(options("cores")[[1]])) {
+      numbercores = parallel::detectCores()
+    } else {
+      numbercores = options("cores")[[1]]
+    }
+    cl = parallel::makeCluster(numbercores)
+    doParallel::registerDoParallel(cl, cores = numbercores)
 
     power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind",.packages = parallelpackages) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))

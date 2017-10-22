@@ -1,5 +1,4 @@
 library(lme4)
-library
 
 context("Run Examples")
 
@@ -172,8 +171,8 @@ test_that("gen_design example code runs without errors", {
 test_that("eval_design example code runs without errors", {
   #'#this can also be generated with expand.grid as:
   #'
-  factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
-  expect_silent({optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=17,optimality="D",repeats=100)})
+  factorialdes <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
+  expect_silent({optdesign = gen_design(candidateset=factorialdes, model= ~A+B+C,trials=17,optimality="D",repeats=100)})
   #'
   #'#Now evaluating that design (with default anticipated coefficients and a effectsize of 2):
   expect_silent(eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2))

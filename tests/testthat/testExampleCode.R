@@ -121,6 +121,12 @@ test_that("gen_design example code runs without errors", {
   #test timer
   expect_output(gen_design(candlist3, ~Location, trials=6,timer=TRUE) -> temp)
 
+  #test interaction between whole and subplots
+
+  expect_silent(gen_design(candlist3, ~Location, trials=6,parallel=TRUE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location + Climate + Location:Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp2)
+  expect_silent(gen_design(candlist3, ~Location + Climate + Location*Climate, trials=12, splitplotdesign = temp, splitplotsizes=rep(2,6)) -> temp2)
+
   #test parallel features
 
   options(cores=2)
@@ -165,8 +171,9 @@ test_that("gen_design example code runs without errors", {
 
 test_that("eval_design example code runs without errors", {
   #'#this can also be generated with expand.grid as:
+  #'
   factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
-  expect_silent({optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)})
+  expect_silent({optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=17,optimality="D",repeats=100)})
   #'
   #'#Now evaluating that design (with default anticipated coefficients and a effectsize of 2):
   expect_silent(eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2))

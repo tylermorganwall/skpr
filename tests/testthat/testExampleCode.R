@@ -317,6 +317,12 @@ test_that("eval_design_survival_mc example code runs without errors", {
                           distribution="lognormal", rfunctionsurv=rlognorm,
                           anticoef=c(0.184,0.101), scale=0.4)
   )
+  #testing parallel
+  options(cores=2)
+  eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
+                          nsim=100, distribution="exponential",
+                           censorpoint=5,censortype="right",parallel=TRUE)
+  options(cores=NULL)
 })
 
 test_that("eval_design_custom_mc example code runs without errors", {

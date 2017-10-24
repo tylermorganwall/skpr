@@ -151,6 +151,9 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   }
   if(missing(anticoef)) {
     anticoef = gen_anticoef(RunMatrixReduced,model) * effectsize / 2
+    if(!("(Intercept)" %in% colnames(ModelMatrix))) {
+      anticoef = anticoef[-1]
+    }
   }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")

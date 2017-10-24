@@ -217,7 +217,6 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
   #We'll need the parameter and effect names for output
   parameter_names = colnames(ModelMatrix)
-  effect_names = c("(Intercept)", attr(terms(model), 'term.labels'))
 
   # autogenerate anticipated coefficients
   if (!missing(anticoef) && !missing(effectsize)) {
@@ -226,6 +225,9 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   if(missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrixReduced, model)
     anticoef = anticoef_from_delta_surv(default_coef, effectsize, distribution)
+    if(!("(Intercept)" %in% colnames(ModelMatrix))) {
+      anticoef = anticoef[-1]
+    }
   }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")

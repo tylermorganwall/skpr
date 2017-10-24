@@ -279,6 +279,9 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   if(missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrix, model)
     anticoef = anticoef_from_delta(default_coef, effectsize, "gaussian")
+    if(!("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
+      anticoef = anticoef[-1]
+    }
   }
   if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2]) {
     stop("Wrong number of anticipated coefficients")
@@ -378,7 +381,11 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     higherorderterms = factornames[!(factornames %in% colnames(RunMatrix)) & !(apply(factormatrix,2,sum) > 1)]
     levelvector = sapply(lapply(RunMatrix,unique),length)
     levelvector[lapply(RunMatrix,class)=="numeric"] = 2
-    levelvector = c(1,levelvector-1)
+    if(("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
+      levelvector = c(1,levelvector-1)
+    } else {
+      levelvector = levelvector-1
+    }
     higherorderlevelvector = rep(1,length(higherorderterms))
     names(higherorderlevelvector) = higherorderterms
     levelvector = c(levelvector, higherorderlevelvector)
@@ -395,7 +402,11 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     parameterresults = parameterpower(RunMatrix,anticoef,alpha,vInv=vInv)
 
     typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
-    effectnamevector = c("(Intercept)",factornames)
+    if(("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
+      effectnamevector = c("(Intercept)",factornames)
+    } else {
+      effectnamevector = factornames
+    }
     parameternamevector = colnames(attr(RunMatrix,"modelmatrix"))
     namevector = c(effectnamevector,parameternamevector)
     powervector = c(effectresults,parameterresults)
@@ -415,9 +426,16 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       if(!blocking) {
         V = diag(nrow(modelmatrix_cor))
       }
-      correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
-      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      if("(Intercept)" %in% colnames(modelmatrix_cor)) {
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
+        colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+        rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      } else {
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor)))
+        colnames(correlation.matrix) = colnames(modelmatrix_cor)
+        rownames(correlation.matrix) = colnames(modelmatrix_cor)
+      }
+
       attr(results,"correlation.matrix") = round(correlation.matrix,8)
     }
     attr(results,"generating.model") = model

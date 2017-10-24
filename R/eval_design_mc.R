@@ -368,6 +368,9 @@ eval_design_mc = function(RunMatrix, model, alpha,
   if(missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrixReduced, model)
     anticoef = anticoef_from_delta(default_coef, effectsize, glmfamilyname)
+    if(!("(Intercept)" %in% colnames(ModelMatrix))) {
+      anticoef = anticoef[-1]
+    }
   }
   if(length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
@@ -557,9 +560,15 @@ eval_design_mc = function(RunMatrix, model, alpha,
   modelmatrix_cor = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
   if(ncol(modelmatrix_cor) > 2) {
     tryCatch({
-      correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor))[-1,-1])
-      colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-      rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      if("(Intercept)" %in% colnames(modelmatrix_cor)) {
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor))[-1,-1])
+        colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+        rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+      } else {
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor)))
+        colnames(correlation.matrix) = colnames(modelmatrix_cor)
+        rownames(correlation.matrix) = colnames(modelmatrix_cor)
+      }
       attr(retval,"correlation.matrix") = round(correlation.matrix,8)
     }, error = function(e) {})
   }

@@ -353,6 +353,9 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
 
+  #saving model for return attribute
+  generatingmodel = model
+
   #Parameter names for final output
   parameter_names = colnames(ModelMatrix)
 
@@ -378,7 +381,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #-------------- Blocking errors --------------#
-  #Variables used later: blockgroups, varianceratios
+  #Variables used later: blockgroups, varianceratios, V
   blocknames = rownames(RunMatrix)
   blocklist = strsplit(blocknames,".",fixed=TRUE)
 
@@ -387,6 +390,13 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
       blockstructure = do.call(rbind,blocklist)
       blockgroups = apply(blockstructure,2,blockingstructure)
+
+
+      blockMatrixSize = nrow(RunMatrix)
+      V = diag(blockMatrixSize)
+      # if(length(blockgroups) == 1 | is.matrix(blockgroups)) {
+      #   stop("No blocking detected. Specify block structure in row names or set blocking=FALSE")
+      # }
 
       if(!is.null(varianceratios) && max(unlist(lapply(blocklist,length)))-1 != length(varianceratios) && length(varianceratios) != 1) {
         warning("varianceratios length does not match number of split plots. Defaulting to variance ratio of 1 for all strata. ")
@@ -397,6 +407,19 @@ eval_design_mc = function(RunMatrix, model, alpha,
       }
       if(is.null(varianceratios)) {
         varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
+      }
+
+      blockcounter = 1
+
+      blockgroups2 = blockgroups[-length(blockgroups)]
+      for(block in blockgroups2) {
+        V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceratios[blockcounter]
+        placeholder = block[1]
+        for(i in 2:length(block)) {
+          V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceratios[blockcounter]
+          placeholder = placeholder + block[i]
+        }
+        blockcounter = blockcounter+1
       }
     }
   } else {
@@ -445,6 +468,8 @@ eval_design_mc = function(RunMatrix, model, alpha,
     blockform = paste("~. + ", randomeffects, sep="")
     #Adding random block variables to formula
     model = update.formula(model, blockform)
+  } else {
+    V = diag(nrow(RunMatrix))
   }
 
   model_formula = update.formula(model, Y ~ .)
@@ -562,15 +587,19 @@ eval_design_mc = function(RunMatrix, model, alpha,
   attr(retval, "modelmatrix") = ModelMatrix
   attr(retval, "anticoef") = anticoef
 
-  modelmatrix_cor = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
+  levelvector = sapply(lapply(RunMatrixReduced,unique),length)
+  classvector = sapply(lapply(RunMatrixReduced,unique),class) == "factor"
+  mm = gen_momentsmatrix(colnames(ModelMatrix),levelvector,classvector)
+
+  modelmatrix_cor = model.matrix(generatingmodel,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
   if(ncol(modelmatrix_cor) > 2) {
     tryCatch({
       if("(Intercept)" %in% colnames(modelmatrix_cor)) {
-        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor))[-1,-1])
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
         colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
         rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       } else {
-        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% modelmatrix_cor)))
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor)))
         colnames(correlation.matrix) = colnames(modelmatrix_cor)
         rownames(correlation.matrix) = colnames(modelmatrix_cor)
       }
@@ -593,6 +622,18 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   colnames(estimates) = parameter_names
+  if(!blocking) {
+    attr(retval,"variance.matrix") = diag(nrow(modelmatrix_cor))
+    attr(retval,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
+    attr(retval,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+  } else {
+    attr(retval,"variance.matrix") = V
+    attr(retval,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
+    attr(retval,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+  }
+  attr(retval,"generating.model") = generatingmodel
+  attr(retval,"runmatrix") = RunMatrixReduced
+  attr(retval,"variance.matrix") = V
   attr(retval, 'estimates') = estimates
   attr(retval, 'pvals') = attr(power_values, "pvals")
   attr(retval, 'stderrors') = attr(power_values, "stderrors")

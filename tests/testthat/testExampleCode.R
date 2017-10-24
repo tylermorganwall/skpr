@@ -319,7 +319,7 @@ test_that("eval_design_survival_mc example code runs without errors", {
   )
   #testing parallel
   options(cores=2)
-  eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
+  eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05, effectsize = c(1,2),
                           nsim=100, distribution="exponential",
                            censorpoint=5,censortype="right",parallel=TRUE)
   options(cores=NULL)

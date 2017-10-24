@@ -276,12 +276,12 @@ gen_design = function(candidateset, model, trials,
         lineartermsinteraction = unique(unlist(strsplit(wholeinteractionterms, split="(\\s\\*\\s)|(:)",perl=TRUE)))
         extract_interactionnames_formula = as.formula(paste0("~",paste(c(lineartermsinteraction,wholeinteractionterms),collapse=" + ")))
         combinedcand = cbind(candidateset[1,,drop=FALSE],splitplotdesign[1,,drop=FALSE])
-        allcolnames = colnames(model.matrix(extract_interactionnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist))
+        allcolnames = suppressWarnings(colnames(model.matrix(extract_interactionnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist)))
         interactionnames = allcolnames[grepl("(\\s\\*\\s)|(:)",allcolnames,perl=TRUE)]
 
         #combined formula with no inter-strata interactions
         combinedmodel = as.formula(paste0("~",paste(c(splitterms[!regularmodel],splitterms[!wholeorwholeinteraction]),collapse=" + ")))
-        correct_order_colnames = colnames(model.matrix(combinedmodel, data = combinedcand, contrasts.arg = fullcontrastlist))
+        correct_order_colnames = suppressWarnings(colnames(model.matrix(combinedmodel, data = combinedcand, contrasts.arg = fullcontrastlist)))
 
         interactioncounter = 1
         interactionlist = list()

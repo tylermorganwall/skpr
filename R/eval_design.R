@@ -170,7 +170,8 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     blockcols = grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE) | grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE)
     if(blocking) {
       warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
-      blockmatrix = RunMatrix[,blockcols]
+      blockmatrix = RunMatrix[,blockcols,drop=FALSE]
+      blockmatrix = blockmatrix[,order(unlist(lapply(lapply(blockmatrix,unique),length))),drop=FALSE]
       blockvals = lapply(blockmatrix,unique)
       rownamematrix = matrix(nrow=nrow(RunMatrix),ncol=ncol(blockmatrix) + 1)
       for(col in 1:ncol(blockmatrix)) {
@@ -199,14 +200,14 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       }
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[,!blockcols]
+      RunMatrix = RunMatrix[,!blockcols,drop=FALSE]
       attributes(RunMatrix) = allattr
       rownames(RunMatrix) = apply(rownamematrix,1,paste,collapse=".")
     } else {
       warning("Detected externally generated blocking columns but blocking not turned on: ignoring blocking structure and removing blocking columns.")
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[,!blockcols]
+      RunMatrix = RunMatrix[,!blockcols,drop=FALSE]
       attributes(RunMatrix) = allattr
     }
   }

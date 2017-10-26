@@ -12,6 +12,7 @@ reduceRunMatrix = function(RunMatrix,model) {
   } else {
     orderone = attr(terms(model),"term.labels")[attr(terms(model),"order")==1]
     nohighorder = orderone[!unlist(lapply(pattern="^",FUN=grepl,X=orderone,fixed=TRUE))]
+    nohighorder = gsub("`","",nohighorder,fixed=TRUE)
     ReduceRM = RunMatrix[nohighorder]
   }
 

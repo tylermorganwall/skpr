@@ -19,9 +19,9 @@ gen_anticoef = function(RunMatrix,model) {
   for(term in nonlinearterms) {
     higherlevel = 1
     highertype = "numeric"
-    factors = strsplit(term,":")[[1]]
+    factors = gsub("`","",strsplit(term,":")[[1]],fixed=TRUE)
     for(i in factors) {
-      if(class(RunMatrix[[i]]) == "factor") {
+      if(class(RunMatrix[[i]]) %in% c("character","factor")) {
         higherlevel = levels[i]*higherlevel
         highertype = "factor"
       }

@@ -192,16 +192,25 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  #convert ~.*.
-
-  if(model == as.formula("~.*.")) {
-    model = as.formula(paste0("~(",paste(colnames(candidateset),collapse = " + "),")^2"))
-  }
-
   #covert tibbles
   candidateset = as.data.frame(candidateset)
   if(!is.null(splitplotdesign)){
     splitplotdesign = as.data.frame(splitplotdesign)
+  }
+
+  #Throw error if backticks detected
+  if(grepl("`",as.character(model)[2],fixed=TRUE)) {
+    stop("skpr does not support backticks in gen_design. Use variable names without backticks and try again.")
+  }
+
+  #convert ~.*.
+
+  if(model == as.formula("~.*.")) {
+    if(is.null(splitplotdesign)) {
+      model = as.formula(paste0("~(",paste(colnames(candidateset),collapse = " + "),")^2"))
+    } else {
+      model = as.formula(paste0("~(",paste(c(colnames(candidateset),colnames(splitplotdesign)),collapse = " + "),")^2"))
+    }
   }
 
   if(is.null(contrast)) {

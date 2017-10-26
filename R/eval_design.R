@@ -379,7 +379,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     factornames = attr(terms(model),"term.labels")
     factormatrix = attr(terms(model),"factors")
     interactionterms = factornames[apply(factormatrix,2,sum) > 1]
-    higherorderterms = factornames[!(factornames %in% colnames(RunMatrix)) & !(apply(factormatrix,2,sum) > 1)]
+    higherorderterms = factornames[!(gsub("`","",factornames,fixed=TRUE) %in% colnames(RunMatrix)) & !(apply(factormatrix,2,sum) > 1)]
     levelvector = sapply(lapply(RunMatrix,unique),length)
     levelvector[lapply(RunMatrix,class)=="numeric"] = 2
     if(("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
@@ -394,7 +394,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     for(interaction in interactionterms) {
       numberlevels = 1
       for(term in unlist(strsplit(interaction,split="(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"))) {
-        numberlevels = numberlevels * levelvector[term]
+        numberlevels = numberlevels * levelvector[gsub("`","",term,fixed=TRUE)]
       }
       levelvector = c(levelvector, numberlevels)
     }

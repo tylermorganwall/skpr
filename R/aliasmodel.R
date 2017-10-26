@@ -7,9 +7,9 @@
 #'@import utils
 #'@return Returns aliased model terms from formula
 aliasmodel = function(formula, power) {
-  existingterms = attr(terms(formula),"term.labels")
+  existingterms = paste0("`",attr(terms(formula),"term.labels"),"`")
   # existingterms = c(existingterms,disallowed)
-  variables = all.vars(formula)
+  variables = paste0("`",all.vars(formula),"`")
 
   if(power < 2) {
     stop("Aliased terms must be greater than linear")

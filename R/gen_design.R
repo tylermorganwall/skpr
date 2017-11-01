@@ -749,7 +749,7 @@ gen_design = function(candidateset, model, trials,
                 "of model parameters or increase the number of trials."))
   }
 
-  if(optimality == "D" || optimality == "T" || optimality == "E") {
+  if(optimality == "D" || optimality == "T" || optimality == "E" || optimality == "custom") {
     best = which.max(criteria)
     designmm = designs[[best]]
     rowindex = round(rowIndicies[[best]])

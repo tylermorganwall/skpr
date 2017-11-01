@@ -73,7 +73,9 @@ Rcpp::NumericVector arma2vec(const T& x) {
   return Rcpp::NumericVector(x.begin(), x.end());
 }
 
-
+double calculateCustomOptimality(const arma::mat& currentDesign, Function customOpt) {
+  return as<double>(customOpt(Rcpp::Named("currentDesign", currentDesign)));
+}
 
 //`@title genOptimalDesign
 //`@param x an x
@@ -472,6 +474,43 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         }
       }
       newOptimum = calculateEOptimality(initialdesign);
+    }
+  }
+  if(condition == "custom") {
+    Environment myEnv = Environment::global_env();
+    Function customOpt = myEnv["customOpt"];
+    arma::mat temp;
+    del = calculateCustomOptimality(initialdesign,customOpt);
+    newOptimum = del;
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp.row(i) = candidatelist.row(j);
+          newdel = calculateCustomOptimality(temp,customOpt);
+          if(newdel > del) {
+            if(!isSingular(temp)) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
+          }
+        }
+        if (found) {
+          initialdesign.row(entryx) = candidatelist.row(entryy);
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateCustomOptimality(initialdesign,customOpt);
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix

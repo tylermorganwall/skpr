@@ -84,6 +84,24 @@ test_that("gen_design example code runs without errors", {
                                      splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="D")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
                                      splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="E")})
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="T")})
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="Alias")})
+  #testing custom
+  # customOpt = function(currentDesign) {
+  #   return(det(t(currentDesign) %*% currentDesign))
+  # }
+  #
+  # customBlockedOpt = function(currentDesign, vInv) {
+  #   return(det(t(currentDesign) %*% vInv %*% currentDesign))
+  # }
+  #
+  # candlist1 = expand.grid(Altitude=c(-1,0,1),Range=as.factor(c("Close","Medium","Far")), Power=c(-1,0,1))
+  # hardtochangedesign = gen_design(candidateset = candlist1, model=~Altitude, trials=11,optimality="custom")
+  #
+  # splitplotblocksize = rep(3,11)
+  # design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="custom")
   #'
   #'#The split-plot structure is encoded into the row names, with a period demarcating the blocking level. This process
   #'#can be repeated for arbitrary levels of blocking (i.e. a split-plot design can be entered in as the hard-to-change

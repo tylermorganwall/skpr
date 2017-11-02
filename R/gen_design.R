@@ -469,6 +469,7 @@ gen_design = function(candidateset, model, trials,
       candidatesetmm = suppressWarnings(model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist))
     } else {
       candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
+      fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidateset,contrasts.arg=fullcontrastlist))
     }
   }
   if(!blocking) {
@@ -480,8 +481,8 @@ gen_design = function(candidateset, model, trials,
                  "of that factor in the candidate set."))
     }
   }
-  if(optimality %in% c("Alias","G","T") && !is.null(splitplotdesign)) {
-    stop("Generating Alias, G, and T optimal designs not presently supported with split plot designs.")
+  if(optimality == "G" && !is.null(splitplotdesign)) {
+    stop("Generating G optimal designs not presently supported with split plot designs.")
   }
 
   if(is.null(splitplotdesign)) {

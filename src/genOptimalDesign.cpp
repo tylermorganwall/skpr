@@ -136,7 +136,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   arma::mat V;
   double newdel;
   //Generate a D-optimal design
-  if(condition == "D") {
+  if(condition == "D" || condition == "G") {
     arma::mat temp;
     del = calculateDOptimality(initialdesign);
     newOptimum = del;
@@ -529,7 +529,6 @@ double calculateBlockedIOptimality(const arma::mat& currentDesign, const arma::m
   return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)*momentsMatrix));
 }
 
-//Function to calculate the A-optimality
 double calculateBlockedAOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
   return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)));
 }
@@ -539,10 +538,10 @@ double calculateBlockedAliasTrace(const arma::mat& currentDesign, const arma::ma
   return(trace(A.t() * A));
 }
 
-double calculateBlockedGOptimality(const arma::mat& currentDesign, const arma::mat& candidateSet, const arma::mat& gls) {
-  arma::mat results = candidateSet*inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t();
-  return(results.diag().max());
-}
+// double calculateBlockedGOptimality(const arma::mat& currentDesign, const arma::mat& candidateSet, const arma::mat& gls) {
+//   arma::mat results = inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t()*gls;
+//   return(results.diag().max());
+// }
 
 double calculateBlockedTOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
   return(trace(currentDesign.t()*gls*currentDesign));
@@ -562,6 +561,20 @@ double calculateBlockedDEffNN(const arma::mat& currentDesign,const arma::mat& gl
   return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols))));
 }
 
+double calculateBlockedAliasTracePseudoInv(const arma::mat& currentDesign, const arma::mat& aliasMatrix,const arma::mat& gls) {
+  arma::mat A = arma::pinv(currentDesign.t()*gls*currentDesign)*currentDesign.t()*aliasMatrix;
+  return(trace(A.t() * A));
+}
+
+bool isSingularBlocked(const arma::mat& currentDesign,const arma::mat& gls) {
+  return(arma::cond(currentDesign.t()*gls*currentDesign) > 1E15);
+}
+
+double calculateBlockedCustomOptimality(const arma::mat& currentDesign, Function customBlockedOpt, const arma::mat& gls) {
+  return as<double>(customBlockedOpt(Rcpp::Named("currentDesign", currentDesign),Rcpp::Named("vInv", gls)));
+}
+
+
 //`@title genBlockedOptimalDesign
 //`@param x an x
 //`@return stufff
@@ -569,11 +582,10 @@ double calculateBlockedDEffNN(const arma::mat& currentDesign,const arma::mat& gl
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign,
                              const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows,
                              const arma::mat& blockedVar,
-                             const arma::mat& aliasdesign, const arma::mat& aliascandidatelist, double minDopt, List interactions,
-                             const arma::mat& disallowed, const bool anydisallowed) {
+                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions,
+                             const arma::mat disallowed, const bool anydisallowed) {
   //Load the R RNG
   RNGScope rngScope;
-
   //check and log whether there are inter-strata interactions
   unsigned int numberinteractions = interactions.size();
   bool interstrata = (numberinteractions > 0);
@@ -588,21 +600,29 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //Remove intercept term, as it's now located in the blocked
   candidatelist.shed_col(0);
   initialdesign.shed_col(0);
+  aliasdesign.shed_col(0);
+  aliascandidatelist.shed_col(0);
 
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*10;
   unsigned int totalPoints = candidatelist.n_rows;
   unsigned int blockedCols = blockeddesign.n_cols;
   int designCols = initialdesign.n_cols;
+  int designColsAlias = aliasdesign.n_cols;
   LogicalVector mustchange(nTrials, false);
-  //arma::mat combinedDesign(nTrials,blockedCols+designCols,arma::fill::zeros);
+
   arma::mat combinedDesign(nTrials,blockedCols+designCols + numberinteractions,arma::fill::zeros);
   combinedDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
   combinedDesign(arma::span::all,arma::span(blockedCols,blockedCols+designCols-1)) = initialdesign;
 
+  arma::mat combinedAliasDesign(nTrials,blockedCols+ designColsAlias + numberinteractions,arma::fill::zeros);
+  combinedAliasDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
+  combinedAliasDesign(arma::span::all,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliasdesign;
+
   if(interstrata) {
     for(unsigned int i = 0; i < numberinteractions; i++) {
       combinedDesign.col(blockedCols+designCols + i) = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1) % combinedDesign.col(as<NumericVector>(interactions[i])[1]-1);
+      combinedAliasDesign.col(blockedCols+designColsAlias + i) = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1) % combinedAliasDesign.col(as<NumericVector>(interactions[i])[1]-1);
     }
   }
 
@@ -612,7 +632,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   for (unsigned int check = 0; check < maxSingularityChecks; check++) {
-    if (inv(test, combinedDesign.t() * vInv * combinedDesign)){
+    if (!isSingularBlocked(combinedDesign,vInv)){
       break;
     }
     arma::uvec shuffledindices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, totalPoints-1), totalPoints, false);
@@ -620,15 +640,17 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       candidateRow(i) = shuffledindices(i % totalPoints) + 1;
       initialRows(i) = shuffledindices(i % totalPoints) + 1;
       combinedDesign(i, arma::span(blockedCols, blockedCols+designCols-1)) = candidatelist.row(shuffledindices(i % totalPoints));
+      combinedAliasDesign(i, arma::span(blockedCols, blockedCols+designColsAlias-1)) = aliascandidatelist.row(shuffledindices(i % totalPoints));
       if (interstrata) {
         for(unsigned int j = 0; j < numberinteractions; j++) {
-          combinedDesign(i, blockedCols+designCols + j) = combinedDesign(i, as<NumericVector>(interactions[j])[0]-1) * combinedDesign(i, as<NumericVector>(interactions[j])[1]-1);
+          combinedDesign.col(blockedCols+designCols + j) = combinedDesign.col(as<NumericVector>(interactions[j])[0]-1) % combinedDesign.col(as<NumericVector>(interactions[j])[1]-1);
+          combinedAliasDesign.col(blockedCols+designColsAlias + j) = combinedAliasDesign.col(as<NumericVector>(interactions[j])[0]-1) % combinedAliasDesign.col(as<NumericVector>(interactions[j])[1]-1);
         }
       }
     }
   }
   // If still no non-singular design, returns NA.
-  if (!inv(test,combinedDesign.t() * vInv * combinedDesign)) {
+  if (isSingularBlocked(combinedDesign,vInv)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
   if(anydisallowed) {
@@ -663,7 +685,6 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-
         for (unsigned int j = 0; j < totalPoints; j++) {
           temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
 
@@ -681,7 +702,6 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
               }
             }
           }
-
           newdel = calculateBlockedDOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
             found = TRUE;
@@ -829,72 +849,63 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       newOptimum = calculateBlockedAOptimality(combinedDesign,vInv);
     }
   }
-  //Commented out until bugs worked out
-  /*if(condition == "G") {
-  arma::mat temp;
-  newOptimum = calculateBlockedGOptimality(combinedDesign, candidatelist, vInv);
-  priorOptimum = newOptimum/2;
-  while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
-  priorOptimum = newOptimum;
-  del = calculateBlockedGOptimality(combinedDesign,candidatelist,vInv);
-  for (unsigned int i = 0; i < nTrials; i++) {
-  found = FALSE;
-  entryx = 0;
-  entryy = 0;
-  temp = combinedDesign;
-  for (unsigned int j = 0; j < totalPoints; j++) {
-  temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-  newdel = calculateBlockedGOptimality(temp, candidatelist, vInv);
-  if(newdel > del) {
-  found = TRUE;
-  entryx = i; entryy = j;
-  del = newdel;
-  }
-  }
-  if (found) {
-  combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-  candidateRow[i] = entryy+1;
-  initialRows[i] = entryy+1;
-  } else {
-  candidateRow[i] = initialRows[i];
-  }
-  }
-  newOptimum = calculateBlockedGOptimality(combinedDesign, candidatelist, vInv);
-  }
-}
   if(condition == "T") {
-  arma::mat temp;
-  newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
-  priorOptimum = newOptimum/2;
-  while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
-  priorOptimum = newOptimum;
-  del = calculateBlockedTOptimality(combinedDesign,vInv);
-  for (unsigned int i = 0; i < nTrials; i++) {
-  found = FALSE;
-  entryx = 0;
-  entryy = 0;
-  temp = combinedDesign;
-  for (unsigned int j = 0; j < totalPoints; j++) {
-  temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-  newdel = calculateBlockedTOptimality(temp, vInv);
-  if(newdel > del) {
-  found = TRUE;
-  entryx = i; entryy = j;
-  del = newdel;
+    arma::mat temp;
+    newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedTOptimality(combinedDesign,vInv);
+      for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+
+          pointallowed = true;
+          if(anydisallowed) {
+            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+              if(all(temp.row(i) == disallowed.row(k))) {
+                pointallowed = false;
+              }
+            }
+          }
+
+          newdel = calculateBlockedTOptimality(temp, vInv);
+          if((newdel > del || mustchange[i]) && pointallowed) {
+            if(!isSingularBlocked(temp,vInv)) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+              mustchange[i] = false;
+            }
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
+    }
   }
-  }
-  if (found) {
-  combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-  candidateRow[i] = entryy+1;
-  initialRows[i] = entryy+1;
-  } else {
-  candidateRow[i] = initialRows[i];
-  }
-  }
-  newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
-  }
-  }
-  */
+
   //Generate an E-optimal design, fixing the blocking factors
   if(condition == "E") {
     arma::mat temp;
@@ -925,13 +936,18 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
               }
             }
           }
-
-          newdel = calculateBlockedEOptimality(temp, vInv);
+          try {
+            newdel = calculateBlockedEOptimality(temp, vInv);
+          } catch (std::runtime_error& e) {
+            continue;
+          }
           if((newdel > del || mustchange[i]) && pointallowed) {
-            found = TRUE;
-            entryx = i; entryy = j;
-            del = newdel;
-            mustchange[i] = false;
+            if(!isSingularBlocked(temp,vInv)) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+              mustchange[i] = false;
+            }
           }
         }
         if (found) {
@@ -948,6 +964,317 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         }
       }
       newOptimum = calculateBlockedEOptimality(combinedDesign, vInv);
+    }
+  }
+
+  // Work-in-progress
+  // if(condition == "G") {
+  //
+  //   arma::mat reducedCandidateList(fullcandidateset.n_rows, blockedCols + designCols + numberinteractions,arma::fill::zeros);
+  //   reducedCandidateList(arma::span::all,arma::span(0,blockedCols+designCols-1)) = fullcandidateset;
+  //
+  //   if(interstrata) {
+  //     for(unsigned int i = 0; i < numberinteractions; i++) {
+  //       reducedCandidateList.col(blockedCols+designCols + i) = reducedCandidateList.col(as<NumericVector>(interactions[i])[0]-1) % reducedCandidateList.col(as<NumericVector>(interactions[i])[1]-1);
+  //     }
+  //   }
+  //
+  //   LogicalVector mustdelete(fullcandidateset.n_rows, false);
+  //
+  //   if(anydisallowed) {
+  //     for(unsigned int i = 0; i < fullcandidateset.n_rows; i++) {
+  //       for(unsigned int j = 0; j < disallowed.n_rows; j++) {
+  //         if(all(reducedCandidateList.row(i) == disallowed.row(j))) {
+  //           mustdelete[i] = true;
+  //         }
+  //       }
+  //     }
+  //     for(unsigned int i = fullcandidateset.n_rows; i > 0; i--) {
+  //       if(mustdelete[i]) {
+  //         reducedCandidateList.shed_row(i);
+  //       }
+  //     }
+  //   }
+  //
+  //   arma::mat temp;
+  //   newOptimum = calculateBlockedGOptimality(combinedDesign, reducedCandidateList, vInv);
+  //   priorOptimum = newOptimum*2;
+  //   while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
+  //     del = newOptimum;
+  //     priorOptimum = newOptimum;
+  //     for (unsigned int i = 0; i < nTrials; i++) {
+  //       Rcpp::checkUserInterrupt();
+  //       found = FALSE;
+  //       entryx = 0;
+  //       entryy = 0;
+  //       temp = combinedDesign;
+  //       for (unsigned int j = 0; j < totalPoints; j++) {
+  //         temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+  //         if(interstrata) {
+  //           for(unsigned int k = 0; k < numberinteractions; k++) {
+  //             temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+  //           }
+  //         }
+  //
+  //         pointallowed = true;
+  //         if(anydisallowed) {
+  //           for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+  //             if(all(temp.row(i) == disallowed.row(k))) {
+  //               pointallowed = false;
+  //             }
+  //           }
+  //         }
+  //         try {
+  //           newdel = calculateBlockedGOptimality(temp, reducedCandidateList, vInv);
+  //         } catch (std::runtime_error& e) {
+  //           continue;
+  //         }
+  //         if((newdel < del || mustchange[i]) && pointallowed) {
+  //           if(!isSingularBlocked(temp,vInv)) {
+  //             found = TRUE;
+  //             entryx = i; entryy = j;
+  //             del = newdel;
+  //             mustchange[i] = false;
+  //           }
+  //         }
+  //       }
+  //       if (found) {
+  //         combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+  //         if(interstrata) {
+  //           for(unsigned int k = 0; k < numberinteractions; k++) {
+  //             combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+  //           }
+  //         }
+  //         candidateRow[i] = entryy+1;
+  //         initialRows[i] = entryy+1;
+  //       } else {
+  //         candidateRow[i] = initialRows[i];
+  //       }
+  //     }
+  //     newOptimum = calculateBlockedGOptimality(combinedDesign, reducedCandidateList, vInv);
+  //   }
+  // }
+
+  if(condition == "Alias") {
+    arma::mat temp;
+    arma::mat tempalias;
+    del = calculateBlockedDOptimality(combinedDesign,vInv);
+    newOptimum = del;
+    priorOptimum = newOptimum/2;
+
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedDOptimality(combinedDesign,vInv);
+      for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+
+          pointallowed = true;
+          if(anydisallowed) {
+            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+              if(all(temp.row(i) == disallowed.row(k))) {
+                pointallowed = false;
+              }
+            }
+          }
+
+          newdel = calculateBlockedDOptimality(temp, vInv);
+          if((newdel > del || mustchange[i]) && pointallowed) {
+            found = TRUE;
+            entryx = i; entryy = j;
+            del = newdel;
+            mustchange[i] = false;
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedAliasDesign(entryx,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliascandidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              combinedAliasDesign(i,blockedCols+designColsAlias + k) = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedAliasDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedDOptimality(combinedDesign, vInv);
+    }
+
+    double firstA = calculateBlockedAliasTracePseudoInv(combinedDesign,combinedAliasDesign,vInv);
+    double initialD = calculateBlockedDEffNN(combinedDesign,vInv);
+    double currentA = firstA;
+    double currentD = initialD;
+    double wdelta = 0.05;
+    double aliasweight = 1;
+    double bestA = firstA;
+    double optimum;
+    double first = 1;
+
+    IntegerVector candidateRowTemp = candidateRow;
+    IntegerVector initialRowsTemp = initialRows;
+    arma::mat combinedDesignTemp = combinedDesign;
+
+    IntegerVector bestcandidaterow = candidateRowTemp;
+    arma::mat bestaliasdesign = combinedAliasDesign;
+    arma::mat bestcombinedDesign = combinedDesign;
+
+    while(firstA != 0 && currentA != 0 && aliasweight > wdelta) {
+
+      aliasweight = aliasweight - wdelta;
+      optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+      first = 1;
+
+      while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
+        first++;
+        priorOptimum = optimum;
+        for (unsigned int i = 0; i < nTrials; i++) {
+          Rcpp::checkUserInterrupt();
+          found = FALSE;
+          entryx = 0;
+          entryy = 0;
+          temp = combinedDesignTemp;
+          tempalias = combinedAliasDesign;
+          for (unsigned int j = 0; j < totalPoints; j++) {
+            try {
+              temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+              tempalias(i,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliascandidatelist.row(j);
+              if(interstrata) {
+                for(unsigned int k = 0; k < numberinteractions; k++) {
+                  temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+                  tempalias(i,blockedCols+designColsAlias + k) = tempalias(i,as<NumericVector>(interactions[k])[0]-1) * tempalias(i,as<NumericVector>(interactions[k])[1]-1);
+                }
+              }
+
+              currentA = calculateBlockedAliasTrace(temp,tempalias,vInv);
+              currentD = calculateBlockedDEffNN(temp,vInv);
+
+              pointallowed = true;
+              if(anydisallowed) {
+                for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+                  if(all(temp.row(i) == disallowed.row(k))) {
+                    pointallowed = false;
+                  }
+                }
+              }
+
+              newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+
+              if(newdel > optimum && calculateBlockedDEff(temp,vInv) > minDopt) {
+                found = TRUE;
+                entryx = i; entryy = j;
+                optimum = newdel;
+              }
+            } catch (std::runtime_error& e) {
+              continue;
+            }
+          }
+          if (found) {
+            combinedDesignTemp(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+            combinedAliasDesign(entryx,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliascandidatelist.row(entryy);
+            if(interstrata) {
+              for(unsigned int k = 0; k < numberinteractions; k++) {
+                combinedDesignTemp(i,blockedCols+designCols + k) = combinedDesignTemp(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesignTemp(i,as<NumericVector>(interactions[k])[1]-1);
+                combinedAliasDesign(i,blockedCols+designColsAlias + k) = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedAliasDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              }
+            }
+            candidateRowTemp[i] = entryy+1;
+            initialRowsTemp[i] = entryy+1;
+          } else {
+            candidateRowTemp[i] = initialRowsTemp[i];
+          }
+        }
+        currentD = calculateBlockedDEffNN(combinedDesignTemp,vInv);
+        currentA = calculateBlockedAliasTrace(combinedDesignTemp,combinedAliasDesign,vInv);
+        optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+      }
+
+      if(currentA < bestA) {
+        bestA = currentA;
+        bestaliasdesign = combinedAliasDesign;
+        bestcombinedDesign = combinedDesignTemp;
+        bestcandidaterow = candidateRowTemp;
+      }
+    }
+    combinedDesign = bestcombinedDesign;
+    candidateRow = bestcandidaterow;
+    combinedAliasDesign = bestaliasdesign;
+    newOptimum = bestA;
+  }
+  if(condition == "custom") {
+    Environment myEnv = Environment::global_env();
+    Function customBlockedOpt = myEnv["customBlockedOpt"];
+    arma::mat temp;
+    newOptimum = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt,vInv);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt, vInv);
+      for (unsigned int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = FALSE;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (unsigned int j = 0; j < totalPoints; j++) {
+          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+
+          pointallowed = true;
+          if(anydisallowed) {
+            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+              if(all(temp.row(i) == disallowed.row(k))) {
+                pointallowed = false;
+              }
+            }
+          }
+          try {
+            newdel = calculateBlockedCustomOptimality(temp, customBlockedOpt, vInv);
+          } catch (std::runtime_error& e) {
+            continue;
+          }
+          if((newdel > del || mustchange[i]) && pointallowed) {
+            if(!isSingularBlocked(temp,vInv)) {
+              found = TRUE;
+              entryx = i; entryy = j;
+              del = newdel;
+              mustchange[i] = false;
+            }
+          }
+        }
+        if (found) {
+          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(unsigned int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt, vInv);
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix

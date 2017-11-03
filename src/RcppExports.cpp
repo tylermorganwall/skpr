@@ -115,7 +115,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // genBlockedOptimalDesign
-List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign, const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows, const arma::mat blockedVar, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions, const arma::mat disallowed, const bool anydisallowed);
+List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign, const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows, const arma::mat& blockedVar, arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions, const arma::mat disallowed, const bool anydisallowed);
 RcppExport SEXP _skpr_genBlockedOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP blockeddesignSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP blockedVarSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP, SEXP interactionsSEXP, SEXP disallowedSEXP, SEXP anydisallowedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -126,7 +126,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type condition(conditionSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type momentsmatrix(momentsmatrixSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type initialRows(initialRowsSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type blockedVar(blockedVarSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type blockedVar(blockedVarSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type aliasdesign(aliasdesignSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type aliascandidatelist(aliascandidatelistSEXP);
     Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);

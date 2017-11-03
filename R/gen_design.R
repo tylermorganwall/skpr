@@ -25,7 +25,9 @@
 #'argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
 #'for that whole plot setting. If the input is an integer, each block will be of this size.
 #'@param optimality Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-#'only supports the "D", "I", "A", and "E" criteria. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", or "E". For
+#' supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", "E", or "custom". If "custom", user must also
+#' define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
+#' "custom" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 #'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
 #'@param repeats The number of times to repeat the search for the best optimal design. Default 10.
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
@@ -37,7 +39,7 @@
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
 #'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
-#'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update external progress bar.
+#'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update an external progress bar.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the attr function.
 #'@export
@@ -149,6 +151,45 @@
 #'splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard+Age,
 #'                                        trials=192, splitplotdesign = temp, splitplotsizes = 4,
 #'                                        varianceratio=1, splitcolumns=TRUE)
+#'
+#'#gen_design also supports user-defined optimality criterion. The user defines a function
+#'#of the model matrix named customOpt, and gen_design will attempt to generate a design
+#'#that maximizes that function. This function needs to be in the global environment, and be
+#'#named either customOpt or customBlockedOpt, depending on whether a split-plot design is being
+#'#generated. customBlockedOpt should be a function of the model matrix as well as the
+#'#variance-covariance matrix, vInv. Due to the underlying C++ code having to call back to the R
+#'#environment repeatedly, this criterion will be significantly slower than the built-in algorithms.
+#'#It does, however, offer the user a great deal of flexibility in generating their designs.
+#'
+#'#We are going to write our own D-optimal search algorithm using base R functions. Here, write
+#'#a function that calculates the determinant of the information matrix. gen_design will search
+#'#for a design that maximizes this function.
+#'
+#'customOpt = function(currentDesign) {
+#'  return(det(t(currentDesign) %*% currentDesign))
+#'}
+#'
+#'#Generate the whole plots for our split-plot designl, using the custom criterion.
+#'
+#'candlistcustom = expand.grid(Altitude=c(10000,20000),
+#'                             Range=as.factor(c("Close","Medium","Far")),
+#'                             Power=c(50,100))
+#'htcdesign = gen_design(candidateset = candlistcustom, model=~Altitude+Range,
+#'                       trials=11,optimality="custom")
+#'
+#'#Now define a function that is a function of both the model matrix,
+#'#as well as the variance-covariance matrix vInv. This takes the blocking structure into account
+#'#when calculating our determinant.
+#'
+#'customBlockedOpt = function(currentDesign, vInv) {
+#'  return(det(t(currentDesign) %*% vInv %*% currentDesign))
+#'}
+#'
+#'#And finally, calculate the design. This (likely) results in the same design had we chosen the
+#'#"D" criterion.
+#'
+#'design = gen_design(candlistcustom, ~Altitude+Range+Power, trials=33,
+#'                    splitplotdesign=htcdesign,splitplotsizes = 3,optimality="custom")
 #'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'

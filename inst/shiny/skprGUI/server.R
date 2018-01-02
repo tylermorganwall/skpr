@@ -976,7 +976,20 @@ function(input, output, session) {
 
 
   output$runmatrix = renderTable({
-    runmatrix()
+    if(input$orderdesign) {
+      if(ncol(runmatrix()) > 1) {
+        runmatrix()[do.call(order,runmatrix()),]
+      } else {
+        rownumbers = order(runmatrix()[,1])
+        runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+        names(runreturn) = input$factorname1
+        df = data.frame(runreturn)
+        rownames(df) = rownumbers
+        df
+      }
+    } else {
+      runmatrix()
+    }
   },rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
   output$powerresults = renderTable({

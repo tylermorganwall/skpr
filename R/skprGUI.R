@@ -702,6 +702,7 @@ skprGUI = function(inputValue1,inputValue2) {
                      tabPanel("Design",
                               h2("Design"),
                               introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
+                              checkboxInput(inputId = "orderdesign",label = "Remove Randomization",value=FALSE),
                               hr()
                      ),
                      tabPanel("Design Evaluation",
@@ -1821,7 +1822,20 @@ skprGUI = function(inputValue1,inputValue2) {
 
 
     output$runmatrix = renderTable({
-      runmatrix()
+      if(input$orderdesign) {
+        if(ncol(runmatrix()) > 1) {
+          runmatrix()[do.call(order,runmatrix()),]
+        } else {
+          rownumbers = order(runmatrix()[,1])
+          runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+          names(runreturn) = input$factorname1
+          df = data.frame(runreturn)
+          rownames(df) = rownumbers
+          df
+        }
+      } else {
+        runmatrix()
+      }
     },rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
     output$powerresults = renderTable({

@@ -110,7 +110,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                        .well .nav {margin-bottom: 6px; margin-top: 12px;margin-left: -20px;margin-right: -26px; border-bottom: 1px solid transparent;text-align: center;}
                        hr {margin-top: 8px; margin-bottom: 0px;}
                        .well hr {
-                       margin-top: -16px;
+                       margin-top: -12px;
                        margin-bottom: 13px;
                        margin-left: -20px;
                        margin-right: -20px;

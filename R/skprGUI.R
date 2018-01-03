@@ -5,7 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
-#'@import shiny rintrojs shinythemes
+#'@import shiny rintrojs shinythemes knitr kableExtra
 #'@export
 #'@examples
 #'#Type skprGUI() to begin
@@ -121,7 +121,7 @@ skprGUI = function(inputValue1,inputValue2) {
                       .well .nav {margin-bottom: 6px; margin-top: 12px;margin-left: -20px;margin-right: -26px; border-bottom: 1px solid transparent;text-align: center;}
                       hr {margin-top: 8px; margin-bottom: 0px;}
                       .well hr {
-                      margin-top: -16px;
+                      margin-top: -12px;
                       margin-bottom: 13px;
                       margin-left: -20px;
                       margin-right: -20px;
@@ -849,6 +849,8 @@ skprGUI = function(inputValue1,inputValue2) {
                  )
 
   server = function(input, output, session) {
+
+    library(kableExtra)
 
     incProgressSession = function(amount=0.1,message=NULL,detail=NULL) {incProgress(amount,message,detail,session)}
 
@@ -1821,22 +1823,39 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
 
-    output$runmatrix = renderTable({
+    output$runmatrix = function() {
+
+      spec_color_if = function(dfcol,alphaval=0.2) {
+        if(is.numeric(dfcol)) {
+          colorvalues = cut(dfcol,11,labels=FALSE)
+          cell_spec(dfcol,"html",background = spec_color(1:11,alpha=alphaval)[colorvalues])
+        } else {
+          dfcolfact = as.factor(dfcol)
+          cell_spec(dfcol,"html",background = spec_color(1:length(unique(dfcol)),alpha=alphaval)[as.numeric(dfcolfact)])
+        }
+      }
+
       if(input$orderdesign) {
         if(ncol(runmatrix()) > 1) {
-          runmatrix()[do.call(order,runmatrix()),]
+          df = lapply(runmatrix(),spec_color_if)
+          kable_styling(knitr::kable(df,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          # df = lapply(runmatrix(),spec_color_if)
+          # kable_styling(knitr::kable(as.data.frame(df)[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
         } else {
-          rownumbers = order(runmatrix()[,1])
-          runreturn = list(runmatrix()[order(runmatrix()[,1]),])
-          names(runreturn) = input$factorname1
-          df = data.frame(runreturn)
-          rownames(df) = rownumbers
-          df
+          # rownumbers = order(runmatrix()[,1])
+          # runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+          # names(runreturn) = input$factorname1
+          # df = data.frame(runreturn)
+          # rownames(df) = rownumbers
+          # df = lapply(df,spec_color_if)
+          # kable_styling(knitr::kable(df,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
         }
       } else {
-        runmatrix()
+        df = lapply(runmatrix(),spec_color_if)
+        kable_styling(knitr::kable(df,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
       }
-    },rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
+    }
+    #,rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
     output$powerresults = renderTable({
       powerresults()

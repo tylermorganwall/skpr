@@ -515,7 +515,7 @@ function(input, output, session) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
                       "optimality = \"",input$optimality,"\""),collapse = "")
     }
-    if(input$repeats != 10) {
+    if(input$repeats != 20) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
                       "repeats = ",input$repeats),collapse = "")
     }
@@ -975,22 +975,57 @@ function(input, output, session) {
   })
 
 
-  output$runmatrix = renderTable({
-    if(input$orderdesign) {
-      if(ncol(runmatrix()) > 1) {
-        runmatrix()[do.call(order,runmatrix()),]
+  output$runmatrix = function() {
+
+    spec_color_if = function(dfcol,alphaval=0.2) {
+      if(is.numeric(dfcol)) {
+        colorvalues = cut(dfcol,11,labels=FALSE)
+        cell_spec(dfcol,"html",background = spec_color(1:11,alpha=alphaval,option=input$colorchoice)[colorvalues],background_as_tile = FALSE)
       } else {
-        rownumbers = order(runmatrix()[,1])
-        runreturn = list(runmatrix()[order(runmatrix()[,1]),])
-        names(runreturn) = input$factorname1
-        df = data.frame(runreturn)
-        rownames(df) = rownumbers
-        df
+        dfcolfact = as.factor(dfcol)
+        cell_spec(dfcol,"html",background = spec_color(1:length(unique(dfcol)),alpha=alphaval,option=input$colorchoice)[as.numeric(dfcolfact)],background_as_tile = FALSE)
+      }
+    }
+
+    if(input$colorchoice != "none") {
+      if(input$orderdesign) {
+        if(ncol(runmatrix()) > 1) {
+          runmatrixprocessed = lapply(runmatrix(),spec_color_if)
+          prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+        } else {
+          rownumbers = order(runmatrix()[,1])
+          runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+          names(runreturn) = input$factorname1
+          runmatrixprocessed = data.frame(runreturn)
+          runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed,spec_color_if))
+          rownames(runmatrixprocessed) = rownumbers
+          prelimhtml = kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+        }
+      } else {
+        runmatrixprocessed = lapply(runmatrix(),spec_color_if)
+        prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+        gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
       }
     } else {
-      runmatrix()
+      if(input$orderdesign) {
+        if(ncol(runmatrix()) > 1) {
+          kable_styling(knitr::kable(as.data.frame(runmatrix())[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+        } else {
+          rownumbers = order(runmatrix()[,1])
+          runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+          names(runreturn) = input$factorname1
+          runmatrixprocessed = data.frame(runreturn)
+          rownames(runmatrixprocessed) = rownumbers
+          kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+        }
+      } else {
+        kable_styling(knitr::kable(runmatrix(),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+      }
     }
-  },rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
+  }
+  #,rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
   output$powerresults = renderTable({
     powerresults()
@@ -1298,7 +1333,7 @@ function(input, output, session) {
                                         $('a[data-value=\"Generating Code\"]').trigger('click');
                                         }"
                   ))
-                ))
-    outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
-}
+                         ))
+  outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
+  }
 )

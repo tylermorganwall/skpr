@@ -5,7 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
-#'@import shiny rintrojs shinythemes
+#'@import shiny rintrojs shinythemes knitr kableExtra
 #'@export
 #'@examples
 #'#Type skprGUI() to begin
@@ -121,7 +121,7 @@ skprGUI = function(inputValue1,inputValue2) {
                       .well .nav {margin-bottom: 6px; margin-top: 12px;margin-left: -20px;margin-right: -26px; border-bottom: 1px solid transparent;text-align: center;}
                       hr {margin-top: 8px; margin-bottom: 0px;}
                       .well hr {
-                      margin-top: -16px;
+                      margin-top: -12px;
                       margin-bottom: 13px;
                       margin-left: -20px;
                       margin-right: -20px;
@@ -577,7 +577,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                                                 choices = c("D","I","A","Alias","G","E","T"),
                                                                 label = "Optimality"),data.step = 6, data.intro = "Change the optimality criterion. If Alias-optimal selected, additional Alias-optimal specific options (minimum D-optimality and Alias-interaction level) will become available to change."),
                                            introBox(numericInput(inputId = "repeats",
-                                                                 10, label = "Repeats"),data.step = 7, data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."),
+                                                                 20, label = "Repeats"),data.step = 7, data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."),
                                            introBox(numericInput(inputId = "varianceratio",
                                                                  1, label = "Variance Ratio"), data.step = 8, data.intro = "The ratio of the variance between whole plots and subplots for split-plot designs."),
                                            conditionalPanel(
@@ -606,7 +606,8 @@ skprGUI = function(inputValue1,inputValue2) {
                                                                   value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."),
                                            introBox(checkboxInput(inputId = "advanceddiagnostics",
                                                                   label = "Advanced Design Diagnostics",
-                                                                  value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
+                                                                  value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations."),
+                                           selectInput(inputId = "colorchoice",choices = c("Default"="D","Magma"="A","Inferno"="B","Plasma"="C","None"="none"), label = "Color")
                                   ),
                                   tabPanel("Power",
                                            introBox(introBox(introBox(radioButtons(inputId = "evaltype",
@@ -701,8 +702,8 @@ skprGUI = function(inputValue1,inputValue2) {
                    tabsetPanel(
                      tabPanel("Design",
                               h2("Design"),
-                              introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                               checkboxInput(inputId = "orderdesign",label = "Remove Randomization",value=FALSE),
+                              introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                               hr()
                      ),
                      tabPanel("Design Evaluation",
@@ -1361,7 +1362,7 @@ skprGUI = function(inputValue1,inputValue2) {
         first = paste(c(first, ",<br>", rep("&nbsp;",20),
                         "optimality = \"",input$optimality,"\""),collapse = "")
       }
-      if(input$repeats != 10) {
+      if(input$repeats != 20) {
         first = paste(c(first, ",<br>", rep("&nbsp;",20),
                         "repeats = ",input$repeats),collapse = "")
       }
@@ -1821,22 +1822,57 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
 
-    output$runmatrix = renderTable({
-      if(input$orderdesign) {
-        if(ncol(runmatrix()) > 1) {
-          runmatrix()[do.call(order,runmatrix()),]
+    output$runmatrix = function() {
+
+      spec_color_if = function(dfcol,alphaval=0.2) {
+        if(is.numeric(dfcol)) {
+          colorvalues = cut(dfcol,11,labels=FALSE)
+          cell_spec(dfcol,"html",background = spec_color(1:11,alpha=alphaval,option=input$colorchoice)[colorvalues],background_as_tile = FALSE)
         } else {
-          rownumbers = order(runmatrix()[,1])
-          runreturn = list(runmatrix()[order(runmatrix()[,1]),])
-          names(runreturn) = input$factorname1
-          df = data.frame(runreturn)
-          rownames(df) = rownumbers
-          df
+          dfcolfact = as.factor(dfcol)
+          cell_spec(dfcol,"html",background = spec_color(1:length(unique(dfcol)),alpha=alphaval,option=input$colorchoice)[as.numeric(dfcolfact)],background_as_tile = FALSE)
+        }
+      }
+
+      if(input$colorchoice != "none") {
+        if(input$orderdesign) {
+          if(ncol(runmatrix()) > 1) {
+            runmatrixprocessed = lapply(runmatrix(),spec_color_if)
+            prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+            gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+          } else {
+            rownumbers = order(runmatrix()[,1])
+            runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+            names(runreturn) = input$factorname1
+            runmatrixprocessed = data.frame(runreturn)
+            runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed,spec_color_if))
+            rownames(runmatrixprocessed) = rownumbers
+            prelimhtml = kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+            gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+          }
+        } else {
+          runmatrixprocessed = lapply(runmatrix(),spec_color_if)
+          prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
         }
       } else {
-        runmatrix()
+        if(input$orderdesign) {
+          if(ncol(runmatrix()) > 1) {
+            kable_styling(knitr::kable(as.data.frame(runmatrix())[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          } else {
+            rownumbers = order(runmatrix()[,1])
+            runreturn = list(runmatrix()[order(runmatrix()[,1]),])
+            names(runreturn) = input$factorname1
+            runmatrixprocessed = data.frame(runreturn)
+            rownames(runmatrixprocessed) = rownumbers
+            kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          }
+        } else {
+          kable_styling(knitr::kable(runmatrix(),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+        }
       }
-    },rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
+    }
+    #,rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
     output$powerresults = renderTable({
       powerresults()

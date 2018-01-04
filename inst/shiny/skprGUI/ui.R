@@ -110,7 +110,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                        .well .nav {margin-bottom: 6px; margin-top: 12px;margin-left: -20px;margin-right: -26px; border-bottom: 1px solid transparent;text-align: center;}
                        hr {margin-top: 8px; margin-bottom: 0px;}
                        .well hr {
-                       margin-top: -16px;
+                       margin-top: -12px;
                        margin-bottom: 13px;
                        margin-left: -20px;
                        margin-right: -20px;
@@ -566,7 +566,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                                  choices = c("D","I","A","Alias","G","E","T"),
                                                                  label = "Optimality"),data.step = 6, data.intro = "Change the optimality criterion. If Alias-optimal selected, additional Alias-optimal specific options (minimum D-optimality and Alias-interaction level) will become available to change."),
                                             introBox(numericInput(inputId = "repeats",
-                                                                  10, label = "Repeats"),data.step = 7, data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."),
+                                                                  20, label = "Repeats"),data.step = 7, data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."),
                                             introBox(numericInput(inputId = "varianceratio",
                                                                   1, label = "Variance Ratio"), data.step = 8, data.intro = "The ratio of the variance between whole plots and subplots for split-plot designs."),
                                             conditionalPanel(
@@ -595,7 +595,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                                                    value=FALSE), data.step=12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."),
                                             introBox(checkboxInput(inputId = "advanceddiagnostics",
                                                                    label = "Advanced Design Diagnostics",
-                                                                   value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations.")
+                                                                   value=TRUE), data.step=13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations."),
+                                            selectInput(inputId = "colorchoice",choices = c("Default"="D","Magma"="A","Inferno"="B","Plasma"="C","None"="none"), label = "Color")
                                    ),
                                    tabPanel("Power",
                                             introBox(introBox(introBox(radioButtons(inputId = "evaltype",
@@ -690,8 +691,8 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                     tabsetPanel(
                       tabPanel("Design",
                                h2("Design"),
-                               introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                                checkboxInput(inputId = "orderdesign",label = "Remove Randomization",value=FALSE),
+                               introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                                hr()
                       ),
                       tabPanel("Design Evaluation",

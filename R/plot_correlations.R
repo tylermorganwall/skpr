@@ -66,7 +66,7 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
   }
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(genoutput)) {
-    if(class(genoutput[,column]) == "numeric") {
+    if(is.numeric(genoutput[,column])) {
       midvalue = mean(c(max(genoutput[,column]),min(genoutput[,column])))
       genoutput[,column] = (genoutput[,column]-midvalue)/(max(genoutput[,column])-midvalue)
     }

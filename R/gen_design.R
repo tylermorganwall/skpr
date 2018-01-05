@@ -347,6 +347,7 @@ gen_design = function(candidateset, model, trials,
       }
     } else {
       interactionlist = list()
+      fullcontrastlist = c(contrastslistsubplot,contrastslistspd)
       modelwholeformula = as.formula(paste("~", paste(colnames(splitplotdesign), collapse=" + "), sep=""))
       modelnowholeformula = as.formula(paste("~", paste(colnames(candidateset)[!(colnames(candidateset) %in% colnames(splitplotdesign))], collapse=" + "), sep=""))
     }
@@ -792,13 +793,55 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(optimality == "D" || optimality == "T" || optimality == "E" || optimality == "custom") {
-    best = which.max(criteria)
+    bestvec = which(criteria == max(unlist(criteria), na.rm = TRUE))
+    if(length(bestvec) > 1 & ncol(candidateset) > 1) {
+      aliasvalues = list()
+      for(i in bestvec) {
+        rowindextemp = round(rowIndicies[[i]])
+        rowindextemp[rowindextemp == 0] = 1
+        if(!is.null(splitplotdesign)) {
+          amodel2 = aliasmodel(model,aliaspower)
+          suppressWarnings({
+            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1]
+          })
+          } else {
+          suppressWarnings({
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset),contrasts.arg = contrastslist)[,-1]
+          })
+        }
+        aliasvalues[[i]] = calcAliasTrace(designs[[i]],aliasmatrix)
+      }
+      best = bestvec[which.min(unlist(aliasvalues))]
+    } else {
+      best = which.max(criteria)
+    }
     designmm = designs[[best]]
     rowindex = round(rowIndicies[[best]])
   }
 
   if(optimality == "A" || optimality == "I" || optimality == "Alias" || optimality == "G") {
-    best = which.min(criteria)
+    bestvec = which(criteria == min(unlist(criteria), na.rm = TRUE))
+    if(length(bestvec) > 1 & ncol(candidateset) > 1) {
+      aliasvalues = list()
+      for(i in bestvec) {
+        rowindextemp = round(rowIndicies[[i]])
+        rowindextemp[rowindextemp == 0] = 1
+        if(!is.null(splitplotdesign)) {
+          amodel2 = aliasmodel(model,aliaspower)
+          suppressWarnings({
+            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1]
+          })
+        } else {
+          suppressWarnings({
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset),contrasts.arg = contrastslist)[,-1]
+          })
+        }
+        aliasvalues[[i]] = calcAliasTrace(designs[[i]],aliasmatrix)
+      }
+      best = bestvec[which.min(unlist(aliasvalues))]
+    } else {
+      best = which.min(criteria)
+    }
     designmm = designs[[best]]
     rowindex = round(rowIndicies[[best]])
   }
@@ -859,7 +902,7 @@ gen_design = function(candidateset, model, trials,
         counterfinallist = counterfinallist + 1
       }
     }
-    finalspddesign = do.call(rbind,finallist)
+    finalspddesign = do.call(rbind,lapply(finallist,as.data.frame))
     for(col in 1:ncol(finalspddesign)) {
       if(is.numeric(finalspddesign[,col])) {
         design[,col] = finalspddesign[,col]

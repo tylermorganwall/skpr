@@ -1,5 +1,6 @@
 library(skpr)
 library(rintrojs)
+library(kableExtra)
 
 shinyServer(
 function(input, output, session) {
@@ -992,7 +993,7 @@ function(input, output, session) {
         if(ncol(runmatrix()) > 1) {
           runmatrixprocessed = lapply(runmatrix(),spec_color_if)
           prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
-          gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
         } else {
           rownumbers = order(runmatrix()[,1])
           runreturn = list(runmatrix()[order(runmatrix()[,1]),])
@@ -1001,12 +1002,12 @@ function(input, output, session) {
           runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed,spec_color_if))
           rownames(runmatrixprocessed) = rownumbers
           prelimhtml = kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
-          gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
         }
       } else {
         runmatrixprocessed = lapply(runmatrix(),spec_color_if)
         prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
-        gsub("(text-align:right;)(.+)(?=background-color: rgba\\(.+\\);)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
       }
     } else {
       if(input$orderdesign) {

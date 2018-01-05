@@ -691,7 +691,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                     tabsetPanel(
                       tabPanel("Design",
                                h2("Design"),
-                               checkboxInput(inputId = "orderdesign",label = "Remove Randomization",value=FALSE),
+                               checkboxInput(inputId = "orderdesign",label = "Order Design",value=FALSE),
                                introBox(tableOutput(outputId = "runmatrix"),data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                                hr()
                       ),

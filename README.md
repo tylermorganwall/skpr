@@ -7,6 +7,8 @@ skpr <img src="man/figures/skprlogo.png" align="right" />
 Overview
 --------
 
+<img src="man/figures/vidgui.gif"></img>
+
 **skpr** is an open source design of experiments suite for generating and evaluating optimal designs in R. Here is a sampling of what skpr offers:
 
 -   Generates and evaluates D, I, A, Alias, E, T, and G optimal designs.

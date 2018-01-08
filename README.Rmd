@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
 
 **skpr** is an open source design of experiments suite for generating and evaluating optimal designs in R. Here is a sampling of what skpr offers: 
 
-* Generates and evaluates D, I, A, Alias, E, T, and G optimal designs. 
+* Generates and evaluates D, I, A, Alias, E, T, and G optimal designs, as well as user-defined custom optimality criteria. 
 * Supports generation and evaluation of split/split-split/.../N-split plot designs. 
 * Includes parametric and Monte Carlo power evaluation functions, and supports calculating power for censored responses. 
 * Provides an extensible framework for the user to evaluate Monte Carlo power using their own libraries. 

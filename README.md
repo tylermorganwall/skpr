@@ -4,10 +4,10 @@ skpr <img src="man/figures/skprlogo.png" align="right" />
 
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr) [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version-ago/skpr)](http://cran.r-project.org/package=skpr) [![codecov](https://codecov.io/gh/tylermorganwall/skpr/branch/master/graph/badge.svg)](https://codecov.io/gh/tylermorganwall/skpr)
 
+<img src="man/figures/vidgui.gif"></img>
+
 Overview
 --------
-
-<img src="man/figures/vidgui.gif"></img>
 
 **skpr** is an open source design of experiments suite for generating and evaluating optimal designs in R. Here is a sampling of what skpr offers:
 

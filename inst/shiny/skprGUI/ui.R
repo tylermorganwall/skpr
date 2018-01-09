@@ -574,7 +574,7 @@ shinyUI(fluidPage(theme = shinytheme("yeti"),
                                               numericInput(inputId = "aliaspower",
                                                            min=2,value=2, label = "Alias Optimal Interaction Level"),
                                               sliderInput(inputId = "mindopt",
-                                                          min=0,max=1,value=0.95, label = "Minimum D Optimality")
+                                                          min=0,max=1,value=0.8, label = "Minimum D Optimality")
                                             ),
                                             introBox(checkboxInput(inputId = "setseed",
                                                                    label = "Set Random Number Generator Seed",

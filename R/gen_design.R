@@ -34,7 +34,7 @@
 #'a split plot design. Default 1.
 #'@param contrast Function used to generate the encoding for categorical variables. Default contr.simplex.
 #'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
-#'@param minDopt Default 0.95. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
+#'@param minDopt Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
 #'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
@@ -220,7 +220,7 @@
 gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
                       repeats=10, varianceratio = 1, contrast=contr.simplex,
-                      aliaspower = 2, minDopt = 0.95,
+                      aliaspower = 2, minDopt = 0.8,
                       parallel=FALSE, timer=FALSE, splitcolumns=FALSE,progressBarUpdater = NULL) {
 
   #Remove skpr-generated REML blocking indicators if present

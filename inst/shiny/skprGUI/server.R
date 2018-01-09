@@ -528,7 +528,7 @@ function(input, output, session) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
                       "aliaspower = ",input$aliaspower),collapse = "")
     }
-    if(input$mindopt != 0.95) {
+    if(input$mindopt != 0.8) {
       first = paste(c(first, ",<br>", rep("&nbsp;",20),
                       "minDopt = ",input$mindopt),collapse = "")
     }

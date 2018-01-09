@@ -585,7 +585,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                              numericInput(inputId = "aliaspower",
                                                           min=2,value=2, label = "Alias Optimal Interaction Level"),
                                              sliderInput(inputId = "mindopt",
-                                                         min=0,max=1,value=0.95, label = "Minimum D Optimality")
+                                                         min=0,max=1,value=0.8, label = "Minimum D Optimality")
                                            ),
                                            introBox(checkboxInput(inputId = "setseed",
                                                                   label = "Set Random Number Generator Seed",
@@ -1374,7 +1374,7 @@ skprGUI = function(inputValue1,inputValue2) {
         first = paste(c(first, ",<br>", rep("&nbsp;",20),
                         "aliaspower = ",input$aliaspower),collapse = "")
       }
-      if(input$mindopt != 0.95) {
+      if(input$mindopt != 0.8) {
         first = paste(c(first, ",<br>", rep("&nbsp;",20),
                         "minDopt = ",input$mindopt),collapse = "")
       }

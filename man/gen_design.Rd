@@ -7,7 +7,7 @@
 gen_design(candidateset, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", repeats = 10,
   varianceratio = 1, contrast = contr.simplex, aliaspower = 2,
-  minDopt = 0.95, parallel = FALSE, timer = FALSE, splitcolumns = FALSE,
+  minDopt = 0.8, parallel = FALSE, timer = FALSE, splitcolumns = FALSE,
   progressBarUpdater = NULL)
 }
 \arguments{
@@ -51,7 +51,7 @@ a split plot design. Default 1.}
 
 \item{aliaspower}{Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 
-\item{minDopt}{Default 0.95. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.}
+\item{minDopt}{Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.}
 
 \item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number.}
 

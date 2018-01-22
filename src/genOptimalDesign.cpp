@@ -1,5 +1,4 @@
 #define ARMA_DONT_PRINT_ERRORS
-#define ARMA_DONT_PRINT_OPENMP_WARNING
 #include <RcppArmadillo.h>
 #include <RcppArmadilloExtensions/sample.h>
 // [[Rcpp::depends(RcppArmadillo)]]

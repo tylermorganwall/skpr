@@ -250,7 +250,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     }
   }
   //Generate an Alias optimal design
-  if(condition == "Alias") {
+  if(condition == "ALIAS") {
 
     arma::mat temp;
     arma::mat tempalias;
@@ -476,7 +476,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       newOptimum = calculateEOptimality(initialdesign);
     }
   }
-  if(condition == "custom") {
+  if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
     Function customOpt = myEnv["customOpt"];
     arma::mat temp;
@@ -1055,7 +1055,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //   }
   // }
 
-  if(condition == "Alias") {
+  if(condition == "ALIAS") {
     arma::mat temp;
     arma::mat tempalias;
     del = calculateBlockedDOptimality(combinedDesign,vInv);
@@ -1216,7 +1216,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     combinedAliasDesign = bestaliasdesign;
     newOptimum = bestA;
   }
-  if(condition == "custom") {
+  if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
     Function customBlockedOpt = myEnv["customBlockedOpt"];
     arma::mat temp;

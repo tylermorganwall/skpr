@@ -37,9 +37,9 @@ argument \code{splitplotdesign}. If the input is a vector, each entry of the vec
 for that whole plot setting. If the input is an integer, each block will be of this size.}
 
 \item{optimality}{Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", "E", or "custom". If "custom", user must also
+supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
-"custom" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
+"CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.}
 
 \item{repeats}{The number of times to repeat the search for the best optimal design. Default 10.}
@@ -205,7 +205,7 @@ candlistcustom = expand.grid(Altitude=c(10000,20000),
                             Range=as.factor(c("Close","Medium","Far")),
                             Power=c(50,100))
 htcdesign = gen_design(candidateset = candlistcustom, model=~Altitude+Range,
-                      trials=11,optimality="custom")
+                      trials=11,optimality="CUSTOM")
 
 #Now define a function that is a function of both the model matrix,
 #as well as the variance-covariance matrix vInv. This takes the blocking structure into account
@@ -219,7 +219,7 @@ customBlockedOpt = function(currentDesign, vInv) {
 #"D" criterion.
 
 design = gen_design(candlistcustom, ~Altitude+Range+Power, trials=33,
-                   splitplotdesign=htcdesign,splitplotsizes = 3,optimality="custom")
+                   splitplotdesign=htcdesign,splitplotsizes = 3,optimality="CUSTOM")
 
 #A design's diagnostics can be accessed via the following attributes:
 

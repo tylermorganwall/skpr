@@ -25,9 +25,9 @@
 #'argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
 #'for that whole plot setting. If the input is an integer, each block will be of this size.
 #'@param optimality Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-#' supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "Alias", "G", "T", "E", or "custom". If "custom", user must also
+#' supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 #' define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
-#' "custom" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
+#' "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 #'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
 #'@param repeats The number of times to repeat the search for the best optimal design. Default 10.
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
@@ -175,7 +175,7 @@
 #'                             Range=as.factor(c("Close","Medium","Far")),
 #'                             Power=c(50,100))
 #'htcdesign = gen_design(candidateset = candlistcustom, model=~Altitude+Range,
-#'                       trials=11,optimality="custom")
+#'                       trials=11,optimality="CUSTOM")
 #'
 #'#Now define a function that is a function of both the model matrix,
 #'#as well as the variance-covariance matrix vInv. This takes the blocking structure into account
@@ -189,7 +189,7 @@
 #'#"D" criterion.
 #'
 #'design = gen_design(candlistcustom, ~Altitude+Range+Power, trials=33,
-#'                    splitplotdesign=htcdesign,splitplotsizes = 3,optimality="custom")
+#'                    splitplotdesign=htcdesign,splitplotsizes = 3,optimality="CUSTOM")
 #'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'
@@ -222,6 +222,14 @@ gen_design = function(candidateset, model, trials,
                       repeats=10, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.8,
                       parallel=FALSE, timer=FALSE, splitcolumns=FALSE,progressBarUpdater = NULL) {
+
+  #standardize and check optimality inputs
+  optimality_uc = toupper(tolower(optimality))
+  if(!(optimality_uc %in% c("D","I","A","E","T","G","ALIAS","CUSTOM"))) {
+    stop(paste0(optimality, " not recognized as a supported optimality criterion."))
+  } else {
+    optimality = optimality_uc
+  }
 
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(splitplotdesign,"splitanalyzable"))) {
@@ -533,7 +541,7 @@ gen_design = function(candidateset, model, trials,
     amodel = aliasmodel(modelnowholeformula,aliaspower)
   }
 
-  if(model == amodel && optimality == "Alias") {
+  if(model == amodel && optimality == "ALIAS") {
     stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
                   aliaspower,". Try setting aliaspower = ", aliaspower+1),collapse=""))
   }
@@ -792,7 +800,7 @@ gen_design = function(candidateset, model, trials,
                 "of model parameters or increase the number of trials."))
   }
 
-  if(optimality == "D" || optimality == "T" || optimality == "E" || optimality == "custom") {
+  if(optimality == "D" || optimality == "T" || optimality == "E" || optimality == "CUSTOM") {
     bestvec = which(criteria == max(unlist(criteria), na.rm = TRUE))
     if(length(bestvec) > 1 & ncol(candidateset) > 1) {
       aliasvalues = list()
@@ -819,7 +827,7 @@ gen_design = function(candidateset, model, trials,
     rowindex = round(rowIndicies[[best]])
   }
 
-  if(optimality == "A" || optimality == "I" || optimality == "Alias" || optimality == "G") {
+  if(optimality == "A" || optimality == "I" || optimality == "ALIAS" || optimality == "G") {
     bestvec = which(criteria == min(unlist(criteria), na.rm = TRUE))
     if(length(bestvec) > 1 & ncol(candidateset) > 1) {
       aliasvalues = list()
@@ -948,7 +956,7 @@ gen_design = function(candidateset, model, trials,
   if(optimality == "G") {
     attr(design,"optimalsearchvalues") = 100*(ncol(designmm))/(nrow(designmm)*unlist(criteria))
   }
-  if(optimality %in% c("Alias","I","E","T")) {
+  if(optimality %in% c("ALIAS","I","E","T")) {
     attr(design,"optimalsearchvalues") = unlist(criteria)
   }
   attr(design,"bestiterations") = best

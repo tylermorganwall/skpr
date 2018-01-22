@@ -1,4 +1,57 @@
-﻿skpr v0.40.1 (Release date: 2017-10-20):
+﻿skpr v0.45.2 (Release date: 2018-01-22):
+================
+
+Major changes:
+
+• Changed optimal search algorithm to return design with best aliasing structure (as determined by the alias matrix) when there is a tie between optimal designs. Increases likelyhood of producing an orthogonal design.
+
+• Added support for mixture designs in evalulation functions. Generation is already supported in gen_design by removing the intercept from the model.
+
+• Added support for backticked variables in evaluation functions and plotting functions. Made non-support for backticked variables explicit in gen_design.
+
+• Added user-defined "custom" optimality option, where the user can define their own optimality criterion as an R function of the model matrix. This will be slower than the built-in criteria, but provides a great deal of flexibility--especially because the optimality functions can be written without any C. Function needs to be named "customOpt" and be in the global environment.
+
+• Updated split-plot design generation to support Alias-optimal, T-optimal, and user-defined custom optimal designs. For custom designs, user needs to create a function named "customBlockedOpt" that is a function of the model matrix, as well as the variance-covariance matrix vInv. Should look like the following: customBlockedOpt = function(customdesign, vInv) {calculate optimality criterion}
+
+• Implemented support for plot_correlations and plot_fds in output of eval_design_mc. Added required attributes to output.
+
+Minor changes:
+
+• Changed minDopt to 0.8 to return better screening designs.
+
+• Changed default number of repeats to 20.
+
+• Changed plot_correlations to use two-color scheme by default.
+
+• Changed G-optimal design search to start from a D-optimal design.
+
+• Added color to GUI design. Added ability to change color palettes.
+
+• Added option to remove design randomization in GUI.
+
+• Major UI updates for the GUI, changing the style away from default Shiny app.
+
+Bug fixes:
+
+• Changed singularity testing to use more robust function.
+
+• Fixed E-optimal split-plot design generation.
+
+• Fixed bug in split-plot non-singular design generation.
+
+• Fixed is.numeric bug with plot_correlations in Shiny.
+
+• Fixed bug with missing contrast list with hard-to-change factors. Fixed bug where factors were converted to integers with split-plot designs.
+
+• Fixed bug in eval_design_survival_mc with contrast generation after reducing the run matrix.
+
+• Fixed subsetting bug in automatic blocking column detection, turning on drop=FALSE. Fixed bug when external blocking columns were not ordered correctly. Changed name of internal block columns (Block# to skprBlock#) to make sure they don't interfere with user-generated columns.
+
+• Fixed uninformative error message when optimality criterion not recognized when generating designs. Standardized input for optimality criterion to always use upper case.
+
+• Updated/fixed/added unit tests.
+
+skpr v0.40.1 (Release date: 2017-10-20):
 ================
 
 • Fixed significant bug with parallel design generation that broke automatic detection of the number of cores available.

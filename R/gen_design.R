@@ -29,7 +29,7 @@
 #' define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
 #' "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 #'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
-#'@param repeats The number of times to repeat the search for the best optimal design. Default 10.
+#'@param repeats The number of times to repeat the search for the best optimal design. Default 20.
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design. Default 1.
 #'@param contrast Function used to generate the encoding for categorical variables. Default contr.simplex.
@@ -219,7 +219,7 @@
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
-                      repeats=10, varianceratio = 1, contrast=contr.simplex,
+                      repeats=20, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.8,
                       parallel=FALSE, timer=FALSE, splitcolumns=FALSE,progressBarUpdater = NULL) {
 

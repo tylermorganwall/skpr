@@ -42,6 +42,7 @@
 #'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update an external progress bar.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the attr function.
+#'@import doRNG
 #'@export
 #'@details
 #'Split-plot designs can be generated with repeated applications of \code{gen_design}; see examples for details.
@@ -609,7 +610,7 @@ gen_design = function(candidateset, model, trials,
         doParallel::registerDoParallel(cl, cores = numbercores)
 
         genOutput = tryCatch({
-          foreach(i=1:repeats) %dopar% {
+          foreach(i=1:repeats) %dorng% {
             randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
             genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                              condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
@@ -635,7 +636,7 @@ gen_design = function(candidateset, model, trials,
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
-          foreach(i=2:repeats) %dopar% {
+          foreach(i=2:repeats) %dorng% {
             randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
             genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                              condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
@@ -732,7 +733,7 @@ gen_design = function(candidateset, model, trials,
         cl = parallel::makeCluster(numbercores)
         doParallel::registerDoParallel(cl, cores = numbercores)
         genOutput = tryCatch({
-          foreach(i=1:repeats) %dopar% {
+          foreach(i=1:repeats) %dorng% {
             randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
             genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                     candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
@@ -762,7 +763,7 @@ gen_design = function(candidateset, model, trials,
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
-          foreach(i=2:repeats) %dopar% {
+          foreach(i=2:repeats) %dorng% {
             randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
             genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
                                     candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,

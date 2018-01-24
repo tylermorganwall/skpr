@@ -13,7 +13,11 @@ void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector
 
 
 double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y) {
-  return(as_scalar(x*V*x.t() - y*V*y.t() + pow(y*V*x.t(),2) - (x*V*x.t())*(y*V*y.t()) ));
+  arma::mat yV = y * V;
+  double xVx = as_scalar(x * V * x.t());
+  double yVx = as_scalar(yV * x.t());
+  double yVy = as_scalar(yV * y.t());
+  return xVx - yVy + yVx*yVx - xVx*yVy;
 }
 
 double calculateDOptimality(const arma::mat& currentDesign) {
@@ -163,11 +167,11 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
+          newOptimum = newOptimum * (1 + del);
         } else {
           candidateRow[i] = initialRows[i];
         }
       }
-      newOptimum = calculateDOptimality(initialdesign);
     }
   }
   //Generate an I-optimal design

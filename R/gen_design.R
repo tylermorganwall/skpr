@@ -804,8 +804,10 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(optimality == "D" || optimality == "T" || optimality == "E" || optimality == "CUSTOM") {
-    bestvec = which(criteria == max(unlist(criteria), na.rm = TRUE))
-    if(length(bestvec) > 1 & ncol(candidateset) > 1) {
+    maxcriteria = max(unlist(criteria), na.rm = TRUE)
+    bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,maxcriteria))))))
+
+    if(length(bestvec) > 1 && ncol(candidateset) > 1) {
       aliasvalues = list()
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])
@@ -831,8 +833,9 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(optimality == "A" || optimality == "I" || optimality == "ALIAS" || optimality == "G") {
-    bestvec = which(criteria == min(unlist(criteria), na.rm = TRUE))
-    if(length(bestvec) > 1 & ncol(candidateset) > 1) {
+    maxcriteria = min(unlist(criteria), na.rm = TRUE)
+    bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,maxcriteria))))))
+    if(length(bestvec) > 1 && ncol(candidateset) > 1) {
       aliasvalues = list()
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])

@@ -35,7 +35,7 @@
 #'@param contrast Function used to generate the encoding for categorical variables. Default contr.simplex.
 #'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
 #'@param minDopt Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
-#'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number.
+#'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number. NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
 #'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.

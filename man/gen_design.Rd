@@ -53,7 +53,7 @@ a split plot design. Default 1.}
 
 \item{minDopt}{Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.}
 
-\item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number.}
+\item{parallel}{Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number. NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
 \item{timer}{Default FALSE. If TRUE, will print an estimate of the optimal design search time.}
 

@@ -30,7 +30,6 @@
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
-#'@param delta Depreciated. Use effectsize instead.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
 #'@import foreach doParallel stats
@@ -82,12 +81,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
                                  anticoef, effectsize=2, contrasts = contr.sum,
                                  coef_function = coef,
                                  parameternames = NULL,
-                                 parallel=FALSE, parallelpackages=NULL,delta=NULL) {
-
-  if(!missing(delta)) {
-    warning("argument delta depreciated. Use effectsize instead. Setting effectsize = delta.")
-    effectsize=delta
-  }
+                                 parallel=FALSE, parallelpackages=NULL) {
 
   #detect pre-set contrasts
   presetcontrasts = list()

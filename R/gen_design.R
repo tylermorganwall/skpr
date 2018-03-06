@@ -39,6 +39,10 @@
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
 #'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
+#'@param advancedoptions Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
+#'are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
+#'matrix when calculating optimality tie-breakers), and "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
+#'considered equal before considering the aliasing structure).
 #'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update an external progress bar.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the attr function.
@@ -224,7 +228,8 @@ gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
                       repeats=20, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.8,
-                      parallel=FALSE, timer=FALSE, splitcolumns=FALSE,progressBarUpdater = NULL) {
+                      parallel=FALSE, timer=FALSE, splitcolumns=FALSE,
+                      advancedoptions=NULL, progressBarUpdater = NULL) {
 
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
@@ -232,6 +237,12 @@ gen_design = function(candidateset, model, trials,
     stop(paste0(optimality, " not recognized as a supported optimality criterion."))
   } else {
     optimality = optimality_uc
+  }
+
+  if(is.null(advancedoptions$design_search_tolerance)) {
+    tolerance = 10e-5
+  } else {
+    tolerance = advancedoptions$design_search_tolerance
   }
 
   #Remove skpr-generated REML blocking indicators if present
@@ -573,7 +584,7 @@ gen_design = function(candidateset, model, trials,
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                           aliasdesign = aliasmm[randomIndices,],
-                                          aliascandidatelist = aliasmm, minDopt = minDopt)
+                                          aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
         }
       } else {
         if(!is.null(progressBarUpdater)) {
@@ -586,7 +597,7 @@ gen_design = function(candidateset, model, trials,
         genOutput[[1]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                           aliasdesign = aliasmm[randomIndices,],
-                                          aliascandidatelist = aliasmm, minDopt = minDopt)
+                                          aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           if(!is.null(progressBarUpdater)) {
@@ -596,7 +607,7 @@ gen_design = function(candidateset, model, trials,
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                             aliasdesign = aliasmm[randomIndices,],
-                                            aliascandidatelist = aliasmm, minDopt = minDopt)
+                                            aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
         }
       }
     } else {
@@ -615,7 +626,7 @@ gen_design = function(candidateset, model, trials,
             genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                              condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                              aliasdesign = aliasmm[randomIndices,],
-                             aliascandidatelist = aliasmm, minDopt = minDopt)
+                             aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
           }
           }, finally = {
           tryCatch({
@@ -632,7 +643,7 @@ gen_design = function(candidateset, model, trials,
         genOutputOne = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                         aliasdesign = aliasmm[randomIndices,],
-                                        aliascandidatelist = aliasmm, minDopt = minDopt)
+                                        aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
@@ -641,7 +652,7 @@ gen_design = function(candidateset, model, trials,
             genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
                              condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                              aliasdesign = aliasmm[randomIndices,],
-                             aliascandidatelist = aliasmm, minDopt = minDopt)
+                             aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
           }
           }, finally = {
             tryCatch({
@@ -691,7 +702,7 @@ gen_design = function(candidateset, model, trials,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                                    aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                                   disallowed = disallowedcomb, anydisallowed = anydisallowed)
+                                                   disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         }
       } else {
         if(!is.null(progressBarUpdater)) {
@@ -705,7 +716,7 @@ gen_design = function(candidateset, model, trials,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                  blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                                  aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                                 disallowed = disallowedcomb, anydisallowed = anydisallowed)
+                                                 disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         if(!is.null(progressBarUpdater)) {
           progressBarUpdater(1/repeats)
@@ -720,7 +731,7 @@ gen_design = function(candidateset, model, trials,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                                    aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                                   disallowed = disallowedcomb, anydisallowed = anydisallowed)
+                                                   disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         }
       }
     } else {
@@ -740,7 +751,7 @@ gen_design = function(candidateset, model, trials,
                                     condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                     blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                     aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                    disallowed = disallowedcomb, anydisallowed = anydisallowed)
+                                    disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
           }
           }, finally = {
             tryCatch({
@@ -759,7 +770,7 @@ gen_design = function(candidateset, model, trials,
                                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                                blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                                aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                               disallowed = disallowedcomb, anydisallowed = anydisallowed)
+                                               disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
@@ -770,7 +781,7 @@ gen_design = function(candidateset, model, trials,
                                     condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
                                     blockedVar=V, aliasdesign = aliasmm[randomIndices,],
                                     aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
-                                    disallowed = disallowedcomb, anydisallowed = anydisallowed)
+                                    disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
           }
           }, finally = {
             tryCatch({
@@ -803,9 +814,21 @@ gen_design = function(candidateset, model, trials,
                 "of model parameters or increase the number of trials."))
   }
 
+  if(!is.null(advancedoptions$alias_tie_tolerance) && advancedoptions$alias_tie_tolerance != 0) {
+    if(optimality == "D") {
+      advancedoptions$alias_tie_tolerance = (advancedoptions$alias_tie_tolerance*nrow(designs[1][[1]]))^ncol(designs[1][[1]])
+    } else {
+      warning("alias_tie_tolerance only converted to percentages for D-optimal--otherwise, number refers to raw criteria value. Use at own discretion.")
+    }
+  }
+
   if(optimality == "D" || optimality == "T" || optimality == "E" || optimality == "CUSTOM") {
     maxcriteria = max(unlist(criteria), na.rm = TRUE)
-    bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,maxcriteria))))))
+    if(is.null(advancedoptions$alias_tie_tolerance) || advancedoptions$alias_tie_tolerance == 0) {
+      bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,maxcriteria))))))
+    } else {
+      bestvec = which(abs(maxcriteria - unlist(criteria)) < advancedoptions$alias_tie_tolerance)
+    }
 
     if(length(bestvec) > 1 && ncol(candidateset) > 1) {
       aliasvalues = list()
@@ -813,7 +836,11 @@ gen_design = function(candidateset, model, trials,
         rowindextemp = round(rowIndicies[[i]])
         rowindextemp[rowindextemp == 0] = 1
         if(!is.null(splitplotdesign)) {
-          amodel2 = aliasmodel(model,aliaspower)
+          if(is.null(advancedoptions$alias_tie_power)) {
+            amodel2 = aliasmodel(model,2)
+          } else {
+            amodel2 = aliasmodel(model,advancedoptions$alias_tie_power)
+          }
           suppressWarnings({
             aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1]
           })
@@ -833,15 +860,23 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(optimality == "A" || optimality == "I" || optimality == "ALIAS" || optimality == "G") {
-    maxcriteria = min(unlist(criteria), na.rm = TRUE)
-    bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,maxcriteria))))))
+    mincriteria = min(unlist(criteria), na.rm = TRUE)
+    if(is.null(advancedoptions$alias_tie_tolerance) || advancedoptions$alias_tie_tolerance == 0) {
+      bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,mincriteria))))))
+    } else {
+      bestvec = which(abs(mincriteria - unlist(criteria)) < advancedoptions$alias_tie_tolerance)
+    }
     if(length(bestvec) > 1 && ncol(candidateset) > 1) {
       aliasvalues = list()
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])
         rowindextemp[rowindextemp == 0] = 1
         if(!is.null(splitplotdesign)) {
-          amodel2 = aliasmodel(model,aliaspower)
+          if(is.null(advancedoptions$alias_tie_power)) {
+            amodel2 = aliasmodel(model,2)
+          } else {
+            amodel2 = aliasmodel(model,advancedoptions$alias_tie_power)
+          }
           suppressWarnings({
             aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1]
           })

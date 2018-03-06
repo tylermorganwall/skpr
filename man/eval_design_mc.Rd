@@ -8,7 +8,7 @@ eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
   anticoef = NULL, effectsize = 2, contrasts = contr.sum,
   binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE,
-  progressBarUpdater = NULL, delta = NULL)
+  progressBarUpdater = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -51,8 +51,6 @@ If you specify \code{anticoef}, this argument will be ignored.}
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results.}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
-
-\item{delta}{Deprecated. Use \code{effectsize} instead.}
 }
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information

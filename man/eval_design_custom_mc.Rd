@@ -7,7 +7,7 @@
 eval_design_custom_mc(RunMatrix, model, alpha, nsim, rfunction, fitfunction,
   pvalfunction, anticoef, effectsize = 2, contrasts = contr.sum,
   coef_function = coef, parameternames = NULL, parallel = FALSE,
-  parallelpackages = NULL, delta = NULL)
+  parallelpackages = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_custom_mc} rescales each numeric column
@@ -48,8 +48,6 @@ for a categorical factor using the contrasts function, those will be used. Other
 \item{parallel}{If TRUE, uses all cores available to speed up computation of power. Default FALSE.}
 
 \item{parallelpackages}{A vector of strings listing the external packages to be input into the parallel package.}
-
-\item{delta}{Depreciated. Use effectsize instead.}
 }
 \value{
 A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are

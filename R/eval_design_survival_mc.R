@@ -29,7 +29,6 @@
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
-#'@param delta Deprecated. Use \code{effectsize} instead.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
@@ -113,12 +112,7 @@
 eval_design_survival_mc = function(RunMatrix, model, alpha,
                                    nsim=1000, distribution="gaussian", censorpoint=NA, censortype="right",
                                    rfunctionsurv=NULL, anticoef=NULL, effectsize=2, contrasts = contr.sum,
-                                   parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL, delta=NULL, ...) {
-
-  if(!missing(delta)) {
-    warning("argument delta deprecated. Use effectsize instead. Setting effectsize = delta.")
-    effectsize=delta
-  }
+                                   parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL, ...) {
 
   #detect pre-set contrasts
   presetcontrasts = list()

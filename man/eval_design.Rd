@@ -6,7 +6,7 @@
 \usage{
 eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
   effectsize = 2, varianceratios = 1, contrasts = contr.sum,
-  conservative = FALSE, detailedoutput = FALSE, delta = NULL)
+  conservative = FALSE, detailedoutput = FALSE)
 }
 \arguments{
 \item{RunMatrix}{The run matrix being evaluated. Internally, \code{eval_design} rescales each numeric column
@@ -40,8 +40,6 @@ estimate of power by setting all but one level in each categorical factor's anti
 to zero. Default FALSE.}
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
-
-\item{delta}{Deprecated. Use effectsize instead.}
 }
 \value{
 A data frame with the parameters of the model, the type of power analysis, and the power. Several

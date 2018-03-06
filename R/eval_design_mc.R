@@ -32,7 +32,6 @@
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results.
 #'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
-#'@param delta Deprecated. Use \code{effectsize} instead.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
 #' attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
@@ -201,12 +200,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
                           blocking=FALSE, nsim=1000, glmfamily="gaussian",
                           varianceratios = NULL, rfunction=NULL, anticoef=NULL, effectsize=2,
                           contrasts=contr.sum, binomialprobs = NULL,
-                          parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL,delta=NULL) {
-
-  if(!missing(delta)) {
-    warning("argument delta deprecated. Use effectsize instead. Setting effectsize = delta.")
-    effectsize=delta
-  }
+                          parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL) {
 
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
     warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")

@@ -8,7 +8,7 @@ eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
   distribution = "gaussian", censorpoint = NA, censortype = "right",
   rfunctionsurv = NULL, anticoef = NULL, effectsize = 2,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
-  progressBarUpdater = NULL, delta = NULL, ...)
+  progressBarUpdater = NULL, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].}
@@ -49,8 +49,6 @@ for a categorical factor using the contrasts function, those will be used. Other
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
-
-\item{delta}{Deprecated. Use \code{effectsize} instead.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }

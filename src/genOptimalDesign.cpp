@@ -17,7 +17,7 @@ double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y) {
   double xVx = as_scalar(x * V * x.t());
   double yVx = as_scalar(yV * x.t());
   double yVy = as_scalar(yV * y.t());
-  return xVx - yVy + yVx*yVx - xVx*yVy;
+  return xVx - yVy + (yVx*yVx - xVx*yVy);
 }
 
 double calculateDOptimality(const arma::mat& currentDesign) {
@@ -86,7 +86,7 @@ double calculateCustomOptimality(const arma::mat& currentDesign, Function custom
 // [[Rcpp::export]]
 List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,const std::string condition,
                       const arma::mat& momentsmatrix, NumericVector initialRows,
-                      arma::mat aliasdesign, const arma::mat& aliascandidatelist, double minDopt) {
+                      arma::mat aliasdesign, const arma::mat& aliascandidatelist, double minDopt, double tolerance) {
   RNGScope rngScope;
   unsigned int nTrials = initialdesign.n_rows;
   unsigned int maxSingularityChecks = nTrials*100;
@@ -135,7 +135,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   int entryy = 0;
   double newOptimum = 0;
   double priorOptimum = 0;
-  double minDelta = 10e-5;
+  double minDelta = tolerance;
   arma::mat V;
   double newdel;
   //Generate a D-optimal design
@@ -586,7 +586,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
                              const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows,
                              const arma::mat& blockedVar,
                              arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions,
-                             const arma::mat disallowed, const bool anydisallowed) {
+                             const arma::mat disallowed, const bool anydisallowed, double tolerance) {
   //Load the R RNG
   RNGScope rngScope;
   //check and log whether there are inter-strata interactions
@@ -671,7 +671,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   int entryy = 0;
   double newOptimum = 0;
   double priorOptimum = 0;
-  double minDelta = 10e-5;
+  double minDelta = tolerance;
   double newdel;
   bool pointallowed = false;
   //Generate a D-optimal design, fixing the blocking factors

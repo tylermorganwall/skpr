@@ -496,7 +496,7 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
       }
       #at this point, since we are going to specify anticoef, do not use the effectsize argument
       #in the subsequent call. Do replicate the magnitudes from the original anticoef
-      conservative_anticoef = conservative_anticoef * anticoef
+      conservative_anticoef = conservative_anticoef * effectsize / 2
       results = eval_design(RunMatrix=RunMatrix, model=model, alpha=alpha, blocking=blocking,
                   anticoef=conservative_anticoef,
                   detailedoutput = detailedoutput,

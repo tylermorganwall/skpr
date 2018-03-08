@@ -1,0 +1,1 @@
+enableBookmarking(store = "url")

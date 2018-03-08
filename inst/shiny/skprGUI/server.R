@@ -2,7 +2,6 @@ library(skpr)
 library(rintrojs)
 library(kableExtra)
 
-shinyServer(
 function(input, output, session) {
 
   incProgressSession = function(amount=0.1,message=NULL,detail=NULL) {incProgress(amount,message,detail,session)}
@@ -1285,56 +1284,55 @@ function(input, output, session) {
                                       "showBullets" = 'false'),
                        events = list(
                          "onchange" = I("
-                                        if (this._currentStep==0) {
-                                        $('a[data-value=\"Advanced\"]').removeClass('active');
-                                        $('a[data-value=\"Power\"]').removeClass('active');
-                                        $('a[data-value=\"Basic\"]').addClass('active');
-                                        $('a[data-value=\"Basic\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==5) {
-                                        $('a[data-value=\"Power\"]').removeClass('active');
-                                        $('a[data-value=\"Basic\"]').removeClass('active');
-                                        $('a[data-value=\"Advanced\"]').addClass('active');
-                                        $('a[data-value=\"Advanced\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==13) {
-                                        $('a[data-value=\"Advanced\"]').removeClass('active');
-                                        $('a[data-value=\"Power\"]').addClass('active');
-                                        $('a[data-value=\"Power\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==17) {
-                                        $('input[value=\"glm\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==21) {
-                                        $('input[value=\"surv\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==24) {
-                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
-                                        $('a[data-value=\"Generating Code\"]').removeClass('active');
-                                        $('a[data-value=\"Design\"]').addClass('active');
-                                        $('a[data-value=\"Design\"]').trigger('click');
-                                        $('#evaltype').val('glm');
-                                        Shiny.onInputChange('evaltype','glm');
-                                        $('#numberfactors').val('3');
-                                        Shiny.onInputChange('numberfactors',3);
-                                        $('#trials').val('12');
-                                        Shiny.onInputChange('trials',12);
-                                        $('#submitbutton').trigger('click');
-                                        $('#evalbutton').trigger('click');
-                                        }
-                                        if (this._currentStep==25) {
-                                        $('#evalbutton').trigger('click');
-                                        $('a[data-value=\"Design\"]').removeClass('active');
-                                        $('a[data-value=\"Design Evaluation\"]').addClass('active');
-                                        $('a[data-value=\"Design Evaluation\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==31) {
-                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
-                                        $('a[data-value=\"Generating Code\"]').addClass('active');
-                                        $('a[data-value=\"Generating Code\"]').trigger('click');
-                                        }"
-                  ))
+                                          if (this._currentStep==0) {
+                                          $('a[data-value=\"Advanced\"]').removeClass('active');
+                                          $('a[data-value=\"Power\"]').removeClass('active');
+                                          $('a[data-value=\"Basic\"]').addClass('active');
+                                          $('a[data-value=\"Basic\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==5) {
+                                          $('a[data-value=\"Power\"]').removeClass('active');
+                                          $('a[data-value=\"Basic\"]').removeClass('active');
+                                          $('a[data-value=\"Advanced\"]').addClass('active');
+                                          $('a[data-value=\"Advanced\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==13) {
+                                          $('a[data-value=\"Advanced\"]').removeClass('active');
+                                          $('a[data-value=\"Power\"]').addClass('active');
+                                          $('a[data-value=\"Power\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==17) {
+                                          $('input[value=\"glm\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==21) {
+                                          $('input[value=\"surv\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==24) {
+                                          $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                          $('a[data-value=\"Generating Code\"]').removeClass('active');
+                                          $('a[data-value=\"Design\"]').addClass('active');
+                                          $('a[data-value=\"Design\"]').trigger('click');
+                                          $('#evaltype').val('glm');
+                                          Shiny.onInputChange('evaltype','glm');
+                                          $('#numberfactors').val('3');
+                                          Shiny.onInputChange('numberfactors',3);
+                                          $('#trials').val('12');
+                                          Shiny.onInputChange('trials',12);
+                                          $('#submitbutton').trigger('click');
+                                          $('#evalbutton').trigger('click');
+                                          }
+                                          if (this._currentStep==25) {
+                                          $('#evalbutton').trigger('click');
+                                          $('a[data-value=\"Design\"]').removeClass('active');
+                                          $('a[data-value=\"Design Evaluation\"]').addClass('active');
+                                          $('a[data-value=\"Design Evaluation\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==31) {
+                                          $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                          $('a[data-value=\"Generating Code\"]').addClass('active');
+                                          $('a[data-value=\"Generating Code\"]').trigger('click');
+                                          }"
                          ))
+               ))
   outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
-  }
-)
+}

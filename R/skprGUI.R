@@ -23,7 +23,8 @@ skprGUI = function(inputValue1,inputValue2) {
                 color: rgb(255, 255, 255);
                 border: 0px;"
 
-  ui = fluidPage(theme = shinytheme("yeti"),
+  ui = function(request) {
+    fluidPage(theme = shinytheme("yeti"),
                  introjsUI(),
                  HTML("<style> table {font-size: 14px;}
                       .btn2 {
@@ -695,9 +696,10 @@ skprGUI = function(inputValue1,inputValue2) {
                    ),
                    mainPanel(fluidRow(
                      column(width=6,h1("Results")),
-                     column(width=4),
+                     column(width=2),
+                     column(width=2,introBox(bookmarkButton(label="Save State",title="Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."), class="bookmark",data.step=33, data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results.")),
                      column(width=2,actionButton(inputId = "tutorial","Tutorial")),
-                     tags$style(type='text/css', "#tutorial {margin-top: 25px;}")
+                     tags$style(type='text/css', "#tutorial {margin-top: 25px;} .bookmark {margin-top: 25px;}")
                    ),
                    tabsetPanel(
                      tabPanel("Design",
@@ -848,6 +850,7 @@ skprGUI = function(inputValue1,inputValue2) {
                    )
                    )
                  )
+  }
 
   server = function(input, output, session) {
 
@@ -2184,6 +2187,6 @@ skprGUI = function(inputValue1,inputValue2) {
     outputOptions(output,"separationwarning", suspendWhenHidden=FALSE)
   }
 
-  runGadget(shinyApp(ui, server),viewer = dialogViewer(dialogName = "skprGUI", width = 1200,height=1200))
+  runGadget(shinyApp(ui, server, enableBookmarking = "url"),viewer = dialogViewer(dialogName = "skprGUI", width = 1200,height=1200))
 }
 # nocov end

@@ -12,9 +12,8 @@ unsigned int longest_row(const arma::mat& X, const std::vector<bool>& rows_used)
 void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used);
 
 
-double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y) {
+double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y, const double& xVx) {
   arma::mat yV = y * V;
-  double xVx = as_scalar(x * V * x.t());
   double yVx = as_scalar(yV * x.t());
   double yVy = as_scalar(yV * y.t());
   return xVx - yVy + (yVx*yVx - xVx*yVy);
@@ -145,6 +144,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   if (isSingular(initialdesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
+
   bool found = TRUE;
   double del = 0;
   int entryx = 0;
@@ -154,8 +154,11 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   double minDelta = tolerance;
   arma::mat V;
   double newdel;
+  double xVx;
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
+    //Generate switchlist for candidate set, listing currently changing entries
+
     //Initialize matrices for rank-2 updates.
     arma::mat identitymat(2,2);
     identitymat.eye();
@@ -175,8 +178,9 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         entryx = 0;
         entryy = 0;
         del=0;
+        xVx = as_scalar(initialdesign.row(i) * V * initialdesign.row(i).t());
         for (unsigned int j = 0; j < totalPoints; j++) {
-          newdel = delta(V,candidatelist.row(j),initialdesign.row(i));
+          newdel = delta(V,candidatelist.row(j),initialdesign.row(i),xVx);
           if(newdel > del) {
             found = TRUE;
             entryx = i; entryy = j;

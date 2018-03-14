@@ -80,6 +80,14 @@ double calculateCustomOptimality(const arma::mat& currentDesign, Function custom
   return as<double>(customOpt(Rcpp::Named("currentDesign", currentDesign)));
 }
 
+void rankUpdate(arma::mat& vinv, const arma::rowvec& pointold, const arma::rowvec& pointnew, const arma::mat& identity,
+                arma::mat& f1, arma::mat& f2,arma::mat& f2vinv) {
+  f1.row(0) = pointnew; f1.row(1) = -pointold;
+  f2.row(0) = pointnew; f2.row(1) = pointold;
+  f2vinv = f2*vinv;
+  vinv = vinv - vinv * f1.t() * inv(identity + f2vinv*f1.t()) * f2vinv;
+}
+
 //`@title genOptimalDesign
 //`@param x an x
 //`@return stufff
@@ -140,17 +148,20 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   double newdel;
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
-    arma::mat temp;
+    arma::mat identitymat(2,2);
+    identitymat.eye();
+    arma::mat f1(2,initialdesign.n_cols);
+    arma::mat f2(2,initialdesign.n_cols);
+    arma::mat f2vinv(initialdesign.n_cols,2);
+
     del = calculateDOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = newOptimum/2;
+    V = inv_sympd(initialdesign.t()*initialdesign);
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        if(found) {
-          V = inv_sympd(initialdesign.t()*initialdesign);
-        }
         found = FALSE;
         entryx = 0;
         entryy = 0;
@@ -164,6 +175,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          rankUpdate(V,initialdesign.row(entryx),candidatelist.row(entryy),identitymat,f1,f2,f2vinv);
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;

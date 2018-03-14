@@ -89,8 +89,16 @@ void rankUpdate(arma::mat& vinv, const arma::rowvec& pointold, const arma::rowve
 }
 
 //`@title genOptimalDesign
-//`@param x an x
-//`@return stufff
+//`@param initialdesign The initial randomly generated design.
+//`@param candidatelist The full candidate set in model matrix form.
+//`@param condition Optimality criterion.
+//`@param momentsmatrix The moment matrix.
+//`@param initialRows The rows from the candidate set chosen for initialdesign.
+//`@param aliasdesign The initial design in model matrix form for the full aliasing model.
+//`@param aliascandidatelist The full candidate set with the aliasing model in model matrix form.
+//`@param minDopt Minimum D-optimality during an Alias-optimal search.
+//`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
+//`@return List of design information.
 // [[Rcpp::export]]
 List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,const std::string condition,
                       const arma::mat& momentsmatrix, NumericVector initialRows,
@@ -148,6 +156,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   double newdel;
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
+    //Initialize matrices for rank-2 updates.
     arma::mat identitymat(2,2);
     identitymat.eye();
     arma::mat f1(2,initialdesign.n_cols);
@@ -175,7 +184,9 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Update the inverse with the rank-2 update formula.
           rankUpdate(V,initialdesign.row(entryx),candidatelist.row(entryy),identitymat,f1,f2,f2vinv);
+          //Exchange points and re-calculate current criterion value.
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -215,6 +226,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Exchange points
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -222,6 +234,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           candidateRow[i] = initialRows[i];
         }
       }
+      //Re-calculate current criterion value
       newOptimum = calculateIOptimality(initialdesign,momentsmatrix);
     }
   }
@@ -254,6 +267,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Exchange points
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -261,12 +275,15 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           candidateRow[i] = initialRows[i];
         }
       }
+      //Re-calculate current criterion value.
       newOptimum = calculateAOptimality(initialdesign);
     }
   }
   //Generate an Alias optimal design
   if(condition == "ALIAS") {
 
+
+    //First, calculate a D-optimal design (only do one iteration--may be only locally optimal) to start the search.
     arma::mat temp;
     arma::mat tempalias;
     del = calculateDOptimality(initialdesign);
@@ -321,8 +338,13 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     arma::mat bestaliasdesign = aliasdesign;
     arma::mat bestinitialdesign = initialdesign;
 
+    //Perform weighted search, slowly increasing weight of Alias trace as compared to D-optimality.
+    //Stops when the increase in the Alias-criterion is small enough. Does not make exchanges that
+    //lower the D-optimal criterion below minDopt.
     while(firstA != 0 && currentA != 0 && aliasweight > wdelta) {
 
+      //Set weight of Alias trace to D-optimality. Weight of Alias trace increases with each
+      //iteration.
       aliasweight = aliasweight - wdelta;
       optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
       first = 1;
@@ -356,6 +378,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
             }
           }
           if (found) {
+            //Exchange points
             initialdesignTemp.row(entryx) = candidatelist.row(entryy);
             aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
             candidateRowTemp[i] = entryy+1;
@@ -364,11 +387,12 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
             candidateRowTemp[i] = initialRowsTemp[i];
           }
         }
+        //Re-calculate current criterion value.
         currentD = calculateDEffNN(initialdesignTemp);
         currentA = calculateAliasTrace(initialdesignTemp,aliasdesign);
         optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
       }
-
+      //If the search improved the Alias trace, set that as the new value.
       if(currentA < bestA) {
         bestA = currentA;
         bestaliasdesign = aliasdesign;
@@ -411,6 +435,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Exchange points
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -418,6 +443,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           candidateRow[i] = initialRows[i];
         }
       }
+      //Re-calculate current criterion value.
       newOptimum = calculateGOptimality(initialdesign,candidatelist);
     }
   }
@@ -446,6 +472,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Exchange points
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -453,6 +480,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           candidateRow[i] = initialRows[i];
         }
       }
+      //Re-calculate current criterion value.
       newOptimum = calculateTOptimality(initialdesign);
     }
   }
@@ -481,6 +509,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Exchange points
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -488,6 +517,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           candidateRow[i] = initialRows[i];
         }
       }
+      //Re-calculate current criterion value.
       newOptimum = calculateEOptimality(initialdesign);
     }
   }
@@ -518,6 +548,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           }
         }
         if (found) {
+          //Exchange points
           initialdesign.row(entryx) = candidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
@@ -525,6 +556,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           candidateRow[i] = initialRows[i];
         }
       }
+      //Re-calculate current criterion value.
       newOptimum = calculateCustomOptimality(initialdesign,customOpt);
     }
   }
@@ -591,8 +623,21 @@ double calculateBlockedCustomOptimality(const arma::mat& currentDesign, Function
 
 
 //`@title genBlockedOptimalDesign
-//`@param x an x
-//`@return stufff
+//`@param initialdesign The initial randomly generated design.
+//`@param candidatelist The full candidate set in model matrix form.
+//`@param blockeddesign The replicated and pre-set split plot design in model matrix form.
+//`@param condition Optimality criterion.
+//`@param momentsmatrix The moment matrix.
+//`@param initialRows The rows from the candidate set chosen for initialdesign.
+//`@param blockedVar Variance-covariance matrix calculated from the variance ratios between the split plot strata.
+//`@param aliasdesign The initial design in model matrix form for the full aliasing model.
+//`@param aliascandidatelist The full candidate set with the aliasing model in model matrix form.
+//`@param minDopt Minimum D-optimality during an Alias-optimal search.
+//`@param interactions List of integers pairs indicating columns of inter-strata interactions.
+//`@param disallowed Matrix of disallowed combinations between whole-plots and sub-plots.
+//`@param anydisallowed Boolean indicator for existance of disallowed combinations.
+//`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
+//`@return List of design information.
 // [[Rcpp::export]]
 List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign,
                              const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows,

@@ -12,11 +12,11 @@ unsigned int longest_row(const arma::mat& X, const std::vector<bool>& rows_used)
 void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used);
 
 
-double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y, const double& xVx) {
+double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y, const double xVx) {
   arma::mat yV = y * V;
   double yVx = as_scalar(yV * x.t());
   double yVy = as_scalar(yV * y.t());
-  return xVx - yVy + (yVx*yVx - xVx*yVy);
+  return yVy - xVx + (yVx*yVx - xVx*yVy);
 }
 
 double calculateDOptimality(const arma::mat& currentDesign) {
@@ -179,7 +179,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         del=0;
         xVx = as_scalar(initialdesign.row(i) * V * initialdesign.row(i).t());
         for (unsigned int j = 0; j < totalPoints; j++) {
-          newdel = delta(V,candidatelist.row(j),initialdesign.row(i),xVx);
+          newdel = delta(V,initialdesign.row(i),candidatelist.row(j),xVx);
           if(newdel > del) {
             found = TRUE;
             entryx = i; entryy = j;

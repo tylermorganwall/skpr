@@ -13,9 +13,9 @@ void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector
 
 
 double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y, const double xVx) {
-  arma::mat yV = y * V;
-  double yVx = as_scalar(yV * x.t());
-  double yVy = as_scalar(yV * y.t());
+  arma::mat yV = y.t() * V;
+  double yVx = as_scalar(yV * x);
+  double yVy = as_scalar(yV * y);
   return yVy - xVx + (yVx*yVx - xVx*yVy);
 }
 
@@ -79,12 +79,12 @@ double calculateCustomOptimality(const arma::mat& currentDesign, Function custom
   return as<double>(customOpt(Rcpp::Named("currentDesign", currentDesign)));
 }
 
-void rankUpdate(arma::mat& vinv, const arma::rowvec& pointold, const arma::rowvec& pointnew, const arma::mat& identity,
+void rankUpdate(arma::mat& vinv, const arma::colvec& pointold, const arma::colvec& pointnew, const arma::mat& identity,
                 arma::mat& f1, arma::mat& f2,arma::mat& f2vinv) {
-  f1.row(0) = pointnew; f1.row(1) = -pointold;
-  f2.row(0) = pointnew; f2.row(1) = pointold;
-  f2vinv = f2*vinv;
-  vinv = vinv - vinv * f1.t() * inv(identity + f2vinv*f1.t()) * f2vinv;
+  f1.col(0) = pointnew; f1.col(1) = -pointold;
+  f2.col(0) = pointnew; f2.col(1) = pointold;
+  f2vinv = f2.t()*vinv;
+  vinv = vinv - vinv * f1 * inv(identity + f2vinv*f1) * f2vinv;
 }
 
 //`@title genOptimalDesign
@@ -162,13 +162,16 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     //Initialize matrices for rank-2 updates.
     arma::mat identitymat(2,2);
     identitymat.eye();
-    arma::mat f1(2,initialdesign.n_cols);
-    arma::mat f2(2,initialdesign.n_cols);
-    arma::mat f2vinv(initialdesign.n_cols,2);
+    arma::mat f1(initialdesign.n_cols,2);
+    arma::mat f2(initialdesign.n_cols,2);
+    arma::mat f2vinv(2,initialdesign.n_cols);
 
     newOptimum = calculateDOptimality(initialdesign);
     priorOptimum = newOptimum/2;
     V = inv_sympd(initialdesign.t()*initialdesign);
+    //Transpose matrices for faster element access (Armadillo stores data column-wise)
+    arma::mat initialdesign_trans = initialdesign.t();
+    arma::mat candidatelist_trans = candidatelist.t();
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
@@ -177,9 +180,9 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         entryx = 0;
         entryy = 0;
         del=0;
-        xVx = as_scalar(initialdesign.row(i) * V * initialdesign.row(i).t());
+        xVx = as_scalar(initialdesign_trans.col(i).t() * V * initialdesign_trans.col(i));
         for (unsigned int j = 0; j < totalPoints; j++) {
-          newdel = delta(V,initialdesign.row(i),candidatelist.row(j),xVx);
+          newdel = delta(V,initialdesign_trans.col(i),candidatelist_trans.col(j),xVx);
           if(newdel > del) {
             found = TRUE;
             entryx = i; entryy = j;
@@ -188,9 +191,9 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         }
         if (found) {
           //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign.row(entryx),candidatelist.row(entryy),identitymat,f1,f2,f2vinv);
+          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
           //Exchange points and re-calculate current criterion value.
-          initialdesign.row(entryx) = candidatelist.row(entryy);
+          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
           newOptimum = newOptimum * (1 + del);
@@ -199,6 +202,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         }
       }
     }
+    initialdesign = initialdesign_trans.t();
     newOptimum = calculateDOptimality(initialdesign);
   }
   //Generate an I-optimal design

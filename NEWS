@@ -1,4 +1,23 @@
-﻿skpr v0.45.2 (Release date: 2018-01-22):
+﻿skpr v0.47.4 (Release date: 2018-03-16):
+================
+
+• Implemented several optimizations that vastly improve speed and performance for D-optimal design generation.
+
+• Added support for bookmarking in the GUI.
+
+• Added advanced options argument to control tolerances for the design search and optimal tie-resolution, and an option to specify which power of aliasing should be used in resolving ties.
+
+• Removed references to deprecated delta argument.
+
+• Fixed conservative anticipated coefficients bug.
+
+• Fixed bug with comparison of floats 
+
+• Fixed issue with non-reproducibility of generating parallel designs by using the doRNG package.
+
+• Updated documentation with changes.
+
+skpr v0.45.2 (Release date: 2018-01-22):
 ================
 
 Major changes:

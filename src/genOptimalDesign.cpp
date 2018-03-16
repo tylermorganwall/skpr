@@ -59,7 +59,7 @@ double calculateAliasTracePseudoInv(const arma::mat& currentDesign, const arma::
 
 
 double calculateDEff(const arma::mat& currentDesign) {
-  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/(double)currentDesign.n_cols))/(double)currentDesign.n_rows);
 }
 
 double calculateDEffNN(const arma::mat& currentDesign) {
@@ -203,7 +203,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       }
     }
     initialdesign = initialdesign_trans.t();
-    newOptimum = calculateDOptimality(initialdesign);
+    newOptimum = calculateDEff(initialdesign);
   }
   //Generate an I-optimal design
   if(condition == "I") {

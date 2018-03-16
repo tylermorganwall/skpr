@@ -166,8 +166,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     arma::mat f2(2,initialdesign.n_cols);
     arma::mat f2vinv(initialdesign.n_cols,2);
 
-    del = calculateDOptimality(initialdesign);
-    newOptimum = del;
+    newOptimum = calculateDOptimality(initialdesign);
     priorOptimum = newOptimum/2;
     V = inv_sympd(initialdesign.t()*initialdesign);
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
@@ -200,6 +199,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         }
       }
     }
+    newOptimum = calculateDOptimality(initialdesign);
   }
   //Generate an I-optimal design
   if(condition == "I") {

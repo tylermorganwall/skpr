@@ -816,7 +816,7 @@ gen_design = function(candidateset, model, trials,
 
   if(!is.null(advancedoptions$alias_tie_tolerance) && advancedoptions$alias_tie_tolerance != 0) {
     if(optimality == "D") {
-      advancedoptions$alias_tie_tolerance = advancedoptions$alias_tie_tolerance*100
+      advancedoptions$alias_tie_tolerance = advancedoptions$alias_tie_tolerance*nrow(designs[1][[1]])^ncol(designs[1][[1]])
     } else {
       warning("alias_tie_tolerance only converted to percentages for D-optimal--otherwise, number refers to raw criteria value. Use at own discretion.")
     }

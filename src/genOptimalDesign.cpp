@@ -203,7 +203,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       }
     }
     initialdesign = initialdesign_trans.t();
-    newOptimum = calculateDEff(initialdesign);
+    newOptimum = calculateDOptimality(initialdesign);
   }
   //Generate an I-optimal design
   if(condition == "I") {

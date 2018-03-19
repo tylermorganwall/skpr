@@ -58,8 +58,8 @@ double calculateAliasTracePseudoInv(const arma::mat& currentDesign, const arma::
 }
 
 
-double calculateDEff(const arma::mat& currentDesign) {
-  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+double calculateDEff(const arma::mat& currentDesign, double numbercols, double numberrows) {
+  return(pow(arma::det(currentDesign.t()*currentDesign),1/numbercols)/numberrows);
 }
 
 double calculateDEffNN(const arma::mat& currentDesign) {
@@ -104,6 +104,8 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
                       arma::mat aliasdesign, const arma::mat& aliascandidatelist, double minDopt, double tolerance) {
   RNGScope rngScope;
   unsigned int nTrials = initialdesign.n_rows;
+  double numberrows = initialdesign.n_rows;
+  double numbercols = initialdesign.n_cols;
   unsigned int maxSingularityChecks = nTrials*100;
   unsigned int totalPoints = candidatelist.n_rows;
   arma::vec candidateRow(nTrials);
@@ -203,7 +205,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       }
     }
     initialdesign = initialdesign_trans.t();
-    newOptimum = calculateDOptimality(initialdesign);
+    newOptimum = calculateDEff(initialdesign,numbercols,numberrows);
   }
   //Generate an I-optimal design
   if(condition == "I") {
@@ -376,7 +378,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
 
               newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
 
-              if(newdel > optimum && calculateDEff(temp) > minDopt) {
+              if(newdel > optimum && calculateDEff(temp,numbercols,numberrows) > minDopt) {
                 found = TRUE;
                 entryx = i; entryy = j;
                 optimum = newdel;

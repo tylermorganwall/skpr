@@ -41,8 +41,8 @@
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
 #'@param advancedoptions Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 #'are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
-#'matrix when calculating optimality tie-breakers), and "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
-#'considered equal before considering the aliasing structure).
+#'matrix when calculating optimality tie-breakers), "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
+#'considered equal before considering the aliasing structure), and "alias_compare" (which if set to FALSE turns off alias tie breaking completely).
 #'@param progressBarUpdater Default NULL. Function called in non-parallel optimal searches that can be used to update an external progress bar.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the attr function.
@@ -243,6 +243,10 @@ gen_design = function(candidateset, model, trials,
     tolerance = 10e-5
   } else {
     tolerance = advancedoptions$design_search_tolerance
+  }
+
+  if(is.null(advancedoptions$alias_compare)) {
+    advancedoptions$alias_compare = TRUE
   }
 
   #Remove skpr-generated REML blocking indicators if present
@@ -830,7 +834,7 @@ gen_design = function(candidateset, model, trials,
       bestvec = which(abs(maxcriteria - unlist(criteria)) < advancedoptions$alias_tie_tolerance)
     }
 
-    if(length(bestvec) > 1 && ncol(candidateset) > 1) {
+    if(length(bestvec) > 1 && ncol(candidateset) > 1 && advancedoptions$alias_compare) {
       aliasvalues = list()
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])
@@ -866,7 +870,7 @@ gen_design = function(candidateset, model, trials,
     } else {
       bestvec = which(abs(mincriteria - unlist(criteria)) < advancedoptions$alias_tie_tolerance)
     }
-    if(length(bestvec) > 1 && ncol(candidateset) > 1) {
+    if(length(bestvec) > 1 && ncol(candidateset) > 1 && advancedoptions$alias_compare) {
       aliasvalues = list()
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])

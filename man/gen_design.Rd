@@ -62,8 +62,8 @@ design. If TRUE, the design also will have extra columns to indicate the blockin
 
 \item{advancedoptions}{Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
-matrix when calculating optimality tie-breakers), and "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
-considered equal before considering the aliasing structure).}
+matrix when calculating optimality tie-breakers), "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
+considered equal before considering the aliasing structure), and "alias_compare" (which if set to FALSE turns off alias tie breaking completely).}
 
 \item{progressBarUpdater}{Default NULL. Function called in non-parallel optimal searches that can be used to update an external progress bar.}
 }

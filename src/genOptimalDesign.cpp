@@ -11,13 +11,21 @@ arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTria
 unsigned int longest_row(const arma::mat& X, const std::vector<bool>& rows_used);
 void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used);
 
-
-double delta(const arma::mat& V, const arma::mat& x, const arma::mat& y, const double xVx) {
-  arma::mat yV = y.t() * V;
-  double yVx = as_scalar(yV * x);
-  double yVy = as_scalar(yV * y);
-  return yVy - xVx + (yVx*yVx - xVx*yVy);
+void search_candidate_set(const arma::mat& V, const arma::mat& candidatelist_trans, const arma::mat& designrow,
+                double xVx, unsigned int i, unsigned int& entryy, bool& found, double& del) {
+  arma::mat yV(candidatelist_trans.n_rows,1);
+  double newdel = 0;
+  for (unsigned int j = 0; j < candidatelist_trans.n_cols; j++) {
+    yV = candidatelist_trans.col(j).t() * V;
+    newdel = dot(yV, candidatelist_trans.col(j))*(1 - xVx) - xVx + pow(dot(yV, designrow),2);
+    if(newdel > del) {
+      found = true;
+      entryy = j;
+      del = newdel;
+    }
+  }
 }
+
 
 double calculateDOptimality(const arma::mat& currentDesign) {
   return(arma::det(currentDesign.t()*currentDesign));
@@ -147,20 +155,17 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
 
-  bool found = TRUE;
+  bool found = true;
   double del = 0;
-  int entryx = 0;
-  int entryy = 0;
+  unsigned int entryx = 0;
+  unsigned int entryy = 0;
   double newOptimum = 0;
   double priorOptimum = 0;
   double minDelta = tolerance;
-  arma::mat V;
   double newdel;
   double xVx;
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
-    //Generate switchlist for candidate set, listing currently changing entries
-
     //Initialize matrices for rank-2 updates.
     arma::mat identitymat(2,2);
     identitymat.eye();
@@ -170,7 +175,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
 
     newOptimum = calculateDOptimality(initialdesign);
     priorOptimum = newOptimum/2;
-    V = inv_sympd(initialdesign.t()*initialdesign);
+    arma::mat V = inv_sympd(initialdesign.t()*initialdesign);
     //Transpose matrices for faster element access (Armadillo stores data column-wise)
     arma::mat initialdesign_trans = initialdesign.t();
     arma::mat candidatelist_trans = candidatelist.t();
@@ -178,24 +183,19 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
-        entryx = 0;
+        found = false;
         entryy = 0;
         del=0;
         xVx = as_scalar(initialdesign_trans.col(i).t() * V * initialdesign_trans.col(i));
-        for (unsigned int j = 0; j < totalPoints; j++) {
-          newdel = delta(V,initialdesign_trans.col(i),candidatelist_trans.col(j),xVx);
-          if(newdel > del) {
-            found = TRUE;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
+
+        //Search through all candidate set points to find best switch (if one exists).
+        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, i, entryy, found, del);
+
         if (found) {
           //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
           //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
+          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
           newOptimum = newOptimum * (1 + del);
@@ -217,7 +217,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -227,7 +227,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
             temp.row(i) = candidatelist.row(j);
             newdel = calculateIOptimality(temp,momentsmatrix);
             if(newdel < del) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
             }
@@ -258,7 +258,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -268,7 +268,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
             temp.row(i) = candidatelist.row(j);
             newdel = calculateAOptimality(temp);
             if(newdel < del) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
             }
@@ -304,7 +304,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -312,7 +312,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           temp.row(i) = candidatelist.row(j);
           newdel = calculateDOptimality(temp);
           if(newdel > del) {
-            found = TRUE;
+            found = true;
             entryx = i; entryy = j;
             del = newdel;
           }
@@ -364,7 +364,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         priorOptimum = optimum;
         for (unsigned int i = 0; i < nTrials; i++) {
           Rcpp::checkUserInterrupt();
-          found = FALSE;
+          found = false;
           entryx = 0;
           entryy = 0;
           temp = initialdesignTemp;
@@ -379,7 +379,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
               newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
 
               if(newdel > optimum && calculateDEff(temp,numbercols,numberrows) > minDopt) {
-                found = TRUE;
+                found = true;
                 entryx = i; entryy = j;
                 optimum = newdel;
               }
@@ -424,7 +424,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -435,7 +435,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
             newdel = calculateGOptimality(temp,candidatelist);
             if(newdel < del) {
               if(!isSingular(temp)) {
-                found = TRUE;
+                found = true;
                 entryx = i; entryy = j;
                 del = newdel;
               }
@@ -466,7 +466,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -475,7 +475,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           newdel = calculateTOptimality(temp);
           if(newdel > del) {
             if(!isSingular(temp)) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
             }
@@ -503,7 +503,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -512,7 +512,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           newdel = calculateEOptimality(temp);
           if(newdel > del) {
             if(!isSingular(temp)) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
             }
@@ -542,7 +542,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
@@ -551,7 +551,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
           newdel = calculateCustomOptimality(temp,customOpt);
           if(newdel > del) {
             if(!isSingular(temp)) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
             }
@@ -733,7 +733,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     }
   }
   double del = 0;
-  bool found = FALSE;
+  bool found = false;
   int entryx = 0;
   int entryy = 0;
   double newOptimum = 0;
@@ -751,7 +751,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       del = calculateBlockedDOptimality(combinedDesign,vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -774,7 +774,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
           newdel = calculateBlockedDOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
-            found = TRUE;
+            found = true;
             entryx = i; entryy = j;
             del = newdel;
             mustchange[i] = false;
@@ -806,7 +806,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -831,7 +831,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
             newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
             if((newdel > del || mustchange[i]) && pointallowed) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
               mustchange[i] = false;
@@ -870,7 +870,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -894,7 +894,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
             newdel = calculateBlockedAOptimality(temp,vInv);
             if((newdel > del || mustchange[i]) && pointallowed) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
               mustchange[i] = false;
@@ -928,7 +928,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       del = calculateBlockedTOptimality(combinedDesign,vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -952,7 +952,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           newdel = calculateBlockedTOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
             if(!isSingularBlocked(temp,vInv)) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
               mustchange[i] = false;
@@ -986,7 +986,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       del = calculateBlockedEOptimality(combinedDesign,vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -1013,7 +1013,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
           if((newdel > del || mustchange[i]) && pointallowed) {
             if(!isSingularBlocked(temp,vInv)) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
               mustchange[i] = false;
@@ -1074,7 +1074,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //     priorOptimum = newOptimum;
   //     for (unsigned int i = 0; i < nTrials; i++) {
   //       Rcpp::checkUserInterrupt();
-  //       found = FALSE;
+  //       found = false;
   //       entryx = 0;
   //       entryy = 0;
   //       temp = combinedDesign;
@@ -1101,7 +1101,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //         }
   //         if((newdel < del || mustchange[i]) && pointallowed) {
   //           if(!isSingularBlocked(temp,vInv)) {
-  //             found = TRUE;
+  //             found = true;
   //             entryx = i; entryy = j;
   //             del = newdel;
   //             mustchange[i] = false;
@@ -1137,7 +1137,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       del = calculateBlockedDOptimality(combinedDesign,vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -1162,7 +1162,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
           newdel = calculateBlockedDOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
-            found = TRUE;
+            found = true;
             entryx = i; entryy = j;
             del = newdel;
             mustchange[i] = false;
@@ -1215,7 +1215,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         priorOptimum = optimum;
         for (unsigned int i = 0; i < nTrials; i++) {
           Rcpp::checkUserInterrupt();
-          found = FALSE;
+          found = false;
           entryx = 0;
           entryy = 0;
           temp = combinedDesignTemp;
@@ -1246,7 +1246,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
               newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
 
               if(newdel > optimum && calculateBlockedDEff(temp,vInv) > minDopt) {
-                found = TRUE;
+                found = true;
                 entryx = i; entryy = j;
                 optimum = newdel;
               }
@@ -1297,7 +1297,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
       del = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt, vInv);
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = FALSE;
+        found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
@@ -1324,7 +1324,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
           if((newdel > del || mustchange[i]) && pointallowed) {
             if(!isSingularBlocked(temp,vInv)) {
-              found = TRUE;
+              found = true;
               entryx = i; entryy = j;
               del = newdel;
               mustchange[i] = false;

@@ -191,10 +191,10 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, i, entryy, found, del);
         if (found) {
           //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.unsafe_col(i),candidatelist_trans.unsafe_col(entryy),identitymat,f1,f2,f2vinv);
+          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
 
           //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.unsafe_col(i) = candidatelist_trans.unsafe_col(entryy);
+          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
           newOptimum = newOptimum * (1 + del);

@@ -1,7 +1,6 @@
 #define ARMA_DONT_PRINT_ERRORS
 #include <RcppArmadillo.h>
 #include <RcppArmadilloExtensions/sample.h>
-// [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
 
 //implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
@@ -16,8 +15,8 @@ void search_candidate_set(const arma::mat& V, const arma::mat& candidatelist_tra
   arma::colvec yV(candidatelist_trans.n_rows);
   double newdel = 0;
   for (unsigned int j = 0; j < candidatelist_trans.n_cols; j++) {
-    yV = V * candidatelist_trans.col(j);
-    newdel = dot(yV, candidatelist_trans.col(j))*(1 - xVx) - xVx + pow(dot(yV, designrow),2);
+    yV = V * candidatelist_trans.unsafe_col(j);
+    newdel = dot(yV, candidatelist_trans.unsafe_col(j))*(1 - xVx) - xVx + pow(dot(yV, designrow),2);
     if(newdel > del) {
       found = true;
       entryy = j;
@@ -186,16 +185,16 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         found = false;
         entryy = 0;
         del=0;
-        xVx = as_scalar(initialdesign_trans.col(i).t() * V * initialdesign_trans.col(i));
+        xVx = as_scalar(initialdesign_trans.unsafe_col(i).t() * V * initialdesign_trans.unsafe_col(i));
 
         //Search through all candidate set points to find best switch (if one exists).
         search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, i, entryy, found, del);
         if (found) {
           //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+          rankUpdate(V,initialdesign_trans.unsafe_col(i),candidatelist_trans.unsafe_col(entryy),identitymat,f1,f2,f2vinv);
 
           //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
+          initialdesign_trans.unsafe_col(i) = candidatelist_trans.unsafe_col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
           newOptimum = newOptimum * (1 + del);

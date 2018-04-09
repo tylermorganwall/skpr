@@ -1,10 +1,11 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double calcAliasTrace(const arma::mat& currentDesign, const arma::mat& aliasMatrix) {
-  arma::mat A = inv_sympd(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
-  return(trace(A.t() * A));
+double calcAliasTrace(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
+  Eigen::MatrixXd XtX = currentDesign.transpose() * currentDesign;
+  Eigen::MatrixXd A = XtX.llt().solve(currentDesign.transpose() * aliasMatrix);
+  return((A.transpose() * A).trace());
 }

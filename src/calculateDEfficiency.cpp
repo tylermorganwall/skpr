@@ -1,9 +1,10 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double calculateDEfficiency(const arma::mat& currentDesign) {
-  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+double calculateDEfficiency(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose() * currentDesign;
+  return(pow(XtX.partialPivLu().determinant(), 1/currentDesign.cols()) / currentDesign.rows());  //works without partialPivLu()
 }

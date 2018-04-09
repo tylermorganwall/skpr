@@ -1,13 +1,11 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double DOptimality(const arma::mat& currentDesign) {
-  double val;
-  double sign;
-  arma::log_det(val,sign,currentDesign.t()*currentDesign);
-  return(exp(val)*sign);
+double DOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose() * currentDesign;
+  return(XtX.partialPivLu().determinant());
 }
 

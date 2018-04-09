@@ -1,9 +1,10 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-arma::mat covarianceMatrixPseudo(const arma::mat& design) {
-  return(arma::pinv(design.t()*design));
+Eigen::MatrixXd covarianceMatrixPseudo(const Eigen::MatrixXd& design) {
+  Eigen::MatrixXd XtX = design.transpose() * design;
+  return(XtX.completeOrthogonalDecomposition().pseudoInverse());
 }

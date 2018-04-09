@@ -1,22 +1,24 @@
-#define ARMA_DONT_PRINT_ERRORS
-#include <RcppArmadillo.h>
-#include <RcppArmadilloExtensions/sample.h>
+#include <RcppEigen.h>
+#include "sample_eigen.h"
+
 using namespace Rcpp;
 
 //implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
-arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTrials);
+Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigned int nTrials);
 
 //helper functions for orthogonal_initial
-unsigned int longest_row(const arma::mat& X, const std::vector<bool>& rows_used);
-void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used);
+unsigned int longest_row(const Eigen::MatrixXd& X, const std::vector<bool>& rows_used);
+void orthogonalize_input(Eigen::MatrixXd& X, unsigned int basis_row, const std::vector<bool>& rows_used);
 
-void search_candidate_set(const arma::mat& V, const arma::mat& candidatelist_trans, const arma::colvec& designrow,
-                double xVx, unsigned int i, unsigned int& entryy, bool& found, double& del) {
-  arma::colvec yV(candidatelist_trans.n_rows);
+void search_candidate_set(const Eigen::MatrixXd& V, const Eigen::MatrixXd& candidatelist_trans,
+                          const Eigen::VectorXd& designrow,
+                          double xVx, unsigned int i, unsigned int& entryy, bool& found, double& del) {
+  Eigen::VectorXd yV(candidatelist_trans.rows());
   double newdel = 0;
-  for (unsigned int j = 0; j < candidatelist_trans.n_cols; j++) {
-    yV = V * candidatelist_trans.unsafe_col(j);
-    newdel = dot(yV, candidatelist_trans.unsafe_col(j))*(1 - xVx) - xVx + pow(dot(yV, designrow),2);
+  unsigned int ncols = candidatelist_trans.cols();
+  for (unsigned int j = 0; j < ncols; j++) {
+    yV = V * candidatelist_trans.col(j);
+    newdel = yV.dot(candidatelist_trans.col(j))*(1 - xVx) - xVx + pow(yV.dot(designrow),2);
     if(newdel > del) {
       found = true;
       entryy = j;
@@ -26,55 +28,63 @@ void search_candidate_set(const arma::mat& V, const arma::mat& candidatelist_tra
 }
 
 
-double calculateDOptimality(const arma::mat& currentDesign) {
-  return(arma::det(currentDesign.t()*currentDesign));
+double calculateDOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(XtX.partialPivLu().determinant());  //works without partialPivLu()
 }
 
-double calculateIOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix) {
-  return(trace(inv_sympd(currentDesign.t()*currentDesign)*momentsMatrix));
-}
-
-
-double calculateGOptimality(const arma::mat& currentDesign, const arma::mat& candidateSet) {
-  arma::mat results = candidateSet*inv_sympd(currentDesign.t()*currentDesign)*candidateSet.t();
-  return(results.diag().max());
-}
-
-double calculateTOptimality(const arma::mat& currentDesign) {
-  return(trace(currentDesign.t()*currentDesign));
-}
-
-double calculateEOptimality(const arma::mat& currentDesign) {
-  arma::vec eigval;
-  arma::eig_sym(eigval,currentDesign.t()*currentDesign);
-  return(eigval.min());
-}
-
-double calculateAOptimality(const arma::mat& currentDesign) {
-  return(trace(inv_sympd(currentDesign.t()*currentDesign)));
-}
-
-double calculateAliasTrace(const arma::mat& currentDesign, const arma::mat& aliasMatrix) {
-  arma::mat A = inv_sympd(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
-  return(trace(A.t() * A));
-}
-
-double calculateAliasTracePseudoInv(const arma::mat& currentDesign, const arma::mat& aliasMatrix) {
-  arma::mat A = arma::pinv(currentDesign.t()*currentDesign)*currentDesign.t()*aliasMatrix;
-  return(trace(A.t() * A));
+double calculateIOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& momentsMatrix) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(XtX.llt().solve(momentsMatrix).trace());
 }
 
 
-double calculateDEff(const arma::mat& currentDesign, double numbercols, double numberrows) {
-  return(pow(arma::det(currentDesign.t()*currentDesign),1/numbercols)/numberrows);
+double calculateGOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candidateSet) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  Eigen::MatrixXd results = candidateSet*XtX.llt().solve(candidateSet.transpose());
+  return(results.diagonal().maxCoeff());
 }
 
-double calculateDEffNN(const arma::mat& currentDesign) {
-  return(pow(arma::det(currentDesign.t()*currentDesign),(1.0/double(currentDesign.n_cols))));
+double calculateTOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(XtX.trace());
 }
 
-bool isSingular(const arma::mat& currentDesign) {
-  return(arma::cond(currentDesign.t()*currentDesign) > 1E15);
+double calculateEOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(XtX);
+  return(eigensolver.eigenvalues().minCoeff());
+}
+
+double calculateAOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(XtX.partialPivLu().inverse().trace());
+}
+
+double calculateAliasTrace(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  Eigen::MatrixXd A = XtX.llt().solve(currentDesign.transpose())*aliasMatrix;
+  return((A.transpose() * A).trace());
+}
+
+double calculateAliasTracePseudoInv(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
+  //since we use linear solving, I see no need for this function
+  return(calculateAliasTrace(currentDesign, aliasMatrix));
+}
+
+double calculateDEff(const Eigen::MatrixXd& currentDesign, double numbercols, double numberrows) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(pow(XtX.partialPivLu().determinant(), 1/numbercols) / numberrows);
+}
+
+double calculateDEffNN(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(pow(XtX.partialPivLu().determinant(), 1.0/currentDesign.cols()));
+}
+
+bool isSingular(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(XtX.colPivHouseholderQr().isInvertible());
 }
 
 template <typename T>
@@ -82,16 +92,18 @@ Rcpp::NumericVector arma2vec(const T& x) {
   return Rcpp::NumericVector(x.begin(), x.end());
 }
 
-double calculateCustomOptimality(const arma::mat& currentDesign, Function customOpt) {
+double calculateCustomOptimality(const Eigen::MatrixXd& currentDesign, Function customOpt) {
   return as<double>(customOpt(Rcpp::Named("currentDesign", currentDesign)));
 }
 
-void rankUpdate(arma::mat& vinv, const arma::colvec& pointold, const arma::colvec& pointnew, const arma::mat& identity,
-                arma::mat& f1, arma::mat& f2,arma::mat& f2vinv) {
+void rankUpdate(Eigen::MatrixXd& vinv, const Eigen::VectorXd& pointold, const Eigen::VectorXd& pointnew,
+                const Eigen::MatrixXd& identity,
+                Eigen::MatrixXd& f1, Eigen::MatrixXd& f2,Eigen::MatrixXd& f2vinv) {
   f1.col(0) = pointnew; f1.col(1) = -pointold;
   f2.col(0) = pointnew; f2.col(1) = pointold;
-  f2vinv = f2.t()*vinv;
-  vinv = vinv - vinv * f1 * inv(identity + f2vinv*f1) * f2vinv;
+  f2vinv = f2.transpose()*vinv;
+  Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).partialPivLu().solve(f2vinv);
+  vinv = tmp;
 }
 
 //`@title genOptimalDesign
@@ -106,22 +118,23 @@ void rankUpdate(arma::mat& vinv, const arma::colvec& pointold, const arma::colve
 //`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
 //`@return List of design information.
 // [[Rcpp::export]]
-List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,const std::string condition,
-                      const arma::mat& momentsmatrix, NumericVector initialRows,
-                      arma::mat aliasdesign, const arma::mat& aliascandidatelist, double minDopt, double tolerance) {
+List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,const std::string condition,
+                      const Eigen::MatrixXd& momentsmatrix, NumericVector initialRows,
+                      Eigen::MatrixXd aliasdesign, const Eigen::MatrixXd& aliascandidatelist, double minDopt, double tolerance) {
   RNGScope rngScope;
-  unsigned int nTrials = initialdesign.n_rows;
-  double numberrows = initialdesign.n_rows;
-  double numbercols = initialdesign.n_cols;
+  unsigned int nTrials = initialdesign.rows();
+  double numberrows = initialdesign.rows();
+  double numbercols = initialdesign.cols();
   unsigned int maxSingularityChecks = nTrials*100;
-  unsigned int totalPoints = candidatelist.n_rows;
-  arma::vec candidateRow(nTrials);
-  arma::mat test(initialdesign.n_cols,initialdesign.n_cols,arma::fill::zeros);
-  if(nTrials < candidatelist.n_cols) {
+  unsigned int totalPoints = candidatelist.rows();
+  Eigen::VectorXd candidateRow(nTrials);
+  Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
+  test.setZero();
+  if(nTrials < candidatelist.cols()) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
-  for(unsigned int j = 1; j < candidatelist.n_cols; j++) {
-    if(all(candidatelist.col(0) == candidatelist.col(j))) {
+  for(unsigned int j = 1; j < candidatelist.cols(); j++) {
+    if(candidatelist.col(0).cwiseEqual(candidatelist.col(j)).all()) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
   }
@@ -130,7 +143,9 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     if(!isSingular(initialdesign)) {
       break; //design is nonsingular
     }
-    arma::uvec shuffledindices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, totalPoints-1), totalPoints, false);
+    Eigen::VectorXi orderedindices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
+    Eigen::VectorXi shuffledindices = sample_eigen(orderedindices, totalPoints, false);
+
     for (unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(shuffledindices(i % totalPoints));
       aliasdesign.row(i) = aliascandidatelist.row(shuffledindices(i % totalPoints));
@@ -140,8 +155,8 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   //If initialdesign is still singular, use the Gram-Schmidt orthogonalization procedure, which
   //should return a non-singular matrix if one can be constructed from the candidate set
   if (isSingular(initialdesign)) {
-    arma::uvec initrows = orthogonal_initial(candidatelist, nTrials);
-    arma::uvec initrows_shuffled = RcppArmadillo::sample(initrows, initrows.n_rows, false);
+    Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
+    Eigen::VectorXi initrows_shuffled = sample_eigen(initrows, initrows.rows(), false);
     for (unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
       aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
@@ -166,18 +181,18 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
     //Initialize matrices for rank-2 updates.
-    arma::mat identitymat(2,2);
-    identitymat.eye();
-    arma::mat f1(initialdesign.n_cols,2);
-    arma::mat f2(initialdesign.n_cols,2);
-    arma::mat f2vinv(2,initialdesign.n_cols);
+    Eigen::MatrixXd identitymat(2,2);
+    identitymat.setIdentity(2,2);
+    Eigen::MatrixXd f1(initialdesign.cols(),2);
+    Eigen::MatrixXd f2(initialdesign.cols(),2);
+    Eigen::MatrixXd f2vinv(2,initialdesign.cols());
 
     newOptimum = calculateDOptimality(initialdesign);
     priorOptimum = newOptimum/2;
-    arma::mat V = inv_sympd(initialdesign.t()*initialdesign);
+    Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
     //Transpose matrices for faster element access (Armadillo stores data column-wise)
-    arma::mat initialdesign_trans = initialdesign.t();
-    arma::mat candidatelist_trans = candidatelist.t();
+    Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
+    Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
@@ -185,7 +200,8 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         found = false;
         entryy = 0;
         del=0;
-        xVx = as_scalar(initialdesign_trans.unsafe_col(i).t() * V * initialdesign_trans.unsafe_col(i));
+        xVx = (initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i))(0, 0);
+        //xVx = as_scalar(initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i));
 
         //Search through all candidate set points to find best switch (if one exists).
         search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, i, entryy, found, del);
@@ -203,12 +219,12 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
         }
       }
     }
-    initialdesign = initialdesign_trans.t();
+    initialdesign = initialdesign_trans.transpose();
     newOptimum = calculateDEff(initialdesign,numbercols,numberrows);
   }
   //Generate an I-optimal design
   if(condition == "I") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateIOptimality(initialdesign,momentsmatrix);
     newOptimum = del;
     priorOptimum = del*2;
@@ -249,7 +265,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   }
   //Generate an A-optimal design
   if(condition == "A") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateAOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = del*2;
@@ -293,8 +309,8 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
 
 
     //First, calculate a D-optimal design (only do one iteration--may be only locally optimal) to start the search.
-    arma::mat temp;
-    arma::mat tempalias;
+    Eigen::MatrixXd temp;
+    Eigen::MatrixXd tempalias;
     del = calculateDOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = newOptimum/2;
@@ -339,13 +355,13 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     double optimum;
     double first = 1;
 
-    arma::vec candidateRowTemp = candidateRow;
-    arma::vec initialRowsTemp = initialRows;
-    arma::mat initialdesignTemp = initialdesign;
+    Eigen::VectorXd candidateRowTemp = candidateRow;
+    Eigen::Map<Eigen::VectorXd> initialRowsTemp = as<Eigen::Map<Eigen::VectorXd> >(initialRows);
+    Eigen::MatrixXd initialdesignTemp = initialdesign;
 
-    arma::vec bestcandidaterow = candidateRowTemp;
-    arma::mat bestaliasdesign = aliasdesign;
-    arma::mat bestinitialdesign = initialdesign;
+    Eigen::VectorXd bestcandidaterow = candidateRowTemp;
+    Eigen::MatrixXd bestaliasdesign = aliasdesign;
+    Eigen::MatrixXd bestinitialdesign = initialdesign;
 
     //Perform weighted search, slowly increasing weight of Alias trace as compared to D-optimality.
     //Stops when the increase in the Alias-criterion is small enough. Does not make exchanges that
@@ -415,7 +431,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     newOptimum = bestA;
   }
   if(condition == "G") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateGOptimality(initialdesign,candidatelist);
     newOptimum = del;
     priorOptimum = del*2;
@@ -457,7 +473,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     }
   }
   if(condition == "T") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateTOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = newOptimum/2;
@@ -494,7 +510,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
     }
   }
   if(condition == "E") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateEOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = newOptimum/2;
@@ -533,7 +549,7 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
   if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
     Function customOpt = myEnv["customOpt"];
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateCustomOptimality(initialdesign,customOpt);
     newOptimum = del;
     priorOptimum = newOptimum/2;
@@ -577,56 +593,61 @@ List genOptimalDesign(arma::mat initialdesign, const arma::mat& candidatelist,co
 //Everything below is for generating blocked optimal designs
 //**********************************************************
 
-double calculateBlockedDOptimality(const arma::mat& currentDesign, const arma::mat& gls) {
-  return(arma::det(currentDesign.t()*gls*currentDesign));
+double calculateBlockedDOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& gls) {
+  return((currentDesign.transpose()*gls*currentDesign).partialPivLu().determinant());
 }
 
-double calculateBlockedIOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix,const arma::mat& gls) {
-  return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)*momentsMatrix));
+double calculateBlockedIOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& momentsMatrix,const Eigen::MatrixXd& gls) {
+  return(((currentDesign.transpose()*gls*currentDesign).llt().solve(momentsMatrix)).trace());
 }
 
-double calculateBlockedAOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
-  return(trace(inv_sympd(currentDesign.t()*gls*currentDesign)));
+double calculateBlockedAOptimality(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
+  return((currentDesign.transpose()*gls*currentDesign).partialPivLu().inverse().trace());
 }
 
-double calculateBlockedAliasTrace(const arma::mat& currentDesign, const arma::mat& aliasMatrix,const arma::mat& gls) {
-  arma::mat A = inv_sympd(currentDesign.t()*gls*currentDesign)*currentDesign.t()*aliasMatrix;
-  return(trace(A.t() * A));
+double calculateBlockedAliasTrace(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix,const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
+  Eigen::MatrixXd A = XtX.llt().solve(currentDesign.transpose()*aliasMatrix);
+  return((A.transpose() * A).trace());
 }
 
-// double calculateBlockedGOptimality(const arma::mat& currentDesign, const arma::mat& candidateSet, const arma::mat& gls) {
-//   arma::mat results = inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t()*gls;
+// double calculateBlockedGOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candidateSet, const Eigen::MatrixXd& gls) {
+//   Eigen::MatrixXd results = inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t()*gls;
 //   return(results.diag().max());
 // }
 
-double calculateBlockedTOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
-  return(trace(currentDesign.t()*gls*currentDesign));
+double calculateBlockedTOptimality(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
+  return((currentDesign.transpose()*gls*currentDesign).trace());
 }
 
-double calculateBlockedEOptimality(const arma::mat& currentDesign,const arma::mat& gls) {
-  arma::vec eigval;
-  arma::eig_sym(eigval,currentDesign.t()*gls*currentDesign);
-  return(eigval.min());
+double calculateBlockedEOptimality(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(XtX);
+  return(eigensolver.eigenvalues().minCoeff());
 }
 
-double calculateBlockedDEff(const arma::mat& currentDesign,const arma::mat& gls) {
-  return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols)))/double(currentDesign.n_rows));
+double calculateBlockedDEff(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
+  return(pow(XtX.partialPivLu().determinant(), 1/currentDesign.cols()) / currentDesign.rows());
 }
 
-double calculateBlockedDEffNN(const arma::mat& currentDesign,const arma::mat& gls) {
-  return(pow(arma::det(currentDesign.t()*gls*currentDesign),(1.0/double(currentDesign.n_cols))));
+double calculateBlockedDEffNN(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
+  return(pow(XtX.partialPivLu().determinant(), 1.0/currentDesign.cols()));
 }
 
-double calculateBlockedAliasTracePseudoInv(const arma::mat& currentDesign, const arma::mat& aliasMatrix,const arma::mat& gls) {
-  arma::mat A = arma::pinv(currentDesign.t()*gls*currentDesign)*currentDesign.t()*aliasMatrix;
-  return(trace(A.t() * A));
+double calculateBlockedAliasTracePseudoInv(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix,const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
+  Eigen::MatrixXd A = XtX.partialPivLu().solve(currentDesign.transpose()*aliasMatrix);
+  return((A.transpose() * A).trace());
 }
 
-bool isSingularBlocked(const arma::mat& currentDesign,const arma::mat& gls) {
-  return(arma::cond(currentDesign.t()*gls*currentDesign) > 1E15);
+bool isSingularBlocked(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
+  return(XtX.colPivHouseholderQr().isInvertible());
 }
 
-double calculateBlockedCustomOptimality(const arma::mat& currentDesign, Function customBlockedOpt, const arma::mat& gls) {
+double calculateBlockedCustomOptimality(const Eigen::MatrixXd& currentDesign, Function customBlockedOpt, const Eigen::MatrixXd& gls) {
   return as<double>(customBlockedOpt(Rcpp::Named("currentDesign", currentDesign),Rcpp::Named("vInv", gls)));
 }
 
@@ -648,72 +669,80 @@ double calculateBlockedCustomOptimality(const arma::mat& currentDesign, Function
 //`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
 //`@return List of design information.
 // [[Rcpp::export]]
-List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, const arma::mat& blockeddesign,
-                             const std::string condition, const arma::mat& momentsmatrix, IntegerVector initialRows,
-                             const arma::mat& blockedVar,
-                             arma::mat aliasdesign, arma::mat aliascandidatelist, double minDopt, List interactions,
-                             const arma::mat disallowed, const bool anydisallowed, double tolerance) {
+List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd candidatelist, const Eigen::MatrixXd& blockeddesign,
+                             const std::string condition, const Eigen::MatrixXd& momentsmatrix, IntegerVector initialRows,
+                             const Eigen::MatrixXd& blockedVar,
+                             Eigen::MatrixXd aliasdesign, Eigen::MatrixXd aliascandidatelist, double minDopt, List interactions,
+                             const Eigen::MatrixXd disallowed, const bool anydisallowed, double tolerance) {
   //Load the R RNG
   RNGScope rngScope;
   //check and log whether there are inter-strata interactions
   unsigned int numberinteractions = interactions.size();
   bool interstrata = (numberinteractions > 0);
   //Generate blocking structure inverse covariance matrix
-  const arma::mat vInv = inv_sympd(blockedVar);
+  const Eigen::MatrixXd vInv = blockedVar.colPivHouseholderQr().inverse();
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
-  for(unsigned int j = 1; j < candidatelist.n_cols; j++) {
-    if(all(candidatelist.col(0) == candidatelist.col(j))) {
+  for(unsigned int j = 1; j < candidatelist.cols(); j++) {
+    if(candidatelist.col(0).cwiseEqual(candidatelist.col(j)).all()) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
   }
   //Remove intercept term, as it's now located in the blocked
-  candidatelist.shed_col(0);
-  initialdesign.shed_col(0);
-  aliasdesign.shed_col(0);
-  aliascandidatelist.shed_col(0);
+  candidatelist = candidatelist.rightCols(candidatelist.cols()-1);
+  initialdesign = initialdesign.rightCols(initialdesign.cols()-1);
+  aliasdesign = aliasdesign.rightCols(aliasdesign.cols()-1);
+  aliascandidatelist = aliascandidatelist.rightCols(aliascandidatelist.cols()-1);
 
-  unsigned int nTrials = initialdesign.n_rows;
+  unsigned int nTrials = initialdesign.rows();
   unsigned int maxSingularityChecks = nTrials*10;
-  unsigned int totalPoints = candidatelist.n_rows;
-  unsigned int blockedCols = blockeddesign.n_cols;
-  int designCols = initialdesign.n_cols;
-  int designColsAlias = aliasdesign.n_cols;
+  unsigned int totalPoints = candidatelist.rows();
+  unsigned int blockedCols = blockeddesign.cols();
+  int designCols = initialdesign.cols();
+  int designColsAlias = aliasdesign.cols();
   LogicalVector mustchange(nTrials, false);
 
-  arma::mat combinedDesign(nTrials,blockedCols+designCols + numberinteractions,arma::fill::zeros);
-  combinedDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
-  combinedDesign(arma::span::all,arma::span(blockedCols,blockedCols+designCols-1)) = initialdesign;
+  Eigen::MatrixXd combinedDesign(nTrials, blockedCols+designCols + numberinteractions);
+  combinedDesign.setZero();
+  combinedDesign.leftCols(blockedCols) = blockeddesign;
+  combinedDesign.middleCols(blockedCols, designCols) = initialdesign;
 
-  arma::mat combinedAliasDesign(nTrials,blockedCols+ designColsAlias + numberinteractions,arma::fill::zeros);
-  combinedAliasDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
-  combinedAliasDesign(arma::span::all,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliasdesign;
+  Eigen::MatrixXd combinedAliasDesign(nTrials, blockedCols + designColsAlias + numberinteractions);
+  combinedAliasDesign.setZero();
+  combinedAliasDesign.leftCols(blockedCols) = blockeddesign;
+  combinedAliasDesign.middleCols(blockedCols, designColsAlias) = aliasdesign;
+  //Eigen::MatrixXd combinedAliasDesign(nTrials,blockedCols+ designColsAlias + numberinteractions,arma::fill::zeros);
+  //combinedAliasDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
+  //combinedAliasDesign(arma::span::all,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliasdesign;
 
   if(interstrata) {
     for(unsigned int i = 0; i < numberinteractions; i++) {
-      combinedDesign.col(blockedCols+designCols + i) = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1) % combinedDesign.col(as<NumericVector>(interactions[i])[1]-1);
-      combinedAliasDesign.col(blockedCols+designColsAlias + i) = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1) % combinedAliasDesign.col(as<NumericVector>(interactions[i])[1]-1);
+      combinedDesign.col(blockedCols+designCols + i) = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1).cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[i])[1]-1));
+      combinedAliasDesign.col(blockedCols+designColsAlias + i) = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1).cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[i])[1]-1));
     }
   }
 
   IntegerVector candidateRow = initialRows;
-  arma::mat test(combinedDesign.n_cols,combinedDesign.n_cols,arma::fill::zeros);
-  if(nTrials < candidatelist.n_cols + blockedCols + numberinteractions) {
+  Eigen::MatrixXd test(combinedDesign.cols(),combinedDesign.cols());
+  test.setZero();
+  if(nTrials < candidatelist.cols() + blockedCols + numberinteractions) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   for (unsigned int check = 0; check < maxSingularityChecks; check++) {
     if (!isSingularBlocked(combinedDesign,vInv)){
       break;
     }
-    arma::uvec shuffledindices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, totalPoints-1), totalPoints, false);
+    Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
+    Eigen::VectorXi shuffledindices = sample_eigen(ordered_indices, totalPoints, false);
+
     for (unsigned int i = 0; i < nTrials; i++) {
       candidateRow(i) = shuffledindices(i % totalPoints) + 1;
       initialRows(i) = shuffledindices(i % totalPoints) + 1;
-      combinedDesign(i, arma::span(blockedCols, blockedCols+designCols-1)) = candidatelist.row(shuffledindices(i % totalPoints));
-      combinedAliasDesign(i, arma::span(blockedCols, blockedCols+designColsAlias-1)) = aliascandidatelist.row(shuffledindices(i % totalPoints));
+      combinedDesign.block(i, blockedCols, 1, designCols) = candidatelist.row(shuffledindices(i % totalPoints));
+      combinedAliasDesign.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(shuffledindices(i % totalPoints));
       if (interstrata) {
         for(unsigned int j = 0; j < numberinteractions; j++) {
-          combinedDesign.col(blockedCols+designCols + j) = combinedDesign.col(as<NumericVector>(interactions[j])[0]-1) % combinedDesign.col(as<NumericVector>(interactions[j])[1]-1);
-          combinedAliasDesign.col(blockedCols+designColsAlias + j) = combinedAliasDesign.col(as<NumericVector>(interactions[j])[0]-1) % combinedAliasDesign.col(as<NumericVector>(interactions[j])[1]-1);
+          combinedDesign.col(blockedCols+designCols + j) = combinedDesign.col(as<NumericVector>(interactions[j])[0]-1).cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[j])[1]-1));
+          combinedAliasDesign.col(blockedCols+designColsAlias + j) = combinedAliasDesign.col(as<NumericVector>(interactions[j])[0]-1).cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[j])[1]-1));
         }
       }
     }
@@ -724,8 +753,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   }
   if(anydisallowed) {
     for(unsigned int i = 0; i < nTrials; i++) {
-      for(unsigned int j = 0; j < disallowed.n_rows; j++) {
-        if(all(combinedDesign.row(i) == disallowed.row(j))) {
+      for(unsigned int j = 0; j < disallowed.rows(); j++) {
+        if(combinedDesign.row(i).cwiseEqual(disallowed.row(j)).all()) {
           mustchange[i] = true;
         }
       }
@@ -742,7 +771,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   bool pointallowed = false;
   //Generate a D-optimal design, fixing the blocking factors
   if(condition == "D") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     newOptimum = calculateBlockedDOptimality(combinedDesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
@@ -755,7 +784,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         entryy = 0;
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
 
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
@@ -765,8 +794,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-              if(all(temp.row(i) == disallowed.row(k))) {
+            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
             }
@@ -780,7 +809,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -797,7 +826,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   }
   //Generate an I-optimal design, fixing the blocking factors
   if(condition == "I") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
     newOptimum = del;
     priorOptimum = del/2;
@@ -812,7 +841,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         for (unsigned int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
-            temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+            temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
             if(interstrata) {
               for(unsigned int k = 0; k < numberinteractions; k++) {
                 temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -821,8 +850,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
             pointallowed = true;
             if(anydisallowed) {
-              for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-                if(all(temp.row(i) == disallowed.row(k))) {
+              for(unsigned int k = 0; k < disallowed.rows(); k++) {
+                if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                   pointallowed = false;
                 }
               }
@@ -840,7 +869,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -861,7 +890,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   }
   //Generate an A-optimal design, fixing the blocking factors
   if(condition == "A") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     del = calculateBlockedAOptimality(combinedDesign,vInv);
     newOptimum = del;
     priorOptimum = del*2;
@@ -876,7 +905,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         for (unsigned int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
-            temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+            temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
             if(interstrata) {
               for(unsigned int k = 0; k < numberinteractions; k++) {
                 temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -884,8 +913,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
             }
             pointallowed = true;
             if(anydisallowed) {
-              for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-                if(all(temp.row(i) == disallowed.row(k))) {
+              for(unsigned int k = 0; k < disallowed.rows(); k++) {
+                if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                   pointallowed = false;
                 }
               }
@@ -903,7 +932,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -919,7 +948,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
     }
   }
   if(condition == "T") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     newOptimum = calculateBlockedTOptimality(combinedDesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
@@ -932,7 +961,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         entryy = 0;
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -941,8 +970,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-              if(all(temp.row(i) == disallowed.row(k))) {
+            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
             }
@@ -959,7 +988,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -977,7 +1006,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
   //Generate an E-optimal design, fixing the blocking factors
   if(condition == "E") {
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     newOptimum = calculateBlockedEOptimality(combinedDesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
@@ -990,7 +1019,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         entryy = 0;
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -999,8 +1028,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-              if(all(temp.row(i) == disallowed.row(k))) {
+            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
             }
@@ -1020,7 +1049,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -1039,7 +1068,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   // Work-in-progress
   // if(condition == "G") {
   //
-  //   arma::mat reducedCandidateList(fullcandidateset.n_rows, blockedCols + designCols + numberinteractions,arma::fill::zeros);
+  //   Eigen::MatrixXd reducedCandidateList(fullcandidatesetrows(), blockedCols + designCols + numberinteractions,arma::fill::zeros);
   //   reducedCandidateList(arma::span::all,arma::span(0,blockedCols+designCols-1)) = fullcandidateset;
   //
   //   if(interstrata) {
@@ -1048,24 +1077,24 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //     }
   //   }
   //
-  //   LogicalVector mustdelete(fullcandidateset.n_rows, false);
+  //   LogicalVector mustdelete(fullcandidatesetrows(), false);
   //
   //   if(anydisallowed) {
-  //     for(unsigned int i = 0; i < fullcandidateset.n_rows; i++) {
-  //       for(unsigned int j = 0; j < disallowed.n_rows; j++) {
+  //     for(unsigned int i = 0; i < fullcandidatesetrows(); i++) {
+  //       for(unsigned int j = 0; j < disallowedrows(); j++) {
   //         if(all(reducedCandidateList.row(i) == disallowed.row(j))) {
   //           mustdelete[i] = true;
   //         }
   //       }
   //     }
-  //     for(unsigned int i = fullcandidateset.n_rows; i > 0; i--) {
+  //     for(unsigned int i = fullcandidatesetrows(); i > 0; i--) {
   //       if(mustdelete[i]) {
   //         reducedCandidateList.shed_row(i);
   //       }
   //     }
   //   }
   //
-  //   arma::mat temp;
+  //   Eigen::MatrixXd temp;
   //   newOptimum = calculateBlockedGOptimality(combinedDesign, reducedCandidateList, vInv);
   //   priorOptimum = newOptimum*2;
   //   while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -1087,7 +1116,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   //
   //         pointallowed = true;
   //         if(anydisallowed) {
-  //           for(unsigned int k = 0; k < disallowed.n_rows; k++) {
+  //           for(unsigned int k = 0; k < disallowedrows(); k++) {
   //             if(all(temp.row(i) == disallowed.row(k))) {
   //               pointallowed = false;
   //             }
@@ -1125,8 +1154,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   // }
 
   if(condition == "ALIAS") {
-    arma::mat temp;
-    arma::mat tempalias;
+    Eigen::MatrixXd temp;
+    Eigen::MatrixXd tempalias;
     del = calculateBlockedDOptimality(combinedDesign,vInv);
     newOptimum = del;
     priorOptimum = newOptimum/2;
@@ -1142,7 +1171,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         temp = combinedDesign;
 
         for (unsigned int j = 0; j < totalPoints; j++) {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
 
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
@@ -1152,8 +1181,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-              if(all(temp.row(i) == disallowed.row(k))) {
+            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
             }
@@ -1168,8 +1197,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-          combinedAliasDesign(entryx,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliascandidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -1197,11 +1226,11 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
     IntegerVector candidateRowTemp = candidateRow;
     IntegerVector initialRowsTemp = initialRows;
-    arma::mat combinedDesignTemp = combinedDesign;
+    Eigen::MatrixXd combinedDesignTemp = combinedDesign;
 
     IntegerVector bestcandidaterow = candidateRowTemp;
-    arma::mat bestaliasdesign = combinedAliasDesign;
-    arma::mat bestcombinedDesign = combinedDesign;
+    Eigen::MatrixXd bestaliasdesign = combinedAliasDesign;
+    Eigen::MatrixXd bestcombinedDesign = combinedDesign;
 
     while(firstA != 0 && currentA != 0 && aliasweight > wdelta) {
 
@@ -1221,8 +1250,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           tempalias = combinedAliasDesign;
           for (unsigned int j = 0; j < totalPoints; j++) {
             try {
-              temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-              tempalias(i,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliascandidatelist.row(j);
+              temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+              tempalias.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(j);
               if(interstrata) {
                 for(unsigned int k = 0; k < numberinteractions; k++) {
                   temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -1235,8 +1264,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
               pointallowed = true;
               if(anydisallowed) {
-                for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-                  if(all(temp.row(i) == disallowed.row(k))) {
+                for(unsigned int k = 0; k < disallowed.rows(); k++) {
+                  if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                     pointallowed = false;
                   }
                 }
@@ -1254,8 +1283,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
             }
           }
           if (found) {
-            combinedDesignTemp(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-            combinedAliasDesign(entryx,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliascandidatelist.row(entryy);
+            combinedDesignTemp.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+            combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
             if(interstrata) {
               for(unsigned int k = 0; k < numberinteractions; k++) {
                 combinedDesignTemp(i,blockedCols+designCols + k) = combinedDesignTemp(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesignTemp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -1288,7 +1317,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
     Function customBlockedOpt = myEnv["customBlockedOpt"];
-    arma::mat temp;
+    Eigen::MatrixXd temp;
     newOptimum = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt,vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
@@ -1301,7 +1330,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
         entryy = 0;
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
+          temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
@@ -1310,8 +1339,8 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.n_rows; k++) {
-              if(all(temp.row(i) == disallowed.row(k))) {
+            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
             }
@@ -1331,7 +1360,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
           }
         }
         if (found) {
-          combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
@@ -1350,7 +1379,7 @@ List genBlockedOptimalDesign(arma::mat initialdesign, arma::mat candidatelist, c
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign, _["criterion"] = newOptimum));
 }
 
-arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTrials) {
+Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigned int nTrials) {
   //Construct a nonsingular design matrix from candidatelist using the nullify procedure
   //Returns a vector of rownumbers indicating which runs from candidatelist to use
   //These rownumbers are not shuffled; you must do that yourself if randomizing the order is important
@@ -1359,20 +1388,20 @@ arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTria
   //First, find the p rows that come from the nullify procedure:
   //    find the longest row vector in the candidatelist
   //    orthogonalize the rest of the candidatelist to this vector
-  arma::mat candidatelist2(candidatelist); //local copy we will orthogonalize
-  std::vector<bool> design_flag(candidatelist2.n_rows, false); //indicates that a candidate row has been used in the design
-  arma::uvec design_rows(nTrials);  //return value
+  Eigen::MatrixXd candidatelist2(candidatelist); //local copy we will orthogonalize
+  std::vector<bool> design_flag(candidatelist2.rows(), false); //indicates that a candidate row has been used in the design
+  Eigen::VectorXi design_rows(nTrials);  //return value
 
   double tolerance = 1e-8;
-  const unsigned int p = candidatelist2.n_cols;
+  const unsigned int p = candidatelist2.cols();
   for (unsigned int i = 0; i < p; i++) {
     unsigned int nextrow = longest_row(candidatelist2, design_flag);
-    double nextrow_length = arma::norm(candidatelist2.row(nextrow));
+    double nextrow_length = candidatelist2.row(nextrow).norm();
     if (i == 0) {
       tolerance = tolerance * nextrow_length; //scale tolerance to candidate list's longest vector
     }
     if (nextrow_length < tolerance) {
-      return arma::uvec(nTrials, arma::fill::zeros); //rank-deficient candidate list, return error state
+      return Eigen::VectorXi::Zero(nTrials, 1); //rank-deficient candidate list, return error state
     }
     design_flag[nextrow] = true;
     design_rows[i] = nextrow;
@@ -1381,7 +1410,8 @@ arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTria
     }
   }
   //Then fill in the design with N - p randomly chosen rows from the candidatelist
-  arma::uvec random_indices = RcppArmadillo::sample(arma::regspace<arma::uvec>(0, candidatelist2.n_rows-1), nTrials, true);
+  Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(candidatelist2.rows(), 0, candidatelist2.rows()-1);
+  Eigen::VectorXi random_indices = sample_eigen(ordered_indices, nTrials, true);
   for (unsigned int i = p; i < nTrials; i++) {
     design_rows(i) = random_indices(i);
   }
@@ -1390,13 +1420,13 @@ arma::uvec orthogonal_initial(const arma::mat& candidatelist, unsigned int nTria
 }
 
 
-unsigned int longest_row(const arma::mat& V, const std::vector<bool>& rows_used) {
+unsigned int longest_row(const Eigen::MatrixXd& V, const std::vector<bool>& rows_used) {
   //Return the index of the longest unused row in V
   double longest = -1;
   unsigned int index = 0;
-  for (unsigned int i = 0; i < V.n_rows; i++) {
+  for (unsigned int i = 0; i < V.rows(); i++) {
     if (!rows_used[i]) {
-      double this_len = arma::dot(V.row(i), V.row(i));
+      double this_len = V.row(i).dot(V.row(i));
       if (this_len > longest) {
         longest = this_len;
         index = i;
@@ -1407,13 +1437,13 @@ unsigned int longest_row(const arma::mat& V, const std::vector<bool>& rows_used)
 }
 
 
-void orthogonalize_input(arma::mat& X, unsigned int basis_row, const std::vector<bool>& rows_used) {
+void orthogonalize_input(Eigen::MatrixXd& X, unsigned int basis_row, const std::vector<bool>& rows_used) {
   //Gram-Schmidt orthogonalize <X> - in place - with respect to its rownumber <basis_row>
   //Only unused rows (as indicated by <rows_used>) are considered.
-  double basis_norm = arma::dot(X.row(basis_row), X.row(basis_row));
-  for (unsigned int i = 0; i < X.n_rows; i++) {
+  double basis_norm = X.row(basis_row).dot(X.row(basis_row));
+  for (unsigned int i = 0; i < X.rows(); i++) {
     if (!rows_used[i]) {
-      double dotprod = arma::dot(X.row(i), X.row(basis_row));
+      double dotprod = X.row(i).dot(X.row(basis_row));
       X.row(i) -= X.row(basis_row)*dotprod/basis_norm;
     }
   }

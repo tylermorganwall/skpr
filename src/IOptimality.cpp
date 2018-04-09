@@ -1,10 +1,11 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double IOptimality(const arma::mat& currentDesign, const arma::mat& momentsMatrix, const arma::mat& blockedVar) {
-  return(arma::trace(arma::inv_sympd(currentDesign.t()*arma::inv_sympd(blockedVar)*currentDesign)*momentsMatrix));
+double IOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& momentsMatrix, const Eigen::MatrixXd& blockedVar) {
+  Eigen::MatrixXd XtX = currentDesign.transpose() * blockedVar.llt().solve(currentDesign);
+  return((XtX * momentsMatrix).trace());
 }
 

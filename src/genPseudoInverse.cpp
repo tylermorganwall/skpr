@@ -1,9 +1,9 @@
-// [[Rcpp::depends(RcppArmadillo)]]
-#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-arma::mat getPseudoInverse(const arma::mat& currentDesign) {
-  return(arma::pinv(currentDesign));
+Eigen::MatrixXd getPseudoInverse(const Eigen::MatrixXd& currentDesign) {
+  return(currentDesign.completeOrthogonalDecomposition().pseudoInverse());
 }
 

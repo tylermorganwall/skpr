@@ -1,10 +1,11 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double AOptimality(const arma::mat& currentDesign) {
-  return(100/(currentDesign.n_rows*trace(inv_sympd(currentDesign.t()*currentDesign))/currentDesign.n_cols));
+double AOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(100 / (currentDesign.rows() * XtX.partialPivLu().inverse().trace() / currentDesign.cols()));
 }
 

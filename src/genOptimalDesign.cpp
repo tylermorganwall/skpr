@@ -84,7 +84,7 @@ double calculateDEffNN(const Eigen::MatrixXd& currentDesign) {
 
 bool isSingular(const Eigen::MatrixXd& currentDesign) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  return(XtX.colPivHouseholderQr().isInvertible());
+  return(!XtX.colPivHouseholderQr().isInvertible());
 }
 
 template <typename T>

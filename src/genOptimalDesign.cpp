@@ -12,7 +12,7 @@ void orthogonalize_input(Eigen::MatrixXd& X, unsigned int basis_row, const std::
 
 void search_candidate_set(const Eigen::MatrixXd& V, const Eigen::MatrixXd& candidatelist_trans,
                           const Eigen::VectorXd& designrow,
-                          double xVx, unsigned int i, unsigned int& entryy, bool& found, double& del) {
+                          double xVx, unsigned int& entryy, bool& found, double& del) {
   Eigen::VectorXd yV(candidatelist_trans.rows());
   double newdel = 0;
   unsigned int ncols = candidatelist_trans.cols();
@@ -33,9 +33,8 @@ double calculateDOptimality(const Eigen::MatrixXd& currentDesign) {
   return(XtX.partialPivLu().determinant());  //works without partialPivLu()
 }
 
-double calculateIOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& momentsMatrix) {
-  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  return(XtX.llt().solve(momentsMatrix).trace());
+double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& momentsMatrix) {
+  return((currentV*momentsMatrix).trace());
 }
 
 
@@ -56,9 +55,8 @@ double calculateEOptimality(const Eigen::MatrixXd& currentDesign) {
   return(eigensolver.eigenvalues().minCoeff());
 }
 
-double calculateAOptimality(const Eigen::MatrixXd& currentDesign) {
-  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  return(XtX.partialPivLu().inverse().trace());
+double calculateAOptimality(const Eigen::MatrixXd& currentV) {
+  return(currentV.trace());
 }
 
 double calculateAliasTrace(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
@@ -77,9 +75,9 @@ double calculateDEff(const Eigen::MatrixXd& currentDesign, double numbercols, do
   return(pow(XtX.partialPivLu().determinant(), 1/numbercols) / numberrows);
 }
 
-double calculateDEffNN(const Eigen::MatrixXd& currentDesign) {
+double calculateDEffNN(const Eigen::MatrixXd& currentDesign, double numbercols) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  return(pow(XtX.partialPivLu().determinant(), 1.0/currentDesign.cols()));
+  return(pow(XtX.partialPivLu().determinant(), 1.0/numbercols));
 }
 
 bool isSingular(const Eigen::MatrixXd& currentDesign) {
@@ -105,6 +103,17 @@ void rankUpdate(Eigen::MatrixXd& vinv, const Eigen::VectorXd& pointold, const Ei
   Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).partialPivLu().solve(f2vinv);
   vinv = tmp;
 }
+
+Eigen::MatrixXd rankUpdateValue(Eigen::MatrixXd& vinv, const Eigen::VectorXd& pointold, const Eigen::VectorXd& pointnew,
+                const Eigen::MatrixXd& identity,
+                Eigen::MatrixXd& f1, Eigen::MatrixXd& f2,Eigen::MatrixXd& f2vinv) {
+  f1.col(0) = pointnew; f1.col(1) = -pointold;
+  f2.col(0) = pointnew; f2.col(1) = pointold;
+  f2vinv = f2.transpose()*vinv;
+  Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).partialPivLu().solve(f2vinv);
+  return(tmp);
+}
+
 
 //`@title genOptimalDesign
 //`@param initialdesign The initial randomly generated design.
@@ -178,21 +187,24 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   double minDelta = tolerance;
   double newdel;
   double xVx;
+
+  //Initialize matrices for rank-2 updates.
+  Eigen::MatrixXd identitymat(2,2);
+  identitymat.setIdentity(2,2);
+  Eigen::MatrixXd f1(initialdesign.cols(),2);
+  Eigen::MatrixXd f2(initialdesign.cols(),2);
+  Eigen::MatrixXd f2vinv(2,initialdesign.cols());
+
+  //Transpose matrices for faster element access (Armadillo stores data column-wise)
+  Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
+  Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
+  Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
+
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
-    //Initialize matrices for rank-2 updates.
-    Eigen::MatrixXd identitymat(2,2);
-    identitymat.setIdentity(2,2);
-    Eigen::MatrixXd f1(initialdesign.cols(),2);
-    Eigen::MatrixXd f2(initialdesign.cols(),2);
-    Eigen::MatrixXd f2vinv(2,initialdesign.cols());
-
     newOptimum = calculateDOptimality(initialdesign);
     priorOptimum = newOptimum/2;
-    Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
-    //Transpose matrices for faster element access (Armadillo stores data column-wise)
-    Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
-    Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
+
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (unsigned int i = 0; i < nTrials; i++) {
@@ -200,11 +212,10 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         found = false;
         entryy = 0;
         del=0;
-        xVx = (initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i))(0, 0);
-        //xVx = as_scalar(initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i));
+        xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
 
         //Search through all candidate set points to find best switch (if one exists).
-        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, i, entryy, found, del);
+        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
         if (found) {
           //Update the inverse with the rank-2 update formula.
           rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
@@ -224,8 +235,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   }
   //Generate an I-optimal design
   if(condition == "I") {
-    Eigen::MatrixXd temp;
-    del = calculateIOptimality(initialdesign,momentsmatrix);
+    del = calculateIOptimality(V,momentsmatrix);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -235,24 +245,18 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         found = false;
         entryx = 0;
         entryy = 0;
-        temp = initialdesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          //Checks for singularity; If singular, moves to next candidate in the candidate set
-          try {
-            temp.row(i) = candidatelist.row(j);
-            newdel = calculateIOptimality(temp,momentsmatrix);
-            if(newdel < del) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
-            }
-          } catch (std::runtime_error& e) {
-            continue;
+          newdel = calculateIOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),momentsmatrix);
+          if(newdel < del) {
+            found = true;
+            entryx = i; entryy = j;
+            del = newdel;
           }
         }
         if (found) {
           //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
+          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {
@@ -260,13 +264,12 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
       }
       //Re-calculate current criterion value
-      newOptimum = calculateIOptimality(initialdesign,momentsmatrix);
+      newOptimum = calculateIOptimality(V,momentsmatrix);
     }
   }
   //Generate an A-optimal design
   if(condition == "A") {
-    Eigen::MatrixXd temp;
-    del = calculateAOptimality(initialdesign);
+    del = calculateAOptimality(V);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -276,24 +279,18 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         found = false;
         entryx = 0;
         entryy = 0;
-        temp = initialdesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
-          //Checks for singularity; If singular, moves to next candidate in the candidate set
-          try {
-            temp.row(i) = candidatelist.row(j);
-            newdel = calculateAOptimality(temp);
-            if(newdel < del) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
-            }
-          } catch (std::runtime_error& e) {
-            continue;
+          newdel = calculateAOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv));
+          if(newdel < del) {
+            found = true;
+            entryx = i; entryy = j;
+            del = newdel;
           }
         }
         if (found) {
           //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
+          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {
@@ -301,7 +298,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
       }
       //Re-calculate current criterion value.
-      newOptimum = calculateAOptimality(initialdesign);
+      newOptimum = calculateAOptimality(V);
     }
   }
   //Generate an Alias optimal design
@@ -346,7 +343,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     }
 
     double firstA = calculateAliasTracePseudoInv(initialdesign,aliasdesign);
-    double initialD = calculateDEffNN(initialdesign);
+    double initialD = calculateDEffNN(initialdesign,numbercols);
     double currentA = firstA;
     double currentD = initialD;
     double wdelta = 0.05;
@@ -389,7 +386,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
               temp.row(i) = candidatelist.row(j);
               tempalias.row(i) = aliascandidatelist.row(j);
               currentA = calculateAliasTrace(temp,tempalias);
-              currentD = calculateDEffNN(temp);
+              currentD = calculateDEffNN(temp,numbercols);
 
               newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
 
@@ -413,7 +410,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           }
         }
         //Re-calculate current criterion value.
-        currentD = calculateDEffNN(initialdesignTemp);
+        currentD = calculateDEffNN(initialdesignTemp,numbercols);
         currentA = calculateAliasTrace(initialdesignTemp,aliasdesign);
         optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
       }
@@ -644,7 +641,7 @@ double calculateBlockedAliasTracePseudoInv(const Eigen::MatrixXd& currentDesign,
 
 bool isSingularBlocked(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*gls*currentDesign;
-  return(XtX.colPivHouseholderQr().isInvertible());
+  return(!XtX.colPivHouseholderQr().isInvertible());
 }
 
 double calculateBlockedCustomOptimality(const Eigen::MatrixXd& currentDesign, Function customBlockedOpt, const Eigen::MatrixXd& gls) {

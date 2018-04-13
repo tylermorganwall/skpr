@@ -59,15 +59,22 @@ double calculateAOptimality(const Eigen::MatrixXd& currentV) {
   return(currentV.trace());
 }
 
-double calculateAliasTrace(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
+double calculateAliasTraceSlow(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
   Eigen::MatrixXd A = XtX.llt().solve(currentDesign.transpose())*aliasMatrix;
   return((A.transpose() * A).trace());
 }
 
+double calculateAliasTrace(const Eigen::MatrixXd& currentV,
+                           const Eigen::MatrixXd& currentDesign,
+                           const Eigen::MatrixXd& aliasMatrix) {
+  Eigen::MatrixXd A = currentV*currentDesign.transpose()*aliasMatrix;
+  return((A.transpose() * A).trace());
+}
+
 double calculateAliasTracePseudoInv(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
   //since we use linear solving, I see no need for this function
-  return(calculateAliasTrace(currentDesign, aliasMatrix));
+  return(calculateAliasTraceSlow(currentDesign, aliasMatrix));
 }
 
 double calculateDEff(const Eigen::MatrixXd& currentDesign, double numbercols, double numberrows) {
@@ -317,30 +324,28 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
       for (unsigned int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
-        entryx = 0;
         entryy = 0;
-        temp = initialdesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateDOptimality(temp);
-          if(newdel > del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
+        del=0;
+        xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
 
+        //Search through all candidate set points to find best switch (if one exists).
+        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
+        if (found) {
+          //Update the inverse with the rank-2 update formula.
+          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+
+          //Exchange points and re-calculate current criterion value.
+          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
+          aliasdesign.row(i) = aliascandidatelist.row(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
+          newOptimum = newOptimum * (1 + del);
         } else {
           candidateRow[i] = initialRows[i];
         }
       }
-      newOptimum = calculateDOptimality(initialdesign);
     }
+    initialdesign = initialdesign_trans.transpose();
 
     double firstA = calculateAliasTracePseudoInv(initialdesign,aliasdesign);
     double initialD = calculateDEffNN(initialdesign,numbercols);
@@ -382,25 +387,21 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           temp = initialdesignTemp;
           tempalias = aliasdesign;
           for (unsigned int j = 0; j < totalPoints; j++) {
-            try {
-              temp.row(i) = candidatelist.row(j);
-              tempalias.row(i) = aliascandidatelist.row(j);
-              currentA = calculateAliasTrace(temp,tempalias);
-              currentD = calculateDEffNN(temp,numbercols);
-
-              newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
-
-              if(newdel > optimum && calculateDEff(temp,numbercols,numberrows) > minDopt) {
-                found = true;
-                entryx = i; entryy = j;
-                optimum = newdel;
-              }
-            } catch (std::runtime_error& e) {
-              continue;
+            temp.row(i) = candidatelist.row(j);
+            tempalias.row(i) = aliascandidatelist.row(j);
+            currentA = calculateAliasTrace(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp,tempalias);
+            currentD = calculateDEffNN(temp,numbercols);
+            newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+            if(newdel > optimum && calculateDEff(temp,numbercols,numberrows) > minDopt) {
+              found = true;
+              entryx = i; entryy = j;
+              optimum = newdel;
             }
           }
           if (found) {
             //Exchange points
+            rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+            initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
             initialdesignTemp.row(entryx) = candidatelist.row(entryy);
             aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
             candidateRowTemp[i] = entryy+1;
@@ -411,7 +412,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
         //Re-calculate current criterion value.
         currentD = calculateDEffNN(initialdesignTemp,numbercols);
-        currentA = calculateAliasTrace(initialdesignTemp,aliasdesign);
+        currentA = calculateAliasTraceSlow(initialdesignTemp,aliasdesign);
         optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
       }
       //If the search improved the Alias trace, set that as the new value.

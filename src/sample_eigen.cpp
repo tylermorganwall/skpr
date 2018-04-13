@@ -1,4 +1,5 @@
 #include <RcppArmadilloExtensions/sample.h>
+#define NDEBUG 1
 #include <RcppEigen.h>
 
 using namespace Rcpp;

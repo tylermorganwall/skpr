@@ -488,6 +488,9 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
             numberofequal = length(which(abs(powers - min(powers)) < 1E-10))
             exponents = 1:numberofequal+1
             values = rep(-1,numberofequal)^exponents
+            if(numberofequal > 2) {
+              values[3:length(values)] = 0
+            }
             coefvec = rep(0,length(powers))
             coefvec[which(abs(powers - min(powers)) < 1E-10)] = values
             conservative_anticoef = c(conservative_anticoef,coefvec)

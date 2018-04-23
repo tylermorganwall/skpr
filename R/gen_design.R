@@ -528,6 +528,7 @@ gen_design = function(candidateset, model, trials,
       fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidateset,contrasts.arg=fullcontrastlist))
     }
   }
+
   if(!blocking) {
     if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
       stop(paste("The candidateset does not support the specified model - its rank is too low.",
@@ -969,6 +970,13 @@ gen_design = function(candidateset, model, trials,
       }
     }
   }, error = function(e) {})
+
+  #Re-order factors so levels with the lowest number of factors come first
+  for(i in 1:ncol(design)) {
+    if(!is.numeric(design[[i]])) {
+      design[i] = factor(design[[i]],levels=levels(design[[i]])[order(table(design[[i]]))])
+    }
+  }
 
   attr(design,"contrastslist") = contrastslist
   if(optimality == "D") {

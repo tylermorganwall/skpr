@@ -270,13 +270,20 @@ gen_design = function(candidateset, model, trials,
     stop("skpr does not support backticks in gen_design. Use variable names without backticks and try again.")
   }
 
-  #convert ~.*.
-
-  if(model == as.formula("~.*.")) {
+  #----- Convert dots in formula to terms -----#
+  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
     if(is.null(splitplotdesign)) {
-      model = as.formula(paste0("~(",paste(colnames(candidateset),collapse = " + "),")^2"))
+      dotreplace = paste0("(",paste0(attr(candidateset, "names"), collapse=" + "),")")
+      additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
+      multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
+      interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
+      model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
     } else {
-      model = as.formula(paste0("~(",paste(c(colnames(candidateset),colnames(splitplotdesign)),collapse = " + "),")^2"))
+      dotreplace = paste0("(",paste(c(colnames(splitplotdesign),colnames(candidateset)), collapse=" + "),")")
+      additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
+      multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
+      interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
+      model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
     }
   }
 
@@ -385,25 +392,6 @@ gen_design = function(candidateset, model, trials,
     candidateset = unique(reduceRunMatrix(candidateset, model))
   } else {
     candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
-  }
-
-  #----- Convert dot/quad formula to terms -----#
-  if((as.character(model)[2] == ".")) {
-    if(is.null(splitplotdesign)) {
-      model = as.formula(paste("~", paste(attr(candidateset, "names"), collapse=" + "), sep=""))
-    } else {
-      model = as.formula(paste("~", paste(c(colnames(splitplotdesign),colnames(candidateset)), collapse=" + "), sep=""))
-    }
-  }
-
-  if(as.character(model)[2] == "quad(.)") {
-    if(any(lapply(candidateset,class) %in% c("factor","character"))) {
-      stop("quad() function cannot be used in models with categorical factors. Manually specify your model")
-    }
-    modelvars = colnames(model.matrix(~.,data=candidateset,contrasts.arg = contrastslist))[-1]
-    modellinear = paste(modelvars,collapse=" + ")
-    modellinear = paste("~",modellinear,sep="")
-    model = quad(as.formula(modellinear))
   }
 
   #------Ensure the candidate set has no single-valued columns------#

@@ -94,6 +94,15 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
+  #----- Convert dots in formula to terms -----#
+  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+    dotreplace = paste0("(",paste0(colnames(RunMatrix), collapse=" + "),")")
+    additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
+    multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
+    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
+    model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
+  }
+
   #------Normalize/Center numeric columns ------#
   for(column in 1:ncol(RunMatrix)) {
     if(is.numeric(RunMatrix[,column])) {
@@ -117,16 +126,6 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
 
   if(length(contrastslist) < 1) {
     contrastslist = NULL
-  }
-
-  #---------- Convert dot formula to terms -----#
-
-  if(model == as.formula("~.*.")) {
-    model = as.formula(paste0("~(",paste(colnames(RunMatrixReduced),collapse = " + "),")^2"))
-  }
-
-  if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~",paste(attr(RunMatrixReduced,"names"),collapse=" + "),sep=""))
   }
 
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)

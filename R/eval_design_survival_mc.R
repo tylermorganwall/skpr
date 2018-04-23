@@ -135,6 +135,15 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
+  #----- Convert dots in formula to terms -----#
+  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+    dotreplace = paste0("(",paste0(colnames(RunMatrix), collapse=" + "),")")
+    additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
+    multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
+    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
+    model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
+  }
+
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if(is.na(censorpoint)) {
     censorfunction = function(data, point) {return(rep(FALSE,length(data)))}
@@ -196,16 +205,6 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   }
   if(length(contrastslist) < 1) {
     contrastslist = NULL
-  }
-
-  #---------- Convert dot formula to terms -----#
-
-  if(model == as.formula("~.*.")) {
-    model = as.formula(paste0("~(",paste(colnames(RunMatrixReduced),collapse = " + "),")^2"))
-  }
-
-  if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~", paste(attr(RunMatrixReduced, "names"), collapse=" + "), sep=""))
   }
 
   ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)

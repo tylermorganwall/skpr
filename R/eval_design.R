@@ -216,6 +216,15 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     }
   }
 
+  #----- Convert dots in formula to terms -----#
+  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+    dotreplace = paste0("(",paste0(colnames(RunMatrix), collapse=" + "),")")
+    additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
+    multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
+    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
+    model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
+  }
+
   RunMatrix = reduceRunMatrix(RunMatrix,model)
 
   #---Develop contrast lists for model matrix---#
@@ -233,27 +242,6 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   if(length(contrastslist) < 1) {
     contrastslist = NULL
     contrastslist_correlationmatrix = NULL
-  }
-
-  #----- Convert dot/quad formula to terms -----#
-
-  if(model == as.formula("~.*.")) {
-    model = as.formula(paste0("~(",paste(colnames(RunMatrix),collapse = " + "),")^2"))
-  }
-
-  #Variables used later: model
-  if((as.character(model)[2] == ".")) {
-    model = as.formula(paste("~", paste(attr(RunMatrix, "names"), collapse=" + "), sep=""))
-  }
-
-  if(as.character(model)[2] == "quad(.)") {
-    if(any(lapply(RunMatrix,class) %in% c("factor","character"))) {
-      stop("quad() function cannot be used in models with categorical factors. Manually specify your model")
-    }
-    modelvars = colnames(model.matrix(~.,data=RunMatrix,contrasts.arg = contrastslist))[-1]
-    modellinear = paste(modelvars,collapse=" + ")
-    modellinear = paste("~",modellinear,sep="")
-    model = quad(as.formula(modellinear))
   }
 
   #------Normalize/Center numeric columns ------#

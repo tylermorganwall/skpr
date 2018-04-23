@@ -1284,22 +1284,22 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
     regularmodelstring = reactive({
-      if(input$model == "~.") {
-        paste0("~ ",paste(c(names(inputlist())),collapse=" + "))
-      } else {
-        as.character(as.formula(input$model))
-      }
+      tryCatch({
+        if(any(unlist(strsplit(as.character(as.formula(input$model)[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+          dotreplace = paste0("(",paste0(names(inputlist()), collapse=" + "),")")
+          additionterms = unlist(strsplit(as.character(as.formula(input$model)[2]),"\\s\\+\\s"))
+          multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
+          interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
+          stringmodel = paste0("~", paste(interactionterms, collapse=" + "), sep="")
+        }
+        paste0(as.character(as.formula(stringmodel)),collapse="")
+      }, error = function(e) {paste0(input$model,collapse="")}
+      )
     })
 
     modelwithblocks = reactive({
       if(isblockingtext()) {
-        if(input$model == "~.") {
-          inputterms = c(input$factorname1,input$factorname2,input$factorname3,input$factorname4,input$factorname5,input$factorname6)[1:input$numberfactors]
-          basemodel = paste0("~",paste(inputterms,collapse=" + "))
-        } else {
-          basemodel = input$model
-        }
-        basemodel = gsub(pattern="~",replacement = "",x=basemodel,fixed=TRUE)
+        basemodel = gsub(pattern="~",replacement = "",x=regularmodelstring(),fixed=TRUE)
         blockingmodelterms = "~ (1|Block1) + "
         paste0(blockingmodelterms,basemodel)
       }
@@ -1342,7 +1342,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                        "trials = ", as.character(input$numberblocks),")<br><br>"),collapse=""),""),
                        "<code style=\"color:#468449\"># Generating design:</code><br>",
                        "design = gen_design(candidateset = candidateset, <br>", rep("&nbsp;",20),
-                       "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",20),
+                       "model = ", regularmodelstring(), ",<br>", rep("&nbsp;",20),
                        "trials = ", as.character(input$trials)
       ),collapse="")
       if(blocking) {
@@ -1394,7 +1394,7 @@ skprGUI = function(inputValue1,inputValue2) {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating Design:</code><br>",
                          "eval_design(RunMatrix = design,<br>", rep("&nbsp;",12),
-                         "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",12),
+                         "model = ", regularmodelstring(), ",<br>", rep("&nbsp;",12),
                          "alpha = ", input$alpha),collapse="")
         if(isblockingtext()) {
           first = paste(c(first, ",<br>", rep("&nbsp;",12),
@@ -1442,7 +1442,7 @@ skprGUI = function(inputValue1,inputValue2) {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating (Monte Carlo) Design:</code><br>",
                          "eval_design_mc(RunMatrix = design,<br>", rep("&nbsp;",15),
-                         "model = ", as.character(as.formula(input$model)), ",<br>", rep("&nbsp;",15),
+                         "model = ", regularmodelstring(), ",<br>", rep("&nbsp;",15),
                          "alpha = ", input$alpha),collapse="")
         if(isblockingtext()) {
           first = paste(c(first, ",<br>", rep("&nbsp;",15),

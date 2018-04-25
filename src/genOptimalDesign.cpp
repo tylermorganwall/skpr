@@ -1,6 +1,5 @@
 #include <RcppEigen.h>
 #include "sample_eigen.h"
-#define NDEBUG 1
 
 using namespace Rcpp;
 

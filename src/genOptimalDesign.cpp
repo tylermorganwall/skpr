@@ -21,7 +21,6 @@ Eigen::VectorXi sample_noreplace(Eigen::VectorXi index, int number_sampled, int 
   for (i = 0; i < size; i++) {
     j = number_sampled * unif_rand();
     index(i) = sub(j);
-    // replace sampled element with last, decrement
     sub(j) = sub(--number_sampled);
   }
   return(index);

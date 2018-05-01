@@ -27,7 +27,7 @@ Imports:
     knitr,
     kableExtra,
     doRNG
-LinkingTo: Rcpp, RcppArmadillo, RcppEigen
+LinkingTo: Rcpp, RcppEigen
 Suggests: testthat
 URL: https://github.com/tylermorganwall/skpr
 BugReports: https://github.com/tylermorganwall/skpr/issues

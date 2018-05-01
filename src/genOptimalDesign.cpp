@@ -1,10 +1,31 @@
 #include <RcppEigen.h>
-#include "sample_eigen.h"
 
 using namespace Rcpp;
 
 //implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
 Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigned int nTrials);
+
+Eigen::VectorXi sample_replace(Eigen::VectorXi index, int number_sampled, int size) {
+  for (int i = 0; i < size; i++) {
+    index(i) = number_sampled * unif_rand();
+  }
+  return(index);
+}
+
+Eigen::VectorXi sample_noreplace(Eigen::VectorXi index, int number_sampled, int size) {
+  int i, j;
+  Eigen::VectorXi sub(number_sampled);
+  for (i = 0; i < number_sampled; i++) {
+    sub(i) = i;
+  }
+  for (i = 0; i < size; i++) {
+    j = number_sampled * unif_rand();
+    index(i) = sub(j);
+    // replace sampled element with last, decrement
+    sub(j) = sub(--number_sampled);
+  }
+  return(index);
+}
 
 //helper functions for orthogonal_initial
 unsigned int longest_row(const Eigen::MatrixXd& X, const std::vector<bool>& rows_used);
@@ -160,7 +181,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
       break; //design is nonsingular
     }
     Eigen::VectorXi orderedindices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
-    Eigen::VectorXi shuffledindices = sample_eigen(orderedindices, totalPoints, false);
+    Eigen::VectorXi shuffledindices = sample_noreplace(orderedindices, totalPoints, false);
 
     for (unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(shuffledindices(i % totalPoints));
@@ -172,7 +193,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   //should return a non-singular matrix if one can be constructed from the candidate set
   if (isSingular(initialdesign)) {
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
-    Eigen::VectorXi initrows_shuffled = sample_eigen(initrows, initrows.rows(), false);
+    Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows, initrows.rows(), false);
     for (unsigned int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
       aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
@@ -730,7 +751,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
       break;
     }
     Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
-    Eigen::VectorXi shuffledindices = sample_eigen(ordered_indices, totalPoints, false);
+    Eigen::VectorXi shuffledindices = sample_noreplace(ordered_indices, totalPoints, false);
 
     for (unsigned int i = 0; i < nTrials; i++) {
       candidateRow(i) = shuffledindices(i % totalPoints) + 1;
@@ -1409,7 +1430,7 @@ Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigne
   }
   //Then fill in the design with N - p randomly chosen rows from the candidatelist
   Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(candidatelist2.rows(), 0, candidatelist2.rows()-1);
-  Eigen::VectorXi random_indices = sample_eigen(ordered_indices, nTrials, true);
+  Eigen::VectorXi random_indices = sample_replace(ordered_indices, nTrials, true);
   for (unsigned int i = p; i < nTrials; i++) {
     design_rows(i) = random_indices(i);
   }

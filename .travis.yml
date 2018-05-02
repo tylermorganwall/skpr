@@ -2,10 +2,9 @@
 
 language: R
 sudo: false
-install: travis_wait 40 mvn install
 
 r_packages:
   - covr
 
 after_success:
-  - Rscript -e 'library(covr); codecov()'
+  - travis_wait 40 Rscript -e 'library(covr); codecov()'

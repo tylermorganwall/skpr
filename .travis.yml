@@ -2,6 +2,7 @@
 
 language: R
 sudo: false
+install: travis_wait 40 mvn install
 
 r_packages:
   - covr

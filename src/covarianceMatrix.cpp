@@ -1,9 +1,10 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-arma::mat covarianceMatrix(const arma::mat& design) {
-  return(inv_sympd(design.t()*design));
+Eigen::MatrixXd covarianceMatrix(const Eigen::MatrixXd& design) {
+  Eigen::MatrixXd XtX = design.transpose() * design;
+  return(XtX.inverse());
 }

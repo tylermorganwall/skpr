@@ -43,7 +43,7 @@ test_that("gen_design example code runs without errors", {
   #'
   #'#The optimality criterion can also be changed:
   expect_silent({design = gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="I")})
-  expect_silent({design = gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="A")}) #Ubuntu 14.04/Travis-CI
+  expect_silent({design = gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="A")})
   expect_silent({design = gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="D")})
   expect_silent({design = gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="E")})
   expect_silent({design = gen_design(designquad, ~a+b+I(a^2)+I(b^2)+a*b*c, 20,optimality="T")})
@@ -60,34 +60,28 @@ test_that("gen_design example code runs without errors", {
   #'
   #'#Now we can use the D-optimal blocked design as an input to our full design.
   #'
-  #'
   #'#Here, we specify the easy to change factors for the factorial design, and input the hard-to-change design
   #'#along with a vector listing the number of repetitions within each block for the blocked design. There should be
   #'#a size entry for every block and the number of runs specified in the trials argument needs to equal the
   #'#sum of all of the block sizes or else the program will throw an error.
   #'
-  #'#Since we have 11 runs in our hard-to-change design, we need a vector specifying the size of each 11 runs. Here
-  #'#we specify the blocks be three runs each (meaning the final design will be 33 runs):
-  #'
-  splitplotblocksize = rep(3,11)
-  #'
   #'#Putting this all together:
   expect_silent({
     designsplitplot = gen_design(candlist1, ~Altitude+Range+Power, trials=33, splitplotdesign=hardtochangedesign,
-                                 splitplotsizes = splitplotblocksize)})
+                                 splitplotsizes = 3)})
 
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
-                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="I")})
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="I")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
-                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="A")})
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="A")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
-                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="D")})
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="D")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
-                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="E")})
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="E")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
-                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="T")})
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="T")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
-                                     splitplotdesign=hardtochangedesign,splitplotsizes = splitplotblocksize,optimality="Alias")})
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="Alias")})
   #testing custom
   # customOpt = function(currentDesign) {
   #   return(det(t(currentDesign) %*% currentDesign))

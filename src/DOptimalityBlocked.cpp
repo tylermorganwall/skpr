@@ -1,13 +1,11 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-double DOptimalityBlocked(const arma::mat& currentDesign, const arma::mat& blockedVar) {
-  double val;
-  double sign;
-  arma::log_det(val,sign,currentDesign.t()*arma::inv_sympd(blockedVar)*currentDesign);
-  return(exp(val)*sign);
+double DOptimalityBlocked(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& blockedVar) {
+  Eigen::MatrixXd XtX = currentDesign.transpose() * blockedVar.householderQr().solve(currentDesign);
+  return(XtX.partialPivLu().determinant());
 }
 

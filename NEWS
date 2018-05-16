@@ -1,4 +1,34 @@
-﻿skpr v0.47.4 (Release date: 2018-03-16):
+﻿skpr v0.49.0 (Release date: 2018-05-16):
+================
+
+Major changes:
+
+• Switched underlying linear algebra library from Armadillo to Eigen. Significant speed-up for all design searches. Added rank-2 update formula to speed-up Alias-optimal, I-optimal, and A-optimal designs.
+
+• `gen_design()` now rearranges the levels for categorical factors from fewest to most number of observations for unbalanced designs (default ordering in R if equal).
+
+• `gen_design()` argument "advancedoptions" now has an option to turn off alias-based tie breaking.
+
+• Re-implemented `.` handling in formulas to align more with `lm()`. 
+
+
+Minor changes/Bug fixes:
+
+• Fixed Alias-tie breaking non-linearity.
+
+• Updated GUI code pane to show actual model being used (instead of dots). 
+
+• Improved error handling of code pane.
+
+• Fixed conservative anticipated coefficient bug that occurred when 3+ parameter powers were equal.
+
+• Fixed bug with generation of anticipated coefficients for interactions with quadratic effects.
+
+Deprecations:
+
+• `quad(.)` function support removed.
+
+skpr v0.47.4 (Release date: 2018-03-16):
 ================
 
 • Implemented several optimizations that vastly improve speed and performance for D-optimal design generation.

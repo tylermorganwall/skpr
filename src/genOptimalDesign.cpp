@@ -132,8 +132,8 @@ void rankUpdate(Eigen::MatrixXd& vinv, const Eigen::VectorXd& pointold, const Ei
 }
 
 Eigen::MatrixXd rankUpdateValue(Eigen::MatrixXd& vinv, const Eigen::VectorXd& pointold, const Eigen::VectorXd& pointnew,
-                const Eigen::MatrixXd& identity,
-                Eigen::MatrixXd& f1, Eigen::MatrixXd& f2,Eigen::MatrixXd& f2vinv) {
+                                const Eigen::MatrixXd& identity,
+                                Eigen::MatrixXd& f1, Eigen::MatrixXd& f2,Eigen::MatrixXd& f2vinv) {
   f1.col(0) = pointnew; f1.col(1) = -pointold;
   f2.col(0) = pointnew; f2.col(1) = pointold;
   f2vinv = f2.transpose()*vinv;
@@ -699,17 +699,14 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   bool interstrata = (numberinteractions > 0);
   //Generate blocking structure inverse covariance matrix
   const Eigen::MatrixXd vInv = blockedVar.colPivHouseholderQr().inverse();
+  Eigen::MatrixXd ones(initialdesign.rows(),1);
+  ones.col(0).setOnes();
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
   for(unsigned int j = 1; j < candidatelist.cols(); j++) {
-    if(candidatelist.col(0).cwiseEqual(candidatelist.col(j)).all()) {
+    if(ones.col(0).cwiseEqual(candidatelist.col(j)).all()) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
   }
-  //Remove intercept term, as it's now located in the blocked
-  candidatelist = candidatelist.rightCols(candidatelist.cols()-1);
-  initialdesign = initialdesign.rightCols(initialdesign.cols()-1);
-  aliasdesign = aliasdesign.rightCols(aliasdesign.cols()-1);
-  aliascandidatelist = aliascandidatelist.rightCols(aliascandidatelist.cols()-1);
 
   unsigned int nTrials = initialdesign.rows();
   unsigned int maxSingularityChecks = nTrials*10;
@@ -719,7 +716,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   int designColsAlias = aliasdesign.cols();
   LogicalVector mustchange(nTrials, false);
 
-  Eigen::MatrixXd combinedDesign(nTrials, blockedCols+designCols + numberinteractions);
+  Eigen::MatrixXd combinedDesign(nTrials, blockedCols + designCols + numberinteractions);
   combinedDesign.setZero();
   combinedDesign.leftCols(blockedCols) = blockeddesign;
   combinedDesign.middleCols(blockedCols, designCols) = initialdesign;
@@ -778,6 +775,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
       }
     }
   }
+
   double del = 0;
   bool found = false;
   int entryx = 0;
@@ -803,7 +801,6 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         temp = combinedDesign;
         for (unsigned int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
-
           if(interstrata) {
             for(unsigned int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);

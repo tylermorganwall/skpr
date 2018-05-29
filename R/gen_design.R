@@ -575,9 +575,9 @@ gen_design = function(candidateset, model, trials,
           }
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
           genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
-                                          condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
-                                          aliasdesign = aliasmm[randomIndices,],
-                                          aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                                            condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
+                                            aliasdesign = aliasmm[randomIndices,],
+                                            aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
         }
       } else {
         if(!is.null(progressBarUpdater)) {
@@ -621,7 +621,7 @@ gen_design = function(candidateset, model, trials,
                              aliasdesign = aliasmm[randomIndices,],
                              aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
           }
-          }, finally = {
+        }, finally = {
           tryCatch({
             parallel::stopCluster(cl)
           }, error = function (e) {})
@@ -647,10 +647,10 @@ gen_design = function(candidateset, model, trials,
                              aliasdesign = aliasmm[randomIndices,],
                              aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
           }
-          }, finally = {
-            tryCatch({
-              parallel::stopCluster(cl)
-            }, error = function (e) {})
+        }, finally = {
+          tryCatch({
+            parallel::stopCluster(cl)
+          }, error = function (e) {})
         })
         genOutput = as.list(c(genOutputOne,genOutput))
       }
@@ -690,11 +690,11 @@ gen_design = function(candidateset, model, trials,
             progressBarUpdater(1/repeats)
           }
           randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
+                                                   candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                                   aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,-1,drop=FALSE],
+                                                   aliascandidatelist = aliasmm[,-1,drop=FALSE], minDopt = minDopt, interactions = interactionlist,
                                                    disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         }
       } else {
@@ -704,11 +704,11 @@ gen_design = function(candidateset, model, trials,
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-        genOutput[[1]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                                 candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+        genOutput[[1]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
+                                                 candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
                                                  condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                 blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                                 aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                                 blockedVar=V, aliasdesign = aliasmm[randomIndices,-1,drop=FALSE],
+                                                 aliascandidatelist = aliasmm[,-1,drop=FALSE], minDopt = minDopt, interactions = interactionlist,
                                                  disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         if(!is.null(progressBarUpdater)) {
@@ -719,11 +719,11 @@ gen_design = function(candidateset, model, trials,
             progressBarUpdater(1/repeats)
           }
           randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                                   candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
+                                                   candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
                                                    condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                                   aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                                   blockedVar=V, aliasdesign = aliasmm[randomIndices,-1,drop=FALSE],
+                                                   aliascandidatelist = aliasmm[,-1,drop=FALSE], minDopt = minDopt, interactions = interactionlist,
                                                    disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         }
       }
@@ -739,17 +739,17 @@ gen_design = function(candidateset, model, trials,
         genOutput = tryCatch({
           foreach(i=1:repeats) %dorng% {
             randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
+                                    candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
                                     condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                    aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,-1,drop=FALSE],
+                                    aliascandidatelist = aliasmm[,-1,drop=FALSE], minDopt = minDopt, interactions = interactionlist,
                                     disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
           }
-          }, finally = {
-            tryCatch({
-              parallel::stopCluster(cl)
-            }, error = function (e) {})
+        }, finally = {
+          tryCatch({
+            parallel::stopCluster(cl)
+          }, error = function (e) {})
         })
       } else {
         cl = parallel::makeCluster(numbercores)
@@ -758,28 +758,28 @@ gen_design = function(candidateset, model, trials,
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-        genOutputOne = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                               candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+        genOutputOne = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
+                                               candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
                                                condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                               blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                               aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                               blockedVar=V, aliasdesign = aliasmm[randomIndices,-1,drop=FALSE],
+                                               aliascandidatelist = aliasmm[,-1,drop=FALSE], minDopt = minDopt, interactions = interactionlist,
                                                disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
           foreach(i=2:repeats) %dorng% {
             randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
-            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,],
-                                    candidatelist=candidatesetmm, blockeddesign = blockedModelMatrix,
+            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
+                                    candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
                                     condition=optimality, momentsmatrix = blockedMM, initialRows = randomIndices,
-                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,],
-                                    aliascandidatelist = aliasmm, minDopt = minDopt, interactions = interactionlist,
+                                    blockedVar=V, aliasdesign = aliasmm[randomIndices,-1,drop=FALSE],
+                                    aliascandidatelist = aliasmm[,-1,drop=FALSE], minDopt = minDopt, interactions = interactionlist,
                                     disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance=tolerance)
           }
-          }, finally = {
-            tryCatch({
-              parallel::stopCluster(cl)
-            }, error = function (e) {})
+        }, finally = {
+          tryCatch({
+            parallel::stopCluster(cl)
+          }, error = function (e) {})
         })
         genOutput = as.list(c(genOutputOne,genOutput))
       }
@@ -834,11 +834,11 @@ gen_design = function(candidateset, model, trials,
             amodel2 = aliasmodel(model,advancedoptions$alias_tie_power)
           }
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1]
+            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1,drop=FALSE]
           })
-          } else {
+        } else {
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset),contrasts.arg = contrastslist)[,-1]
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset),contrasts.arg = contrastslist)[,-1,drop=FALSE]
           })
         }
         aliasvalues[[i]] = calcAliasTrace(designs[[i]],aliasmatrix)

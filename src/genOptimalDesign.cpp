@@ -3,7 +3,7 @@
 using namespace Rcpp;
 
 //implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
-Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigned int nTrials);
+Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, int nTrials);
 
 Eigen::VectorXi sample_replace(Eigen::VectorXi index, int number_sampled, int size) {
   for (int i = 0; i < size; i++) {
@@ -27,16 +27,16 @@ Eigen::VectorXi sample_noreplace(Eigen::VectorXi index, int number_sampled, int 
 }
 
 //helper functions for orthogonal_initial
-unsigned int longest_row(const Eigen::MatrixXd& X, const std::vector<bool>& rows_used);
-void orthogonalize_input(Eigen::MatrixXd& X, unsigned int basis_row, const std::vector<bool>& rows_used);
+int longest_row(const Eigen::MatrixXd& X, const std::vector<bool>& rows_used);
+void orthogonalize_input(Eigen::MatrixXd& X, int basis_row, const std::vector<bool>& rows_used);
 
 void search_candidate_set(const Eigen::MatrixXd& V, const Eigen::MatrixXd& candidatelist_trans,
                           const Eigen::VectorXd& designrow,
-                          double xVx, unsigned int& entryy, bool& found, double& del) {
+                          double xVx, int& entryy, bool& found, double& del) {
   Eigen::VectorXd yV(candidatelist_trans.rows());
   double newdel = 0;
-  unsigned int ncols = candidatelist_trans.cols();
-  for (unsigned int j = 0; j < ncols; j++) {
+  int ncols = candidatelist_trans.cols();
+  for (int j = 0; j < ncols; j++) {
     yV = V * candidatelist_trans.col(j);
     newdel = yV.dot(candidatelist_trans.col(j))*(1 - xVx) - xVx + pow(yV.dot(designrow),2);
     if(newdel > del) {
@@ -158,31 +158,31 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
                       const Eigen::MatrixXd& momentsmatrix, NumericVector initialRows,
                       Eigen::MatrixXd aliasdesign, const Eigen::MatrixXd& aliascandidatelist, double minDopt, double tolerance) {
   RNGScope rngScope;
-  unsigned int nTrials = initialdesign.rows();
+  int nTrials = initialdesign.rows();
   double numberrows = initialdesign.rows();
   double numbercols = initialdesign.cols();
-  unsigned int maxSingularityChecks = nTrials*100;
-  unsigned int totalPoints = candidatelist.rows();
+  int maxSingularityChecks = nTrials*100;
+   int totalPoints = candidatelist.rows();
   Eigen::VectorXd candidateRow(nTrials);
   Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
   test.setZero();
   if(nTrials < candidatelist.cols()) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
-  for(unsigned int j = 1; j < candidatelist.cols(); j++) {
+  for(int j = 1; j < candidatelist.cols(); j++) {
     if(candidatelist.col(0).cwiseEqual(candidatelist.col(j)).all()) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
   }
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
-  for (unsigned int check = 0; check < maxSingularityChecks; check++) {
+  for (int check = 0; check < maxSingularityChecks; check++) {
     if(!isSingular(initialdesign)) {
       break; //design is nonsingular
     }
     Eigen::VectorXi orderedindices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
     Eigen::VectorXi shuffledindices = sample_noreplace(orderedindices, totalPoints, false);
 
-    for (unsigned int i = 0; i < nTrials; i++) {
+    for (int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(shuffledindices(i % totalPoints));
       aliasdesign.row(i) = aliascandidatelist.row(shuffledindices(i % totalPoints));
       initialRows(i) = shuffledindices(i % totalPoints) + 1; //R indexes start at 1
@@ -193,7 +193,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   if (isSingular(initialdesign)) {
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
     Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows, initrows.rows(), false);
-    for (unsigned int i = 0; i < nTrials; i++) {
+    for (int i = 0; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
       aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
       initialRows(i) = initrows_shuffled(i) + 1; //R indexes start at 1
@@ -207,8 +207,8 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
 
   bool found = true;
   double del = 0;
-  unsigned int entryx = 0;
-  unsigned int entryy = 0;
+  int entryx = 0;
+  int entryy = 0;
   double newOptimum = 0;
   double priorOptimum = 0;
   double minDelta = tolerance;
@@ -234,7 +234,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
 
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryy = 0;
@@ -267,12 +267,12 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           newdel = calculateIOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),momentsmatrix);
           if(newdel < del) {
             found = true;
@@ -301,12 +301,12 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           newdel = calculateAOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv));
           if(newdel < del) {
             found = true;
@@ -341,7 +341,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
 
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryy = 0;
@@ -399,14 +399,14 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
       while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
         first++;
         priorOptimum = optimum;
-        for (unsigned int i = 0; i < nTrials; i++) {
+        for (int i = 0; i < nTrials; i++) {
           Rcpp::checkUserInterrupt();
           found = false;
           entryx = 0;
           entryy = 0;
           temp = initialdesignTemp;
           tempalias = aliasdesign;
-          for (unsigned int j = 0; j < totalPoints; j++) {
+          for (int j = 0; j < totalPoints; j++) {
             temp.row(i) = candidatelist.row(j);
             tempalias.row(i) = aliascandidatelist.row(j);
             currentA = calculateAliasTrace(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp,tempalias);
@@ -455,13 +455,13 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.row(i) = candidatelist.row(j);
@@ -497,13 +497,13 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.row(i) = candidatelist.row(j);
           newdel = calculateTOptimality(temp);
           if(newdel > del) {
@@ -534,13 +534,13 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.row(i) = candidatelist.row(j);
           newdel = calculateEOptimality(temp);
           if(newdel > del) {
@@ -573,13 +573,13 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.row(i) = candidatelist.row(j);
           newdel = calculateCustomOptimality(temp,customOpt);
           if(newdel > del) {
@@ -695,23 +695,23 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //Load the R RNG
   RNGScope rngScope;
   //check and log whether there are inter-strata interactions
-  unsigned int numberinteractions = interactions.size();
+  int numberinteractions = interactions.size();
   bool interstrata = (numberinteractions > 0);
   //Generate blocking structure inverse covariance matrix
   const Eigen::MatrixXd vInv = blockedVar.colPivHouseholderQr().inverse();
   Eigen::MatrixXd ones(initialdesign.rows(),1);
   ones.col(0).setOnes();
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
-  for(unsigned int j = 1; j < candidatelist.cols(); j++) {
+  for(int j = 1; j < candidatelist.cols(); j++) {
     if(ones.col(0).cwiseEqual(candidatelist.col(j)).all()) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
   }
 
-  unsigned int nTrials = initialdesign.rows();
-  unsigned int maxSingularityChecks = nTrials*10;
-  unsigned int totalPoints = candidatelist.rows();
-  unsigned int blockedCols = blockeddesign.cols();
+  int nTrials = initialdesign.rows();
+  int maxSingularityChecks = nTrials*10;
+  int totalPoints = candidatelist.rows();
+  int blockedCols = blockeddesign.cols();
   int designCols = initialdesign.cols();
   int designColsAlias = aliasdesign.cols();
   LogicalVector mustchange(nTrials, false);
@@ -730,7 +730,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //combinedAliasDesign(arma::span::all,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliasdesign;
 
   if(interstrata) {
-    for(unsigned int i = 0; i < numberinteractions; i++) {
+    for(int i = 0; i < numberinteractions; i++) {
       combinedDesign.col(blockedCols+designCols + i) = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1).cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[i])[1]-1));
       combinedAliasDesign.col(blockedCols+designColsAlias + i) = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1).cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[i])[1]-1));
     }
@@ -742,20 +742,20 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   if(nTrials < candidatelist.cols() + blockedCols + numberinteractions) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
-  for (unsigned int check = 0; check < maxSingularityChecks; check++) {
+  for (int check = 0; check < maxSingularityChecks; check++) {
     if (!isSingularBlocked(combinedDesign,vInv)){
       break;
     }
     Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
     Eigen::VectorXi shuffledindices = sample_noreplace(ordered_indices, totalPoints, false);
 
-    for (unsigned int i = 0; i < nTrials; i++) {
+    for (int i = 0; i < nTrials; i++) {
       candidateRow(i) = shuffledindices(i % totalPoints) + 1;
       initialRows(i) = shuffledindices(i % totalPoints) + 1;
       combinedDesign.block(i, blockedCols, 1, designCols) = candidatelist.row(shuffledindices(i % totalPoints));
       combinedAliasDesign.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(shuffledindices(i % totalPoints));
       if (interstrata) {
-        for(unsigned int j = 0; j < numberinteractions; j++) {
+        for(int j = 0; j < numberinteractions; j++) {
           combinedDesign.col(blockedCols+designCols + j) = combinedDesign.col(as<NumericVector>(interactions[j])[0]-1).cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[j])[1]-1));
           combinedAliasDesign.col(blockedCols+designColsAlias + j) = combinedAliasDesign.col(as<NumericVector>(interactions[j])[0]-1).cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[j])[1]-1));
         }
@@ -767,8 +767,8 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
   if(anydisallowed) {
-    for(unsigned int i = 0; i < nTrials; i++) {
-      for(unsigned int j = 0; j < disallowed.rows(); j++) {
+    for(int i = 0; i < nTrials; i++) {
+      for(int j = 0; j < disallowed.rows(); j++) {
         if(combinedDesign.row(i).cwiseEqual(disallowed.row(j)).all()) {
           mustchange[i] = true;
         }
@@ -793,23 +793,23 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedDOptimality(combinedDesign,vInv);
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+            for(int k = 0; k < disallowed.rows(); k++) {
               if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
@@ -826,7 +826,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
@@ -847,25 +847,25 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     priorOptimum = del/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
             if(interstrata) {
-              for(unsigned int k = 0; k < numberinteractions; k++) {
+              for(int k = 0; k < numberinteractions; k++) {
                 temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
               }
             }
 
             pointallowed = true;
             if(anydisallowed) {
-              for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              for(int k = 0; k < disallowed.rows(); k++) {
                 if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                   pointallowed = false;
                 }
@@ -886,7 +886,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
@@ -911,24 +911,24 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
             if(interstrata) {
-              for(unsigned int k = 0; k < numberinteractions; k++) {
+              for(int k = 0; k < numberinteractions; k++) {
                 temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
               }
             }
             pointallowed = true;
             if(anydisallowed) {
-              for(unsigned int k = 0; k < disallowed.rows(); k++) {
+              for(int k = 0; k < disallowed.rows(); k++) {
                 if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                   pointallowed = false;
                 }
@@ -949,7 +949,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
@@ -969,23 +969,23 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedTOptimality(combinedDesign,vInv);
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+            for(int k = 0; k < disallowed.rows(); k++) {
               if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
@@ -1005,7 +1005,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
@@ -1027,23 +1027,23 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedEOptimality(combinedDesign,vInv);
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+            for(int k = 0; k < disallowed.rows(); k++) {
               if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
@@ -1066,7 +1066,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
@@ -1087,7 +1087,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //   reducedCandidateList(arma::span::all,arma::span(0,blockedCols+designCols-1)) = fullcandidateset;
   //
   //   if(interstrata) {
-  //     for(unsigned int i = 0; i < numberinteractions; i++) {
+  //     for(int i = 0; i < numberinteractions; i++) {
   //       reducedCandidateList.col(blockedCols+designCols + i) = reducedCandidateList.col(as<NumericVector>(interactions[i])[0]-1) % reducedCandidateList.col(as<NumericVector>(interactions[i])[1]-1);
   //     }
   //   }
@@ -1095,14 +1095,14 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //   LogicalVector mustdelete(fullcandidatesetrows(), false);
   //
   //   if(anydisallowed) {
-  //     for(unsigned int i = 0; i < fullcandidatesetrows(); i++) {
-  //       for(unsigned int j = 0; j < disallowedrows(); j++) {
+  //     for(int i = 0; i < fullcandidatesetrows(); i++) {
+  //       for(int j = 0; j < disallowedrows(); j++) {
   //         if(all(reducedCandidateList.row(i) == disallowed.row(j))) {
   //           mustdelete[i] = true;
   //         }
   //       }
   //     }
-  //     for(unsigned int i = fullcandidatesetrows(); i > 0; i--) {
+  //     for(int i = fullcandidatesetrows(); i > 0; i--) {
   //       if(mustdelete[i]) {
   //         reducedCandidateList.shed_row(i);
   //       }
@@ -1115,23 +1115,23 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //   while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
   //     del = newOptimum;
   //     priorOptimum = newOptimum;
-  //     for (unsigned int i = 0; i < nTrials; i++) {
+  //     for (int i = 0; i < nTrials; i++) {
   //       Rcpp::checkUserInterrupt();
   //       found = false;
   //       entryx = 0;
   //       entryy = 0;
   //       temp = combinedDesign;
-  //       for (unsigned int j = 0; j < totalPoints; j++) {
+  //       for (int j = 0; j < totalPoints; j++) {
   //         temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
   //         if(interstrata) {
-  //           for(unsigned int k = 0; k < numberinteractions; k++) {
+  //           for(int k = 0; k < numberinteractions; k++) {
   //             temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
   //           }
   //         }
   //
   //         pointallowed = true;
   //         if(anydisallowed) {
-  //           for(unsigned int k = 0; k < disallowedrows(); k++) {
+  //           for(int k = 0; k < disallowedrows(); k++) {
   //             if(all(temp.row(i) == disallowed.row(k))) {
   //               pointallowed = false;
   //             }
@@ -1154,7 +1154,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //       if (found) {
   //         combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
   //         if(interstrata) {
-  //           for(unsigned int k = 0; k < numberinteractions; k++) {
+  //           for(int k = 0; k < numberinteractions; k++) {
   //             combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
   //           }
   //         }
@@ -1178,25 +1178,25 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedDOptimality(combinedDesign,vInv);
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
 
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
 
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+            for(int k = 0; k < disallowed.rows(); k++) {
               if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
@@ -1215,7 +1215,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
               combinedAliasDesign(i,blockedCols+designColsAlias + k) = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedAliasDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
@@ -1256,19 +1256,19 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
       while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
         first++;
         priorOptimum = optimum;
-        for (unsigned int i = 0; i < nTrials; i++) {
+        for (int i = 0; i < nTrials; i++) {
           Rcpp::checkUserInterrupt();
           found = false;
           entryx = 0;
           entryy = 0;
           temp = combinedDesignTemp;
           tempalias = combinedAliasDesign;
-          for (unsigned int j = 0; j < totalPoints; j++) {
+          for (int j = 0; j < totalPoints; j++) {
             try {
               temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
               tempalias.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(j);
               if(interstrata) {
-                for(unsigned int k = 0; k < numberinteractions; k++) {
+                for(int k = 0; k < numberinteractions; k++) {
                   temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
                   tempalias(i,blockedCols+designColsAlias + k) = tempalias(i,as<NumericVector>(interactions[k])[0]-1) * tempalias(i,as<NumericVector>(interactions[k])[1]-1);
                 }
@@ -1279,7 +1279,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
 
               pointallowed = true;
               if(anydisallowed) {
-                for(unsigned int k = 0; k < disallowed.rows(); k++) {
+                for(int k = 0; k < disallowed.rows(); k++) {
                   if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                     pointallowed = false;
                   }
@@ -1301,7 +1301,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             combinedDesignTemp.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
             combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
             if(interstrata) {
-              for(unsigned int k = 0; k < numberinteractions; k++) {
+              for(int k = 0; k < numberinteractions; k++) {
                 combinedDesignTemp(i,blockedCols+designCols + k) = combinedDesignTemp(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesignTemp(i,as<NumericVector>(interactions[k])[1]-1);
                 combinedAliasDesign(i,blockedCols+designColsAlias + k) = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedAliasDesign(i,as<NumericVector>(interactions[k])[1]-1);
               }
@@ -1338,23 +1338,23 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt, vInv);
-      for (unsigned int i = 0; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        for (unsigned int j = 0; j < totalPoints; j++) {
+        for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
 
           pointallowed = true;
           if(anydisallowed) {
-            for(unsigned int k = 0; k < disallowed.rows(); k++) {
+            for(int k = 0; k < disallowed.rows(); k++) {
               if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
                 pointallowed = false;
               }
@@ -1377,7 +1377,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
-            for(unsigned int k = 0; k < numberinteractions; k++) {
+            for(int k = 0; k < numberinteractions; k++) {
               combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
             }
           }
@@ -1394,7 +1394,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = combinedDesign, _["criterion"] = newOptimum));
 }
 
-Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigned int nTrials) {
+Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, int nTrials) {
   //Construct a nonsingular design matrix from candidatelist using the nullify procedure
   //Returns a vector of rownumbers indicating which runs from candidatelist to use
   //These rownumbers are not shuffled; you must do that yourself if randomizing the order is important
@@ -1408,9 +1408,9 @@ Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigne
   Eigen::VectorXi design_rows(nTrials);  //return value
 
   double tolerance = 1e-8;
-  const unsigned int p = candidatelist2.cols();
-  for (unsigned int i = 0; i < p; i++) {
-    unsigned int nextrow = longest_row(candidatelist2, design_flag);
+  const int p = candidatelist2.cols();
+  for (int i = 0; i < p; i++) {
+    int nextrow = longest_row(candidatelist2, design_flag);
     double nextrow_length = candidatelist2.row(nextrow).norm();
     if (i == 0) {
       tolerance = tolerance * nextrow_length; //scale tolerance to candidate list's longest vector
@@ -1427,7 +1427,7 @@ Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigne
   //Then fill in the design with N - p randomly chosen rows from the candidatelist
   Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(candidatelist2.rows(), 0, candidatelist2.rows()-1);
   Eigen::VectorXi random_indices = sample_replace(ordered_indices, nTrials, true);
-  for (unsigned int i = p; i < nTrials; i++) {
+  for (int i = p; i < nTrials; i++) {
     design_rows(i) = random_indices(i);
   }
 
@@ -1435,11 +1435,11 @@ Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, unsigne
 }
 
 
-unsigned int longest_row(const Eigen::MatrixXd& V, const std::vector<bool>& rows_used) {
+int longest_row(const Eigen::MatrixXd& V, const std::vector<bool>& rows_used) {
   //Return the index of the longest unused row in V
   double longest = -1;
-  unsigned int index = 0;
-  for (unsigned int i = 0; i < V.rows(); i++) {
+  int index = 0;
+  for (int i = 0; i < V.rows(); i++) {
     if (!rows_used[i]) {
       double this_len = V.row(i).dot(V.row(i));
       if (this_len > longest) {
@@ -1452,11 +1452,11 @@ unsigned int longest_row(const Eigen::MatrixXd& V, const std::vector<bool>& rows
 }
 
 
-void orthogonalize_input(Eigen::MatrixXd& X, unsigned int basis_row, const std::vector<bool>& rows_used) {
+void orthogonalize_input(Eigen::MatrixXd& X, int basis_row, const std::vector<bool>& rows_used) {
   //Gram-Schmidt orthogonalize <X> - in place - with respect to its rownumber <basis_row>
   //Only unused rows (as indicated by <rows_used>) are considered.
   double basis_norm = X.row(basis_row).dot(X.row(basis_row));
-  for (unsigned int i = 0; i < X.rows(); i++) {
+  for (int i = 0; i < X.rows(); i++) {
     if (!rows_used[i]) {
       double dotprod = X.row(i).dot(X.row(basis_row));
       X.row(i) -= X.row(basis_row)*dotprod/basis_norm;

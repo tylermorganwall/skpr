@@ -1,4 +1,10 @@
-﻿skpr v0.49.0 (Release date: 2018-05-16):
+﻿skpr v0.49.1 (Release date: 2018-05-30):
+================
+
+Bug fixes: Fixed memory access issue for the CRAN.
+
+
+skpr v0.49.0 (Release date: 2018-05-16):
 ================
 
 Major changes:

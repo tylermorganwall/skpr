@@ -33,8 +33,8 @@ DOptimalityBlocked <- function(currentDesign, blockedVar) {
     .Call(`_skpr_DOptimalityBlocked`, currentDesign, blockedVar)
 }
 
-genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance) {
-    .Call(`_skpr_genOptimalDesign`, initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance)
+genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows) {
+    .Call(`_skpr_genOptimalDesign`, initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows)
 }
 
 genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt, interactions, disallowed, anydisallowed, tolerance) {

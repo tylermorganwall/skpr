@@ -29,6 +29,8 @@
 #' define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
 #' "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 #'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
+#'@param augmentdesign Default NULL. A dataframe of runs that are fixed during the optimal search process. The columns of augmentdesign must match those of the candidate set.
+#'The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.
 #'@param repeats The number of times to repeat the search for the best optimal design. Default 20.
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design. Default 1.
@@ -198,6 +200,19 @@
 #'design = gen_design(candlistcustom, ~Altitude+Range+Power, trials=33,
 #'                    splitplotdesign=htcdesign,splitplotsizes = 3,optimality="CUSTOM",repeats=10)
 #'
+#'#gen_design can also augment an existing design. Input a dataframe of pre-existing runs
+#'#to the `augmentdesign` argument. Those runs in the new design will be fixed, and gen_design
+#'#will perform a search for the remaining `trials - nrow(augmentdesign)` runs.
+#'
+#'candidateset = expand.grid(height=c(10,20), weight=c(45,55,65), range = c(1,2,3))
+#'
+#'design_to_augment = gen_design(candidateset,~height+weight+range, 5)
+#'
+#'#As long as the columns in the augmented design match the columns in the candidate set,
+#'#this design can be augmented.
+#'
+#'augmented_design=gen_design(candidateset,~height+weight+range,16, augmentdesign = design_to_augment)
+#'
 #'#A design's diagnostics can be accessed via the following attributes:
 #'
 #'attr(design,"D") #D-Efficiency
@@ -226,6 +241,7 @@
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(candidateset, model, trials,
                       splitplotdesign = NULL, splitplotsizes = NULL, optimality="D",
+                      augmentdesign=NULL,
                       repeats=20, varianceratio = 1, contrast=contr.simplex,
                       aliaspower = 2, minDopt = 0.8,
                       parallel=FALSE, timer=FALSE, splitcolumns=FALSE,
@@ -286,6 +302,7 @@ gen_design = function(candidateset, model, trials,
       model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
     }
   }
+
 
   if(is.null(contrast)) {
     contrast = function(n) contr.simplex(n,size=sqrt(n-1))
@@ -428,9 +445,47 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
+  #----Check for augmented design and normalize/equalize factor levels if present----#
+  if(!is.null(augmentdesign)) {
+    if(!is.null(splitplotdesign)) {
+      stop("Design augmentation not available with split-plot designs.")
+    }
+    if(any(colnames(augmentdesign) != colnames(candidateset))) {
+      stop("Column names for augmented design and candidate set must be equal.")
+    }
+    if(ncol(augmentdesign) != ncol(candidateset)) {
+      stop("Number of columns in the augmented design must equal number of columns in the candidate set.")
+    }
+    if(any(unlist(lapply(augmentdesign,class)) != unlist(lapply(candidateset,class)))) {
+      stop("All column types in the augmented design should be equal to the column types in the candidate set.")
+    }
+    if(nrow(augmentdesign) >= trials) {
+      stop("Total number of trials must exceed the number of runs in augmented design.")
+    }
+    #Check and make sure factor levels are equal
+    for(i in 1:ncol(augmentdesign)) {
+      if(is.character(augmentdesign[,i]) || is.factor(augmentdesign[,i])) {
+        candidateset[,i] = factor(candidateset[,i])
+        augmentdesign[,i] = factor(augmentdesign[,i],levels=levels(candidateset[,i]))
+      }
+    }
+
+    #Normalize
+    augmentnormalized = augmentdesign
+    for(column in 1:ncol(augmentnormalized)) {
+      if(is.numeric(augmentnormalized[,column])) {
+        midvalue = mean(c(max(augmentnormalized[,column]),min(augmentnormalized[,column])))
+        augmentnormalized[,column] = (augmentnormalized[,column]-midvalue)/(max(augmentnormalized[,column])-midvalue)
+      }
+    }
+    augmentedrows = nrow(augmentdesign)
+  } else {
+    augmentedrows = 0
+  }
+
 
   blocking=FALSE
-  #generate blocked design with replicates
+  #-----generate blocked design with replicates-----#
   if(!is.null(splitplotdesign)) {
     if(!is.null(attr(splitplotdesign,"varianceratios"))) {
       if(!is.null(attr(splitplotdesign,"varianceratios"))) {
@@ -517,12 +572,18 @@ gen_design = function(candidateset, model, trials,
   if(length(contrastslist) == 0) {
     if(is.null(splitplotdesign)) {
       candidatesetmm = model.matrix(model,candidatesetnormalized)
+      if(!is.null(augmentdesign)) {
+        augmentdesignmm = model.matrix(model, augmentnormalized)
+      }
     } else {
       candidatesetmm = model.matrix(modelnowholeformula,candidatesetnormalized)
     }
   } else {
     if(is.null(splitplotdesign)) {
       candidatesetmm = suppressWarnings(model.matrix(model,candidatesetnormalized,contrasts.arg=contrastslist))
+      if(!is.null(augmentdesign)) {
+        augmentdesignmm = model.matrix(model, augmentnormalized,contrasts.arg=contrastslist)
+      }
     } else {
       candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
       fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidateset,contrasts.arg=fullcontrastlist))
@@ -574,10 +635,15 @@ gen_design = function(candidateset, model, trials,
             progressBarUpdater(1/repeats)
           }
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-          genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+          initialdesign = candidatesetmm[randomIndices,]
+          if(!is.null(augmentdesign)) {
+            initialdesign[1:augmentedrows,] = augmentdesignmm
+          }
+          genOutput[[i]] = genOptimalDesign(initialdesign = initialdesign, candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                             aliasdesign = aliasmm[randomIndices,],
-                                            aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                                            aliascandidatelist = aliasmm, minDopt = minDopt,
+                                            tolerance = tolerance,augmentedrows = augmentedrows)
         }
       } else {
         if(!is.null(progressBarUpdater)) {
@@ -587,20 +653,30 @@ gen_design = function(candidateset, model, trials,
         ptm = proc.time()
 
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-        genOutput[[1]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+        initialdesign = candidatesetmm[randomIndices,]
+        if(!is.null(augmentdesign)) {
+          initialdesign[1:augmentedrows,] = augmentdesignmm
+        }
+        genOutput[[1]] = genOptimalDesign(initialdesign = initialdesign, candidatelist=candidatesetmm,
                                           condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                           aliasdesign = aliasmm[randomIndices,],
-                                          aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                                          aliascandidatelist = aliasmm, minDopt = minDopt,
+                                          tolerance = tolerance, augmentedrows = augmentedrows)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)), " seconds."),collapse=""))
         for(i in 2:repeats) {
           if(!is.null(progressBarUpdater)) {
             progressBarUpdater(1/repeats)
           }
           randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-          genOutput[[i]] = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+          initialdesign = candidatesetmm[randomIndices,]
+          if(!is.null(augmentdesign)) {
+            initialdesign[1:augmentedrows,] = augmentdesignmm
+          }
+          genOutput[[i]] = genOptimalDesign(initialdesign = initialdesign, candidatelist=candidatesetmm,
                                             condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                             aliasdesign = aliasmm[randomIndices,],
-                                            aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                                            aliascandidatelist = aliasmm, minDopt = minDopt,
+                                            tolerance = tolerance, augmentedrows = augmentedrows)
         }
       }
     } else {
@@ -616,10 +692,15 @@ gen_design = function(candidateset, model, trials,
         genOutput = tryCatch({
           foreach(i=1:repeats) %dorng% {
             randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-            genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+            initialdesign = candidatesetmm[randomIndices,]
+            if(!is.null(augmentdesign)) {
+              initialdesign[1:augmentedrows,] = augmentdesignmm
+            }
+            genOptimalDesign(initialdesign = initialdesign, candidatelist=candidatesetmm,
                              condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                              aliasdesign = aliasmm[randomIndices,],
-                             aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                             aliascandidatelist = aliasmm, minDopt = minDopt,
+                             tolerance = tolerance, augmentedrows = augmentedrows)
           }
         }, finally = {
           tryCatch({
@@ -633,19 +714,29 @@ gen_design = function(candidateset, model, trials,
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-        genOutputOne = genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+        initialdesign = candidatesetmm[randomIndices,]
+        if(!is.null(augmentdesign)) {
+          initialdesign[1:augmentedrows,] = augmentdesignmm
+        }
+        genOutputOne = genOptimalDesign(initialdesign = initialdesign, candidatelist=candidatesetmm,
                                         condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                                         aliasdesign = aliasmm[randomIndices,],
-                                        aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                                        aliascandidatelist = aliasmm, minDopt = minDopt,
+                                        tolerance = tolerance, augmentedrows = augmentedrows)
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
           foreach(i=2:repeats) %dorng% {
             randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
-            genOptimalDesign(initialdesign = candidatesetmm[randomIndices,], candidatelist=candidatesetmm,
+            initialdesign = candidatesetmm[randomIndices,]
+            if(!is.null(augmentdesign)) {
+              initialdesign[1:augmentedrows,] = augmentdesignmm
+            }
+            genOptimalDesign(initialdesign = initialdesign, candidatelist=candidatesetmm,
                              condition=optimality, momentsmatrix = mm, initialRows = randomIndices,
                              aliasdesign = aliasmm[randomIndices,],
-                             aliascandidatelist = aliasmm, minDopt = minDopt, tolerance=tolerance)
+                             aliascandidatelist = aliasmm, minDopt = minDopt,
+                             tolerance = tolerance, augmentedrows = augmentedrows)
           }
         }, finally = {
           tryCatch({
@@ -827,6 +918,9 @@ gen_design = function(candidateset, model, trials,
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])
         rowindextemp[rowindextemp == 0] = 1
+        if(!is.null(augmentdesign)) {
+          rowindextemp[1:nrow(augmentdesign)] = 1
+        }
         if(!is.null(splitplotdesign)) {
           if(is.null(advancedoptions$alias_tie_power)) {
             amodel2 = aliasmodel(model,2)
@@ -838,7 +932,7 @@ gen_design = function(candidateset, model, trials,
           })
         } else {
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset),contrasts.arg = contrastslist)[,-1,drop=FALSE]
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset, augmentdesign),contrasts.arg = contrastslist)[,-1,drop=FALSE]
           })
         }
         aliasvalues[[i]] = calcAliasTrace(designs[[i]],aliasmatrix)
@@ -852,6 +946,10 @@ gen_design = function(candidateset, model, trials,
   }
 
   if(optimality == "A" || optimality == "I" || optimality == "ALIAS" || optimality == "G") {
+    criteria = criteria[criteria > 0]
+    if(length(criteria) == 0) {
+      stop("No non-singular designs found--increase number of repeats.")
+    }
     mincriteria = min(unlist(criteria), na.rm = TRUE)
     if(is.null(advancedoptions$alias_tie_tolerance) || advancedoptions$alias_tie_tolerance == 0) {
       bestvec = which(unlist(lapply(criteria,(function(x) isTRUE(all.equal(x,mincriteria))))))
@@ -863,6 +961,9 @@ gen_design = function(candidateset, model, trials,
       for(i in bestvec) {
         rowindextemp = round(rowIndicies[[i]])
         rowindextemp[rowindextemp == 0] = 1
+        if(!is.null(augmentdesign)) {
+          rowindextemp[1:nrow(augmentdesign)] = 1
+        }
         if(!is.null(splitplotdesign)) {
           if(is.null(advancedoptions$alias_tie_power)) {
             amodel2 = aliasmodel(model,2)
@@ -870,11 +971,11 @@ gen_design = function(candidateset, model, trials,
             amodel2 = aliasmodel(model,advancedoptions$alias_tie_power)
           }
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1]
+            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign,constructRunMatrix(rowindextemp, candidateset)),contrasts.arg = fullcontrastlist)[,-1,drop=FALSE]
           })
         } else {
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset),contrasts.arg = contrastslist)[,-1]
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset,augmentdesign),contrasts.arg = contrastslist)[,-1,drop=FALSE]
           })
         }
         aliasvalues[[i]] = calcAliasTrace(designs[[i]],aliasmatrix)
@@ -888,6 +989,9 @@ gen_design = function(candidateset, model, trials,
   }
 
   rowindex[rowindex == 0] = 1
+  if(!is.null(augmentdesign)) {
+    rowindex[1:nrow(augmentdesign)] = 1
+  }
 
   if(!blocking) {
     colnames(designmm) = factors
@@ -895,7 +999,7 @@ gen_design = function(candidateset, model, trials,
     colnames(designmm) = blockedFactors
   }
 
-  design = constructRunMatrix(rowIndices = rowindex, candidateList = candidateset)
+  design = constructRunMatrix(rowIndices = rowindex, candidateList = candidateset, augment = augmentdesign)
 
   if(blocking) {
     design = cbind(splitPlotReplicateDesign,design)

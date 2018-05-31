@@ -97,8 +97,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // genOptimalDesign
-List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist, const std::string condition, const Eigen::MatrixXd& momentsmatrix, NumericVector initialRows, Eigen::MatrixXd aliasdesign, const Eigen::MatrixXd& aliascandidatelist, double minDopt, double tolerance);
-RcppExport SEXP _skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP, SEXP toleranceSEXP) {
+List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist, const std::string condition, const Eigen::MatrixXd& momentsmatrix, NumericVector initialRows, Eigen::MatrixXd aliasdesign, const Eigen::MatrixXd& aliascandidatelist, double minDopt, double tolerance, int augmentedrows);
+RcppExport SEXP _skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP, SEXP toleranceSEXP, SEXP augmentedrowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -111,7 +111,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type aliascandidatelist(aliascandidatelistSEXP);
     Rcpp::traits::input_parameter< double >::type minDopt(minDoptSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
-    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance));
+    Rcpp::traits::input_parameter< int >::type augmentedrows(augmentedrowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(genOptimalDesign(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -173,7 +174,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_skpr_covarianceMatrixPseudo", (DL_FUNC) &_skpr_covarianceMatrixPseudo, 1},
     {"_skpr_DOptimality", (DL_FUNC) &_skpr_DOptimality, 1},
     {"_skpr_DOptimalityBlocked", (DL_FUNC) &_skpr_DOptimalityBlocked, 2},
-    {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 9},
+    {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 10},
     {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 14},
     {"_skpr_getPseudoInverse", (DL_FUNC) &_skpr_getPseudoInverse, 1},
     {"_skpr_IOptimality", (DL_FUNC) &_skpr_IOptimality, 3},

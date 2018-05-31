@@ -5,10 +5,10 @@
 \title{Generate optimal experimental designs}
 \usage{
 gen_design(candidateset, model, trials, splitplotdesign = NULL,
-  splitplotsizes = NULL, optimality = "D", repeats = 20,
-  varianceratio = 1, contrast = contr.simplex, aliaspower = 2,
-  minDopt = 0.8, parallel = FALSE, timer = FALSE, splitcolumns = FALSE,
-  advancedoptions = NULL, progressBarUpdater = NULL)
+  splitplotsizes = NULL, optimality = "D", augmentdesign = NULL,
+  repeats = 20, varianceratio = 1, contrast = contr.simplex,
+  aliaspower = 2, minDopt = 0.8, parallel = FALSE, timer = FALSE,
+  splitcolumns = FALSE, advancedoptions = NULL, progressBarUpdater = NULL)
 }
 \arguments{
 \item{candidateset}{A data frame of candidate test points; each run of the optimal design will be chosen (with replacement)
@@ -41,6 +41,9 @@ supports all but the "G" criterion. Full list of supported criteria: "D", "I", "
 define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
 "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.}
+
+\item{augmentdesign}{Default NULL. A dataframe of runs that are fixed during the optimal search process. The columns of augmentdesign must match those of the candidate set.
+The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.}
 
 \item{repeats}{The number of times to repeat the search for the best optimal design. Default 20.}
 
@@ -227,6 +230,19 @@ customBlockedOpt = function(currentDesign, vInv) {
 
 design = gen_design(candlistcustom, ~Altitude+Range+Power, trials=33,
                    splitplotdesign=htcdesign,splitplotsizes = 3,optimality="CUSTOM",repeats=10)
+
+#gen_design can also augment an existing design. Input a dataframe of pre-existing runs
+#to the `augmentdesign` argument. Those runs in the new design will be fixed, and gen_design
+#will perform a search for the remaining `trials - nrow(augmentdesign)` runs.
+
+candidateset = expand.grid(height=c(10,20), weight=c(45,55,65), range = c(1,2,3))
+
+design_to_augment = gen_design(candidateset,~height+weight+range, 5)
+
+#As long as the columns in the augmented design match the columns in the candidate set,
+#this design can be augmented.
+
+augmented_design=gen_design(candidateset,~height+weight+range,16, augmentdesign = design_to_augment)
 
 #A design's diagnostics can be accessed via the following attributes:
 

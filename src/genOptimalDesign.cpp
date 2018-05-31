@@ -54,7 +54,7 @@ double calculateDOptimality(const Eigen::MatrixXd& currentDesign) {
 }
 
 double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& momentsMatrix) {
-  return((currentV*momentsMatrix).trace());
+  return((currentV * momentsMatrix).trace());
 }
 
 
@@ -127,7 +127,7 @@ void rankUpdate(Eigen::MatrixXd& vinv, const Eigen::VectorXd& pointold, const Ei
   f1.col(0) = pointnew; f1.col(1) = -pointold;
   f2.col(0) = pointnew; f2.col(1) = pointold;
   f2vinv = f2.transpose()*vinv;
-  Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).partialPivLu().solve(f2vinv);
+  Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).householderQr().solve(f2vinv);
   vinv = tmp;
 }
 
@@ -137,7 +137,7 @@ Eigen::MatrixXd rankUpdateValue(Eigen::MatrixXd& vinv, const Eigen::VectorXd& po
   f1.col(0) = pointnew; f1.col(1) = -pointold;
   f2.col(0) = pointnew; f2.col(1) = pointold;
   f2vinv = f2.transpose()*vinv;
-  Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).partialPivLu().solve(f2vinv);
+  Eigen::MatrixXd tmp = vinv - vinv * f1 * (identity + f2vinv*f1).householderQr().solve(f2vinv);
   return(tmp);
 }
 
@@ -154,15 +154,18 @@ Eigen::MatrixXd rankUpdateValue(Eigen::MatrixXd& vinv, const Eigen::VectorXd& po
 //`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
 //`@return List of design information.
 // [[Rcpp::export]]
-List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,const std::string condition,
+List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
+                      const std::string condition,
                       const Eigen::MatrixXd& momentsmatrix, NumericVector initialRows,
-                      Eigen::MatrixXd aliasdesign, const Eigen::MatrixXd& aliascandidatelist, double minDopt, double tolerance) {
+                      Eigen::MatrixXd aliasdesign,
+                      const Eigen::MatrixXd& aliascandidatelist,
+                      double minDopt, double tolerance, int augmentedrows) {
   RNGScope rngScope;
   int nTrials = initialdesign.rows();
   double numberrows = initialdesign.rows();
   double numbercols = initialdesign.cols();
   int maxSingularityChecks = nTrials*100;
-   int totalPoints = candidatelist.rows();
+  int totalPoints = candidatelist.rows();
   Eigen::VectorXd candidateRow(nTrials);
   Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
   test.setZero();
@@ -182,7 +185,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     Eigen::VectorXi orderedindices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
     Eigen::VectorXi shuffledindices = sample_noreplace(orderedindices, totalPoints, false);
 
-    for (int i = 0; i < nTrials; i++) {
+    for (int i = augmentedrows; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(shuffledindices(i % totalPoints));
       aliasdesign.row(i) = aliascandidatelist.row(shuffledindices(i % totalPoints));
       initialRows(i) = shuffledindices(i % totalPoints) + 1; //R indexes start at 1
@@ -193,7 +196,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   if (isSingular(initialdesign)) {
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
     Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows, initrows.rows(), false);
-    for (int i = 0; i < nTrials; i++) {
+    for (int i = augmentedrows; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
       aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
       initialRows(i) = initrows_shuffled(i) + 1; //R indexes start at 1
@@ -226,7 +229,6 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
   Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
   Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
-
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
     newOptimum = calculateDOptimality(initialdesign);
@@ -234,13 +236,12 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
 
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryy = 0;
         del=0;
         xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-
         //Search through all candidate set points to find best switch (if one exists).
         search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
         if (found) {
@@ -267,7 +268,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -291,6 +292,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
       }
       //Re-calculate current criterion value
+      initialdesign = initialdesign_trans.transpose();
       newOptimum = calculateIOptimality(V,momentsmatrix);
     }
   }
@@ -301,7 +303,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -325,13 +327,12 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
       }
       //Re-calculate current criterion value.
+      initialdesign = initialdesign_trans.transpose();
       newOptimum = calculateAOptimality(V);
     }
   }
   //Generate an Alias optimal design
   if(condition == "ALIAS") {
-
-
     //First, calculate a D-optimal design (only do one iteration--may be only locally optimal) to start the search.
     Eigen::MatrixXd temp;
     Eigen::MatrixXd tempalias;
@@ -341,7 +342,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
 
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryy = 0;
@@ -399,7 +400,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
       while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
         first++;
         priorOptimum = optimum;
-        for (int i = 0; i < nTrials; i++) {
+        for (int i = augmentedrows; i < nTrials; i++) {
           Rcpp::checkUserInterrupt();
           found = false;
           entryx = 0;
@@ -455,7 +456,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -497,7 +498,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -534,7 +535,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -573,7 +574,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;

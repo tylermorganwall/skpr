@@ -4,7 +4,7 @@
 \alias{constructRunMatrix}
 \title{Construct Run Matrix given rows}
 \usage{
-constructRunMatrix(rowIndices, candidateList)
+constructRunMatrix(rowIndices, candidateList, augment = NULL)
 }
 \arguments{
 \item{Levelvector}{Returns a vector consisting of the number}

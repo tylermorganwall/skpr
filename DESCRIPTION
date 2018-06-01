@@ -26,7 +26,9 @@ Imports:
     survival,
     knitr,
     kableExtra,
-    doRNG
+    doRNG,
+    future,
+    promises
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat
 URL: https://github.com/tylermorganwall/skpr

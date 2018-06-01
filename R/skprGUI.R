@@ -5,7 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
-#'@import shiny rintrojs shinythemes knitr kableExtra
+#'@import future promises shiny rintrojs shinythemes knitr kableExtra
 #'@export
 #'@examples
 #'#Type skprGUI() to begin
@@ -13,7 +13,7 @@
 #'\dontrun{skprGUI()}
 # nocov start
 skprGUI = function(inputValue1,inputValue2) {
-
+  plan(multiprocess)
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
                 border-radius: 15px;
                 -webkit-box-shadow: inset 0px 0px 10px 4px rgba(41, 49, 83, 0.42);
@@ -856,10 +856,9 @@ skprGUI = function(inputValue1,inputValue2) {
                    )
                  )
   }
-
   server = function(input, output, session) {
 
-    incProgressSession = function(amount=0.1,message=NULL,detail=NULL) {incProgress(amount,message,detail,session)}
+    # incProgressSession = function(amount=0.1,message=NULL,detail=NULL) {incProgress(amount,message,detail,session)}
 
     inputlist_htc = reactive({
       input$submitbutton
@@ -1639,157 +1638,162 @@ skprGUI = function(inputValue1,inputValue2) {
       }
     })
 
-    runmatrix = reactive({
-      input$submitbutton
-      if(isolate(input$setseed)) {
-        set.seed(isolate(input$seed))
+    runmatrix = eventReactive(input$submitbutton, {
+      if(input$setseed) {
+        set.seed((input$seed))
       }
-      if(isolate(input$parallel)) {
+      if(input$parallel) {
         showNotification("Searching (no progress bar with multicore on):",type="message")
       }
-      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
+      if(isblocking() && input$optimality %in% c("Alias","T","G")) {
         print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
       } else {
 
         if(!isblocking()) {
-          if(isolate(as.logical(input$parallel))) {
-            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                     model = isolate(as.formula(input$model)),
-                     trials = isolate(input$trials),
-                     optimality = isolate(optimality()),
-                     repeats = isolate(input$repeats),
-                     aliaspower = isolate(input$aliaspower),
-                     minDopt = isolate(input$mindopt),
-                     parallel = isolate(as.logical(input$parallel)))
+          if(as.logical(input$parallel)) {
+            gen_design(candidateset = expand.grid(candidatesetall()),
+                     model = as.formula(input$model),
+                     trials = input$trials,
+                     optimality = optimality(),
+                     repeats = input$repeats,
+                     aliaspower = input$aliaspower,
+                     minDopt = input$mindopt,
+                     parallel = as.logical(input$parallel))
           } else {
-            withProgress(message = "Generating design:", value=0, min = 0, max = 1, expr = {
-              gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                         model = isolate(as.formula(input$model)),
-                         trials = isolate(input$trials),
-                         optimality = isolate(optimality()),
-                         repeats = isolate(input$repeats),
-                         aliaspower = isolate(input$aliaspower),
-                         minDopt = isolate(input$mindopt),
-                         parallel = isolate(as.logical(input$parallel)),
-                         progressBarUpdater = incProgressSession)})
+            # withProgress(message = "Generating design:", value=0, min = 0, max = 1, expr = {
+            optimality_async = (optimality())
+            candidatesetall_async = (expand.grid(candidatesetall()))
+            model_async = (as.formula(input$model))
+            trials_async = (input$trials)
+            repeats_async = (input$repeats)
+            aliaspower_async = (input$aliaspower)
+            mindopt_async =  (input$mindopt)
+            parallel_async = (as.logical(input$parallel))
+            return(future({gen_design(candidateset = candidatesetall_async,
+                       model = model_async,
+                       trials = trials_async,
+                       optimality = optimality_async,
+                       repeats = repeats_async,
+                       aliaspower = aliaspower_async,
+                       minDopt = mindopt_async,
+                       parallel = parallel_async)}))
           }
         } else {
-          spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                           model = isolate(as.formula(blockmodel())),
-                           trials = isolate(input$numberblocks),
-                           optimality = isolate(optimality()),
-                           repeats = isolate(input$repeats),
-                           varianceratio = isolate(input$varianceratio),
-                           aliaspower = isolate(input$aliaspower),
-                           minDopt = isolate(input$mindopt),
-                           parallel = isolate(as.logical(input$parallel)))
-          if(isolate(input$trials) %% isolate(input$numberblocks) == 0) {
-            sizevector = isolate(input$trials)/isolate(input$numberblocks)
+          spd = gen_design(candidateset = expand.grid(candidatesetall()),
+                           model = as.formula(blockmodel()),
+                           trials = input$numberblocks,
+                           optimality = optimality(),
+                           repeats = input$repeats,
+                           varianceratio = input$varianceratio,
+                           aliaspower = input$aliaspower,
+                           minDopt = input$mindopt,
+                           parallel = as.logical(input$parallel))
+          if(input$trials %% input$numberblocks == 0) {
+            sizevector = input$trials/input$numberblocks
           } else {
-            sizevector = c(rep(ceiling(isolate(input$trials)/isolate(input$numberblocks)),isolate(input$numberblocks)))
-            unbalancedruns = ceiling(isolate(input$trials)/isolate(input$numberblocks))*isolate(input$numberblocks) - isolate(input$trials)
+            sizevector = c(rep(ceiling(input$trials/input$numberblocks),input$numberblocks))
+            unbalancedruns = ceiling(input$trials/input$numberblocks)*input$numberblocks - input$trials
             sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
           }
-          if(isolate(as.logical(input$parallel))) {
-            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                       model = isolate(as.formula(input$model)),
-                       trials = isolate(input$trials),
+          if(as.logical(input$parallel)) {
+            gen_design(candidateset = expand.grid(candidatesetall()),
+                       model = as.formula(input$model),
+                       trials = input$trials,
                        splitplotdesign = spd,
                        splitplotsizes = sizevector,
-                       optimality = isolate(optimality()),
-                       repeats = isolate(input$repeats),
-                       varianceratio = isolate(input$varianceratio),
-                       aliaspower = isolate(input$aliaspower),
-                       minDopt = isolate(input$mindopt),
-                       parallel = isolate(as.logical(input$parallel)),
-                       splitcolumns = isolate(input$splitanalyzable))
+                       optimality = optimality(),
+                       repeats = input$repeats,
+                       varianceratio = input$varianceratio,
+                       aliaspower = input$aliaspower,
+                       minDopt = input$mindopt,
+                       parallel = as.logical(input$parallel),
+                       splitcolumns = input$splitanalyzable)
           } else {
-            withProgress(message = "Generating design", value=0, min = 0, max = 1, expr = {
-              gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                         model = isolate(as.formula(input$model)),
-                         trials = isolate(input$trials),
+            # withProgress(message = "Generating design", value=0, min = 0, max = 1, expr = {
+              gen_design(candidateset = expand.grid(candidatesetall()),
+                         model = as.formula(input$model),
+                         trials = input$trials,
                          splitplotdesign = spd,
                          splitplotsizes = sizevector,
-                         optimality = isolate(optimality()),
-                         repeats = isolate(input$repeats),
-                         varianceratio = isolate(input$varianceratio),
-                         aliaspower = isolate(input$aliaspower),
-                         minDopt = isolate(input$mindopt),
-                         parallel = isolate(as.logical(input$parallel)),
-                         splitcolumns = isolate(input$splitanalyzable),
-                         progressBarUpdater = incProgressSession)})
+                         optimality = optimality(),
+                         repeats = input$repeats,
+                         varianceratio = input$varianceratio,
+                         aliaspower = input$aliaspower,
+                         minDopt = input$mindopt,
+                         parallel = as.logical(input$parallel),
+                         splitcolumns = input$splitanalyzable)
+            # })
           }
         }
       }
     })
 
-    evaluationtype = reactive({
-      input$evalbutton
+    evaluationtype = eventReactive(input$evalbutton, {
       isolate(input$evaltype)
     })
 
-    powerresults = reactive({
-      input$evalbutton
-      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        if(evaluationtype() == "lm") {
-          eval_design(RunMatrix = isolate(runmatrix()),
-                      model = as.formula(isolate(input$model)),
-                      alpha = isolate(input$alpha),
-                      blocking = isblocking(),
-                      effectsize = isolate(effectsize()),
-                      conservative = isolate(input$conservative),
-                      detailedoutput = isolate(input$detailedoutput))
+    powerresults = eventReactive(input$evalbutton, {
+      calculate_results = function(runmat) {
+        if(isblocking() && optimality() %in% c("Alias","T","G")) {
+          print("No design generated")
+        } else {
+          if(evaluationtype() == "lm") {
+            eval_design(RunMatrix = runmat,
+                        model = as.formula(input$model),
+                        alpha = input$alpha,
+                        blocking = isblocking(),
+                        effectsize = effectsize(),
+                        conservative = input$conservative,
+                        detailedoutput = input$detailedoutput)
+          }
         }
       }
+      runmatrix() %...>% calculate_results()
     })
-    powerresultsglm = reactive({
-      input$evalbutton
-      if(isolate(input$setseed)) {
-        set.seed(isolate(input$seed))
+    powerresultsglm = eventReactive(input$evalbutton,{
+      if(input$setseed) {
+        set.seed(input$seed)
       }
-      if(isolate(input$parallel_eval_glm)) {
+      if(input$parallel_eval_glm) {
         showNotification("Simulating (no progress bar with multicore on):",type="message")
       }
-      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
+      if(isblocking() && optimality() %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
         if(evaluationtype() == "glm") {
-          if(isolate(input$parallel_eval_glm)) {
-              eval_design_mc(RunMatrix = isolate(runmatrix()),
-                             model = isolate(as.formula(input$model)),
-                             alpha = isolate(input$alpha),
+          if(input$parallel_eval_glm) {
+              eval_design_mc(RunMatrix = runmatrix(),
+                             model = as.formula(input$model),
+                             alpha = input$alpha,
                              blocking = isblocking(),
-                             nsim = isolate(input$nsim),
-                             varianceratios = isolate(input$varianceratio),
-                             glmfamily = isolate(input$glmfamily),
-                             effectsize = isolate(effectsize()),
-                             parallel = isolate(input$parallel_eval_glm),
-                             detailedoutput = isolate(input$detailedoutput))
+                             nsim = input$nsim,
+                             varianceratios = input$varianceratio,
+                             glmfamily = input$glmfamily,
+                             effectsize = effectsize(),
+                             parallel = input$parallel_eval_glm,
+                             detailedoutput = input$detailedoutput)
             } else {
-              withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
-                eval_design_mc(RunMatrix = isolate(runmatrix()),
-                               model = isolate(as.formula(input$model)),
-                               alpha = isolate(input$alpha),
+              # withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
+                eval_design_mc(RunMatrix = runmatrix(),
+                               model = as.formula(input$model),
+                               alpha = input$alpha,
                                blocking = isblocking(),
-                               nsim = isolate(input$nsim),
-                               varianceratios = isolate(input$varianceratio),
-                               glmfamily = isolate(input$glmfamily),
-                               effectsize = isolate(effectsize()),
-                               parallel = isolate(input$parallel_eval_glm),
-                               detailedoutput = isolate(input$detailedoutput),
-                               progressBarUpdater = incProgressSession)})
+                               nsim = input$nsim,
+                               varianceratios = input$varianceratio,
+                               glmfamily = input$glmfamily,
+                               effectsize = effectsize(),
+                               parallel = input$parallel_eval_glm,
+                               detailedoutput = input$detailedoutput)
+                               # })
             }
         }
       }
     })
-    powerresultssurv = reactive({
-      input$evalbutton
-      if(isolate(input$setseed)) {
-        set.seed(isolate(input$seed))
+    powerresultssurv = eventReactive(input$evalbutton, {
+      if(input$setseed) {
+        set.seed(input$seed)
       }
-      if(isolate(input$parallel_eval_glm)) {
+      if(input$parallel_eval_glm) {
         showNotification("Simulating (no progress bar with multicore on):",type="message")
       }
       if(isblocking()) {
@@ -1799,31 +1803,30 @@ skprGUI = function(inputValue1,inputValue2) {
         print("No design generated")
       } else {
         if(evaluationtype() == "surv") {
-          if(isolate(input$parallel_eval_glm)) {
-            eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
-                                    model = isolate(as.formula(input$model)),
-                                    alpha = isolate(input$alpha),
-                                    nsim = isolate(input$nsim),
-                                    censorpoint = isolate(input$censorpoint),
-                                    censortype = isolate(input$censortype),
-                                    distribution = isolate(input$distribution),
-                                    effectsize = isolate(effectsize()),
-                                    detailedoutput = isolate(input$detailedoutput),
-                                    parallel = isolate(input$parallel_eval_glm))
+          if(input$parallel_eval_glm) {
+            eval_design_survival_mc(RunMatrix = runmatrix(),
+                                    model = as.formula(input$model),
+                                    alpha = input$alpha,
+                                    nsim = input$nsim,
+                                    censorpoint = input$censorpoint,
+                                    censortype = input$censortype,
+                                    distribution = input$distribution,
+                                    effectsize = effectsize(),
+                                    detailedoutput = input$detailedoutput,
+                                    parallel = input$parallel_eval_glm)
           } else {
-            withProgress(message = "Simulating:", value=0, min = 0, max = 1, expr = {
-              eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
-                                    model = isolate(as.formula(input$model)),
-                                    alpha = isolate(input$alpha),
-                                    nsim = isolate(input$nsim),
-                                    censorpoint = isolate(input$censorpoint),
-                                    censortype = isolate(input$censortype),
-                                    distribution = isolate(input$distribution),
-                                    effectsize = isolate(effectsize()),
-                                    detailedoutput = isolate(input$detailedoutput),
-                                    parallel = isolate(input$parallel_eval_glm),
-                                    progressBarUpdater = incProgressSession)
-            })
+            # withProgress(message = "Simulating:", value=0, min = 0, max = 1, expr = {
+              eval_design_survival_mc(RunMatrix = runmatrix(),
+                                    model = as.formula(input$model),
+                                    alpha = input$alpha,
+                                    nsim = input$nsim,
+                                    censorpoint = input$censorpoint,
+                                    censortype = input$censortype,
+                                    distribution = input$distribution,
+                                    effectsize = effectsize(),
+                                    detailedoutput = input$detailedoutput,
+                                    parallel = input$parallel_eval_glm)
+            # })
           }
         }
       }
@@ -1831,7 +1834,6 @@ skprGUI = function(inputValue1,inputValue2) {
 
 
     output$runmatrix = function() {
-
       spec_color_if = function(dfcol,alphaval=0.2) {
         if(is.numeric(dfcol)) {
           colorvalues = cut(dfcol,11,labels=FALSE)
@@ -1842,45 +1844,47 @@ skprGUI = function(inputValue1,inputValue2) {
         }
       }
 
-      if(input$colorchoice != "none") {
-        if(input$orderdesign) {
-          if(ncol(runmatrix()) > 1) {
-            runmatrixprocessed = lapply(runmatrix(),spec_color_if)
-            prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
-            gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+      process_and_display = function(runmat) {
+        if(input$colorchoice != "none") {
+          if(input$orderdesign) {
+            if(ncol(runmat) > 1) {
+              runmatrixprocessed = lapply(runmat,spec_color_if)
+              prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order,runmat),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+            } else {
+              rownumbers = order(runmat[,1])
+              runreturn = list(runmat[order(runmat[,1]),])
+              names(runreturn) = input$factorname1
+              runmatrixprocessed = data.frame(runreturn)
+              runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed,spec_color_if))
+              rownames(runmatrixprocessed) = rownumbers
+              prelimhtml = kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
+            }
           } else {
-            rownumbers = order(runmatrix()[,1])
-            runreturn = list(runmatrix()[order(runmatrix()[,1]),])
-            names(runreturn) = input$factorname1
-            runmatrixprocessed = data.frame(runreturn)
-            runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed,spec_color_if))
-            rownames(runmatrixprocessed) = rownumbers
-            prelimhtml = kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+            runmatrixprocessed = lapply(runmat,spec_color_if)
+            prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
             gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
           }
         } else {
-          runmatrixprocessed = lapply(runmatrix(),spec_color_if)
-          prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
-          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)",replacement = "\\1 \\3 \\2",x=prelimhtml,perl=TRUE)
-        }
-      } else {
-        if(input$orderdesign) {
-          if(ncol(runmatrix()) > 1) {
-            kable_styling(knitr::kable(as.data.frame(runmatrix())[do.call(order,runmatrix()),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+          if(input$orderdesign) {
+            if(ncol(runmat) > 1) {
+              kable_styling(knitr::kable(as.data.frame(runmat)[do.call(order,runmat),],"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+            } else {
+              rownumbers = order(runmat[,1])
+              runreturn = list(runmat[order(runmat[,1]),])
+              names(runreturn) = input$factorname1
+              runmatrixprocessed = data.frame(runreturn)
+              rownames(runmatrixprocessed) = rownumbers
+              kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+            }
           } else {
-            rownumbers = order(runmatrix()[,1])
-            runreturn = list(runmatrix()[order(runmatrix()[,1]),])
-            names(runreturn) = input$factorname1
-            runmatrixprocessed = data.frame(runreturn)
-            rownames(runmatrixprocessed) = rownumbers
-            kable_styling(knitr::kable(runmatrixprocessed,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
+            kable_styling(knitr::kable(runmat,"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
           }
-        } else {
-          kable_styling(knitr::kable(runmatrix(),"html",row.names = TRUE,escape = F, align = "r"),"striped", full_width = F,position = "left")
         }
       }
+      runmatrix() %...>% process_and_display()
     }
-    #,rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
     output$powerresults = renderTable({
       powerresults()
@@ -1908,11 +1912,14 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$fdsplot = renderPlot({
       input$submitbutton
-      if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        plot_fds(isolate(runmatrix()))
+      format_fdsplot = function(runmat) {
+        if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
+          print("No design generated")
+        } else {
+          plot_fds(isolate(runmat))
+        }
       }
+      runmatrix() %...>% format_fdsplot()
     })
 
     output$code = renderUI({
@@ -1945,17 +1952,20 @@ skprGUI = function(inputValue1,inputValue2) {
     })
     output$optimalsearch = renderPlot({
       input$submitbutton
-      if(isolate(optimality()) %in% c("D","G","A")) {
-        isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
-        isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2,ylim=c(0,100)))
-      } else {
-        if(isolate(optimality()) == "I") {
-          isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab="Average Prediction Variance (lower is better)",type = 'p', col = 'red', pch=16))
+      format_search = function(runmat) {
+        if(isolate(optimality()) %in% c("D","G","A")) {
+          isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
+          isolate(points(x=attr(runmat,"best"),y=attr(runmat,"optimalsearchvalues")[attr(runmat,"best")],type = 'p', col = 'green', pch=16,cex =2,ylim=c(0,100)))
         } else {
-          isolate(plot(attr(runmatrix(),"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
+          if(isolate(optimality()) == "I") {
+            isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab="Average Prediction Variance (lower is better)",type = 'p', col = 'red', pch=16))
+          } else {
+            isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
+          }
+          isolate(points(x=attr(runmat,"best"),y=attr(runmat,"optimalsearchvalues")[attr(runmat,"best")],type = 'p', col = 'green', pch=16,cex =2))
         }
-        isolate(points(x=attr(runmatrix(),"best"),y=attr(runmatrix(),"optimalsearchvalues")[attr(runmatrix(),"best")],type = 'p', col = 'green', pch=16,cex =2))
       }
+      runmatrix() %...>% format_search()
     })
     output$simulatedpvalues = renderPlot({
       input$evalbutton

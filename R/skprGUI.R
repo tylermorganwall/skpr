@@ -157,7 +157,12 @@ skprGUI = function(inputValue1,inputValue2) {
                                                           12, label = "Trials"), data.step = 2, data.intro = "This is the number of runs in the experiment."),
                                     introBox(textInput(inputId = "model",
                                                        "~.", label = "Model"), data.step = 3, data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."),
-                                    conditionalPanel(condition = "input.blockdepth1 == 'htc' || input.blockdepth2 == 'htc' || input.blockdepth3 == 'htc' || input.blockdepth4 == 'htc' || input.blockdepth5 == 'htc' || input.blockdepth6 == 'htc'",
+                                    conditionalPanel(condition = "(input.blockdepth1 == 'htc') ||
+                                                                  (input.blockdepth2 == 'htc' && input.numberfactors > 1) ||
+                                                                  (input.blockdepth3 == 'htc' && input.numberfactors > 2) ||
+                                                                  (input.blockdepth4 == 'htc' && input.numberfactors > 3) ||
+                                                                  (input.blockdepth5 == 'htc' && input.numberfactors > 4) ||
+                                                                  (input.blockdepth6 == 'htc' && input.numberfactors > 5)",
                                                      fluidRow(
                                                        column(width=12,numericInput(inputId = "numberblocks",
                                                                                     4, label = "Number of blocks"))

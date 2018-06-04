@@ -856,21 +856,22 @@ skprGUI = function(inputValue1,inputValue2) {
                    )
                  )
   }
+
   server = function(input, output, session) {
 
     unique.file.name = paste0("progress_",as.character(floor(runif(1)*1e6)),"_")
+    unique.file.name2 = paste0("runmat_",as.character(floor(runif(1)*1e6)))
     tempfilename = tempfile(pattern = unique.file.name)
+    tempdir_runmatrix = tempdir()
     print(tempfilename)
-    filecreate = FALSE
 
     progressBarUpdater = function(number1) {
       if(file.exists(tempfilename)) {
-        prog_file = file(tempfilename,"rb")
-        number = nchar(readBin(prog_file,"character"))
-        if(length(number) == 0) {
+        number = file.info(tempfilename)$size-1
+        if(number < 0) {
           number = 0
         }
-        close(prog_file)
+        file.remove(tempfilename)
       } else {
         number = 0
       }
@@ -881,26 +882,36 @@ skprGUI = function(inputValue1,inputValue2) {
     }
 
     observe({
-      invalidateLater(1000, session)
-      if(file.exists(tempfilename) && !filecreate) {
+      invalidateLater(500, session)
+      if(file.exists(tempfilename)) {
+        print("B")
         previouspercent = 0
         progress = shiny::Progress$new()
         progress$set(message = "Calculating...", value = 0)
-        filecreate=TRUE
-      }
-      if(filecreate) {
-        percentdone = file.info(tempfilename)$size/100
-        print(percentdone)
-        progress$inc((percentdone-previouspercent)/100)
-        previouspercent = percentdone
-        if(percentdone == 1) {
-          file.remove(tempfilename)
+        while(file.exists(tempfilename)) {
+          print("BB")
+          percentdone = (file.info(tempfilename)$size-1)/isolate(input$repeats)
+          progress$inc((percentdone-previouspercent))
+          previouspercent = percentdone
+          if(percentdone >= 1) {
+            print("BBB")
+            progress$close()
+            file.remove(tempfilename)
+          }
+          Sys.sleep(0.1)
         }
-
       }
-      if(!file.exists(tempfilename) && filecreate) {
-        filecreate = FALSE
-        progress$close()
+    })
+
+    runmatvalues <- reactiveValues()
+
+    observe({
+      invalidateLater(500, session)
+      if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) &&
+         !file.exists(tempfilename)) {
+        print(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+        runmatvalues$runmatrix = readRDS(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+        file.remove(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
       }
     })
 
@@ -1682,7 +1693,7 @@ skprGUI = function(inputValue1,inputValue2) {
       }
     })
 
-    runmatrix = eventReactive(input$submitbutton, {
+    observeEvent(input$submitbutton, {
       if(input$setseed) {
         set.seed((input$seed))
       }
@@ -1713,7 +1724,8 @@ skprGUI = function(inputValue1,inputValue2) {
             aliaspower_async = (input$aliaspower)
             mindopt_async =  (input$mindopt)
             parallel_async = (as.logical(input$parallel))
-            return(future({gen_design(candidateset = candidatesetall_async,
+            print("Start future")
+            future({saveRDS(gen_design(candidateset = candidatesetall_async,
                        model = model_async,
                        trials = trials_async,
                        optimality = optimality_async,
@@ -1721,7 +1733,8 @@ skprGUI = function(inputValue1,inputValue2) {
                        aliaspower = aliaspower_async,
                        minDopt = mindopt_async,
                        parallel = parallel_async,
-                       progressBarUpdater = progressBarUpdater)}))
+                       progressBarUpdater = progressBarUpdater),file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))})
+            print("Done future")
           }
         } else {
           spd = gen_design(candidateset = expand.grid(candidatesetall()),
@@ -1793,7 +1806,7 @@ skprGUI = function(inputValue1,inputValue2) {
           }
         }
       }
-      runmatrix() %...>% calculate_results()
+      calculate_results(runmatvalues$runmatrix)
     })
     powerresultsglm = eventReactive(input$evalbutton,{
       if(input$setseed) {
@@ -1807,7 +1820,7 @@ skprGUI = function(inputValue1,inputValue2) {
       } else {
         if(evaluationtype() == "glm") {
           if(input$parallel_eval_glm) {
-              eval_design_mc(RunMatrix = runmatrix(),
+              eval_design_mc(RunMatrix = runmatvalues$runmatrix,
                              model = as.formula(input$model),
                              alpha = input$alpha,
                              blocking = isblocking(),
@@ -1819,7 +1832,7 @@ skprGUI = function(inputValue1,inputValue2) {
                              detailedoutput = input$detailedoutput)
             } else {
               # withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
-                eval_design_mc(RunMatrix = runmatrix(),
+                eval_design_mc(RunMatrix = runmatvalues$runmatrix,
                                model = as.formula(input$model),
                                alpha = input$alpha,
                                blocking = isblocking(),
@@ -1849,7 +1862,7 @@ skprGUI = function(inputValue1,inputValue2) {
       } else {
         if(evaluationtype() == "surv") {
           if(input$parallel_eval_glm) {
-            eval_design_survival_mc(RunMatrix = runmatrix(),
+            eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
                                     model = as.formula(input$model),
                                     alpha = input$alpha,
                                     nsim = input$nsim,
@@ -1861,7 +1874,7 @@ skprGUI = function(inputValue1,inputValue2) {
                                     parallel = input$parallel_eval_glm)
           } else {
             # withProgress(message = "Simulating:", value=0, min = 0, max = 1, expr = {
-              eval_design_survival_mc(RunMatrix = runmatrix(),
+              eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
                                     model = as.formula(input$model),
                                     alpha = input$alpha,
                                     nsim = input$nsim,
@@ -1928,7 +1941,7 @@ skprGUI = function(inputValue1,inputValue2) {
           }
         }
       }
-      runmatrix() %...>% process_and_display()
+      process_and_display(runmatvalues$runmatrix)
     }
 
     output$powerresults = renderTable({
@@ -1944,19 +1957,17 @@ skprGUI = function(inputValue1,inputValue2) {
     },digits=4,hover=TRUE,align="c")
 
     output$aliasplot = renderPlot({
-      input$submitbutton
         if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
           print("No design generated")
         } else {
           tryCatch({
-            plot_correlations(isolate(runmatrix()))
+            plot_correlations(runmatvalues$runmatrix)
           }, error = function(e) {
           })
         }
     })
 
     output$fdsplot = renderPlot({
-      input$submitbutton
       format_fdsplot = function(runmat) {
         if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
           print("No design generated")
@@ -1964,7 +1975,7 @@ skprGUI = function(inputValue1,inputValue2) {
           plot_fds(isolate(runmat))
         }
       }
-      runmatrix() %...>% format_fdsplot()
+      format_fdsplot(runmatvalues$runmatrix)
     })
 
     output$code = renderUI({
@@ -1972,45 +1983,38 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
     output$dopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(),"D"))
+      attr(runmatvalues$runmatrix,"D")
     })
     output$aopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(),"A"))
+      attr(runmatvalues$runmatrix,"A")
     })
     output$iopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(),"I"))
+      attr(runmatvalues$runmatrix,"I")
     })
     output$eopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(),"E"))
+      attr(runmatvalues$runmatrix,"E")
     })
     output$gopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(),"G"))
+      attr(runmatvalues$runmatrix,"G")
     })
     output$topt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(),"T"))
+      attr(runmatvalues$runmatrix,"T")
     })
     output$optimalsearch = renderPlot({
-      input$submitbutton
       format_search = function(runmat) {
         if(isolate(optimality()) %in% c("D","G","A")) {
-          isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
+          isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(isolate(optimality()), "Efficiency (higher is better)"),type = 'p', col = 'red', pch=16,ylim=c(0,100)))
           isolate(points(x=attr(runmat,"best"),y=attr(runmat,"optimalsearchvalues")[attr(runmat,"best")],type = 'p', col = 'green', pch=16,cex =2,ylim=c(0,100)))
         } else {
-          if(isolate(optimality()) == "I") {
+          if(isolate(isolate(optimality())) == "I") {
             isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab="Average Prediction Variance (lower is better)",type = 'p', col = 'red', pch=16))
           } else {
-            isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(optimality(), "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
+            isolate(plot(attr(runmat,"optimalsearchvalues"),xlab="Search Iteration",ylab=paste(isolate(optimality()), "Criteria Value (higher is better)"),type = 'p', col = 'red', pch=16))
           }
           isolate(points(x=attr(runmat,"best"),y=attr(runmat,"optimalsearchvalues")[attr(runmat,"best")],type = 'p', col = 'green', pch=16,cex =2))
         }
       }
-      runmatrix() %...>% format_search()
+      format_search(runmatvalues$runmatrix)
     })
     output$simulatedpvalues = renderPlot({
       input$evalbutton

@@ -13,7 +13,7 @@
 #'\dontrun{skprGUI()}
 # nocov start
 skprGUI = function(inputValue1,inputValue2) {
-  plan(multiprocess)
+  plan(multisession)
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
                 border-radius: 15px;
                 -webkit-box-shadow: inset 0px 0px 10px 4px rgba(41, 49, 83, 0.42);
@@ -858,7 +858,51 @@ skprGUI = function(inputValue1,inputValue2) {
   }
   server = function(input, output, session) {
 
-    # incProgressSession = function(amount=0.1,message=NULL,detail=NULL) {incProgress(amount,message,detail,session)}
+    unique.file.name = paste0("progress_",as.character(floor(runif(1)*1e6)),"_")
+    tempfilename = tempfile(pattern = unique.file.name)
+    print(tempfilename)
+    filecreate = FALSE
+
+    progressBarUpdater = function(number1) {
+      if(file.exists(tempfilename)) {
+        prog_file = file(tempfilename,"rb")
+        number = nchar(readBin(prog_file,"character"))
+        if(length(number) == 0) {
+          number = 0
+        }
+        close(prog_file)
+      } else {
+        number = 0
+      }
+      stringtowrite = as.character(paste0(rep(0,number+1),collapse = ""))
+      prog_file = file(tempfilename,"wb")
+      writeBin(stringtowrite,prog_file)
+      close(prog_file)
+    }
+
+    observe({
+      invalidateLater(1000, session)
+      if(file.exists(tempfilename) && !filecreate) {
+        previouspercent = 0
+        progress = shiny::Progress$new()
+        progress$set(message = "Calculating...", value = 0)
+        filecreate=TRUE
+      }
+      if(filecreate) {
+        percentdone = file.info(tempfilename)$size/100
+        print(percentdone)
+        progress$inc((percentdone-previouspercent)/100)
+        previouspercent = percentdone
+        if(percentdone == 1) {
+          file.remove(tempfilename)
+        }
+
+      }
+      if(!file.exists(tempfilename) && filecreate) {
+        filecreate = FALSE
+        progress$close()
+      }
+    })
 
     inputlist_htc = reactive({
       input$submitbutton
@@ -1676,7 +1720,8 @@ skprGUI = function(inputValue1,inputValue2) {
                        repeats = repeats_async,
                        aliaspower = aliaspower_async,
                        minDopt = mindopt_async,
-                       parallel = parallel_async)}))
+                       parallel = parallel_async,
+                       progressBarUpdater = progressBarUpdater)}))
           }
         } else {
           spd = gen_design(candidateset = expand.grid(candidatesetall()),

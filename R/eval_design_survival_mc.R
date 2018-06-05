@@ -33,7 +33,7 @@
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
 #'categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
-#'@import foreach doParallel survival stats iterators
+#'@import foreach doParallel stats iterators
 #'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
 #'with a survival model (\code{survival::survreg}), and the fraction of simulations in which a parameter
 #'is significant

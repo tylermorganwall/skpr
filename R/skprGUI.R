@@ -13,7 +13,6 @@
 #'\dontrun{skprGUI()}
 # nocov start
 skprGUI = function(inputValue1,inputValue2) {
-  plan(multisession)
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
                 border-radius: 15px;
                 -webkit-box-shadow: inset 0px 0px 10px 4px rgba(41, 49, 83, 0.42);
@@ -856,62 +855,67 @@ skprGUI = function(inputValue1,inputValue2) {
                    )
                  )
   }
-
+  plan(multisession)
   server = function(input, output, session) {
+
 
     unique.file.name = paste0("progress_",as.character(floor(runif(1)*1e6)),"_")
     unique.file.name2 = paste0("runmat_",as.character(floor(runif(1)*1e6)))
     tempfilename = tempfile(pattern = unique.file.name)
     tempdir_runmatrix = tempdir()
-    print(tempfilename)
 
-    progressBarUpdater = function(number1) {
-      if(file.exists(tempfilename)) {
-        number = file.info(tempfilename)$size-1
+    progressBarUpdater = function(number1,tempfilename2=tempfilename) {
+      if(file.exists(tempfilename2)) {
+        number = file.info(tempfilename2)$size-1
         if(number < 0) {
           number = 0
         }
-        file.remove(tempfilename)
+        file.remove(tempfilename2)
       } else {
         number = 0
       }
       stringtowrite = as.character(paste0(rep(0,number+1),collapse = ""))
-      prog_file = file(tempfilename,"wb")
+      prog_file = file(tempfilename2,"wb")
       writeBin(stringtowrite,prog_file)
       close(prog_file)
     }
 
+    prog_env = new.env()
+
     observe({
-      invalidateLater(500, session)
-      if(file.exists(tempfilename)) {
-        print("B")
-        previouspercent = 0
-        progress = shiny::Progress$new()
+      invalidateLater(250, session)
+      if(!resolved(isolate(resolved_future())) && !exists("progress", envir = prog_env)) {
+        assign("previouspercent",0,envir = prog_env)
+        assign("percentdone",0,envir = prog_env)
+        assign("progress",shiny::Progress$new(),envir = prog_env)
         progress$set(message = "Calculating...", value = 0)
-        while(file.exists(tempfilename)) {
-          print("BB")
-          percentdone = (file.info(tempfilename)$size-1)/isolate(input$repeats)
-          progress$inc((percentdone-previouspercent))
-          previouspercent = percentdone
-          if(percentdone >= 1) {
-            print("BBB")
-            progress$close()
-            file.remove(tempfilename)
-          }
-          Sys.sleep(0.1)
-        }
       }
-    })
+      if(!resolved(isolate(resolved_future())) && exists("progress", envir = prog_env)) {
+        assign("percentdone",(file.info(tempfilename)$size-1)/isolate(input$repeats),envir = prog_env)
+        progress$inc((percentdone-previouspercent))
+        assign("previouspercent",percentdone,envir = prog_env)
+      }
+      if(resolved(isolate(resolved_future())) && exists("progress", envir = prog_env)) {
+        file.remove(tempfilename)
+        progress$close()
+        rm(progress, envir = prog_env)
+      }
+    }, env = prog_env)
 
-    runmatvalues <- reactiveValues()
+    runmatvalues = reactiveValues()
 
     observe({
       invalidateLater(500, session)
-      if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) &&
-         !file.exists(tempfilename)) {
-        print(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
-        runmatvalues$runmatrix = readRDS(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
-        file.remove(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+      if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) && resolved(isolate(resolved_future()))) {
+        tempval = tryCatch({
+          readRDS(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+        },error=function(e) "")
+        if(class(tempval) == "data.frame") {
+          runmatvalues$runmatrix = tempval
+          tryCatch({
+            file.remove(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+          },error=function(e) "",warning=function(w) "")
+        }
       }
     })
 
@@ -1693,7 +1697,7 @@ skprGUI = function(inputValue1,inputValue2) {
       }
     })
 
-    observeEvent(input$submitbutton, {
+    resolved_future = eventReactive(input$submitbutton, {
       if(input$setseed) {
         set.seed((input$seed))
       }
@@ -1715,26 +1719,30 @@ skprGUI = function(inputValue1,inputValue2) {
                      minDopt = input$mindopt,
                      parallel = as.logical(input$parallel))
           } else {
-            # withProgress(message = "Generating design:", value=0, min = 0, max = 1, expr = {
-            optimality_async = (optimality())
-            candidatesetall_async = (expand.grid(candidatesetall()))
-            model_async = (as.formula(input$model))
-            trials_async = (input$trials)
-            repeats_async = (input$repeats)
-            aliaspower_async = (input$aliaspower)
-            mindopt_async =  (input$mindopt)
-            parallel_async = (as.logical(input$parallel))
-            print("Start future")
-            future({saveRDS(gen_design(candidateset = candidatesetall_async,
-                       model = model_async,
-                       trials = trials_async,
-                       optimality = optimality_async,
-                       repeats = repeats_async,
-                       aliaspower = aliaspower_async,
-                       minDopt = mindopt_async,
-                       parallel = parallel_async,
-                       progressBarUpdater = progressBarUpdater),file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))})
-            print("Done future")
+            optimality_async = optimality()
+            candidatesetall_async = expand.grid(candidatesetall())
+            model_async = input$model
+            trials_async = input$trials
+            repeats_async = input$repeats
+            aliaspower_async = input$aliaspower
+            mindopt_async =  input$mindopt
+            parallel_async = as.logical(input$parallel)
+            return(future({
+              temp = skpr::gen_design(candidateset = candidatesetall_async,
+                               model = c("~",substring(model_async, 2)),
+                               trials = trials_async,
+                               optimality = optimality_async,
+                               repeats = repeats_async,
+                               aliaspower = aliaspower_async,
+                               minDopt = mindopt_async,
+                               parallel = parallel_async,
+                               progressBarUpdater = progressBarUpdater)
+              attr(temp,"model.matrix") = NULL
+              attr(temp,"generating.model") = NULL
+              saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))},
+                   packages = c("skpr"),globals = c("candidatesetall_async", "model_async", "trials_async","optimality_async",
+                                                     "repeats_async", "aliaspower_async","mindopt_async","parallel_async",
+                                                    "tempdir_runmatrix","unique.file.name2","progressBarUpdater")))
           }
         } else {
           spd = gen_design(candidateset = expand.grid(candidatesetall()),

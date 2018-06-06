@@ -24,6 +24,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
   ui = function(request) {
     fluidPage(theme = shinytheme("yeti"),
+              shinyjs::useShinyjs(),
                  introjsUI(),
                  HTML("<style> table {font-size: 14px;}
                       .btn2 {
@@ -33,6 +34,16 @@ skprGUI = function(inputValue1,inputValue2) {
                       border-radius: 11px;
                       -webkit-box-shadow: 0px 2px 0px 0px rgb(59, 76, 145);
                       box-shadow: 0px 2px 0px 0px rgb(59, 76, 145);
+                      }
+                       .btn2.disabled, .btn2.disabled:hover,.btn2.disabled:active,.btn2.disabled:focus {
+                      color: #fff;
+                      border-color: rgba(46, 109, 164, 0);
+                      background: linear-gradient(to bottom, rgb(64, 108, 221) 0%, rgb(107, 167, 223) 100%);
+                      border-radius: 11px;
+                      -webkit-box-shadow: 0px 0px 0px 0px rgb(59, 76, 145);
+                      box-shadow: 0px 0px 0px 0px rgb(59, 76, 145);
+                      margin-top: 2px;
+                      margin-bottom: -2px;
                       }
                       .btn2:hover {
                       color: #fff;
@@ -858,7 +869,6 @@ skprGUI = function(inputValue1,inputValue2) {
   plan(multisession)
   server = function(input, output, session) {
 
-
     unique.file.name = paste0("progress_",as.character(floor(runif(1)*1e6)),"_")
     unique.file.name2 = paste0("runmat_",as.character(floor(runif(1)*1e6)))
     tempfilename = tempfile(pattern = unique.file.name)
@@ -881,40 +891,47 @@ skprGUI = function(inputValue1,inputValue2) {
     }
 
     prog_env = new.env()
+    assign("prog_first",FALSE,envir=prog_env)
 
     observe({
-      invalidateLater(250, session)
-      if(!resolved(isolate(resolved_future())) && !exists("progress", envir = prog_env)) {
-        assign("previouspercent",0,envir = prog_env)
-        assign("percentdone",0,envir = prog_env)
-        assign("progress",shiny::Progress$new(),envir = prog_env)
-        progress$set(message = "Calculating...", value = 0)
-      }
+      invalidateLater(500, session)
       if(!resolved(isolate(resolved_future())) && exists("progress", envir = prog_env)) {
+      # if(file.exists(tempfilename) && exists("progress", envir = prog_env)) {
+        if(prog_env$prog_first) {
+          assign("prog_first",FALSE,envir=prog_env)
+          prog_env$progress$set(message = "Calculating...", value = 0)
+        }
         assign("percentdone",(file.info(tempfilename)$size-1)/isolate(input$repeats),envir = prog_env)
         progress$inc((percentdone-previouspercent))
         assign("previouspercent",percentdone,envir = prog_env)
       }
       if(resolved(isolate(resolved_future())) && exists("progress", envir = prog_env)) {
+      # if(prog_env$percentdone >= 1 && exists("progress", envir = prog_env)) {
+        shinyjs::enable("submitbutton")
         file.remove(tempfilename)
         progress$close()
         rm(progress, envir = prog_env)
       }
+
     }, env = prog_env)
 
     runmatvalues = reactiveValues()
 
+    #initialize
+    runmatvalues$runmatrix = gen_design(data.frame(X1=c(1,-1)),~X1,12)
+
     observe({
-      invalidateLater(500, session)
+      invalidateLater(1000, session)
       if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) && resolved(isolate(resolved_future()))) {
+      # if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) && prog_env$percentdone >= 1) {
         tempval = tryCatch({
           readRDS(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
-        },error=function(e) "")
+        }, error = function(e) "", warning = function(w) "")
         if(class(tempval) == "data.frame") {
           runmatvalues$runmatrix = tempval
           tryCatch({
             file.remove(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
-          },error=function(e) "",warning=function(w) "")
+          }, error = function(e) "", warning = function(w) "")
         }
       }
     })
@@ -1698,6 +1715,12 @@ skprGUI = function(inputValue1,inputValue2) {
     })
 
     resolved_future = eventReactive(input$submitbutton, {
+      shinyjs::disable("submitbutton")
+      assign("previouspercent",0,envir = prog_env)
+      assign("percentdone",0,envir = prog_env)
+      assign("prog_first",TRUE,envir=prog_env)
+      assign("progress",shiny::Progress$new(),envir = prog_env)
+      prog_env$progress$set(message = "Setting up...", value = 0)
       if(input$setseed) {
         set.seed((input$seed))
       }
@@ -1737,12 +1760,9 @@ skprGUI = function(inputValue1,inputValue2) {
                                minDopt = mindopt_async,
                                parallel = parallel_async,
                                progressBarUpdater = progressBarUpdater)
-              attr(temp,"model.matrix") = NULL
               attr(temp,"generating.model") = NULL
-              saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))},
-                   packages = c("skpr"),globals = c("candidatesetall_async", "model_async", "trials_async","optimality_async",
-                                                     "repeats_async", "aliaspower_async","mindopt_async","parallel_async",
-                                                    "tempdir_runmatrix","unique.file.name2","progressBarUpdater")))
+              saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+            }))
           }
         } else {
           spd = gen_design(candidateset = expand.grid(candidatesetall()),
@@ -1900,6 +1920,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
 
     output$runmatrix = function() {
+      # temp = resolved_future()
       spec_color_if = function(dfcol,alphaval=0.2) {
         if(is.numeric(dfcol)) {
           colorvalues = cut(dfcol,11,labels=FALSE)
@@ -1977,10 +1998,10 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$fdsplot = renderPlot({
       format_fdsplot = function(runmat) {
-        if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
+        if(isolate(isblocking()) && isolate(optimality()) %in% c("T","G")) {
           print("No design generated")
         } else {
-          plot_fds(isolate(runmat))
+          plot_fds(runmat,model=as.formula(isolate(input$model)))
         }
       }
       format_fdsplot(runmatvalues$runmatrix)

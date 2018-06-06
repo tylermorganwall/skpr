@@ -28,7 +28,8 @@ Imports:
     kableExtra,
     doRNG,
     future,
-    promises
+    promises,
+    shinyjs
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat
 URL: https://github.com/tylermorganwall/skpr

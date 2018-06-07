@@ -25,6 +25,7 @@ skprGUI = function(inputValue1,inputValue2) {
 
   ui = function(request) {
     fluidPage(theme = shinytheme("yeti"),
+              shinyjs::useShinyjs(),
               introjsUI(),
               HTML("<style> table {font-size: 14px;}
                    .btn2 {
@@ -43,6 +44,16 @@ skprGUI = function(inputValue1,inputValue2) {
                    -webkit-box-shadow: 0px 2px 0px 0px rgb(59, 76, 145);
                    box-shadow: 0px 2px 0px 0px rgb(59, 76, 145);
                    }
+                    .btn2.disabled, .btn2.disabled:hover,.btn2.disabled:active,.btn2.disabled:focus {
+                      color: #fff;
+                      border-color: rgba(46, 109, 164, 0);
+                      background: linear-gradient(to bottom, rgb(64, 108, 221) 0%, rgb(107, 167, 223) 100%);
+                      border-radius: 11px;
+                      -webkit-box-shadow: 0px 0px 0px 0px rgb(59, 76, 145);
+                      box-shadow: 0px 0px 0px 0px rgb(59, 76, 145);
+                      margin-top: 2px;
+                      margin-bottom: -2px;
+                      }
                    .btn2:active {
                    color: #fff;
                    border-color: rgb(64, 108, 221);
@@ -1641,6 +1652,8 @@ skprGUI = function(inputValue1,inputValue2) {
 
     runmatrix = reactive({
       input$submitbutton
+      shinyjs::disable("submitbutton")
+      shinyjs::disable("evalbutton")
       if(isolate(input$setseed)) {
         set.seed(isolate(input$seed))
       }
@@ -1648,12 +1661,11 @@ skprGUI = function(inputValue1,inputValue2) {
         showNotification("Searching (no progress bar with multicore on):",type="message")
       }
       if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
-        print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
+        print("Hard-to-change factors are not currently supported for T and G optimal designs.")
       } else {
-
         if(!isblocking()) {
           if(isolate(as.logical(input$parallel))) {
-            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+            design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                        model = isolate(as.formula(input$model)),
                        trials = isolate(input$trials),
                        optimality = isolate(optimality()),
@@ -1662,7 +1674,7 @@ skprGUI = function(inputValue1,inputValue2) {
                        minDopt = isolate(input$mindopt),
                        parallel = isolate(as.logical(input$parallel)))
           } else {
-            withProgress(message = "Generating design:", value=0, min = 0, max = 1, expr = {
+            design = withProgress(message = "Generating design:", value=0, min = 0, max = 1, expr = {
               gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                          model = isolate(as.formula(input$model)),
                          trials = isolate(input$trials),
@@ -1691,7 +1703,7 @@ skprGUI = function(inputValue1,inputValue2) {
             sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
           }
           if(isolate(as.logical(input$parallel))) {
-            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+            design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                        model = isolate(as.formula(input$model)),
                        trials = isolate(input$trials),
                        splitplotdesign = spd,
@@ -1704,7 +1716,7 @@ skprGUI = function(inputValue1,inputValue2) {
                        parallel = isolate(as.logical(input$parallel)),
                        splitcolumns = isolate(input$splitanalyzable))
           } else {
-            withProgress(message = "Generating design", value=0, min = 0, max = 1, expr = {
+            design = withProgress(message = "Generating design", value=0, min = 0, max = 1, expr = {
               gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                          model = isolate(as.formula(input$model)),
                          trials = isolate(input$trials),
@@ -1720,6 +1732,9 @@ skprGUI = function(inputValue1,inputValue2) {
                          progressBarUpdater = incProgressSession)})
           }
         }
+        shinyjs::enable("evalbutton")
+        shinyjs::enable("submitbutton")
+        return(design)
       }
     })
 
@@ -1880,7 +1895,6 @@ skprGUI = function(inputValue1,inputValue2) {
         }
       }
     }
-    #,rownames=TRUE, bordered=TRUE,hover=TRUE,align="c")
 
     output$powerresults = renderTable({
       powerresults()

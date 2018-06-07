@@ -1724,7 +1724,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
       if(input$parallel) {
         showNotification("Searching (no progress bar with multicore on):",type="message")
       }
-      if(isblocking() && input$optimality %in% c("Alias","T","G")) {
+      if(isblocking() && input$optimality %in% c("T","G")) {
         print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
       } else {
 
@@ -1792,20 +1792,18 @@ skprGUIserver = function(inputValue1,inputValue2) {
                        parallel = as.logical(input$parallel),
                        splitcolumns = input$splitanalyzable)
           } else {
-            # withProgress(message = "Generating design", value=0, min = 0, max = 1, expr = {
-              gen_design(candidateset = expand.grid(candidatesetall()),
-                         model = as.formula(input$model),
-                         trials = input$trials,
-                         splitplotdesign = spd,
-                         splitplotsizes = sizevector,
-                         optimality = optimality(),
-                         repeats = input$repeats,
-                         varianceratio = input$varianceratio,
-                         aliaspower = input$aliaspower,
-                         minDopt = input$mindopt,
-                         parallel = as.logical(input$parallel),
-                         splitcolumns = input$splitanalyzable)
-            # })
+            gen_design(candidateset = expand.grid(candidatesetall()),
+                       model = as.formula(input$model),
+                       trials = input$trials,
+                       splitplotdesign = spd,
+                       splitplotsizes = sizevector,
+                       optimality = optimality(),
+                       repeats = input$repeats,
+                       varianceratio = input$varianceratio,
+                       aliaspower = input$aliaspower,
+                       minDopt = input$mindopt,
+                       parallel = as.logical(input$parallel),
+                       splitcolumns = input$splitanalyzable)
           }
         }
       }

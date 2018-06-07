@@ -894,9 +894,8 @@ skprGUI = function(inputValue1,inputValue2) {
     assign("prog_first",FALSE,envir=prog_env)
 
     observe({
-      invalidateLater(500, session)
+      invalidateLater(250, session)
       if(!resolved(isolate(resolved_future())) && exists("progress", envir = prog_env)) {
-      # if(file.exists(tempfilename) && exists("progress", envir = prog_env)) {
         if(prog_env$prog_first) {
           assign("prog_first",FALSE,envir=prog_env)
           prog_env$progress$set(message = "Calculating...", value = 0)
@@ -906,7 +905,6 @@ skprGUI = function(inputValue1,inputValue2) {
         assign("previouspercent",percentdone,envir = prog_env)
       }
       if(resolved(isolate(resolved_future())) && exists("progress", envir = prog_env)) {
-      # if(prog_env$percentdone >= 1 && exists("progress", envir = prog_env)) {
         shinyjs::enable("submitbutton")
         file.remove(tempfilename)
         progress$close()
@@ -921,9 +919,8 @@ skprGUI = function(inputValue1,inputValue2) {
     runmatvalues$runmatrix = gen_design(data.frame(X1=c(1,-1)),~X1,12)
 
     observe({
-      invalidateLater(1000, session)
+      invalidateLater(500, session)
       if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) && resolved(isolate(resolved_future()))) {
-      # if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) && prog_env$percentdone >= 1) {
         tempval = tryCatch({
           readRDS(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
         }, error = function(e) "", warning = function(w) "")

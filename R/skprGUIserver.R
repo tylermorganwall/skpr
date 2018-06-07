@@ -612,7 +612,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
                                                           1, label = "Random Seed")
                                            ),
                                            introBox(checkboxInput(inputId = "parallel",
-                                                                  label = "Parallel Search",
+                                                                  label = "Parallel (disabled on server)",
                                                                   value = FALSE), data.step = 10, data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."),
                                            introBox(checkboxInput(inputId = "splitanalyzable",
                                                                   label = "Include Blocking Columns in Run Matrix",
@@ -685,7 +685,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
                                                                   choices = c("gaussian","binomial","poisson","exponential"),
                                                                   label = "GLM Family"), data.step=20, data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."),
                                              introBox(checkboxInput(inputId = "parallel_eval_glm",
-                                                                    label = "Parallel Evaluation",
+                                                                    label = "Parallel Evaluation (disabled on server)",
                                                                     value=FALSE), data.step=21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
                                            ),
                                            conditionalPanel(
@@ -868,7 +868,8 @@ skprGUIserver = function(inputValue1,inputValue2) {
   }
   plan(multisession)
   server = function(input, output, session) {
-
+    shinyjs::disable("parallel")
+    shinyjs::disable("parallel_eval_glm")
     unique.file.name = paste0("progress_",as.character(floor(runif(1)*1e6)),"_")
     unique.file.name2 = paste0("runmat_",as.character(floor(runif(1)*1e6)))
     tempfilename = tempfile(pattern = unique.file.name)
@@ -1721,46 +1722,30 @@ skprGUIserver = function(inputValue1,inputValue2) {
       if(input$setseed) {
         set.seed((input$seed))
       }
-      if(input$parallel) {
-        showNotification("Searching (no progress bar with multicore on):",type="message")
-      }
       if(isblocking() && input$optimality %in% c("T","G")) {
         print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
       } else {
 
         if(!isblocking()) {
-          if(as.logical(input$parallel)) {
-            gen_design(candidateset = expand.grid(candidatesetall()),
-                     model = as.formula(input$model),
-                     trials = input$trials,
-                     optimality = optimality(),
-                     repeats = input$repeats,
-                     aliaspower = input$aliaspower,
-                     minDopt = input$mindopt,
-                     parallel = as.logical(input$parallel))
-          } else {
-            optimality_async = optimality()
-            candidatesetall_async = expand.grid(candidatesetall())
-            model_async = input$model
-            trials_async = input$trials
-            repeats_async = input$repeats
-            aliaspower_async = input$aliaspower
-            mindopt_async =  input$mindopt
-            parallel_async = as.logical(input$parallel)
-            return(future({
-              temp = skpr::gen_design(candidateset = candidatesetall_async,
-                               model = c("~",substring(model_async, 2)),
-                               trials = trials_async,
-                               optimality = optimality_async,
-                               repeats = repeats_async,
-                               aliaspower = aliaspower_async,
-                               minDopt = mindopt_async,
-                               parallel = parallel_async,
-                               progressBarUpdater = progressBarUpdater)
-              attr(temp,"generating.model") = NULL
-              saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
-            }))
-          }
+          optimality_async = optimality()
+          candidatesetall_async = expand.grid(candidatesetall())
+          model_async = input$model
+          trials_async = input$trials
+          repeats_async = input$repeats
+          aliaspower_async = input$aliaspower
+          mindopt_async =  input$mindopt
+          return(future({
+            temp = skpr::gen_design(candidateset = candidatesetall_async,
+                             model = c("~",substring(model_async, 2)),
+                             trials = trials_async,
+                             optimality = optimality_async,
+                             repeats = repeats_async,
+                             aliaspower = aliaspower_async,
+                             minDopt = mindopt_async,
+                             progressBarUpdater = progressBarUpdater)
+            attr(temp,"generating.model") = NULL
+            saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+          }))
         } else {
           spd = gen_design(candidateset = expand.grid(candidatesetall()),
                            model = as.formula(blockmodel()),
@@ -1769,8 +1754,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
                            repeats = input$repeats,
                            varianceratio = input$varianceratio,
                            aliaspower = input$aliaspower,
-                           minDopt = input$mindopt,
-                           parallel = as.logical(input$parallel))
+                           minDopt = input$mindopt)
           if(input$trials %% input$numberblocks == 0) {
             sizevector = input$trials/input$numberblocks
           } else {
@@ -1778,33 +1762,17 @@ skprGUIserver = function(inputValue1,inputValue2) {
             unbalancedruns = ceiling(input$trials/input$numberblocks)*input$numberblocks - input$trials
             sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
           }
-          if(as.logical(input$parallel)) {
-            gen_design(candidateset = expand.grid(candidatesetall()),
-                       model = as.formula(input$model),
-                       trials = input$trials,
-                       splitplotdesign = spd,
-                       splitplotsizes = sizevector,
-                       optimality = optimality(),
-                       repeats = input$repeats,
-                       varianceratio = input$varianceratio,
-                       aliaspower = input$aliaspower,
-                       minDopt = input$mindopt,
-                       parallel = as.logical(input$parallel),
-                       splitcolumns = input$splitanalyzable)
-          } else {
-            gen_design(candidateset = expand.grid(candidatesetall()),
-                       model = as.formula(input$model),
-                       trials = input$trials,
-                       splitplotdesign = spd,
-                       splitplotsizes = sizevector,
-                       optimality = optimality(),
-                       repeats = input$repeats,
-                       varianceratio = input$varianceratio,
-                       aliaspower = input$aliaspower,
-                       minDopt = input$mindopt,
-                       parallel = as.logical(input$parallel),
-                       splitcolumns = input$splitanalyzable)
-          }
+          gen_design(candidateset = expand.grid(candidatesetall()),
+                     model = as.formula(input$model),
+                     trials = input$trials,
+                     splitplotdesign = spd,
+                     splitplotsizes = sizevector,
+                     optimality = optimality(),
+                     repeats = input$repeats,
+                     varianceratio = input$varianceratio,
+                     aliaspower = input$aliaspower,
+                     minDopt = input$mindopt,
+                     splitcolumns = input$splitanalyzable)
         }
       }
     })
@@ -1891,45 +1859,25 @@ skprGUIserver = function(inputValue1,inputValue2) {
       if(input$setseed) {
         set.seed(input$seed)
       }
-      if(input$parallel_eval_glm) {
-        showNotification("Simulating (no progress bar with multicore on):",type="message")
-      }
       if(isblocking() && optimality() %in% c("Alias","T","G")) {
         print("No design generated")
       } else {
         if(evaluationtype() == "glm") {
-          if(input$parallel_eval_glm) {
-            eval_design_mc(RunMatrix = runmatvalues$runmatrix,
-                           model = as.formula(input$model),
-                           alpha = input$alpha,
-                           blocking = isblocking(),
-                           nsim = input$nsim,
-                           varianceratios = input$varianceratio,
-                           glmfamily = input$glmfamily,
-                           effectsize = effectsize(),
-                           parallel = input$parallel_eval_glm,
-                           detailedoutput = input$detailedoutput)
-          } else {
-            eval_design_mc(RunMatrix = runmatvalues$runmatrix,
-                           model = as.formula(input$model),
-                           alpha = input$alpha,
-                           blocking = isblocking(),
-                           nsim = input$nsim,
-                           varianceratios = input$varianceratio,
-                           glmfamily = input$glmfamily,
-                           effectsize = effectsize(),
-                           parallel = input$parallel_eval_glm,
-                           detailedoutput = input$detailedoutput)
-          }
+          eval_design_mc(RunMatrix = runmatvalues$runmatrix,
+                         model = as.formula(input$model),
+                         alpha = input$alpha,
+                         blocking = isblocking(),
+                         nsim = input$nsim,
+                         varianceratios = input$varianceratio,
+                         glmfamily = input$glmfamily,
+                         effectsize = effectsize(),
+                         detailedoutput = input$detailedoutput)
         }
       }
     })
     powerresultssurv = eventReactive(input$evalbutton, {
       if(input$setseed) {
         set.seed(input$seed)
-      }
-      if(input$parallel_eval_glm) {
-        showNotification("Simulating (no progress bar with multicore on):",type="message")
       }
       if(isblocking()) {
         print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
@@ -1938,30 +1886,15 @@ skprGUIserver = function(inputValue1,inputValue2) {
         print("No design generated")
       } else {
         if(evaluationtype() == "surv") {
-          if(input$parallel_eval_glm) {
-            eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
-                                    model = as.formula(input$model),
-                                    alpha = input$alpha,
-                                    nsim = input$nsim,
-                                    censorpoint = input$censorpoint,
-                                    censortype = input$censortype,
-                                    distribution = input$distribution,
-                                    effectsize = effectsize(),
-                                    detailedoutput = input$detailedoutput,
-                                    parallel = input$parallel_eval_glm)
-          } else {
-            eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
-                                    model = as.formula(input$model),
-                                    alpha = input$alpha,
-                                    nsim = input$nsim,
-                                    censorpoint = input$censorpoint,
-                                    censortype = input$censortype,
-                                    distribution = input$distribution,
-                                    effectsize = effectsize(),
-                                    detailedoutput = input$detailedoutput,
-                                    parallel = input$parallel_eval_glm)
-            # })
-          }
+          eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
+                                  model = as.formula(input$model),
+                                  alpha = input$alpha,
+                                  nsim = input$nsim,
+                                  censorpoint = input$censorpoint,
+                                  censortype = input$censortype,
+                                  distribution = input$distribution,
+                                  effectsize = effectsize(),
+                                  detailedoutput = input$detailedoutput)
         }
       }
     })

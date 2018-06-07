@@ -2277,3 +2277,4 @@ skprGUIserver = function(inputValue1,inputValue2) {
   runGadget(shinyApp(ui, server, enableBookmarking = "url"),viewer = dialogViewer(dialogName = "skprGUIserver", width = 1200,height=1200))
 }
 # nocov end
+globalVariables(c("progress","percentdone","previouspercent"))

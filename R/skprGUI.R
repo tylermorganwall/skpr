@@ -1302,7 +1302,7 @@ skprGUI = function(inputValue1,inputValue2) {
     regularmodelstring = reactive({
       tryCatch({
         if(any(unlist(strsplit(as.character(as.formula(input$model)[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-          dotreplace = paste0("(",paste0(names(inputlist()), collapse=" + "),")")
+          dotreplace = paste0("(",paste0(names(candidatesetall()), collapse=" + "),")")
           additionterms = unlist(strsplit(as.character(as.formula(input$model)[2]),"\\s\\+\\s"))
           multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
           interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
@@ -1597,14 +1597,13 @@ skprGUI = function(inputValue1,inputValue2) {
         as.formula(paste0("~",paste(names(inputlist_htctext()),collapse=" + ")))
       } else {
         names = names(inputlist())
-        modelsplit = attr(terms.formula(as.formula(input$model)), "term.labels")
+        modelsplit = attr(terms.formula(as.formula(input$model),data = candidatesetall()), "term.labels")
         regularmodel = rep(FALSE, length(modelsplit))
         for(term in names) {
           regex = paste0("(\\b",term,"\\b)|(\\b",term,":)|(:",term,"\\b)|(\\b",term,"\\s\\*)|(\\*\\s",term,"\\b)|(:",term,":)")
           regularmodel = regularmodel | grepl(regex,modelsplit,perl=TRUE)
         }
         paste0("~",paste(modelsplit[!regularmodel],collapse=" + "))
-
       }
     })
 
@@ -1660,9 +1659,7 @@ skprGUI = function(inputValue1,inputValue2) {
       if(isolate(input$parallel)) {
         showNotification("Searching (no progress bar with multicore on):",type="message")
       }
-      if(isblocking() && isolate(input$optimality) %in% c("Alias","T","G")) {
-        print("Hard-to-change factors are not currently supported for T and G optimal designs.")
-      } else {
+      tryCatch({
         if(!isblocking()) {
           if(isolate(as.logical(input$parallel))) {
             design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
@@ -1689,7 +1686,7 @@ skprGUI = function(inputValue1,inputValue2) {
           spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                            model = isolate(as.formula(blockmodel())),
                            trials = isolate(input$numberblocks),
-                           optimality = isolate(optimality()),
+                           optimality = ifelse(toupper(isolate(optimality())) == "ALIAS" && length(isolate(inputlist_htc())) == 1, "D",isolate(optimality())),
                            repeats = isolate(input$repeats),
                            varianceratio = isolate(input$varianceratio),
                            aliaspower = isolate(input$aliaspower),
@@ -1732,10 +1729,11 @@ skprGUI = function(inputValue1,inputValue2) {
                          progressBarUpdater = incProgressSession)})
           }
         }
+      },finally = {
         shinyjs::enable("evalbutton")
         shinyjs::enable("submitbutton")
-        return(design)
-      }
+      })
+      return(design)
     })
 
     evaluationtype = reactive({
@@ -1745,18 +1743,14 @@ skprGUI = function(inputValue1,inputValue2) {
 
     powerresults = reactive({
       input$evalbutton
-      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        if(evaluationtype() == "lm") {
-          eval_design(RunMatrix = isolate(runmatrix()),
-                      model = as.formula(isolate(input$model)),
-                      alpha = isolate(input$alpha),
-                      blocking = isblocking(),
-                      effectsize = isolate(effectsize()),
-                      conservative = isolate(input$conservative),
-                      detailedoutput = isolate(input$detailedoutput))
-        }
+      if(evaluationtype() == "lm") {
+        eval_design(RunMatrix = isolate(runmatrix()),
+                    model = as.formula(isolate(input$model)),
+                    alpha = isolate(input$alpha),
+                    blocking = isblocking(),
+                    effectsize = isolate(effectsize()),
+                    conservative = isolate(input$conservative),
+                    detailedoutput = isolate(input$detailedoutput))
       }
     })
     powerresultsglm = reactive({
@@ -1767,11 +1761,20 @@ skprGUI = function(inputValue1,inputValue2) {
       if(isolate(input$parallel_eval_glm)) {
         showNotification("Simulating (no progress bar with multicore on):",type="message")
       }
-      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        if(evaluationtype() == "glm") {
-          if(isolate(input$parallel_eval_glm)) {
+      if(evaluationtype() == "glm") {
+        if(isolate(input$parallel_eval_glm)) {
+          eval_design_mc(RunMatrix = isolate(runmatrix()),
+                         model = isolate(as.formula(input$model)),
+                         alpha = isolate(input$alpha),
+                         blocking = isblocking(),
+                         nsim = isolate(input$nsim),
+                         varianceratios = isolate(input$varianceratio),
+                         glmfamily = isolate(input$glmfamily),
+                         effectsize = isolate(effectsize()),
+                         parallel = isolate(input$parallel_eval_glm),
+                         detailedoutput = isolate(input$detailedoutput))
+        } else {
+          withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
             eval_design_mc(RunMatrix = isolate(runmatrix()),
                            model = isolate(as.formula(input$model)),
                            alpha = isolate(input$alpha),
@@ -1781,21 +1784,8 @@ skprGUI = function(inputValue1,inputValue2) {
                            glmfamily = isolate(input$glmfamily),
                            effectsize = isolate(effectsize()),
                            parallel = isolate(input$parallel_eval_glm),
-                           detailedoutput = isolate(input$detailedoutput))
-          } else {
-            withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
-              eval_design_mc(RunMatrix = isolate(runmatrix()),
-                             model = isolate(as.formula(input$model)),
-                             alpha = isolate(input$alpha),
-                             blocking = isblocking(),
-                             nsim = isolate(input$nsim),
-                             varianceratios = isolate(input$varianceratio),
-                             glmfamily = isolate(input$glmfamily),
-                             effectsize = isolate(effectsize()),
-                             parallel = isolate(input$parallel_eval_glm),
-                             detailedoutput = isolate(input$detailedoutput),
-                             progressBarUpdater = incProgressSession)})
-          }
+                           detailedoutput = isolate(input$detailedoutput),
+                           progressBarUpdater = incProgressSession)})
         }
       }
     })
@@ -1810,11 +1800,20 @@ skprGUI = function(inputValue1,inputValue2) {
       if(isblocking()) {
         print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
       }
-      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        if(evaluationtype() == "surv") {
-          if(isolate(input$parallel_eval_glm)) {
+      if(evaluationtype() == "surv") {
+        if(isolate(input$parallel_eval_glm)) {
+          eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
+                                  model = isolate(as.formula(input$model)),
+                                  alpha = isolate(input$alpha),
+                                  nsim = isolate(input$nsim),
+                                  censorpoint = isolate(input$censorpoint),
+                                  censortype = isolate(input$censortype),
+                                  distribution = isolate(input$distribution),
+                                  effectsize = isolate(effectsize()),
+                                  detailedoutput = isolate(input$detailedoutput),
+                                  parallel = isolate(input$parallel_eval_glm))
+        } else {
+          withProgress(message = "Simulating:", value=0, min = 0, max = 1, expr = {
             eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
                                     model = isolate(as.formula(input$model)),
                                     alpha = isolate(input$alpha),
@@ -1824,22 +1823,9 @@ skprGUI = function(inputValue1,inputValue2) {
                                     distribution = isolate(input$distribution),
                                     effectsize = isolate(effectsize()),
                                     detailedoutput = isolate(input$detailedoutput),
-                                    parallel = isolate(input$parallel_eval_glm))
-          } else {
-            withProgress(message = "Simulating:", value=0, min = 0, max = 1, expr = {
-              eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
-                                      model = isolate(as.formula(input$model)),
-                                      alpha = isolate(input$alpha),
-                                      nsim = isolate(input$nsim),
-                                      censorpoint = isolate(input$censorpoint),
-                                      censortype = isolate(input$censortype),
-                                      distribution = isolate(input$distribution),
-                                      effectsize = isolate(effectsize()),
-                                      detailedoutput = isolate(input$detailedoutput),
-                                      parallel = isolate(input$parallel_eval_glm),
-                                      progressBarUpdater = incProgressSession)
-            })
-          }
+                                    parallel = isolate(input$parallel_eval_glm),
+                                    progressBarUpdater = incProgressSession)
+          })
         }
       }
     })
@@ -1910,23 +1896,15 @@ skprGUI = function(inputValue1,inputValue2) {
 
     output$aliasplot = renderPlot({
       input$submitbutton
-      if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        tryCatch({
-          plot_correlations(isolate(runmatrix()))
-        }, error = function(e) {
-        })
-      }
+      tryCatch({
+        plot_correlations(isolate(runmatrix()))
+      }, error = function(e) {
+      })
     })
 
     output$fdsplot = renderPlot({
       input$submitbutton
-      if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        plot_fds(isolate(runmatrix()))
-      }
+      plot_fds(isolate(runmatrix()))
     })
 
     output$code = renderUI({

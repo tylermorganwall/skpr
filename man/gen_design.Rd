@@ -36,8 +36,7 @@ and the optimal design is found for all of the factors given in the
 argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
 for that whole plot setting. If the input is an integer, each block will be of this size.}
 
-\item{optimality}{Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
+\item{optimality}{Default "D". The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
 "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.}

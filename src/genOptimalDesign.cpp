@@ -58,9 +58,8 @@ double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::Matrix
 }
 
 
-double calculateGOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candidateSet) {
-  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  Eigen::MatrixXd results = candidateSet*XtX.llt().solve(candidateSet.transpose());
+double calculateGOptimality(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd results = currentDesign*(currentDesign.transpose()*currentDesign).llt().solve(currentDesign.transpose());
   return(results.diagonal().maxCoeff());
 }
 
@@ -451,7 +450,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   }
   if(condition == "G") {
     Eigen::MatrixXd temp;
-    del = calculateGOptimality(initialdesign,candidatelist);
+    del = calculateGOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -466,7 +465,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.row(i) = candidatelist.row(j);
-            newdel = calculateGOptimality(temp,candidatelist);
+            newdel = calculateGOptimality(temp);
             if(newdel < del) {
               if(!isSingular(temp)) {
                 found = true;
@@ -488,7 +487,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
       }
       //Re-calculate current criterion value.
-      newOptimum = calculateGOptimality(initialdesign,candidatelist);
+      newOptimum = calculateGOptimality(initialdesign);
     }
   }
   if(condition == "T") {
@@ -630,10 +629,10 @@ double calculateBlockedAliasTrace(const Eigen::MatrixXd& currentDesign, const Ei
   return((A.transpose() * A).trace());
 }
 
-// double calculateBlockedGOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candidateSet, const Eigen::MatrixXd& gls) {
-//   Eigen::MatrixXd results = inv_sympd(currentDesign.t()*gls*currentDesign)*candidateSet.t()*gls;
-//   return(results.diag().max());
-// }
+double calculateBlockedGOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd results = currentDesign*(currentDesign.transpose()*gls*currentDesign).partialPivLu().solve(currentDesign.transpose())*gls;
+  return(results.diagonal().maxCoeff());
+}
 
 double calculateBlockedTOptimality(const Eigen::MatrixXd& currentDesign,const Eigen::MatrixXd& gls) {
   return((currentDesign.transpose()*gls*currentDesign).trace());
@@ -843,10 +842,10 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //Generate an I-optimal design, fixing the blocking factors
   if(condition == "I") {
     Eigen::MatrixXd temp;
-    del = calculateBlockedIOptimality(combinedDesign,momentsmatrix,vInv);
+    del = calculateBlockedIOptimality(combinedDesign, momentsmatrix, vInv);
     newOptimum = del;
-    priorOptimum = del/2;
-    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+    priorOptimum = del*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
       for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
@@ -874,7 +873,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
 
             newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
-            if((newdel > del || mustchange[i]) && pointallowed) {
+            if((newdel < del || mustchange[i]) && pointallowed) {
               found = true;
               entryx = i; entryy = j;
               del = newdel;
@@ -937,7 +936,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
 
             newdel = calculateBlockedAOptimality(temp,vInv);
-            if((newdel > del || mustchange[i]) && pointallowed) {
+            if((newdel < del || mustchange[i]) && pointallowed) {
               found = true;
               entryx = i; entryy = j;
               del = newdel;
@@ -1080,94 +1079,65 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
       newOptimum = calculateBlockedEOptimality(combinedDesign, vInv);
     }
   }
+  if(condition == "G") {
+    Eigen::MatrixXd temp;
+    newOptimum = calculateBlockedGOptimality(combinedDesign, vInv);
+    priorOptimum = newOptimum*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
+      del = newOptimum;
+      priorOptimum = newOptimum;
+      for (int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = false;
+        entryx = 0;
+        entryy = 0;
+        temp = combinedDesign;
+        for (int j = 0; j < totalPoints; j++) {
+          temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          if(interstrata) {
+            for(int k = 0; k < numberinteractions; k++) {
+              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
 
-  // Work-in-progress
-  // if(condition == "G") {
-  //
-  //   Eigen::MatrixXd reducedCandidateList(fullcandidatesetrows(), blockedCols + designCols + numberinteractions,arma::fill::zeros);
-  //   reducedCandidateList(arma::span::all,arma::span(0,blockedCols+designCols-1)) = fullcandidateset;
-  //
-  //   if(interstrata) {
-  //     for(int i = 0; i < numberinteractions; i++) {
-  //       reducedCandidateList.col(blockedCols+designCols + i) = reducedCandidateList.col(as<NumericVector>(interactions[i])[0]-1) % reducedCandidateList.col(as<NumericVector>(interactions[i])[1]-1);
-  //     }
-  //   }
-  //
-  //   LogicalVector mustdelete(fullcandidatesetrows(), false);
-  //
-  //   if(anydisallowed) {
-  //     for(int i = 0; i < fullcandidatesetrows(); i++) {
-  //       for(int j = 0; j < disallowedrows(); j++) {
-  //         if(all(reducedCandidateList.row(i) == disallowed.row(j))) {
-  //           mustdelete[i] = true;
-  //         }
-  //       }
-  //     }
-  //     for(int i = fullcandidatesetrows(); i > 0; i--) {
-  //       if(mustdelete[i]) {
-  //         reducedCandidateList.shed_row(i);
-  //       }
-  //     }
-  //   }
-  //
-  //   Eigen::MatrixXd temp;
-  //   newOptimum = calculateBlockedGOptimality(combinedDesign, reducedCandidateList, vInv);
-  //   priorOptimum = newOptimum*2;
-  //   while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
-  //     del = newOptimum;
-  //     priorOptimum = newOptimum;
-  //     for (int i = 0; i < nTrials; i++) {
-  //       Rcpp::checkUserInterrupt();
-  //       found = false;
-  //       entryx = 0;
-  //       entryy = 0;
-  //       temp = combinedDesign;
-  //       for (int j = 0; j < totalPoints; j++) {
-  //         temp(i,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(j);
-  //         if(interstrata) {
-  //           for(int k = 0; k < numberinteractions; k++) {
-  //             temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
-  //           }
-  //         }
-  //
-  //         pointallowed = true;
-  //         if(anydisallowed) {
-  //           for(int k = 0; k < disallowedrows(); k++) {
-  //             if(all(temp.row(i) == disallowed.row(k))) {
-  //               pointallowed = false;
-  //             }
-  //           }
-  //         }
-  //         try {
-  //           newdel = calculateBlockedGOptimality(temp, reducedCandidateList, vInv);
-  //         } catch (std::runtime_error& e) {
-  //           continue;
-  //         }
-  //         if((newdel < del || mustchange[i]) && pointallowed) {
-  //           if(!isSingularBlocked(temp,vInv)) {
-  //             found = true;
-  //             entryx = i; entryy = j;
-  //             del = newdel;
-  //             mustchange[i] = false;
-  //           }
-  //         }
-  //       }
-  //       if (found) {
-  //         combinedDesign(entryx,arma::span(blockedCols,blockedCols+designCols-1)) = candidatelist.row(entryy);
-  //         if(interstrata) {
-  //           for(int k = 0; k < numberinteractions; k++) {
-  //             combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
-  //           }
-  //         }
-  //         candidateRow[i] = entryy+1;
-  //         initialRows[i] = entryy+1;
-  //       } else {
-  //         candidateRow[i] = initialRows[i];
-  //       }
-  //     }
-  //     newOptimum = calculateBlockedGOptimality(combinedDesign, reducedCandidateList, vInv);
-  //   }
-  // }
+          pointallowed = true;
+          if(anydisallowed) {
+            for(int k = 0; k < disallowed.rows(); k++) {
+              if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
+                pointallowed = false;
+              }
+            }
+          }
+          try {
+            newdel = calculateBlockedGOptimality(temp, vInv);
+          } catch (std::runtime_error& e) {
+            continue;
+          }
+          if((newdel < del || mustchange[i]) && pointallowed) {
+            if(!isSingularBlocked(temp,vInv)) {
+              found = true;
+              entryx = i; entryy = j;
+              del = newdel;
+              mustchange[i] = false;
+            }
+          }
+        }
+        if (found) {
+          combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          if(interstrata) {
+            for(int k = 0; k < numberinteractions; k++) {
+              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+            }
+          }
+          candidateRow[i] = entryy+1;
+          initialRows[i] = entryy+1;
+        } else {
+          candidateRow[i] = initialRows[i];
+        }
+      }
+      newOptimum = calculateBlockedGOptimality(combinedDesign, vInv);
+    }
+  }
 
   if(condition == "ALIAS") {
     Eigen::MatrixXd temp;

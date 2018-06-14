@@ -1364,7 +1364,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
     regularmodelstring = reactive({
       tryCatch({
         if(any(unlist(strsplit(as.character(as.formula(input$model)[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-          dotreplace = paste0("(",paste0(names(inputlist()), collapse=" + "),")")
+          dotreplace = paste0("(",paste0(names(candidatesetall()), collapse=" + "),")")
           additionterms = unlist(strsplit(as.character(as.formula(input$model)[2]),"\\s\\+\\s"))
           multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
           interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
@@ -1659,7 +1659,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
         as.formula(paste0("~",paste(names(inputlist_htctext()),collapse=" + ")))
       } else {
         names = names(inputlist())
-        modelsplit = attr(terms.formula(as.formula(input$model)), "term.labels")
+        modelsplit = attr(terms.formula(as.formula(input$model),data = candidatesetall()), "term.labels")
         regularmodel = rep(FALSE, length(modelsplit))
         for(term in names) {
           regex = paste0("(\\b",term,"\\b)|(\\b",term,":)|(:",term,"\\b)|(\\b",term,"\\s\\*)|(\\*\\s",term,"\\b)|(:",term,":)")
@@ -1722,58 +1722,67 @@ skprGUIserver = function(inputValue1,inputValue2) {
       if(input$setseed) {
         set.seed((input$seed))
       }
-      if(isblocking() && input$optimality %in% c("T","G")) {
-        print("Hard-to-change factors are not currently supported for Alias, T, and G optimal designs.")
+      if(!isblocking()) {
+        optimality_async = optimality()
+        candidatesetall_async = expand.grid(candidatesetall())
+        model_async = input$model
+        trials_async = input$trials
+        repeats_async = input$repeats
+        aliaspower_async = input$aliaspower
+        mindopt_async =  input$mindopt
+        return(future({
+          temp = skpr::gen_design(candidateset = candidatesetall_async,
+                           model = c("~",substring(model_async, 2)),
+                           trials = trials_async,
+                           optimality = optimality_async,
+                           repeats = repeats_async,
+                           aliaspower = aliaspower_async,
+                           minDopt = mindopt_async,
+                           progressBarUpdater = progressBarUpdater)
+          attr(temp,"generating.model") = NULL
+          saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+        }))
       } else {
-
-        if(!isblocking()) {
-          optimality_async = optimality()
-          candidatesetall_async = expand.grid(candidatesetall())
-          model_async = input$model
-          trials_async = input$trials
-          repeats_async = input$repeats
-          aliaspower_async = input$aliaspower
-          mindopt_async =  input$mindopt
-          return(future({
-            temp = skpr::gen_design(candidateset = candidatesetall_async,
-                             model = c("~",substring(model_async, 2)),
-                             trials = trials_async,
-                             optimality = optimality_async,
-                             repeats = repeats_async,
-                             aliaspower = aliaspower_async,
-                             minDopt = mindopt_async,
-                             progressBarUpdater = progressBarUpdater)
-            attr(temp,"generating.model") = NULL
-            saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
-          }))
+        spd = gen_design(candidateset = expand.grid(candidatesetall()),
+                         model = as.formula(blockmodel()),
+                         trials = input$numberblocks,
+                         optimality = ifelse(toupper(optimality()) == "ALIAS" && length(inputlist_htc()) == 1, "D",optimality()),
+                         repeats = input$repeats,
+                         varianceratio = input$varianceratio,
+                         aliaspower = input$aliaspower,
+                         minDopt = input$mindopt)
+        if(input$trials %% input$numberblocks == 0) {
+          sizevector = input$trials/input$numberblocks
         } else {
-          spd = gen_design(candidateset = expand.grid(candidatesetall()),
-                           model = as.formula(blockmodel()),
-                           trials = input$numberblocks,
-                           optimality = optimality(),
-                           repeats = input$repeats,
-                           varianceratio = input$varianceratio,
-                           aliaspower = input$aliaspower,
-                           minDopt = input$mindopt)
-          if(input$trials %% input$numberblocks == 0) {
-            sizevector = input$trials/input$numberblocks
-          } else {
-            sizevector = c(rep(ceiling(input$trials/input$numberblocks),input$numberblocks))
-            unbalancedruns = ceiling(input$trials/input$numberblocks)*input$numberblocks - input$trials
-            sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
-          }
-          gen_design(candidateset = expand.grid(candidatesetall()),
-                     model = as.formula(input$model),
-                     trials = input$trials,
-                     splitplotdesign = spd,
-                     splitplotsizes = sizevector,
-                     optimality = optimality(),
-                     repeats = input$repeats,
-                     varianceratio = input$varianceratio,
-                     aliaspower = input$aliaspower,
-                     minDopt = input$mindopt,
-                     splitcolumns = input$splitanalyzable)
+          sizevector = c(rep(ceiling(input$trials/input$numberblocks),input$numberblocks))
+          unbalancedruns = ceiling(input$trials/input$numberblocks)*input$numberblocks - input$trials
+          sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] = sizevector[(length(sizevector)-unbalancedruns+1):length(sizevector)] - 1
         }
+        optimality_async = optimality()
+        candidatesetall_async = expand.grid(candidatesetall())
+        model_async = input$model
+        trials_async = input$trials
+        repeats_async = input$repeats
+        aliaspower_async = input$aliaspower
+        varianceratio_async = input$varianceratio
+        mindopt_async =  input$mindopt
+        splitcolumns_aync = input$splitanalyzable
+        return(future({
+          temp = skpr::gen_design(candidateset = candidatesetall_async,
+                   model = as.formula(model_async),
+                   trials = trials_async,
+                   splitplotdesign = spd,
+                   splitplotsizes = sizevector,
+                   optimality =optimality_async,
+                   repeats = repeats_async,
+                   varianceratio = varianceratio_async,
+                   aliaspower = aliaspower_async,
+                   minDopt = mindopt_async,
+                   splitcolumns = splitcolumns_aync,
+                   progressBarUpdater = progressBarUpdater)
+          attr(temp,"generating.model") = NULL
+          saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+        }))
       }
     })
 
@@ -1839,18 +1848,14 @@ skprGUIserver = function(inputValue1,inputValue2) {
       runmatvalues$runmatrix
     }, {
       calculate_results = function(runmat) {
-        if(isblocking() && optimality() %in% c("T","G")) {
-          print("No design generated")
-        } else {
-          if(evaluationtype() == "lm") {
-            eval_design(RunMatrix = runmat,
-                        model = as.formula(input$model),
-                        alpha = input$alpha,
-                        blocking = isblocking(),
-                        effectsize = effectsize(),
-                        conservative = input$conservative,
-                        detailedoutput = input$detailedoutput)
-          }
+        if(evaluationtype() == "lm") {
+          eval_design(RunMatrix = runmat,
+                      model = as.formula(input$model),
+                      alpha = input$alpha,
+                      blocking = isblocking(),
+                      effectsize = effectsize(),
+                      conservative = input$conservative,
+                      detailedoutput = input$detailedoutput)
         }
       }
       calculate_results(runmatvalues$runmatrix)
@@ -1859,20 +1864,16 @@ skprGUIserver = function(inputValue1,inputValue2) {
       if(input$setseed) {
         set.seed(input$seed)
       }
-      if(isblocking() && optimality() %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        if(evaluationtype() == "glm") {
-          eval_design_mc(RunMatrix = runmatvalues$runmatrix,
-                         model = as.formula(input$model),
-                         alpha = input$alpha,
-                         blocking = isblocking(),
-                         nsim = input$nsim,
-                         varianceratios = input$varianceratio,
-                         glmfamily = input$glmfamily,
-                         effectsize = effectsize(),
-                         detailedoutput = input$detailedoutput)
-        }
+      if(evaluationtype() == "glm") {
+        eval_design_mc(RunMatrix = runmatvalues$runmatrix,
+                       model = as.formula(input$model),
+                       alpha = input$alpha,
+                       blocking = isblocking(),
+                       nsim = input$nsim,
+                       varianceratios = input$varianceratio,
+                       glmfamily = input$glmfamily,
+                       effectsize = effectsize(),
+                       detailedoutput = input$detailedoutput)
       }
     })
     powerresultssurv = eventReactive(input$evalbutton, {
@@ -1882,20 +1883,16 @@ skprGUIserver = function(inputValue1,inputValue2) {
       if(isblocking()) {
         print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
       }
-      if(isblocking() && isolate(optimality()) %in% c("Alias","T","G")) {
-        print("No design generated")
-      } else {
-        if(evaluationtype() == "surv") {
-          eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
-                                  model = as.formula(input$model),
-                                  alpha = input$alpha,
-                                  nsim = input$nsim,
-                                  censorpoint = input$censorpoint,
-                                  censortype = input$censortype,
-                                  distribution = input$distribution,
-                                  effectsize = effectsize(),
-                                  detailedoutput = input$detailedoutput)
-        }
+      if(evaluationtype() == "surv") {
+        eval_design_survival_mc(RunMatrix = runmatvalues$runmatrix,
+                                model = as.formula(input$model),
+                                alpha = input$alpha,
+                                nsim = input$nsim,
+                                censorpoint = input$censorpoint,
+                                censortype = input$censortype,
+                                distribution = input$distribution,
+                                effectsize = effectsize(),
+                                detailedoutput = input$detailedoutput)
       }
     })
 
@@ -1913,23 +1910,15 @@ skprGUIserver = function(inputValue1,inputValue2) {
     },digits=4,hover=TRUE,align="c")
 
     output$aliasplot = renderPlot({
-        if(isolate(isblocking()) && isolate(optimality()) %in% c("Alias","T","G")) {
-          print("No design generated")
-        } else {
-          tryCatch({
-            plot_correlations(runmatvalues$runmatrix)
-          }, error = function(e) {
-          })
-        }
+      tryCatch({
+        plot_correlations(runmatvalues$runmatrix)
+      }, error = function(e) {
+      })
     })
 
     output$fdsplot = renderPlot({
       format_fdsplot = function(runmat) {
-        if(isolate(isblocking()) && isolate(optimality()) %in% c("T","G")) {
-          print("No design generated")
-        } else {
-          plot_fds(runmat,model=as.formula(isolate(input$model)))
-        }
+        plot_fds(runmat,model=as.formula(isolate(input$model)))
       }
       format_fdsplot(runmatvalues$runmatrix)
     })

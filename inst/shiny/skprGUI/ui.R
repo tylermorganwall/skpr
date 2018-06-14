@@ -14,6 +14,7 @@ panelstyle = "background-color: rgba(86, 96, 133, 0.3);
 
 function(request) {
   fluidPage(theme = shinytheme("yeti"),
+            shinyjs::useShinyjs(),
             introjsUI(),
             HTML("<style> table {font-size: 14px;}
                  .btn2 {
@@ -23,6 +24,16 @@ function(request) {
                  border-radius: 11px;
                  -webkit-box-shadow: 0px 2px 0px 0px rgb(59, 76, 145);
                  box-shadow: 0px 2px 0px 0px rgb(59, 76, 145);
+                 }
+                 .btn2.disabled, .btn2.disabled:hover,.btn2.disabled:active,.btn2.disabled:focus {
+                      color: #fff;
+                 border-color: rgba(46, 109, 164, 0);
+                 background: linear-gradient(to bottom, rgb(64, 108, 221) 0%, rgb(107, 167, 223) 100%);
+                 border-radius: 11px;
+                 -webkit-box-shadow: 0px 0px 0px 0px rgb(59, 76, 145);
+                 box-shadow: 0px 0px 0px 0px rgb(59, 76, 145);
+                 margin-top: 2px;
+                 margin-bottom: -2px;
                  }
                  .btn2:hover {
                  color: #fff;

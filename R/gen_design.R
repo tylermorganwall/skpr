@@ -24,8 +24,7 @@
 #'@param splitplotsizes Specifies the block size for each row of harder-to-change factors given in the
 #'argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
 #'for that whole plot setting. If the input is an integer, each block will be of this size.
-#'@param optimality Default "D". The optimality criterion used in generating the design. For split-plot designs, skpr currently
-#' supports all but the "G" criterion. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
+#'@param optimality Default "D". The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 #' define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
 #' "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 #'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
@@ -577,6 +576,7 @@ gen_design = function(candidateset, model, trials,
       }
     } else {
       candidatesetmm = model.matrix(modelnowholeformula,candidatesetnormalized)
+      fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidateset,contrasts.arg=fullcontrastlist))
     }
   } else {
     if(is.null(splitplotdesign)) {
@@ -598,9 +598,6 @@ gen_design = function(candidateset, model, trials,
                  "It can also happen if you have specified a quadratic model term but have only two levels",
                  "of that factor in the candidate set."))
     }
-  }
-  if(optimality == "G" && !is.null(splitplotdesign)) {
-    stop("Generating G optimal designs not presently supported with split plot designs.")
   }
 
   if(is.null(splitplotdesign)) {
@@ -1009,7 +1006,7 @@ gen_design = function(candidateset, model, trials,
   attr(design,"A-Efficiency") = tryCatch({AOptimality(designmm)}, error = function(e) {})
   if(!blocking) {
     tryCatch({
-      attr(design,"G") = 100*(ncol(designmm))/(nrow(designmm)*max(diag(candidatesetmm %*% solve(t(designmm) %*% designmm) %*% t(candidatesetmm))))
+      attr(design,"G") = 100*(ncol(designmm))/(nrow(designmm)*max(diag(designmm %*% solve(t(designmm) %*% designmm) %*% t(designmm))))
       attr(design,"T") = sum(diag(t(designmm) %*% designmm))
       attr(design,"E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
       attr(design,"variance.matrix") = diag(nrow(designmm))
@@ -1018,6 +1015,8 @@ gen_design = function(candidateset, model, trials,
   } else {
     tryCatch({
       attr(design,"variance.matrix") = V
+      vinv = solve(V)
+      attr(design,"G") = 100*(ncol(designmm))/(nrow(designmm)*max(diag(designmm %*% solve(t(designmm) %*% vinv %*% designmm) %*% t(designmm) %*% vinv)))
       attr(design,"I") = IOptimality(as.matrix(designmm),momentsMatrix = blockedMM, blockedVar = V)
     }, error = function(e) {})
   }

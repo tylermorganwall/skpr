@@ -119,6 +119,7 @@ test_that("poisson coefficient generation rejects invalid parameters", {
 
 
 test_that("eval_design_mc processes effectsize properly for glm", {
+  set.seed(1)
   cand = expand.grid(x = c(-1, 1), y = c(-1, 1))
   des = gen_design(cand, ~., trials = 100)
 

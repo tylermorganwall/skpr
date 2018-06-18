@@ -906,7 +906,8 @@ function(input, output, session) {
                        glmfamily = isolate(input$glmfamily),
                        effectsize = isolate(effectsize()),
                        parallel = isolate(input$parallel_eval_glm),
-                       detailedoutput = isolate(input$detailedoutput))
+                       detailedoutput = isolate(input$detailedoutput),
+                       advancedoptions = list(GUI=TRUE))
       } else {
         withProgress(message = ifelse(isblocking(),"Simulating (with REML):","Simulating:"), value=0, min = 0, max = 1, expr = {
           eval_design_mc(RunMatrix = isolate(runmatrix()),
@@ -919,7 +920,7 @@ function(input, output, session) {
                          effectsize = isolate(effectsize()),
                          parallel = isolate(input$parallel_eval_glm),
                          detailedoutput = isolate(input$detailedoutput),
-                         progressBarUpdater = incProgressSession)})
+                         advancedoptions = list(GUI=TRUE, progressBarUpdater = incProgressSession))})
       }
     }
   })

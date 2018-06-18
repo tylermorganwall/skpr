@@ -8,7 +8,8 @@ gen_design(candidateset, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", augmentdesign = NULL,
   repeats = 20, varianceratio = 1, contrast = contr.simplex,
   aliaspower = 2, minDopt = 0.8, parallel = FALSE, timer = FALSE,
-  splitcolumns = FALSE, advancedoptions = NULL, progressBarUpdater = NULL)
+  splitcolumns = FALSE, randomized = TRUE, advancedoptions = NULL,
+  progressBarUpdater = NULL)
 }
 \arguments{
 \item{candidateset}{A data frame of candidate test points; each run of the optimal design will be chosen (with replacement)
@@ -32,9 +33,11 @@ constant. Each row of \code{splitplotdesign} will be replicated as specified in 
 and the optimal design is found for all of the factors given in the
 \code{model} argument, taking into consideration the fixed and replicated hard-to-change factors.}
 
-\item{splitplotsizes}{Specifies the block size for each row of harder-to-change factors given in the
-argument \code{splitplotdesign}. If the input is a vector, each entry of the vector determines the size of the sub-plot
-for that whole plot setting. If the input is an integer, each block will be of this size.}
+\item{splitplotsizes}{Default NULL. Specifies the block size for each row of harder-to-change factors given in the
+argument \code{splitplotdesign}. If missing, `gen_design`` will attempt to allocate the runs in the most balanced design possible,
+given the number of blocks given in the argument `splitplotdesign` and the total number of `trials`.
+If the input is a vector, each entry of the vector determines the size of the sub-plot for that whole plot setting.
+If the input is an integer, each block will be of that size.}
 
 \item{optimality}{Default "D". The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
@@ -61,6 +64,8 @@ a split plot design. Default 1.}
 
 \item{splitcolumns}{Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
+
+\item{randomized}{Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.}
 
 \item{advancedoptions}{Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
@@ -145,21 +150,19 @@ hardtochangedesign = gen_design(candidateset = splitplotcandidateset, model=~Alt
 #Now we can use the D-optimal blocked design as an input to our full design.
 
 #Here, we add the easy to change factors from the candidate set to the model,
-#and input the hard-to-change design along with a vector listing the number
-#of repetitions within each block for the blocked design. There should be a size entry
-#for every block and the number of runs specified in the trials argument needs to equal the
-#sum of all of the block sizes or else the program will throw an error.
+#and input the hard-to-change design along with the new number of trials. `gen_design` will
+#automatically allocate the runs in the blocks in the most balanced way possible.
 
-#Since we have 11 runs in our hard-to-change design, we need a vector
-#specifying the size of each of the 11 blocks. Here we specify the blocks should be three runs each
-#(meaning the final design will be 33 runs):
+designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trials=33,
+                             splitplotdesign=hardtochangedesign, repeats=10)
 
-splitplotblocksize = rep(3,11)
+#If we want to allocate the blocks manually, we can do that with the argument `splitplotsizes`. This
+#vector must sum to the number of `trials` specified.
 
 #Putting this all together:
 designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trials=33,
                              splitplotdesign=hardtochangedesign,
-                             splitplotsizes=splitplotblocksize,repeats=10)
+                             splitplotsizes=c(4,2,3,4,2,3,4,2,3,4,2),repeats=10)
 
 #The split-plot structure is encoded into the row names, with a period
 #demarcating the blocking level. This process can be repeated for arbitrary

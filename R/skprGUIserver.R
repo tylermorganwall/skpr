@@ -1873,7 +1873,8 @@ skprGUIserver = function(inputValue1,inputValue2) {
                        varianceratios = input$varianceratio,
                        glmfamily = input$glmfamily,
                        effectsize = effectsize(),
-                       detailedoutput = input$detailedoutput)
+                       detailedoutput = input$detailedoutput,
+                       advancedoptions = list(GUI=TRUE))
       }
     })
     powerresultssurv = eventReactive(input$evalbutton, {

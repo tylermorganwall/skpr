@@ -22,16 +22,14 @@
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
 #'You only need to specify this if you do not like the default behavior described below.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
-#'will be automatically generated based on the \code{effectsize} or \code{binomialprobs} arguments.
+#'will be automatically generated based on the \code{effectsize} argument.
 #'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#'@param binomialprobs Equivalent to \code{effectsize}, maintained for backwards compatibility. See details for more info.
-#'If you specify \code{anticoef}, this argument will be ignored.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results.
-#'@param progressBarUpdater Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.
+#'@param advancedoptions Default NULL. Named list of advanced options. `progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`GUI` toggles some warning messages when in the GUI.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
 #' attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
@@ -198,12 +196,27 @@
 #'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(RunMatrix, model, alpha,
                           blocking=FALSE, nsim=1000, glmfamily="gaussian",
-                          varianceratios = NULL, rfunction=NULL, anticoef=NULL, effectsize=2,
-                          contrasts=contr.sum, binomialprobs = NULL,
-                          parallel=FALSE, detailedoutput=FALSE, progressBarUpdater=NULL) {
+                          varianceratios = NULL, rfunction=NULL, anticoef=NULL,
+                          effectsize=2, contrasts=contr.sum, parallel=FALSE,
+                          detailedoutput=FALSE, advancedoptions = NULL) {
 
   if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
     warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
+  }
+
+  if(!is.null(advancedoptions)) {
+    if(is.null(advancedoptions$GUI)) {
+      advancedoptions$GUI = FALSE
+    }
+    if(!is.null(advancedoptions$progressBarUpdater)) {
+      progressBarUpdater = advancedoptions$progressBarUpdater
+    } else {
+      progressBarUpdater = NULL
+    }
+  } else {
+    advancedoptions = list()
+    advancedoptions$GUI = FALSE
+    progressBarUpdater = NULL
   }
 
   #detect pre-set contrasts
@@ -343,11 +356,6 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #-----Autogenerate Anticipated Coefficients---#
   #Variables used later: anticoef
-  if (!is.null(binomialprobs) && glmfamily == "binomial") {
-    #effectsize now has the same functionality as binomialprobs
-    effectsize = binomialprobs
-    message("binomialprobs deprecated: binomialprobs is now equivalent to effectsize. ")
-  }
   if (!missing(anticoef) && !missing(effectsize)) {
     warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")
   }
@@ -572,6 +580,18 @@ eval_design_mc = function(RunMatrix, model, alpha,
   levelvector = sapply(lapply(RunMatrixReduced,unique),length)
   classvector = sapply(lapply(RunMatrixReduced,unique),class) == "factor"
   mm = gen_momentsmatrix(colnames(ModelMatrix),levelvector,classvector)
+
+  if(glmfamilyname == "binomial") {
+    pvalmat = attr(power_values,"pvals")
+    likelyseparation = FALSE
+    for(i in 2:ncol(pvalmat)) {
+      pvalcount = hist(pvalmat[,i],breaks=seq(0,1,0.05),plot=FALSE)
+      likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > nsim/15)
+    }
+    if(likelyseparation && !advancedoptions$GUI) {
+      warning("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.")
+    }
+  }
 
   modelmatrix_cor = model.matrix(generatingmodel,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
   if(ncol(modelmatrix_cor) > 2) {

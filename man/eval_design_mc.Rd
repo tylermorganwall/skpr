@@ -7,8 +7,7 @@
 eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
   anticoef = NULL, effectsize = 2, contrasts = contr.sum,
-  binomialprobs = NULL, parallel = FALSE, detailedoutput = FALSE,
-  progressBarUpdater = NULL)
+  parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -35,7 +34,7 @@ model matrix, b are the anticipated coefficients, and delta is a vector of block
 You only need to specify this if you do not like the default behavior described below.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
-will be automatically generated based on the \code{effectsize} or \code{binomialprobs} arguments.}
+will be automatically generated based on the \code{effectsize} argument.}
 
 \item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
@@ -43,14 +42,11 @@ If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 \item{contrasts}{Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
-\item{binomialprobs}{Equivalent to \code{effectsize}, maintained for backwards compatibility. See details for more info.
-If you specify \code{anticoef}, this argument will be ignored.}
-
 \item{parallel}{Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results.}
 
-\item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
+\item{advancedoptions}{Default NULL. Named list of advanced options. `progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`GUI` toggles some warning messages when in the GUI.}
 }
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information

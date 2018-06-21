@@ -435,6 +435,15 @@ gen_design = function(candidateset, model, trials,
       candidatesetnormalized[, column] = (candidateset[, column] - midvalue) / (maxvalue - midvalue)
     }
   }
+  fullcandidatesetnorm=fullcandidateset
+  for(column in 1:ncol(fullcandidateset)) {
+    if(is.numeric(fullcandidateset[,column])) {
+      maxvalue = max(fullcandidateset[, column])
+      minvalue = min(fullcandidateset[, column])
+      midvalue = mean(c(maxvalue, minvalue))
+      fullcandidatesetnorm[, column] = (fullcandidateset[, column] - midvalue) / (maxvalue - midvalue)
+    }
+  }
   if(!is.null(splitplotdesign)) {
     spdnormalized = splitplotdesign
     for(column in 1:ncol(spdnormalized)) {
@@ -587,7 +596,7 @@ gen_design = function(candidateset, model, trials,
       }
     } else {
       candidatesetmm = model.matrix(modelnowholeformula,candidatesetnormalized)
-      fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidateset,contrasts.arg=fullcontrastlist))
+      fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidatesetnorm,contrasts.arg=fullcontrastlist))
     }
   } else {
     if(is.null(splitplotdesign)) {
@@ -597,7 +606,7 @@ gen_design = function(candidateset, model, trials,
       }
     } else {
       candidatesetmm = suppressWarnings(model.matrix(modelnowholeformula,candidatesetnormalized,contrasts.arg=contrastslist))
-      fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidateset,contrasts.arg=fullcontrastlist))
+      fullcandidatesetmm = suppressWarnings(model.matrix(model,fullcandidatesetnorm,contrasts.arg=fullcontrastlist))
     }
   }
 
@@ -773,7 +782,7 @@ gen_design = function(candidateset, model, trials,
       blockedFactors = c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1],interactionnames)
       blockedMM = gen_momentsmatrix(blockedFactors,levelvector,classvector)
     }
-    disallowedcombdf = disallowed_combinations(fullcandidateset)
+    disallowedcombdf = disallowed_combinations(fullcandidatesetnorm)
     if(nrow(disallowedcombdf) > 0) {
       anydisallowed = TRUE
       disallowedcomb = suppressWarnings(model.matrix(model,disallowedcombdf,contrasts.arg=fullcontrastlist))

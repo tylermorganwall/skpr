@@ -58,8 +58,8 @@ double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::Matrix
 }
 
 
-double calculateGOptimality(const Eigen::MatrixXd& currentDesign) {
-  Eigen::MatrixXd results = currentDesign*(currentDesign.transpose()*currentDesign).llt().solve(currentDesign.transpose());
+double calculateGOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd results = currentDesign*currentV*currentDesign.transpose();
   return(results.diagonal().maxCoeff());
 }
 
@@ -89,11 +89,6 @@ double calculateAliasTrace(const Eigen::MatrixXd& currentV,
                            const Eigen::MatrixXd& aliasMatrix) {
   Eigen::MatrixXd A = currentV*currentDesign.transpose()*aliasMatrix;
   return((A.transpose() * A).trace());
-}
-
-double calculateAliasTracePseudoInv(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& aliasMatrix) {
-  //since we use linear solving, I see no need for this function
-  return(calculateAliasTraceSlow(currentDesign, aliasMatrix));
 }
 
 double calculateDEff(const Eigen::MatrixXd& currentDesign, double numbercols, double numberrows) {
@@ -367,7 +362,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     }
     initialdesign = initialdesign_trans.transpose();
 
-    double firstA = calculateAliasTracePseudoInv(initialdesign,aliasdesign);
+    double firstA = calculateAliasTraceSlow(initialdesign,aliasdesign);
     double initialD = calculateDEffNN(initialdesign,numbercols);
     double currentA = firstA;
     double currentD = initialD;
@@ -450,7 +445,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   }
   if(condition == "G") {
     Eigen::MatrixXd temp;
-    del = calculateGOptimality(initialdesign);
+    del = calculateGOptimality(V,initialdesign);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -465,7 +460,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.row(i) = candidatelist.row(j);
-            newdel = calculateGOptimality(temp);
+            newdel = calculateGOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp);
             if(newdel < del) {
               if(!isSingular(temp)) {
                 found = true;
@@ -479,7 +474,9 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
         if (found) {
           //Exchange points
+          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
           initialdesign.row(entryx) = candidatelist.row(entryy);
+          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
           candidateRow[i] = entryy+1;
           initialRows[i] = entryy+1;
         } else {
@@ -487,7 +484,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         }
       }
       //Re-calculate current criterion value.
-      newOptimum = calculateGOptimality(initialdesign);
+      newOptimum = calculateGOptimality(V,initialdesign);
     }
   }
   if(condition == "T") {

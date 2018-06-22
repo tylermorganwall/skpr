@@ -33,12 +33,15 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
   if(!is.null(attr(genoutput,"splitanalyzable"))) {
     if(attr(genoutput,"splitanalyzable")) {
       allattr = attributes(genoutput)
-      genoutput = genoutput[,-1:-length(allattr$splitcolumns)]
+      genoutput = genoutput[,-1:-length(allattr$splitcolumns),drop=FALSE]
       allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
       attributes(genoutput) = allattr
     }
   }
-
+  if(is.null(attr(genoutput,"variance.matrix") )) {
+    genoutput = eval_design(genoutput,~.,0.2)
+  }
+  V = attr(genoutput,"variance.matrix")
   if(is.null(model)) {
     if(!is.null(attr(genoutput,"runmatrix"))) {
       variables = paste0("`",colnames(attr(genoutput,"runmatrix")),"`")
@@ -51,7 +54,6 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
     linearmodel = paste0(c("~",linearterms),collapse="")
     model = as.formula(paste(c(linearmodel,as.character(aliasmodel(as.formula(linearmodel),power=pow)[2])),collapse=" + "))
   }
-  V = attr(genoutput,"variance.matrix")
   if(!is.null(attr(genoutput,"runmatrix"))) {
     genoutput = attr(genoutput,"runmatrix")
   }
@@ -83,7 +85,7 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
   }
 
   par(mar=c(5,3,7,0))
-  image(t(cormat[ncol(cormat):1,]),x=1:ncol(cormat),y=1:ncol(cormat),zlim=c(0,1),asp=1,axes=F,
+  image(t(cormat[ncol(cormat):1,,drop=FALSE]),x=1:ncol(cormat),y=1:ncol(cormat),zlim=c(0,1),asp=1,axes=F,
         col=imagecolors,xlab="",ylab="")
   axis(3,at=1:ncol(cormat),labels=colnames(mm)[-1], pos=ncol(cormat)+1,las=2,hadj=0,cex.axis=0.8)
   axis(2,at=ncol(cormat):1, labels=colnames(mm)[-1], pos=0,las=2,hadj=1,cex.axis=0.8)

@@ -246,7 +246,6 @@ gen_design = function(candidateset, model, trials,
                       aliaspower = 2, minDopt = 0.8,
                       parallel=FALSE, timer=FALSE, splitcolumns=FALSE, randomized=TRUE,
                       advancedoptions=NULL, progressBarUpdater = NULL) {
-
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
   if(!(optimality_uc %in% c("D","I","A","E","T","G","ALIAS","CUSTOM"))) {
@@ -1156,7 +1155,7 @@ gen_design = function(candidateset, model, trials,
 
   if(!randomized) {
     allattr = attributes(design)
-    design = design[do.call(order,design),]
+    design = design[do.call(order,design),,drop=FALSE]
     attributes(design) = allattr
   }
 

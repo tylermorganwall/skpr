@@ -95,4 +95,9 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
          fill = imagecolors[c(seq(1,101,10))], xpd=TRUE,bty="n",border=NA,y.intersp=0.3,x.intersp=0.1,cex=1)
   par(mar=c(5.1, 4.1, 4.1, 2.1))
 
+  retval = t(cormat[ncol(cormat):1,,drop=FALSE])
+  colnames(retval) = rev(colnames(mm)[-1])
+  rownames(retval) = colnames(mm)[-1]
+  invisible(retval)
+
 }

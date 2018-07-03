@@ -19,7 +19,7 @@ plot_correlations(genoutput, model = NULL, customcolors = NULL, pow = 2,
 \item{custompar}{Default NULL. Custom parameters to pass to the `par` function for base R plotting.}
 }
 \value{
-Plots design diagnostics
+Silently returns the correlation matrix with the proper row and column names.
 }
 \description{
 Plots design diagnostics

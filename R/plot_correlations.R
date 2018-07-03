@@ -7,7 +7,7 @@
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
 #'@param pow Default 2. The interaction level that the correlation map is showing.
 #'@param custompar Default NULL. Custom parameters to pass to the `par` function for base R plotting.
-#'@return Plots design diagnostics
+#'@return Silently returns the correlation matrix with the proper row and column names.
 #'@import graphics grDevices
 #'@export
 #'@examples

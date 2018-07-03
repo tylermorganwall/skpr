@@ -6,6 +6,7 @@
 #'@param model Default NULL. If specified, it will override the default model used to generate/evaluate the design.
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
 #'@param pow Default 2. The interaction level that the correlation map is showing.
+#'@param custompar Default NULL. Custom parameters to pass to the `par` function for base R plotting.
 #'@return Plots design diagnostics
 #'@import graphics grDevices
 #'@export
@@ -28,7 +29,7 @@
 #'#You can also pass in a custom color map.
 #'plot_correlations(cardesign,customcolors=c("blue","grey","red"))
 #'plot_correlations(cardesign,customcolors=c("blue","green","yellow","orange","red"))
-plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
+plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2, custompar = NULL) {
   #Remove skpr-generated REML blocking indicators if present
   if(!is.null(attr(genoutput,"splitanalyzable"))) {
     if(attr(genoutput,"splitanalyzable")) {
@@ -83,8 +84,11 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2) {
   } else {
     imagecolors = colorRampPalette(customcolors)(101)
   }
-
-  par(mar=c(5,3,7,0))
+  if(is.null(custompar)) {
+    par(mar=c(5,3,7,0))
+  } else {
+    do.call(par,custompar)
+  }
   image(t(cormat[ncol(cormat):1,,drop=FALSE]),x=1:ncol(cormat),y=1:ncol(cormat),zlim=c(0,1),asp=1,axes=F,
         col=imagecolors,xlab="",ylab="")
   axis(3,at=1:ncol(cormat),labels=colnames(mm)[-1], pos=ncol(cormat)+1,las=2,hadj=0,cex.axis=0.8)

@@ -4,7 +4,8 @@
 \alias{plot_correlations}
 \title{Plots design diagnostics}
 \usage{
-plot_correlations(genoutput, model = NULL, customcolors = NULL, pow = 2)
+plot_correlations(genoutput, model = NULL, customcolors = NULL, pow = 2,
+  custompar = NULL)
 }
 \arguments{
 \item{genoutput}{The output of either gen_design or eval_design/eval_design_mc}
@@ -14,6 +15,8 @@ plot_correlations(genoutput, model = NULL, customcolors = NULL, pow = 2)
 \item{customcolors}{A vector of colors for customizing the appearance of the colormap}
 
 \item{pow}{Default 2. The interaction level that the correlation map is showing.}
+
+\item{custompar}{Default NULL. Custom parameters to pass to the `par` function for base R plotting.}
 }
 \value{
 Plots design diagnostics

@@ -161,6 +161,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   int maxSingularityChecks = nTrials*100;
   int totalPoints = candidatelist.rows();
   Eigen::VectorXd candidateRow(nTrials);
+  candidateRow.setZero();
   Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
   test.setZero();
   if(nTrials < candidatelist.cols()) {

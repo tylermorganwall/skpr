@@ -5,6 +5,7 @@ context("Run Examples")
 set.seed(1)
 
 test_that("gen_design example code runs without errors", {
+  skip_on_cran()
   #'#Generating a basic 2 factor design:
   basicdesign <- expand.grid(x1=c(-1,1), x2=c(-1,1))
   set.seed(1)
@@ -82,6 +83,8 @@ test_that("gen_design example code runs without errors", {
                                      splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="T")})
   expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
                                      splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="Alias")})
+  expect_silent({design = gen_design(candlist1, ~Altitude+Range+Power, trials=33,
+                                     splitplotdesign=hardtochangedesign,splitplotsizes = 3,optimality="G")})
   #testing custom
   # customOpt = function(currentDesign) {
   #   return(det(t(currentDesign) %*% currentDesign))

@@ -5,9 +5,10 @@
 \title{Monte Carlo Power Evaluation for Experimental Designs}
 \usage{
 eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
-  glmfamily = "gaussian", varianceratios = NULL, rfunction = NULL,
-  anticoef = NULL, effectsize = 2, contrasts = contr.sum,
-  parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL)
+  glmfamily = "gaussian", calceffect = FALSE, varianceratios = NULL,
+  rfunction = NULL, anticoef = NULL, effectsize = 2,
+  contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
+  advancedoptions = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -25,6 +26,8 @@ factors that are not present in the run matrix.}
 
 \item{glmfamily}{String indicating the family of distribution for the glm function
 ("gaussian", "binomial", "poisson", or "exponential").}
+
+\item{calceffect}{Default `FALSE`. If `TRUE`, calculates effect power for a Type-III Anova (from the car package) using a Wald test.}
 
 \item{varianceratios}{Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}

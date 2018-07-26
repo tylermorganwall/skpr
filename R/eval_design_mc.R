@@ -16,6 +16,7 @@
 #'@param nsim The number of simulations to perform.
 #'@param glmfamily String indicating the family of distribution for the glm function
 #'("gaussian", "binomial", "poisson", or "exponential").
+#'@param calceffect Default `FALSE`. If `TRUE`, calculates effect power for a Type-III Anova (from the car package) using a Wald test.
 #'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
@@ -195,7 +196,7 @@
 #'#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
 #'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(RunMatrix, model, alpha,
-                          blocking=FALSE, nsim=1000, glmfamily="gaussian",
+                          blocking=FALSE, nsim=1000, glmfamily="gaussian", calceffect=FALSE,
                           varianceratios = NULL, rfunction=NULL, anticoef=NULL,
                           effectsize=2, contrasts=contr.sum, parallel=FALSE,
                           detailedoutput=FALSE, advancedoptions = NULL) {
@@ -472,9 +473,11 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   if(!parallel) {
     pvallist = list()
+    effectpvallist = list()
     stderrlist = list()
     iterlist = list()
     power_values = rep(0, ncol(ModelMatrix))
+    effect_power_values = c()
     estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
     for (j in 1:nsim) {
       if(!is.null(progressBarUpdater)) {
@@ -493,35 +496,61 @@ eval_design_mc = function(RunMatrix, model, alpha,
       if (blocking) {
         if(glmfamilyname == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+          }
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+          }
         }
         estimates[j, ] = coef(summary(fit))[, 1]
       } else {
         if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>F)")
+          }
+
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)",test.statistic="Wald")
+          }
         }
         estimates[j, ] = coef(fit)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       pvallist[[j]] = pvals
+      if(j == 1 && calceffect) {
+        effect_power_values = c(effect_power_values,rep(0,length(effect_pvals)))
+      }
       stderrlist[[j]] = coef(summary(fit))[,2]
       if (!blocking) {
         iterlist[[j]] = fit$iter
       } else {
         iterlist[[j]] = NA
       }
+      if(calceffect) {
+        effectpvallist[[j]] = effect_pvals
+        effect_power_values[effect_pvals < alpha] = effect_power_values[effect_pvals < alpha] + 1
+      }
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
     }
     #We are going to output a tidy data.frame with the results.
     attr(power_values, "pvals") = do.call(rbind,pvallist)
+    if(calceffect) {
+      attr(power_values, "effect_pvals") = do.call(rbind,effectpvallist)
+    }
     attr(power_values, "stderrors") = do.call(rbind,stderrlist)
     attr(power_values, "fisheriterations") = do.call(rbind,iterlist)
     power_values = power_values / nsim
-
+    if(calceffect) {
+      effect_power_values = effect_power_values / nsim
+      names(effect_power_values) = names(effectpvallist[[1]])
+    }
   } else {
     if(is.null(options("cores")[[1]])) {
       numbercores = parallel::detectCores()
@@ -530,28 +559,44 @@ eval_design_mc = function(RunMatrix, model, alpha,
     }
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
-
     power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .packages = c("lme4")) %dopar% {
-      power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {
         if(glmfamilyname == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+          }
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+          }
         }
         estimates = coef(summary(fit))[, 1]
       } else {
         if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>F)")
+          }
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)
+          if(calceffect) {
+            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)",test.statistic="Wald")
+          }
         }
         estimates = coef(fit)
       }
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
+      power_values = rep(0, length(pvals))
+      if(calceffect) {
+        effect_power_values = rep(0,length(effect_pvals))
+        names(effect_power_values) = names(effect_pvals)
+        effect_power_values[effect_pvals < alpha] = 1
+      }
       stderrval = coef(summary(fit))[,2]
       power_values[pvals < alpha] = 1
       if (!blocking && !is.null(fit$iter)) {
@@ -559,21 +604,32 @@ eval_design_mc = function(RunMatrix, model, alpha,
       } else {
         iterval = NA
       }
-      c(power_values, estimates, pvals, stderrval, iterval)
+      if(calceffect) {
+        list("parameterpower" = power_values, "effectpower" = effect_power_values, "estimates" = estimates, "pvals" = c(pvals),"strerrval" = stderrval, "iterval" = iterval)
+      } else {
+        list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals, "strerrval" = stderrval, "iterval" = iterval)
+      }
     }
-    dfsplit = ncol(ModelMatrix)
     parallel::stopCluster(cl)
-    power_values = apply(power_estimates[, 1:dfsplit], 2, sum) / nsim
-    estimates = power_estimates[, (dfsplit + 1):(2*dfsplit)]
-    attr(power_values,"pvals") = power_estimates[, (2*dfsplit + 1):(3*dfsplit)]
-    attr(power_values,"stderrors") = power_estimates[, (3*dfsplit + 1):(4*dfsplit)]
-    attr(power_values,"fisheriterations") = power_estimates[, (4*dfsplit + 1)]
+    power_values = apply(do.call(rbind,power_estimates[,"parameterpower"]), 2, sum) / nsim
+    if(calceffect) {
+      effect_power_values = apply(do.call(rbind,power_estimates[,"effectpower"]), 2, sum) / nsim
+    }
+    estimates = do.call(rbind,power_estimates[,"estimates"])
+    attr(power_values,"pvals") = do.call(rbind,power_estimates[,"pvals"])
+    attr(power_values,"stderrors") = do.call(rbind,power_estimates[,"strerrval"])
+    attr(power_values,"fisheriterations") = do.call(rbind,power_estimates[,"iterval"])
   }
-
   #output the results (tidy data format)
-  retval = data.frame(parameter=parameter_names,
-                    type="parameter.power.mc",
-                    power=power_values)
+  if(calceffect) {
+    retval = data.frame(parameter=c(names(effect_power_values),parameter_names),
+                        type=c(rep("effect.power.mc",length(effect_power_values)),rep("parameter.power.mc",length(parameter_names))),
+                        power=c(effect_power_values,power_values))
+  } else {
+    retval = data.frame(parameter=parameter_names,
+                        type=rep("parameter.power.mc",length(parameter_names)),
+                        power=power_values)
+  }
   attr(retval, "modelmatrix") = ModelMatrix
   attr(retval, "anticoef") = anticoef
 

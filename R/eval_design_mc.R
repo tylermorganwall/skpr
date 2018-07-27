@@ -16,8 +16,7 @@
 #'@param nsim The number of simulations to perform.
 #'@param glmfamily String indicating the family of distribution for the glm function
 #'("gaussian", "binomial", "poisson", or "exponential").
-#'@param calceffect Default `FALSE`. If `TRUE`, calculates effect power for a Type-III Anova (from the car package) using a Wald test.
-#'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
+#'@param calceffect Default `TRUE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
@@ -30,7 +29,9 @@
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
 #'@param detailedoutput If TRUE, return additional information about evaluation in results.
-#'@param advancedoptions Default NULL. Named list of advanced options. `progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`GUI` toggles some warning messages when in the GUI.
+#'@param advancedoptions Default NULL. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
+#'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
+#'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
 #' attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
@@ -196,7 +197,7 @@
 #'#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
 #'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(RunMatrix, model, alpha,
-                          blocking=FALSE, nsim=1000, glmfamily="gaussian", calceffect=FALSE,
+                          blocking=FALSE, nsim=1000, glmfamily="gaussian", calceffect=TRUE,
                           varianceratios = NULL, rfunction=NULL, anticoef=NULL,
                           effectsize=2, contrasts=contr.sum, parallel=FALSE,
                           detailedoutput=FALSE, advancedoptions = NULL) {
@@ -466,6 +467,25 @@ eval_design_mc = function(RunMatrix, model, alpha,
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
 
+  #------------- Effect Power Settings ------------#
+
+  if(!is.null(advancedoptions$anovatest)) {
+    anovatest = advancedoptions$anovatest
+    if(anovatest == "F") {
+      pvalstring = "Pr(>F)"
+    } else {
+      pvalstring = "Pr(>Chisq)"
+    }
+  } else {
+    anovatest = "Wald"
+    pvalstring = "Pr(>Chisq)"
+  }
+  if(!is.null(advancedoptions$anovatype)) {
+    anovatype = advancedoptions$anovatype
+  } else {
+    anovatype = "III"
+  }
+
   #---------------- Run Simulations ---------------#
 
   progressbarupdates = floor(seq(1,nsim,length.out=50))
@@ -497,12 +517,12 @@ eval_design_mc = function(RunMatrix, model, alpha,
         if(glmfamilyname == "gaussian") {
           fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
           if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+            effect_pvals = effectpowermc(fit,type=anovatype,test="Pr(>Chisq)")
           }
         } else {
           fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
           if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+            effect_pvals = effectpowermc(fit,type=anovatype,test=pvalstring, test.statistic = anovatest)
           }
         }
         estimates[j, ] = coef(summary(fit))[, 1]
@@ -510,13 +530,13 @@ eval_design_mc = function(RunMatrix, model, alpha,
         if (glmfamilyname == "gaussian") {
           fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
           if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>F)")
+            effect_pvals = effectpowermc(fit,type=anovatype,test="Pr(>F)")
           }
 
         } else {
           fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
           if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)",test.statistic="Wald")
+            effect_pvals = effectpowermc(fit,type=anovatype,test=pvalstring, test.statistic=anovatest)
           }
         }
         estimates[j, ] = coef(fit)
@@ -666,7 +686,11 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   if(detailedoutput) {
-    retval$anticoef = anticoef
+    if(nrow(retval) != length(anticoef)){
+      retval$anticoef = c(rep(NA,nrow(retval) - length(anticoef)), anticoef)
+    } else {
+      retval$anticoef = anticoef
+    }
     retval$alpha = alpha
     if (is.character(glmfamilyname)) {
       retval$glmfamily = glmfamilyname

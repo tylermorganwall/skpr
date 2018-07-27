@@ -297,9 +297,50 @@ test_that("eval_design_mc example code runs without errors", {
     designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D",repeats=100)
   })
   expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
-                 glmfamily="binomial"))
+                               glmfamily="gaussian"))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="binomial"))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="poisson"))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="exponential"))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="binomial",advancedoptions = list(anovatest="LR")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="poisson",advancedoptions = list(anovatest="LR")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="exponential",advancedoptions = list(anovatest="LR")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="binomial",advancedoptions = list(anovatest="F")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="poisson",advancedoptions = list(anovatest="F")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="exponential",advancedoptions = list(anovatest="F")))
+
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="gaussian",advancedoptions=list(anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="binomial",advancedoptions=list(anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="poisson",advancedoptions=list(anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="exponential",advancedoptions=list(anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="binomial",advancedoptions = list(anovatest="LR",anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="poisson",advancedoptions = list(anovatest="LR",anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="exponential",advancedoptions = list(anovatest="LR",anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="binomial",advancedoptions = list(anovatest="F",anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="poisson",advancedoptions = list(anovatest="F",anovatype="II")))
+  expect_silent(eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100,anticoef=c(1.5,0.7,0.7),
+                               glmfamily="exponential",advancedoptions = list(anovatest="F",anovatype="II")))
+
   factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
   designpois = gen_design(factorialpois, ~a+b, trials=90, optimality="D", repeats=100)
+
 })
 
 

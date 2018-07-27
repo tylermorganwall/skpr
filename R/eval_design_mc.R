@@ -18,6 +18,8 @@
 #'("gaussian", "binomial", "poisson", or "exponential").
 #'@param calceffect Default `TRUE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
+#'@param varianceratios Default `1`. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
+#'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
 #'You only need to specify this if you do not like the default behavior described below.

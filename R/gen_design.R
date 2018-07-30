@@ -637,7 +637,6 @@ gen_design = function(candidateset, model, trials,
       aliasmm = model.matrix(amodel,candidatesetnormalized,contrasts.arg=contrastslist)
     })
   }
-
   if(!blocking) {
     factors = colnames(candidatesetmm)
     levelvector = sapply(lapply(candidateset,unique),length)
@@ -785,11 +784,15 @@ gen_design = function(candidateset, model, trials,
     if(nrow(disallowedcombdf) > 0) {
       anydisallowed = TRUE
       disallowedcomb = suppressWarnings(model.matrix(model,disallowedcombdf,contrasts.arg=fullcontrastlist))
+      if("(Intercept)" %in% colnames(disallowedcomb)) {
+        disallowedcomb = disallowedcomb[,c(colnames(blockedModelMatrix),colnames(candidatesetmm)[-1])]
+      } else {
+        disallowedcomb = disallowedcomb[,c(colnames(blockedModelMatrix),colnames(candidatesetmm))]
+      }
     } else {
       anydisallowed = FALSE
       disallowedcomb = matrix()
     }
-
     if (!parallel) {
       if(!timer) {
         for(i in 1:repeats) {

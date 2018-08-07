@@ -80,7 +80,7 @@ plot_correlations = function(genoutput,model=NULL,customcolors=NULL,pow=2, custo
   cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1,-1])
 
   if(is.null(customcolors)) {
-    imagecolors = colorRampPalette(colors=c("black","green"))(101)
+    imagecolors = viridis::viridis(101)
   } else {
     imagecolors = colorRampPalette(customcolors)(101)
   }

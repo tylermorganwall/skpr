@@ -921,14 +921,14 @@ skprGUIserver = function(inputValue1,inputValue2) {
 
     observe({
       invalidateLater(500, session)
-      if(file.exists(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds")) && resolved(isolate(runmatrix_future()))) {
+      if(file.exists(file.path(tempdir_runmatrix,paste0(unique.file.name2,".Rds"))) && resolved(isolate(runmatrix_future()))) {
         tempval = tryCatch({
-          readRDS(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+          readRDS(file.path(tempdir_runmatrix,paste0(unique.file.name2,".Rds")))
         }, error = function(e) "", warning = function(w) "")
         if(class(tempval) == "data.frame") {
           runmatvalues$runmatrix = tempval
           tryCatch({
-            file.remove(paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+            file.remove(file.path(tempdir_runmatrix,paste0(unique.file.name2,".Rds")))
           }, error = function(e) "", warning = function(w) "")
         }
       }
@@ -1740,7 +1740,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
                            minDopt = mindopt_async,
                            progressBarUpdater = progressBarUpdater)
           attr(temp,"generating.model") = NULL
-          saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+          saveRDS(temp,file=file.path(tempdir_runmatrix,paste0(unique.file.name2,".Rds")))
         }))
       } else {
         spd = gen_design(candidateset = expand.grid(candidatesetall()),
@@ -1781,7 +1781,7 @@ skprGUIserver = function(inputValue1,inputValue2) {
                    splitcolumns = splitcolumns_aync,
                    progressBarUpdater = progressBarUpdater)
           attr(temp,"generating.model") = NULL
-          saveRDS(temp,file=paste0(tempdir_runmatrix,"\\",unique.file.name2,".Rds"))
+          saveRDS(temp,file=file.path(tempdir_runmatrix,paste0(unique.file.name2,".Rds")))
         }))
       }
     })

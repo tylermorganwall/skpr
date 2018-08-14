@@ -337,6 +337,11 @@ gen_design = function(candidateset, model, trials,
     }
 
     if(model != as.formula("~.")) {
+      if(attr(terms.formula(model),"intercept") == 0) {
+        nointercept = TRUE
+      } else {
+        nointercept = FALSE
+      }
       model = as.formula(paste0("~",paste(attr(terms.formula(model), "term.labels"),collapse = " + ")))
 
       wholeplotterms = colnames(splitplotdesign)
@@ -378,17 +383,23 @@ gen_design = function(candidateset, model, trials,
         allcolnames = suppressWarnings(colnames(model.matrix(extract_interactionnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist)))
         interactionnames = allcolnames[grepl("(\\s\\*\\s)|(:)",allcolnames,perl=TRUE)]
 
-        #combined formula with no inter-strata interactions
-        combinedmodel = as.formula(paste0("~",paste(c(splitterms[!regularmodel],splitterms[!wholeorwholeinteraction]),collapse=" + ")))
-        correct_order_colnames = suppressWarnings(colnames(model.matrix(combinedmodel, data = combinedcand, contrasts.arg = fullcontrastlist)))
+        #Get correct order of column names
+        submodel = as.formula(paste0("~",paste0(splitterms[!wholeorwholeinteraction],collapse=" + ")))
+        if(!nointercept) {
+          wholemm = suppressWarnings(colnames(model.matrix(modelwholeformula, data = combinedcand, contrasts.arg = fullcontrastlist)))
+        } else {
+          wholemm = suppressWarnings(colnames(model.matrix(modelwholeformula, data = combinedcand, contrasts.arg = fullcontrastlist))[-1])
+        }
+        submm = suppressWarnings(colnames(model.matrix(submodel, data = combinedcand, contrasts.arg = contrastslistsubplot))[-1])
+        correct_order_colnames = c(wholemm,submm,interactionnames)
 
         interactioncounter = 1
         interactionlist = list()
         #get model matrix of everything except whole/interactions
 
-        for(interaction in interactionnames) {
-          terms = unlist(strsplit(interaction,split="(\\s\\*\\s)|(:)",perl=TRUE))
-          interactionlist[[interactioncounter]] = which(correct_order_colnames %in% terms)
+        for(interaction_col in interactionnames) {
+          term_vals = unlist(strsplit(interaction_col,split="(\\s\\*\\s)|(:)",perl=TRUE))
+          interactionlist[[interactioncounter]] = which(correct_order_colnames %in% term_vals)
           interactioncounter = interactioncounter + 1
         }
       } else {

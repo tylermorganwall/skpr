@@ -208,7 +208,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   }
   #output the results (tidy data format)
   retval = data.frame(parameter=parameter_names,
-                      type="parameter.power.mc",
+                      type="custom.power.mc",
                       power=power_values)
   attr(retval, 'estimatesnames') = parameter_names
   attr(retval, 'estimates') = estimates

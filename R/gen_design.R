@@ -716,7 +716,7 @@ gen_design = function(candidateset, model, trials,
         doParallel::registerDoParallel(cl, cores = numbercores)
 
         genOutput = tryCatch({
-          foreach(i=1:repeats) %dorng% {
+          foreach(i=1:repeats,.export=c("genOptimalDesign")) %dorng% {
             randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
             initialdesign = candidatesetmm[randomIndices,]
             if(!is.null(augmentdesign)) {
@@ -752,7 +752,7 @@ gen_design = function(candidateset, model, trials,
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
-          foreach(i=2:repeats) %dorng% {
+          foreach(i=2:repeats,.export=c("genOptimalDesign")) %dorng% {
             randomIndices = sample(nrow(candidatesetmm), trials, replace = initialReplace)
             initialdesign = candidatesetmm[randomIndices,]
             if(!is.null(augmentdesign)) {
@@ -858,7 +858,7 @@ gen_design = function(candidateset, model, trials,
         cl = parallel::makeCluster(numbercores)
         doParallel::registerDoParallel(cl, cores = numbercores)
         genOutput = tryCatch({
-          foreach(i=1:repeats) %dorng% {
+          foreach(i=1:repeats,.export=c("genBlockedOptimalDesign")) %dorng% {
             randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
             genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
                                     candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,
@@ -888,7 +888,7 @@ gen_design = function(candidateset, model, trials,
         cat(paste(c("is: ", floor((proc.time()-ptm)[3]*(repeats-1)/numbercores), " seconds."),collapse=""))
 
         genOutput = tryCatch({
-          foreach(i=2:repeats) %dorng% {
+          foreach(i=2:repeats,.export=c("genBlockedOptimalDesign")) %dorng% {
             randomIndices = sample(nrow(candidateset), trials, replace = initialReplace)
             genBlockedOptimalDesign(initialdesign = candidatesetmm[randomIndices,-1,drop=FALSE],
                                     candidatelist=candidatesetmm[,-1,drop=FALSE], blockeddesign = blockedModelMatrix,

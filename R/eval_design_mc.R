@@ -581,7 +581,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
     }
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
-    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .packages = c("lme4")) %dopar% {
+    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export=c("extractPvalues","effectpowermc"),.packages = c("lme4")) %dopar% {
       #simulate the data.
       RunMatrixReduced$Y = responses[,j]
       if (blocking) {

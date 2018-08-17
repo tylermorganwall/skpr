@@ -723,9 +723,6 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   combinedAliasDesign.setZero();
   combinedAliasDesign.leftCols(blockedCols) = blockeddesign;
   combinedAliasDesign.middleCols(blockedCols, designColsAlias) = aliasdesign;
-  //Eigen::MatrixXd combinedAliasDesign(nTrials,blockedCols+ designColsAlias + numberinteractions,arma::fill::zeros);
-  //combinedAliasDesign(arma::span::all,arma::span(0,blockedCols-1)) = blockeddesign;
-  //combinedAliasDesign(arma::span::all,arma::span(blockedCols,blockedCols+designColsAlias-1)) = aliasdesign;
 
   if(interstrata) {
     for(int i = 0; i < numberinteractions; i++) {

@@ -276,7 +276,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
 
-    power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages=c("survival")) %dopar% {
+    power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .export=("extractPvalues"), .packages=c("survival")) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
 

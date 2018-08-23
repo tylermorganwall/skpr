@@ -2,20 +2,20 @@
 % Please edit documentation in R/contr.simplex.R
 \name{contr.simplex}
 \alias{contr.simplex}
-\title{Simplex Contrast Generator}
+\title{Orthonormal Contrast Generator}
 \usage{
 contr.simplex(n, size = NULL)
 }
 \arguments{
-\item{n}{The number of levels in the catagorical variable}
+\item{n}{The number of levels in the catagorical variable.}
 
-\item{size}{The length of the simplex vector. Default 1.}
+\item{size}{Default `1`. The length of the simplex vector.}
 }
 \value{
-A matrix of orthogonal contrasts.
+A matrix of Orthonormal contrasts.
 }
 \description{
-Generates orthogonal contrasts. Each row is the vertex of an N-dimensional simplex. The only exception are contrasts for the 2-level case, which return 1 and -1.
+Generates orthonormal (orthogonal and normalized) contrasts. Each row is the vertex of an N-dimensional simplex. The only exception are contrasts for the 2-level case, which return 1 and -1.
 }
 \examples{
 contr.simplex(4)

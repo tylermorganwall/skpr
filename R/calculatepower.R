@@ -8,6 +8,6 @@
 #'@param alpha the specified type-I error
 #'@return The power for a given parameter L, given the
 #'@keywords internal
-calculatepower = function(X,L, lambda, alpha) {
-  return(1-pf(qf(1-alpha, dim(L)[1], dim(X)[1]-dim(X)[2]),dim(L)[1],dim(X)[1]-dim(X)[2],lambda))
+calculatepower = function(X, L, lambda, alpha) {
+  return(1 - pf(qf(1 - alpha, dim(L)[1], dim(X)[1] - dim(X)[2]), dim(L)[1], dim(X)[1] - dim(X)[2], lambda))
 }

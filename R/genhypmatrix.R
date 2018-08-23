@@ -14,12 +14,12 @@ genhypmatrix = function(parameters, levels, g) {
   if (parameters < levels) {
     stop("Number of parameters must be greater than number of levels")
   }
-  if (g+levels-1 > parameters) {
+  if (g + levels - 1 > parameters) {
     stop("Too many parameters/levels")
   }
-  L = matrix(0,ncol=parameters,nrow=levels-1)
-  L[,(g+1):(g+levels-1)] = diag(levels-1)
-  if(dim(L)[1] == 1) {
+  L = matrix(0, ncol = parameters, nrow = levels - 1)
+  L[, (g + 1):(g + levels - 1)] = diag(levels - 1)
+  if (dim(L)[1] == 1) {
     return(t(as.vector(L)))
   }
   return(L)

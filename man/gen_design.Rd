@@ -8,8 +8,7 @@ gen_design(candidateset, model, trials, splitplotdesign = NULL,
   splitplotsizes = NULL, optimality = "D", augmentdesign = NULL,
   repeats = 20, varianceratio = 1, contrast = contr.simplex,
   aliaspower = 2, minDopt = 0.8, parallel = FALSE, timer = FALSE,
-  splitcolumns = FALSE, randomized = TRUE, advancedoptions = NULL,
-  progressBarUpdater = NULL)
+  splitcolumns = FALSE, randomized = TRUE, advancedoptions = NULL)
 }
 \arguments{
 \item{candidateset}{A data frame of candidate test points; each run of the optimal design will be chosen (with replacement)
@@ -52,7 +51,7 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 \item{varianceratio}{The ratio between the interblock and intra-block variance for a given stratum in
 a split plot design. Default 1.}
 
-\item{contrast}{Function used to generate the encoding for categorical variables. Default contr.simplex.}
+\item{contrast}{Function used to generate the encoding for categorical variables. Default "contr.simplex", a orthonormal sum contrast.}
 
 \item{aliaspower}{Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 
@@ -70,9 +69,8 @@ design. If TRUE, the design also will have extra columns to indicate the blockin
 \item{advancedoptions}{Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
 matrix when calculating optimality tie-breakers), "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
-considered equal before considering the aliasing structure), and "alias_compare" (which if set to FALSE turns off alias tie breaking completely).}
-
-\item{progressBarUpdater}{Default NULL. Function called in non-parallel optimal searches that can be used to update an external progress bar.}
+considered equal before considering the aliasing structure),  "alias_compare" (which if set to FALSE turns off alias tie breaking completely), and "progressBarUpdater"
+(a function called in non-parallel optimal searches that can be used to update an external progress bar).}
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
@@ -89,63 +87,69 @@ Split-plot designs can be generated with repeated applications of \code{gen_desi
 \examples{
 #Generate the basic factorial candidate set with expand.grid.
 #Generating a basic 2 factor candidate set:
-basic_candidates = expand.grid(x1=c(-1,1), x2=c(-1,1))
+basic_candidates = expand.grid(x1 = c(-1, 1), x2 = c(-1, 1))
 
 #This candidate set is used as an input in the optimal design generation for a
 #D-optimal design with 11 runs.
-design = gen_design(candidateset=basic_candidates, model=~x1+x2, trials=11)
+design = gen_design(candidateset = basic_candidates, model = ~x1 + x2, trials = 11)
 
 #We can also use the dot formula to automatically use all of the terms in the model:
-design = gen_design(candidateset=basic_candidates, model=~., trials=11)
+design = gen_design(candidateset = basic_candidates, model = ~., trials = 11)
 
 #Here we add categorical factors, specified by using "as.factor" in expand.grid:
-categorical_candidates = expand.grid(a=c(-1,1),
-                                     b=as.factor(c("A","B")),
-                                     c=as.factor(c("High","Med","Low")))
+categorical_candidates = expand.grid(a = c(-1, 1),
+                                     b = as.factor(c("A", "B")),
+                                     c = as.factor(c("High", "Med", "Low")))
 
 #This candidate set is used as an input in the optimal design generation.
-design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=19)
+design2 = gen_design(candidateset = categorical_candidates, model = ~a + b + c, trials = 19)
 
 #We can also increase the number of times the algorithm repeats
 #the search to increase the probability that the globally optimal design was found.
-design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c, trials=19, repeats=100)
+design2 = gen_design(candidateset = categorical_candidates,
+                    model = ~a + b + c, trials = 19, repeats = 100)
 
 #To speed up the design search, you can turn on multicore support with the parallel option.
 #You can also customize the number of cores used by setting the cores option. By default,
 #all cores are used.
 \dontrun{
-options(cores=2)
-design2 = gen_design(categorical_candidates, model=~a+b+c, trials=19, repeats=1000,parallel=TRUE)
+options(cores = 2)
+design2 = gen_design(categorical_candidates,
+                    model = ~a + b + c, trials = 19, repeats = 1000, parallel = TRUE)
 }
 
-#You can also estimate the time it will take for a search to complete with by setting timer=TRUE.
+#You can also estimate the time it will take for a search to complete with by setting timer = TRUE.
 \dontrun{
-design2 = gen_design(categorical_candidates, model=~a+b+c, trials=500, repeats=100,timer=TRUE)
+design2 = gen_design(categorical_candidates,
+                    model = ~a + b + c, trials = 500, repeats = 100, timer = TRUE)
 }
 
 #You can also use a higher order model when generating the design:
-design2 = gen_design(candidateset=categorical_candidates, model=~a+b+c+a*b*c, trials=12,repeats=10)
+design2 = gen_design(categorical_candidates,
+                    model = ~a + b + c + a * b * c, trials = 12, repeats = 10)
 
 #To evaluate a response surface design, include center points
 #in the candidate set and include quadratic effects (but not for the categorical factors).
 
-quad_candidates = expand.grid(a=c(1,0,-1), b=c(-1,0,1), c=c("A","B","C"))
+quad_candidates = expand.grid(a = c(1, 0, -1), b = c(-1, 0, 1), c = c("A", "B", "C"))
 
-gen_design(quad_candidates, ~a+b+I(a^2)+I(b^2)+a*b*c, 20)
+gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20)
 
 #The optimality criterion can also be changed:
-gen_design(quad_candidates, ~a+b+I(a^2)+I(b^2)+a*b*c, 20, optimality="I",repeats=10)
-gen_design(quad_candidates, ~a+b+I(a^2)+I(b^2)+a*b*c, 20, optimality="A",repeats=10)
+gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
+          optimality = "I", repeats = 10)
+gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
+          optimality = "A", repeats = 10)
 
 #A split-plot design can be generated by first generating an optimal blocking design using the
 #hard-to-change factors and then using that as the input for the split-plot design.
 #This generates an optimal subplot design that accounts for the existing split-plot settings.
 
-splitplotcandidateset = expand.grid(Altitude=c(-1,1),
-                                    Range=as.factor(c("Close","Medium","Far")),
-                                    Power=c(1,-1))
-hardtochangedesign = gen_design(candidateset = splitplotcandidateset, model=~Altitude,
-                               trials=11,repeats=10)
+splitplotcandidateset = expand.grid(Altitude = c(-1, 1),
+                                    Range = as.factor(c("Close", "Medium", "Far")),
+                                    Power = c(1, -1))
+hardtochangedesign = gen_design(splitplotcandidateset, model = ~Altitude,
+                               trials = 11, repeats = 10)
 
 #Now we can use the D-optimal blocked design as an input to our full design.
 
@@ -153,16 +157,16 @@ hardtochangedesign = gen_design(candidateset = splitplotcandidateset, model=~Alt
 #and input the hard-to-change design along with the new number of trials. `gen_design` will
 #automatically allocate the runs in the blocks in the most balanced way possible.
 
-designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trials=33,
-                             splitplotdesign=hardtochangedesign, repeats=10)
+designsplitplot = gen_design(splitplotcandidateset, ~Altitude + Range + Power, trials = 33,
+                             splitplotdesign = hardtochangedesign, repeats = 10)
 
 #If we want to allocate the blocks manually, we can do that with the argument `splitplotsizes`. This
 #vector must sum to the number of `trials` specified.
 
 #Putting this all together:
-designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trials=33,
-                             splitplotdesign=hardtochangedesign,
-                             splitplotsizes=c(4,2,3,4,2,3,4,2,3,4,2),repeats=10)
+designsplitplot = gen_design(splitplotcandidateset, ~Altitude + Range + Power, trials = 33,
+                             splitplotdesign = hardtochangedesign,
+                             splitplotsizes = c(4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2), repeats = 10)
 
 #The split-plot structure is encoded into the row names, with a period
 #demarcating the blocking level. This process can be repeated for arbitrary
@@ -171,35 +175,35 @@ designsplitplot = gen_design(splitplotcandidateset, ~Altitude+Range+Power, trial
 #hard-to-change design to produce a split-split-split plot design, etc).
 #In the following, note that the model builds up as we build up split plot strata.
 
-splitplotcandidateset2 = expand.grid(Location = as.factor(c("East","West")),
-                                     Climate = as.factor(c("Dry","Wet","Arid")),
-                                     Vineyard = as.factor(c("A","B","C","D")),
-                                     Age = c(1,-1))
+splitplotcandidateset2 = expand.grid(Location = as.factor(c("East", "West")),
+                                     Climate = as.factor(c("Dry", "Wet", "Arid")),
+                                     Vineyard = as.factor(c("A", "B", "C", "D")),
+                                     Age = c(1, -1))
 #6 blocks of Location:
-temp = gen_design(splitplotcandidateset2, ~Location, trials=6,varianceratio=2,repeats=10)
+temp = gen_design(splitplotcandidateset2, ~Location, trials = 6, varianceratio = 2, repeats = 10)
 
 #Each Location block has 2 blocks of Climate:
-temp = gen_design(splitplotcandidateset2, ~Location+Climate,
-                  trials=12, splitplotdesign = temp, splitplotsizes=2,
-                  varianceratio=1,repeats=10)
+temp = gen_design(splitplotcandidateset2, ~Location + Climate,
+                  trials = 12, splitplotdesign = temp, splitplotsizes = 2,
+                  varianceratio = 1, repeats = 10)
 
 #Each Climate block has 4 blocks of Vineyard:
-temp = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard,
-                  trials=48, splitplotdesign = temp, splitplotsizes = 4,
-                  varianceratio=1,repeats=10)
+temp = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard,
+                  trials = 48, splitplotdesign = temp, splitplotsizes = 4,
+                  varianceratio = 1, repeats = 10)
 
 #Each Vineyard block has 4 runs with different Age:
 \dontrun{
-splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location+Climate+Vineyard+Age,
-                                       trials=192, splitplotdesign = temp, splitplotsizes = 4,
-                                       varianceratio=1, splitcolumns=TRUE)
+splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard + Age,
+                                       trials = 192, splitplotdesign = temp, splitplotsizes = 4,
+                                       varianceratio = 1, splitcolumns = TRUE)
 }
 #gen_design also supports user-defined optimality criterion. The user defines a function
 #of the model matrix named customOpt, and gen_design will attempt to generate a design
 #that maximizes that function. This function needs to be in the global environment, and be
 #named either customOpt or customBlockedOpt, depending on whether a split-plot design is being
 #generated. customBlockedOpt should be a function of the model matrix as well as the
-#variance-covariance matrix, vInv. Due to the underlying C++ code having to call back to the R
+#variance-covariance matrix, vInv. Due to the underlying C + + code having to call back to the R
 #environment repeatedly, this criterion will be significantly slower than the built-in algorithms.
 #It does, however, offer the user a great deal of flexibility in generating their designs.
 
@@ -213,11 +217,11 @@ customOpt = function(currentDesign) {
 
 #Generate the whole plots for our split-plot designl, using the custom criterion.
 
-candlistcustom = expand.grid(Altitude=c(10000,20000),
-                            Range=as.factor(c("Close","Medium","Far")),
-                            Power=c(50,100))
-htcdesign = gen_design(candidateset = candlistcustom, model=~Altitude+Range,
-                      trials=11,optimality="CUSTOM",repeats=10)
+candlistcustom = expand.grid(Altitude = c(10000, 20000),
+                            Range = as.factor(c("Close", "Medium", "Far")),
+                            Power = c(50, 100))
+htcdesign = gen_design(candlistcustom, model = ~Altitude + Range,
+                      trials = 11, optimality = "CUSTOM", repeats = 10)
 
 #Now define a function that is a function of both the model matrix,
 #as well as the variance-covariance matrix vInv. This takes the blocking structure into account
@@ -230,38 +234,47 @@ customBlockedOpt = function(currentDesign, vInv) {
 #And finally, calculate the design. This (likely) results in the same design had we chosen the
 #"D" criterion.
 
-design = gen_design(candlistcustom, ~Altitude+Range+Power, trials=33,
-                   splitplotdesign=htcdesign,splitplotsizes = 3,optimality="CUSTOM",repeats=10)
+design = gen_design(candlistcustom,
+                   ~Altitude + Range + Power, trials = 33,
+                   splitplotdesign = htcdesign, splitplotsizes = 3,
+                   optimality = "CUSTOM", repeats = 10)
 
 #gen_design can also augment an existing design. Input a dataframe of pre-existing runs
 #to the `augmentdesign` argument. Those runs in the new design will be fixed, and gen_design
 #will perform a search for the remaining `trials - nrow(augmentdesign)` runs.
 
-candidateset = expand.grid(height=c(10,20), weight=c(45,55,65), range = c(1,2,3))
+candidateset = expand.grid(height = c(10, 20), weight = c(45, 55, 65), range = c(1, 2, 3))
 
-design_to_augment = gen_design(candidateset,~height+weight+range, 5)
+design_to_augment = gen_design(candidateset, ~height + weight + range, 5)
 
 #As long as the columns in the augmented design match the columns in the candidate set,
 #this design can be augmented.
 
-augmented_design=gen_design(candidateset,~height+weight+range,16, augmentdesign = design_to_augment)
+augmented_design = gen_design(candidateset,
+                             ~height + weight + range, 16, augmentdesign = design_to_augment)
 
 #A design's diagnostics can be accessed via the following attributes:
 
-attr(design,"D") #D-Efficiency
-attr(design,"A") #A-Efficiency
-attr(design,"I") #The average prediction variance across the design space
-attr(design,"G") #G-Efficiency
-attr(design,"E") #The minimum eigenvalue of the information matrix
-attr(design,"T") #The trace of the infomration matrix
-attr(design,"alias.matrix") #The Alias Matrix
+#D Efficiency
+attr(design, "D")
+#A Efficiency
+attr(design, "A")
+#The average prediction variance across the design space
+attr(design, "I")
+#G Efficiency
+attr(design, "G")
+#The minimum eigenvalue of the information matrix
+attr(design, "E")
+#The trace of the infomration matrix
+attr(design, "T")
+#The Alias Matrix
+attr(design, "alias.matrix")
 
 #The correlation matrix can be accessed via the "correlation.matrix" attribute:
-
 correlation.matrix = attr(design2, "correlation.matrix")
 
 #A correlation color map can be produced by calling the plot_correlation command with the output
-#of gen_design
+#of gen_design()
 
 \dontrun{plot_correlations(design2)}
 

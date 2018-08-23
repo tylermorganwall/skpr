@@ -11,7 +11,7 @@ priorlevels = function(levelvector) {
   priors = c(0)
   for (x in 1:length(levelvector)) {
     sum = sum + levelvector[x]
-    priors = c(priors,sum)
+    priors = c(priors, sum)
   }
   return(priors)
 }

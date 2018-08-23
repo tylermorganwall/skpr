@@ -35,8 +35,7 @@
 #'especially useful if you want to specify the anticipated coefficients to use for power evaluation. The model
 #'matrix provides the order of the model coefficients, as well as the
 #'encoding used for categorical factors.
-#'@details This function evaluates the power of experimental designs, mostly following the
-#'approach described in "Optimal Design of Experiments: A Case Study Approach," by Goos and Jones (2011).
+#'@details This function evaluates the power of experimental designs.
 #'
 #'Power is calculated under a linear regression framework: you intend to fit a
 #'linear model to the data, of the form
@@ -60,77 +59,81 @@
 #'@export
 #'@examples #Generating a simple 2x3 factorial to feed into our optimal design generation
 #'#of an 11-run design.
-#'factorial <- expand.grid(A=c(1,-1),B=c(1,-1),C=c(1,-1))
+#'factorial = expand.grid(A = c(1, -1), B = c(1, -1), C = c(1, -1))
 #'
-#'optdesign = gen_design(candidateset=factorial, model= ~A+B+C,trials=11,optimality="D",repeats=100)
+#'optdesign = gen_design(candidateset = factorial,
+#'                       model= ~A + B + C, trials = 11, optimality = "D", repeats = 100)
 #'
 #'#Now evaluating that design (with default anticipated coefficients and a effectsize of 2):
-#'eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2)
+#'eval_design(RunMatrix = optdesign, model= ~A + B + C, alpha = 0.2)
 #'
 #'#Evaluating a subset of the design (which changes the power due to a different number of
 #'#degrees of freedom)
-#'eval_design(RunMatrix=optdesign, model= ~A+C, alpha=0.2)
+#'eval_design(RunMatrix = optdesign, model= ~A + C, alpha = 0.2)
 #'
 #'#Halving the signal-to-noise ratio by setting a different effectsize (default is 2):
-#'eval_design(RunMatrix=optdesign, model= ~A+B+C, alpha=0.2,effectsize=1)
+#'eval_design(RunMatrix = optdesign, model= ~A + B + C, alpha = 0.2, effectsize = 1)
 #'
 #'#With 3+ level categorical factors, the choice of anticipated coefficients directly changes the
 #'#final power calculation. For the most conservative power calculation, that involves
 #'#setting all anticipated coefficients in a factor to zero except for one. We can specify this
 #'#option with the "conservative" argument.
 #'
-#'factorialcoffee = expand.grid(cost=c(1,2),
-#'                               type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
-#'                               size=as.factor(c("Short","Grande","Venti")))
+#'factorialcoffee = expand.grid(cost = c(1, 2),
+#'                               type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                               size = as.factor(c("Short", "Grande", "Venti")))
 #'
-#'designcoffee = gen_design(factorialcoffee,~cost + size + type,trials=29,optimality="D",repeats=100)
+#'designcoffee = gen_design(factorialcoffee,
+#'                          ~cost + size + type, trials = 29, optimality = "D", repeats = 100)
 #'
 #'#Evaluate the design, with default anticipated coefficients (conservative is FALSE by default).
 #'#(Setting detailedoutput = TRUE provides information on the anticipated
 #'#coefficients that were used:)
-#'eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRUE)
+#'eval_design(designcoffee, model = ~cost + size + type, alpha = 0.05, detailedoutput = TRUE)
 #'
 #'#Evaluate the design, with conservative anticipated coefficients:
-#'eval_design(designcoffee,model=~cost+size+type, alpha=0.05, detailedoutput = TRUE,
-#'             conservative=TRUE)
+#'eval_design(designcoffee, model = ~cost + size + type, alpha = 0.05, detailedoutput = TRUE,
+#'             conservative = TRUE)
 #'
 #'#which is the same as the following, but now explicitly entering the coefficients:
-#'eval_design(designcoffee,model=~cost+size+type, alpha=0.05,
-#'             anticoef=c(1,1,1,0,0,1,0), detailedoutput = TRUE)
+#'eval_design(designcoffee, model = ~cost + size + type, alpha = 0.05,
+#'             anticoef = c(1, 1, 1, 0, 0, 1, 0), detailedoutput = TRUE)
 #'
 #'
 #'#If the defaults do not suit you, enter the anticipated coefficients in manually.
-#'eval_design(designcoffee,model=~cost+size+type, alpha=0.05,anticoef=c(1,1,0,0,1,0,1))
+#'eval_design(designcoffee,
+#'            model = ~cost + size + type, alpha = 0.05, anticoef = c(1, 1, 0, 0, 1, 0, 1))
 #'
 #'#You can also evaluate the design with higher order effects, even if they were not
 #'#used in design generation:
-#'eval_design(designcoffee,model=~cost+size+type+cost*type, alpha=0.05)
+#'eval_design(designcoffee, model = ~cost + size + type + cost * type, alpha = 0.05)
 #'
 #'#Split plot designs can also be evaluated by setting the blocking parameter as TRUE.
 #'
 #'#Generating split plot design
-#'splitfactorialcoffee = expand.grid(caffeine=c(1,-1),
-#'                                    cost=c(1,2),
-#'                                    type=as.factor(c("Kona","Colombian","Ethiopian","Sumatra")),
-#'                                    size=as.factor(c("Short","Grande","Venti")))
+#'splitfactorialcoffee = expand.grid(caffeine = c(1, -1),
+#'                                   cost = c(1, 2),
+#'                                   type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                                   size = as.factor(c("Short", "Grande", "Venti")))
 #'
-#'coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials=12)
-#'coffeefinaldesign = gen_design(splitfactorialcoffee, model=~caffeine+cost+size+type,trials=36,
-#'                                splitplotdesign=coffeeblockdesign, splitplotsizes=3)
+#'coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials = 12)
+#'coffeefinaldesign = gen_design(splitfactorialcoffee,
+#'                               model = ~caffeine + cost + size + type, trials = 36,
+#'                               splitplotdesign = coffeeblockdesign, splitplotsizes = 3)
 #'
 #'#Evaluating design
-#'eval_design(coffeefinaldesign, ~cost+size+type + caffeine, 0.2, blocking = TRUE)
+#'eval_design(coffeefinaldesign, ~cost + size + type + caffeine, 0.2, blocking = TRUE)
 #'
 #'#We can also evaluate the design with a custom ratio between the whole plot error to
 #'#the run-to-run error.
-#'eval_design(coffeefinaldesign, ~caffeine+cost+size+type+caffeine, 0.2, blocking = TRUE,
-#'             varianceratios=2)
+#'eval_design(coffeefinaldesign, ~caffeine + cost + size + type + caffeine, 0.2, blocking = TRUE,
+#'             varianceratios = 2)
 #'
 #'#If the design was generated outside of skpr and thus the row names do not have the
 #'#blocking structure encoded already, the user can add these manually. For a 12-run
 #'#design with 4 blocks, the rownames will be as follows:
 #'
-#'manualrownames = paste(c(1,1,1,2,2,2,3,3,3,4,4,4),rep(c(1,2,3),4),sep=".")
+#'manualrownames = paste(c(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4), rep(c(1, 2, 3), 4), sep = ".")
 #'
 #'#If we wanted to add this blocking structure to the design coffeeblockdesign, we would
 #'#simply set the rownames to this character vector:
@@ -138,19 +141,22 @@
 #'rownames(coffeeblockdesign) = manualrownames
 #'
 #'#Deeper levels of blocking can be specified with additional periods.
-eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
-                       effectsize=2, varianceratios=1, contrasts=contr.sum, conservative=FALSE,
-                       detailedoutput=FALSE) {
+eval_design = function(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
+                       effectsize = 2, varianceratios = 1,
+                       contrasts = contr.sum, conservative = FALSE,
+                       detailedoutput = FALSE) {
 
-  if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
-    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
+  if (class(RunMatrix) %in% c("tbl", "tbl_df") && blocking) {
+    warning("Tibbles strip out rownames, which encode blocking information.
+            Use data frames if the design has a split plot structure.
+            Converting input to data frame")
   }
 
   #detect pre-set contrasts
   presetcontrasts = list()
-  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
-    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
-      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+  for (x in names(RunMatrix[lapply(RunMatrix, class) %in% c("character", "factor")])) {
+    if (!is.null(attr(RunMatrix[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]], "contrasts")
     }
   }
 
@@ -158,196 +164,204 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
   RunMatrix = as.data.frame(RunMatrix)
 
   #Detect externally generated blocking columns and convert to rownames
-  if(is.null(attr(RunMatrix,"splitanalyzable")) &&
-     any(grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE)) ||
-     any(grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE))) {
-    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE) | grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE)
-    if(blocking) {
+  if (is.null(attr(RunMatrix, "splitanalyzable")) &&
+     any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
+     any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
+    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) |
+                grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
+    if (blocking) {
       warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
-      blockmatrix = RunMatrix[,blockcols,drop=FALSE]
-      blockmatrix = blockmatrix[,order(unlist(lapply(lapply(blockmatrix,unique),length))),drop=FALSE]
-      blockvals = lapply(blockmatrix,unique)
-      rownamematrix = matrix(nrow=nrow(RunMatrix),ncol=ncol(blockmatrix) + 1)
-      for(col in 1:ncol(blockmatrix)) {
+      blockmatrix = RunMatrix[, blockcols, drop = FALSE]
+      blockmatrix = blockmatrix[, order(unlist(lapply(lapply(blockmatrix, unique), length))), drop = FALSE]
+      blockvals = lapply(blockmatrix, unique)
+      rownamematrix = matrix(nrow = nrow(RunMatrix), ncol = ncol(blockmatrix) + 1)
+      for (col in 1:ncol(blockmatrix)) {
         uniquevals = blockvals[[col]]
         blockcounter = 1
-        for(block in uniquevals) {
-          if(col == 1) {
-            rownamematrix[blockmatrix[,col] == block,col] = blockcounter
+        for (block in uniquevals) {
+          if (col == 1) {
+            rownamematrix[blockmatrix[, col] == block, col] = blockcounter
             blockcounter = blockcounter + 1
           }
-          if(col != 1) {
-            superblock = rownamematrix[blockmatrix[,col] == block,col-1][1]
-            modop = length(unique(blockmatrix[blockmatrix[,col-1] == superblock,col]))
-            if(blockcounter %% modop == 0) {
-              rownamematrix[blockmatrix[,col] == block,col] = modop
+          if (col != 1) {
+            superblock = rownamematrix[blockmatrix[, col] == block, col - 1][1]
+            modop = length(unique(blockmatrix[blockmatrix[, col - 1] == superblock, col]))
+            if (blockcounter %% modop == 0) {
+              rownamematrix[blockmatrix[, col] == block, col] = modop
             } else {
-              rownamematrix[blockmatrix[,col] == block,col] = blockcounter %% modop
+              rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
             }
             blockcounter = blockcounter + 1
           }
-          if(col == ncol(blockmatrix)) {
-            rownamematrix[blockmatrix[,col] == block,col+1] = 1:sum(blockmatrix[,col] == block)
+          if (col == ncol(blockmatrix)) {
+            rownamematrix[blockmatrix[, col] == block, col + 1] = 1:sum(blockmatrix[, col] == block)
           }
         }
         blockcounter = blockcounter + 1
       }
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[,!blockcols,drop=FALSE]
+      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
       attributes(RunMatrix) = allattr
-      rownames(RunMatrix) = apply(rownamematrix,1,paste,collapse=".")
+      rownames(RunMatrix) = apply(rownamematrix, 1, paste, collapse = ".")
     } else {
-      warning("Detected externally generated blocking columns but blocking not turned on: ignoring blocking structure and removing blocking columns.")
+      warning("Detected externally generated blocking columns but blocking not turned on:
+              ignoring blocking structure and removing blocking columns.")
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[,!blockcols,drop=FALSE]
+      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
       attributes(RunMatrix) = allattr
     }
   }
 
   #Remove skpr-generated REML blocking columns if present
-  if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
-    if(attr(RunMatrix,"splitanalyzable")) {
+  if (!is.null(attr(RunMatrix, "splitanalyzable"))) {
+    if (attr(RunMatrix, "splitanalyzable")) {
       allattr = attributes(RunMatrix)
-      RunMatrix = RunMatrix[,-1:-length(allattr$splitcolumns)]
+      RunMatrix = RunMatrix[, -1:-length(allattr$splitcolumns)]
       allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
       attributes(RunMatrix) = allattr
     }
   }
 
   #----- Convert dots in formula to terms -----#
-  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(",paste0(colnames(RunMatrix), collapse=" + "),")")
-    additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
+  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
+    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
+    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"),
+                                  gsub, pattern = "^\\.$", replacement = dotreplace),
+                           paste0, collapse = " * "))
+    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"),
+                                     gsub, pattern = "^\\.$", replacement = dotreplace),
+                              paste0, collapse = ":"))
+    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
   }
 
-  RunMatrix = reduceRunMatrix(RunMatrix,model)
+  RunMatrix = reduceRunMatrix(RunMatrix, model)
 
   #---Develop contrast lists for model matrix---#
-  #Variables used later: contrastslist, contrastslist_correlationmatrix
+  #Variables used later: contrastslist, contrastslist_cormat
   contrastslist = list()
-  contrastslist_correlationmatrix = list()
-  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
-    if(!(x %in% names(presetcontrasts))) {
+  contrastslist_cormat = list()
+  for (x in names(RunMatrix[lapply(RunMatrix, class) %in% c("character", "factor")])) {
+    if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
     } else {
       contrastslist[[x]] = presetcontrasts[[x]]
     }
-    contrastslist_correlationmatrix[[x]] = contr.simplex
+    contrastslist_cormat[[x]] = contr.simplex
   }
-  if(length(contrastslist) < 1) {
+  if (length(contrastslist) < 1) {
     contrastslist = NULL
-    contrastslist_correlationmatrix = NULL
+    contrastslist_cormat = NULL
   }
 
   #------Normalize/Center numeric columns ------#
-  for(column in 1:ncol(RunMatrix)) {
-    if(is.numeric(RunMatrix[,column])) {
-      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
-      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
+  for (column in 1:ncol(RunMatrix)) {
+    if (is.numeric(RunMatrix[, column])) {
+      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
+      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
     }
   }
 
   #-Generate Model Matrix & Anticipated Coefficients-#
   #Variables used later: anticoef
-  attr(RunMatrix,"modelmatrix") = model.matrix(model,RunMatrix,contrasts.arg=contrastslist)
+  attr(RunMatrix, "modelmatrix") = model.matrix(model, RunMatrix, contrasts.arg = contrastslist)
 
   if (!missing(anticoef) && !missing(effectsize)) {
     warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")
   }
-  if(missing(anticoef)) {
+  if (missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrix, model)
     anticoef = anticoef_from_delta(default_coef, effectsize, "gaussian")
-    if(!("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
+    if (!("(Intercept)" %in% colnames(attr(RunMatrix, "modelmatrix")))) {
       anticoef = anticoef[-1]
     }
   }
-  if(length(anticoef) != dim(attr(RunMatrix,"modelmatrix"))[2]) {
+  if (length(anticoef) != dim(attr(RunMatrix, "modelmatrix"))[2]) {
     stop("Wrong number of anticipated coefficients")
   }
 
 
   #-----Generate V inverse matrix-----X
-  #Variables used later: V, vInv
-  if(blocking) {
-    blocklist = strsplit(rownames(RunMatrix),".",fixed=TRUE)
+  #Variables used later: V, vinv
+  if (blocking) {
+    blocklist = strsplit(rownames(RunMatrix), ".", fixed = TRUE)
 
-    existingBlockStructure = do.call(rbind,blocklist)
-    blockgroups = apply(existingBlockStructure,2,blockingstructure)
+    existingBlockStructure = do.call(rbind, blocklist)
+    blockgroups = apply(existingBlockStructure, 2, blockingstructure)
 
     blockMatrixSize = nrow(RunMatrix)
     V = diag(blockMatrixSize)
     blockcounter = 1
-    if(length(blockgroups) == 1 | is.matrix(blockgroups)) {
-      stop("No blocking detected. Specify block structure in row names or set blocking=FALSE")
+    if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
+      stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
     }
-    if(length(blockgroups) > 2 && length(varianceratios) == 1) {
-      varianceratios = rep(varianceratios,length(blockgroups)-1)
+    if (length(blockgroups) > 2 && length(varianceratios) == 1) {
+      varianceratios = rep(varianceratios, length(blockgroups) - 1)
     }
-    if(length(blockgroups) > 2 && length(varianceratios) != 1 && length(blockgroups)-1 != length(varianceratios)) {
+    if (length(blockgroups) > 2 && length(varianceratios) != 1 && length(blockgroups) - 1 != length(varianceratios)) {
       stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")
     }
     blockgroups = blockgroups[-length(blockgroups)]
-    for(block in blockgroups) {
-      V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceratios[blockcounter]
+    for (block in blockgroups) {
+      V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceratios[blockcounter]
       placeholder = block[1]
-      for(i in 2:length(block)) {
-        V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceratios[blockcounter]
+      for (i in 2:length(block)) {
+        V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] =
+          V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] + varianceratios[blockcounter]
         placeholder = placeholder + block[i]
       }
-      blockcounter = blockcounter+1
+      blockcounter = blockcounter + 1
     }
-    vInv = solve(V)
+    vinv = solve(V)
   } else {
-    vInv = NULL
+    vinv = NULL
   }
 
 
   #This returns if everything is continuous (no categorical)
-  if (!any(table(attr(attr(RunMatrix,"modelmatrix"),"assign")[-1])!=1)) {
-    effectresults = rep(parameterpower(RunMatrix,anticoef,alpha,vInv = vInv),2)
-    typevector = c(rep("effect.power",length(effectresults)/2),rep("parameter.power",length(effectresults)/2))
-    namevector = rep(colnames(attr(RunMatrix,"modelmatrix")),2)
+  if (!any(table(attr(attr(RunMatrix, "modelmatrix"), "assign")[-1]) != 1)) {
+    effectresults = rep(parameterpower(RunMatrix, anticoef, alpha, vinv = vinv), 2)
+    typevector = c(rep("effect.power", length(effectresults) / 2), rep("parameter.power", length(effectresults) / 2))
+    namevector = rep(colnames(attr(RunMatrix, "modelmatrix")), 2)
 
     results = data.frame(parameter = namevector, type = typevector, power = effectresults)
 
-    attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
+    attr(results, "modelmatrix") = attr(RunMatrix, "modelmatrix")
     attr(results, "anticoef") = anticoef
 
-    modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
-    if(ncol(modelmatrix_cor) > 2) {
-      correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1,-1])
+    modelmatrix_cor = model.matrix(model, RunMatrix, contrasts.arg = contrastslist_cormat)
+    if (ncol(modelmatrix_cor) > 2) {
+      correlation.matrix = abs(cov2cor(covarianceMatrix(modelmatrix_cor))[-1, -1])
       colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-      attr(results,"correlation.matrix") = round(correlation.matrix,8)
+      attr(results, "correlation.matrix") = round(correlation.matrix, 8)
     }
 
-    attr(results,"generating.model") = model
-    attr(results,"runmatrix") = RunMatrix
+    attr(results, "generating.model") = model
+    attr(results, "runmatrix") = RunMatrix
 
-    levelvector = sapply(lapply(RunMatrix,unique),length)
-    classvector = sapply(lapply(RunMatrix,unique),class) == "factor"
-    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),levelvector,classvector)
+    levelvector = sapply(lapply(RunMatrix, unique), length)
+    classvector = sapply(lapply(RunMatrix, unique), class) == "factor"
+    mm = gen_momentsmatrix(colnames(attr(RunMatrix, "modelmatrix")), levelvector, classvector)
 
-    attr(results,"moment.matrix") = mm
-    attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
+    attr(results, "moment.matrix") = mm
+    attr(results, "A") = AOptimality(attr(RunMatrix, "modelmatrix"))
 
-    if(!blocking) {
-      attr(results,"variance.matrix") = diag(nrow(modelmatrix_cor))
-      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
-      attr(results,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+    if (!blocking) {
+      attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor))
+      attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm,
+                                       blockedVar = diag(nrow(modelmatrix_cor)))
+      attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
-      attr(results,"variance.matrix") = V
-      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
-      attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+      attr(results, "variance.matrix") = V
+      attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
+      attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     }
-    if(detailedoutput) {
-      if(nrow(results) != length(anticoef)){
-        results$anticoef = c(rep(NA,nrow(results) - length(anticoef)), anticoef)
+    if (detailedoutput) {
+      if (nrow(results) != length(anticoef)){
+        results$anticoef = c(rep(NA, nrow(results) - length(anticoef)), anticoef)
       } else {
         results$anticoef = anticoef
       }
@@ -358,59 +372,60 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
 
     return(results)
   } else {
-    factornames = attr(terms(model),"term.labels")
-    factormatrix = attr(terms(model),"factors")
-    interactionterms = factornames[apply(factormatrix,2,sum) > 1]
-    higherorderterms = factornames[!(gsub("`","",factornames,fixed=TRUE) %in% colnames(RunMatrix)) & !(apply(factormatrix,2,sum) > 1)]
-    levelvector = sapply(lapply(RunMatrix,unique),length)
-    levelvector[lapply(RunMatrix,class)=="numeric"] = 2
-    if(("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
-      levelvector = c(1,levelvector-1)
+    factornames = attr(terms(model), "term.labels")
+    factormatrix = attr(terms(model), "factors")
+    interactionterms = factornames[apply(factormatrix, 2, sum) > 1]
+    higherorderterms = factornames[!(gsub("`", "", factornames, fixed = TRUE) %in% colnames(RunMatrix)) &
+                                   !(apply(factormatrix, 2, sum) > 1)]
+    levelvector = sapply(lapply(RunMatrix, unique), length)
+    levelvector[lapply(RunMatrix, class) == "numeric"] = 2
+    if ("(Intercept)" %in% colnames(attr(RunMatrix, "modelmatrix"))) {
+      levelvector = c(1, levelvector - 1)
     } else {
-      levelvector = levelvector-1
+      levelvector = levelvector - 1
     }
-    higherorderlevelvector = rep(1,length(higherorderterms))
+    higherorderlevelvector = rep(1, length(higherorderterms))
     names(higherorderlevelvector) = higherorderterms
     levelvector = c(levelvector, higherorderlevelvector)
 
-    for(interaction in interactionterms) {
+    for (interaction in interactionterms) {
       numberlevels = 1
-      for(term in unlist(strsplit(interaction,split="(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"))) {
-        numberlevels = numberlevels * levelvector[gsub("`","",term,fixed=TRUE)]
+      for (term in unlist(strsplit(interaction, split = "(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"))) {
+        numberlevels = numberlevels * levelvector[gsub("`", "", term, fixed = TRUE)]
       }
       levelvector = c(levelvector, numberlevels)
     }
 
-    effectresults = effectpower(RunMatrix,levelvector,anticoef,alpha,vInv=vInv)
-    parameterresults = parameterpower(RunMatrix,anticoef,alpha,vInv=vInv)
+    effectresults = effectpower(RunMatrix, levelvector, anticoef, alpha, vinv = vinv)
+    parameterresults = parameterpower(RunMatrix, anticoef, alpha, vinv = vinv)
 
-    typevector = c(rep("effect.power",length(effectresults)),rep("parameter.power",length(parameterresults)))
-    if(("(Intercept)" %in% colnames(attr(RunMatrix,"modelmatrix")))) {
-      effectnamevector = c("(Intercept)",factornames)
+    typevector = c(rep("effect.power", length(effectresults)), rep("parameter.power", length(parameterresults)))
+    if ("(Intercept)" %in% colnames(attr(RunMatrix, "modelmatrix"))) {
+      effectnamevector = c("(Intercept)", factornames)
     } else {
       effectnamevector = factornames
     }
-    parameternamevector = colnames(attr(RunMatrix,"modelmatrix"))
-    namevector = c(effectnamevector,parameternamevector)
-    powervector = c(effectresults,parameterresults)
+    parameternamevector = colnames(attr(RunMatrix, "modelmatrix"))
+    namevector = c(effectnamevector, parameternamevector)
+    powervector = c(effectresults, parameterresults)
 
     results = data.frame(parameter = namevector, type = typevector, power = powervector)
 
-    if(length(namevector) != length(typevector)) {
+    if (length(namevector) != length(typevector)) {
       warning("Number of names does not equal number of power calculations")
     }
 
-    attr(results, "modelmatrix") = attr(RunMatrix,"modelmatrix")
+    attr(results, "modelmatrix") = attr(RunMatrix, "modelmatrix")
     attr(results, "anticoef") = anticoef
 
-    modelmatrix_cor = model.matrix(model,RunMatrix,contrasts.arg=contrastslist_correlationmatrix)
-    if(ncol(modelmatrix_cor) > 2) {
+    modelmatrix_cor = model.matrix(model, RunMatrix, contrasts.arg = contrastslist_cormat)
+    if (ncol(modelmatrix_cor) > 2) {
 
-      if(!blocking) {
+      if (!blocking) {
         V = diag(nrow(modelmatrix_cor))
       }
-      if("(Intercept)" %in% colnames(modelmatrix_cor)) {
-        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
+      if ("(Intercept)" %in% colnames(modelmatrix_cor)) {
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1, -1])
         colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
         rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       } else {
@@ -419,30 +434,30 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
         rownames(correlation.matrix) = colnames(modelmatrix_cor)
       }
 
-      attr(results,"correlation.matrix") = round(correlation.matrix,8)
+      attr(results, "correlation.matrix") = round(correlation.matrix, 8)
     }
-    attr(results,"generating.model") = model
-    attr(results,"runmatrix") = RunMatrix
+    attr(results, "generating.model") = model
+    attr(results, "runmatrix") = RunMatrix
 
-    levelvector = sapply(lapply(RunMatrix,unique),length)
-    classvector = sapply(lapply(RunMatrix,unique),class) == "factor"
-    mm = gen_momentsmatrix(colnames(attr(RunMatrix,"modelmatrix")),levelvector,classvector)
+    levelvector = sapply(lapply(RunMatrix, unique), length)
+    classvector = sapply(lapply(RunMatrix, unique), class) == "factor"
+    mm = gen_momentsmatrix(colnames(attr(RunMatrix, "modelmatrix")), levelvector, classvector)
 
-    attr(results,"moment.matrix") = mm
-    attr(results,"A") = AOptimality(attr(RunMatrix,"modelmatrix"))
+    attr(results, "moment.matrix") = mm
+    attr(results, "A") = AOptimality(attr(RunMatrix, "modelmatrix"))
 
-    if(!blocking) {
-      attr(results,"variance.matrix") = diag(nrow(modelmatrix_cor))
-      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
-      attr(results,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+    if (!blocking) {
+      attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor))
+      attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
+      attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
-      attr(results,"variance.matrix") = V
-      attr(results,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
-      attr(results,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+      attr(results, "variance.matrix") = V
+      attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
+      attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     }
-    if(detailedoutput) {
-      if(nrow(results) != length(anticoef)){
-        results$anticoef = c(rep(NA,nrow(results) - length(anticoef)), anticoef)
+    if (detailedoutput) {
+      if (nrow(results) != length(anticoef)){
+        results$anticoef = c(rep(NA, nrow(results) - length(anticoef)), anticoef)
       } else {
         results$anticoef = anticoef
       }
@@ -453,45 +468,45 @@ eval_design = function(RunMatrix, model, alpha, blocking=FALSE, anticoef=NULL,
     #For conservative coefficients, look for lowest power results from non-conservative calculation and set them to one
     #and the rest to zero. (If equally low results, apply 1 -1 pattern to lowest)
 
-    if(conservative == TRUE) {
-      groupvars = attr(attr(results,"modelmatrix"),"assign")
+    if (conservative == TRUE) {
+      groupvars = attr(attr(results, "modelmatrix"), "assign")
       uniquevars = unique(groupvars)
       orderedunique = uniquevars[order(uniquevars)]
-      parresults = results[results$type=="parameter.power",]
+      parresults = results[results$type == "parameter.power", ]
       parresults$variable = groupvars
       conservative_anticoef = c()
 
-      for(var in orderedunique) {
+      for (var in orderedunique) {
         powers = parresults$power[parresults$variable == var]
-        if(length(powers) == 1) {
-          conservative_anticoef = c(conservative_anticoef,1)
+        if (length(powers) == 1) {
+          conservative_anticoef = c(conservative_anticoef, 1)
         }
-        if(length(powers) > 1) {
-          if(length(which(abs(powers - min(powers)) < 1E-10)) == 1) {
-            coefvec = rep(0,length(powers))
+        if (length(powers) > 1) {
+          if (length(which(abs(powers - min(powers)) < 1E-10)) == 1) {
+            coefvec = rep(0, length(powers))
             coefvec[which.min(powers)] = 1
-            conservative_anticoef = c(conservative_anticoef,coefvec)
+            conservative_anticoef = c(conservative_anticoef, coefvec)
           }
-          if(length(which(abs(powers - min(powers)) < 1E-10)) > 1) {
+          if (length(which(abs(powers - min(powers)) < 1E-10)) > 1) {
             numberofequal = length(which(abs(powers - min(powers)) < 1E-10))
-            exponents = 1:numberofequal+1
-            values = rep(-1,numberofequal)^exponents
-            if(numberofequal > 2) {
+            exponents = 1:numberofequal + 1
+            values = rep(-1, numberofequal) ^ exponents
+            if (numberofequal > 2) {
               values[3:length(values)] = 0
             }
-            coefvec = rep(0,length(powers))
+            coefvec = rep(0, length(powers))
             coefvec[which(abs(powers - min(powers)) < 1E-10)] = values
-            conservative_anticoef = c(conservative_anticoef,coefvec)
+            conservative_anticoef = c(conservative_anticoef, coefvec)
           }
         }
       }
       #at this point, since we are going to specify anticoef, do not use the effectsize argument
       #in the subsequent call. Do replicate the magnitudes from the original anticoef
       conservative_anticoef = conservative_anticoef * effectsize / 2
-      results = eval_design(RunMatrix=RunMatrix, model=model, alpha=alpha, blocking=blocking,
-                  anticoef=conservative_anticoef,
+      results = eval_design(RunMatrix = RunMatrix, model = model, alpha = alpha, blocking = blocking,
+                  anticoef = conservative_anticoef,
                   detailedoutput = detailedoutput,
-                  varianceratios=varianceratios, contrasts=contrasts, conservative=FALSE)
+                  varianceratios = varianceratios, contrasts = contrasts, conservative = FALSE)
     }
 
     return(results)

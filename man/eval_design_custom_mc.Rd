@@ -19,7 +19,7 @@ to the range [-1, 1].}
 
 \item{nsim}{The number of simulations.}
 
-\item{rfunction}{Random number generator function. Should be a function of the form f(X,b), where X is the
+\item{rfunction}{Random number generator function. Should be a function of the form f(X, b), where X is the
 model matrix and b are the anticipated coefficients.}
 
 \item{fitfunction}{Function used to fit the data. Should be of the form f(formula, X, contrasts)
@@ -66,17 +66,17 @@ a data frame of parameter powers.
 #To begin, first let us generate the same design and random generation function shown in the
 #eval_design_survival_mc examples:
 
-basicdesign = expand.grid(a=c(-1,1))
-design = gen_design(candidateset=basicdesign,model=~a,trials=100,
-                         optimality="D",repeats=100)
+basicdesign = expand.grid(a = c(-1, 1))
+design = gen_design(candidateset = basicdesign, model = ~a, trials = 100,
+                         optimality = "D", repeats = 100)
 
 #Random number generating function
 
-rsurvival = function(X,b) {
- Y = rexp(n=nrow(X),rate=exp(-(X \%*\% b)))
+rsurvival = function(X, b) {
+ Y = rexp(n = nrow(X), rate = exp(-(X \%*\% b)))
  censored = Y > 1
  Y[censored] = 1
- return(survival::Surv(time=Y,event=!censored,type="right"))
+ return(survival::Surv(time = Y, event = !censored, type = "right"))
 }
 
 #We now need to tell the package how we want to fit our data,
@@ -84,8 +84,8 @@ rsurvival = function(X,b) {
 #If the contrasts aren't required, "contrastslist" should be set to NULL.
 #This should return some type of fit object.
 
-fitsurv = function(formula, X, contrastslist=NULL) {
- return(survival::survreg(formula, data=X,dist="exponential"))
+fitsurv = function(formula, X, contrastslist = NULL) {
+ return(survival::survreg(formula, data = X, dist = "exponential"))
 }
 
 
@@ -93,14 +93,16 @@ fitsurv = function(formula, X, contrastslist=NULL) {
 #from the fit function. This is how to extract the p-values from the survreg fit object:
 
 pvalsurv = function(fit) {
- return(summary(fit)$table[,4])
+ return(summary(fit)$table[, 4])
 }
 
 #And now we evaluate the design, passing the fitting function and p-value extracting function
 #in along with the standard inputs for eval_design_mc.
 
-d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
-                     fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1)
+d = eval_design_custom_mc(RunMatrix = design, model = ~a,
+                         alpha = 0.05, nsim = 100,
+                         fitfunction = fitsurv, pvalfunction = pvalsurv,
+                         rfunction = rsurvival, effectsize = 1)
 
 #This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
 }

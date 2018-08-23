@@ -4,7 +4,7 @@
 \alias{effectpower}
 \title{Calculate Effect Power}
 \usage{
-effectpower(RunMatrix, levelvector, anticoef, alpha, vInv = NULL)
+effectpower(RunMatrix, levelvector, anticoef, alpha, vinv = NULL)
 }
 \arguments{
 \item{levelvector}{The number of levels in each parameter (1st is always the intercept)}
@@ -13,7 +13,7 @@ effectpower(RunMatrix, levelvector, anticoef, alpha, vInv = NULL)
 
 \item{alpha}{the specified type-I error}
 
-\item{vInv}{The V inverse matrix}
+\item{vinv}{The V inverse matrix}
 
 \item{X}{The model matrix}
 }

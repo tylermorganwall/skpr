@@ -26,9 +26,9 @@ Plots design diagnostics
 
 #First generate the design:
 
-candidatelist = expand.grid(X1=c(1,-1),X2 = c(1,-1))
+candidatelist = expand.grid(X1 = c(1, -1), X2 = c(1, -1))
 
-design = gen_design(candidatelist,~(X1+X2),15)
+design = gen_design(candidatelist, ~(X1 + X2), 15)
 
 plot_fds(design)
 }

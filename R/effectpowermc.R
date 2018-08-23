@@ -8,11 +8,11 @@
 #'@param ... Additional arguments to pass to car::Anova
 #'@return p-values
 #'@keywords internal
-effectpowermc = function(fit,type="III",test = "Pr(>Chisq)", ...) {
-  anovafit = car::Anova(fit,type=type, ... )
+effectpowermc = function(fit, type="III", test = "Pr(>Chisq)", ...) {
+  anovafit = car::Anova(fit, type = type, ... )
   effectnames = rownames(anovafit)
   effect_pvals = as.vector(as.matrix(anovafit[test]))
-  if("Residuals" %in% effectnames) {
+  if ("Residuals" %in% effectnames) {
     effect_pvals = effect_pvals[-length(effect_pvals)]
     names(effect_pvals) = effectnames[-length(effectnames)]
   } else {

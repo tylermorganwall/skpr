@@ -10,16 +10,16 @@
 #'@return Returns a vector of p-values. If model_fit is not a supported model type, returns NULL.
 extractPvalues = function(model_fit) {
   model_type = class(model_fit)
-  if (model_type == 'lm' || model_type == 'glm' || model_type == 'glmerMod') {
-    return(coef(summary(model_fit))[,4])
+  if (model_type == "lm" || model_type == "glm" || model_type == "glmerMod") {
+    return(coef(summary(model_fit))[, 4])
   }
-  if (model_type == 'lmerMod') {
+  if (model_type == "lmerMod") {
     estimates = coef(summary(model_fit))[, 1]
     se = coef(summary(model_fit))[, 2]
     return(2 * pnorm(-abs(estimates / se)))
   }
-  if (model_type == 'survreg') {
-    return(summary(model_fit)$table[,4])
+  if (model_type == "survreg") {
+    return(summary(model_fit)$table[, 4])
   }
   return(NULL)
 }

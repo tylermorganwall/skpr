@@ -8,17 +8,17 @@
 blockingstructure = function(blocklist) {
   blocklength = c()
   lengthblock = 1
-  for(i in 1:length(blocklist)) {
+  for (i in 1:length(blocklist)) {
     counter = 0
-    if(lengthblock == 1) {
-      for(j in i:length(blocklist)) {
-        if(j == length(blocklist) && blocklist[i] == blocklist[j]) {
+    if (lengthblock == 1) {
+      for (j in i:length(blocklist)) {
+        if (j == length(blocklist) && blocklist[i] == blocklist[j]) {
           counter = counter + 1
           blocklength = c(blocklength, counter)
           return(blocklength)
         }
 
-        if(blocklist[i] == blocklist[j]) {
+        if (blocklist[i] == blocklist[j]) {
           counter = counter + 1
         } else {
           blocklength = c(blocklength, counter)

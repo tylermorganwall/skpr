@@ -18,7 +18,7 @@ gen_poisson_anticoef = function(anticoef, mean_low, mean_high) {
   }
   b0 = 1 / 2 * (log(mean_high) + log(mean_low))
   b  = 1 / 2 * (log(mean_high) - log(mean_low))
-  newanticoef = anticoef*b
+  newanticoef = anticoef * b
   newanticoef[1] = b0
   return(newanticoef)
 }

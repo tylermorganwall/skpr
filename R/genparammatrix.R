@@ -15,9 +15,9 @@ genparammatrix = function(parameters, levels, g) {
   if (parameters < levels) {
     stop("Number of parameters must be greater than number of levels")
   }
-  L = matrix(0,ncol=parameters,nrow=levels)
-  L[,(g+1):(g+levels)] = diag(levels)
-  if(dim(L)[1] == 1) {
+  L = matrix(0, ncol = parameters, nrow = levels)
+  L[, (g + 1):(g + levels)] = diag(levels)
+  if (dim(L)[1] == 1) {
     return(t(as.vector(L)))
   }
   return(L)

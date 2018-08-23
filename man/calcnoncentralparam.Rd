@@ -4,7 +4,7 @@
 \alias{calcnoncentralparam}
 \title{Calculate Non-Centrality Parameter}
 \usage{
-calcnoncentralparam(X, L, b, vInv = NULL)
+calcnoncentralparam(X, L, b, vinv = NULL)
 }
 \arguments{
 \item{X}{The model matrix}
@@ -12,6 +12,8 @@ calcnoncentralparam(X, L, b, vInv = NULL)
 \item{L}{The parameter matrix/vector}
 
 \item{b}{The anticipated coefficients}
+
+\item{vinv}{variance-covariance matrix}
 }
 \value{
 The non-centrality parameter for the F test

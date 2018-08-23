@@ -8,13 +8,13 @@
 
 disallowed_combinations = function(candidateset) {
 
-  inputlevels = lapply(candidateset,unique)
+  inputlevels = lapply(candidateset, unique)
   fullcandidateset = expand.grid(inputlevels)
   anydisallowed = nrow(candidateset) != nrow(fullcandidateset)
 
-  if(anydisallowed) {
-    combinedcandidatesets = rbind(fullcandidateset,candidateset)
-    return(combinedcandidatesets[!duplicated(combinedcandidatesets,fromLast=TRUE) & !duplicated(combinedcandidatesets),])
+  if (anydisallowed) {
+    combinedcandidatesets = rbind(fullcandidateset, candidateset)
+    return(combinedcandidatesets[!duplicated(combinedcandidatesets, fromLast = TRUE) & !duplicated(combinedcandidatesets), ])
   } else {
     return(data.frame())
   }

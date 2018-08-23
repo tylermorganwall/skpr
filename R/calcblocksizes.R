@@ -6,14 +6,14 @@
 #'@param blocksize The desired size of each block
 #'@return The blocksize vector
 #'@keywords internal
-calcblocksizes = function(trials,blocksize) {
-  if(length(blocksize) > 1) {
+calcblocksizes = function(trials, blocksize) {
+  if (length(blocksize) > 1) {
     return(blocksize)
   }
-  blocks = floor(trials/blocksize)
+  blocks = floor(trials / blocksize)
   extra = trials %% blocksize
-  if(extra == 0) {
+  if (extra == 0) {
     extra = NULL
   }
-  return(c(rep(blocksize,blocks),extra))
+  return(c(rep(blocksize, blocks), extra))
 }

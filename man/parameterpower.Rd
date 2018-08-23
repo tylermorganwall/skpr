@@ -4,14 +4,14 @@
 \alias{parameterpower}
 \title{Calculates parameter power}
 \usage{
-parameterpower(RunMatrix, anticoef, alpha, vInv = NULL)
+parameterpower(RunMatrix, anticoef, alpha, vinv = NULL)
 }
 \arguments{
 \item{anticoef}{The anticipated coefficients}
 
 \item{alpha}{the specified type-I error}
 
-\item{vInv}{The V inverse matrix}
+\item{vinv}{The V inverse matrix}
 
 \item{X}{The model matrix}
 }

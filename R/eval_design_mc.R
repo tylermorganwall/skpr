@@ -63,8 +63,8 @@
 #'"binomial"     \tab T        \tab \code{rbinom(prob = 1/(1+exp(-(X \%*\% b + d))))} \tab \code{lme4::glmer(family = "binomial")} \cr
 #'"poisson"      \tab F        \tab \code{rpois(lambda = exp((X \%*\% b + d)))}       \tab \code{glm(family = "poisson")}         \cr
 #'"poisson"      \tab T        \tab \code{rpois(lambda = exp((X \%*\% b + d)))}       \tab \code{lme4::glmer(family = "poisson")} \cr
-#'"exponential"  \tab F        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{glm(family = Gamma(link="log"))} \cr
-#'"exponential"  \tab T        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{lme4:glmer(family = Gamma(link="log"))} \cr
+#'"exponential"  \tab F        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{glm(family = Gamma(link = "log"))} \cr
+#'"exponential"  \tab T        \tab \code{rexp(rate = exp(-(X \%*\% b + d)))}            \tab \code{lme4:glmer(family = Gamma(link = "log"))} \cr
 #'}
 #'Note that the exponential random generator uses the "rate" parameter, but \code{skpr} and \code{glm} use
 #'the mean value parameterization (= 1 / rate), hence the minus sign above. Also note that
@@ -102,18 +102,19 @@
 #'@export
 #'@import foreach doParallel nlme stats
 #'@examples #We first generate a full factorial design using expand.grid:
-#'factorialcoffee = expand.grid(cost=c(-1, 1),
-#'                               type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-#'                               size=as.factor(c("Short", "Grande", "Venti")))
+#'factorialcoffee = expand.grid(cost = c(-1, 1),
+#'                               type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                               size = as.factor(c("Short", "Grande", "Venti")))
 #'
 #'#And then generate the 21-run D-optimal design using gen_design.
 #'
-#'designcoffee = gen_design(factorialcoffee, model=~cost + type + size, trials=21, optimality="D")
+#'designcoffee = gen_design(factorialcoffee,
+#'                          model = ~cost + type + size, trials = 21, optimality = "D")
 #'
 #'#To evaluate this design using a normal approximation, we just use eval_design
 #'#(here using the default settings for contrasts, effectsize, and the anticipated coefficients):
 #'
-#'eval_design(RunMatrix=designcoffee, model=~cost + type + size, 0.05)
+#'eval_design(RunMatrix = designcoffee, model = ~cost + type + size, 0.05)
 #'
 #'#To evaluate this design with a Monte Carlo method, we enter the same information
 #'#used in eval_design, with the addition of the number of simulations "nsim" and the distribution
@@ -122,45 +123,47 @@
 #'#family is used or the default random generating function is not adequate, a custom generating
 #'#function can be supplied by the user.
 #'
-#'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05, nsim=100,
-#'               glmfamily="gaussian")}
+#'\dontrun{eval_design_mc(designcoffee, model = ~cost + type + size, alpha = 0.05, nsim = 100,
+#'                        glmfamily = "gaussian")}
 #'
 #'#We see here we generate approximately the same parameter powers as we do
 #'#using the normal approximation in eval_design. Like eval_design, we can also change
 #'#effectsize to produce a different signal-to-noise ratio:
 #'
-#'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian", effectsize=1)}
+#'\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type + size, alpha = 0.05,
+#'               nsim = 100, glmfamily = "gaussian", effectsize = 1)}
 #'
 #'#Like eval_design, we can also evaluate the design with a different model than
 #'#the one that generated the design.
-#'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type, alpha=0.05,
-#'               nsim=100, glmfamily="gaussian")}
+#'\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type, alpha = 0.05,
+#'               nsim = 100, glmfamily = "gaussian")}
 #'
 #'
 #'#And here it is evaluated with interactions included:
-#'\dontrun{eval_design_mc(RunMatrix=designcoffee,model=~cost + type + size + cost*type, 0.05,
-#'               nsim=100, glmfamily="gaussian")}
+#'\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type + size + cost * type, 0.05,
+#'               nsim = 100, glmfamily = "gaussian")}
 #'
-#'#We can also set "parallel=TRUE" to use all the cores available to speed up
+#'#We can also set "parallel = TRUE" to use all the cores available to speed up
 #'#computation.
-#'\dontrun{eval_design_mc(RunMatrix=designcoffee, model=~cost + type + size, 0.05,
-#'               nsim=10000, glmfamily="gaussian", parallel=TRUE)}
+#'\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type + size, 0.05,
+#'               nsim = 10000, glmfamily = "gaussian", parallel = TRUE)}
 #'
 #'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
 #'
-#'factorialcoffee2 = expand.grid(Temp = c(1,-1),
-#'                                Store=as.factor(c("A","B")),
-#'                                cost=c(-1, 1),
-#'                                type=as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
-#'                                size=as.factor(c("Short", "Grande", "Venti")))
+#'factorialcoffee2 = expand.grid(Temp = c(1, -1),
+#'                                Store = as.factor(c("A", "B")),
+#'                                cost = c(-1, 1),
+#'                                type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                                size = as.factor(c("Short", "Grande", "Venti")))
 #'
-#'vhtcdesign = gen_design(candidateset=factorialcoffee2, model=~Store, trials=6, varianceratio=1)
-#'htcdesign = gen_design(candidateset=factorialcoffee2, model=~Store+Temp, trials=18,
-#'                        splitplotdesign=vhtcdesign, splitplotsizes=rep(3,6),varianceratio=1)
-#'splitplotdesign = gen_design(candidateset=factorialcoffee2,
-#'                              model=~Store+Temp+cost+type+size, trials=54,
-#'                              splitplotdesign=htcdesign, splitplotsizes=rep(3,18),varianceratio=1)
+#'vhtcdesign = gen_design(factorialcoffee2,
+#'                        model = ~Store, trials = 6, varianceratio = 1)
+#'htcdesign = gen_design(factorialcoffee2, model = ~Store + Temp, trials = 18,
+#'                        splitplotdesign = vhtcdesign, splitplotsizes = rep(3, 6), varianceratio = 1)
+#'splitplotdesign = gen_design(factorialcoffee2,
+#'                             model = ~Store + Temp + cost + type + size, trials = 54,
+#'                             splitplotdesign = htcdesign, splitplotsizes = rep(3, 18),
+#'                             varianceratio = 1)
 #'
 #'#Each block has an additional noise term associated with it in addition to the normal error
 #'#term in the model. This is specified by a vector specifying the additional variance for
@@ -168,30 +171,30 @@
 #'#the whole plots and the sub-plots for gaussian models.
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors.
-#'\dontrun{eval_design_mc(RunMatrix=splitplotdesign, model=~Store+Temp+cost+type+size, alpha=0.05,
-#'               blocking=TRUE, nsim=100, glmfamily="gaussian", varianceratios = c(1,1))}
+#'\dontrun{eval_design_mc(splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05,
+#'               blocking = TRUE, nsim = 100, glmfamily = "gaussian", varianceratios = c(1, 1))}
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
 #'#whether we can detect the difference between each factor changing whether an event occurs
 #'#70% of the time or 90% of the time.
 #'
-#'factorialbinom = expand.grid(a=c(-1,1),b=c(-1,1))
-#'designbinom = gen_design(factorialbinom,model=~a+b,trials=90,optimality="D")
+#'factorialbinom = expand.grid(a = c(-1, 1), b = c(-1, 1))
+#'designbinom = gen_design(factorialbinom, model = ~a + b, trials = 90, optimality = "D")
 #'
-#'\dontrun{eval_design_mc(designbinom,~a+b,alpha=0.2,nsim=100, effectsize = c(0.7, 0.9),
-#'               glmfamily="binomial")}
+#'\dontrun{eval_design_mc(designbinom, ~a + b, alpha = 0.2, nsim = 100, effectsize = c(0.7, 0.9),
+#'               glmfamily = "binomial")}
 #'
 #'#We can also use this method to determine power for poisson response variables.
 #'#Generate the design:
 #'
-#'factorialpois = expand.grid(a=as.numeric(c(-1,0,1)),b=c(-1,0,1))
-#'designpois = gen_design(factorialpois, ~a+b, trials=70, optimality="D")
+#'factorialpois = expand.grid(a = as.numeric(c(-1, 0, 1)), b = c(-1, 0, 1))
+#'designpois = gen_design(factorialpois, ~a + b, trials = 70, optimality = "D")
 #'
 #'#Evaluate the power:
 #'
-#'\dontrun{eval_design_mc(designpois, ~a+b, 0.05, nsim=100, glmfamily="poisson",
-#'                anticoef=log(c(0.2, 2, 2)))}
+#'\dontrun{eval_design_mc(designpois, ~a + b, 0.05, nsim = 100, glmfamily = "poisson",
+#'                anticoef = log(c(0.2, 2, 2)))}
 #'
 #'
 #'#The coefficients above set the nominal value -- that is, the expected count
@@ -199,20 +202,20 @@
 #'#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
 #'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(RunMatrix, model, alpha,
-                          blocking=FALSE, nsim=1000, glmfamily="gaussian", calceffect=TRUE,
-                          varianceratios = NULL, rfunction=NULL, anticoef=NULL,
-                          effectsize=2, contrasts=contr.sum, parallel=FALSE,
-                          detailedoutput=FALSE, advancedoptions = NULL) {
+                          blocking = FALSE, nsim = 1000, glmfamily = "gaussian", calceffect = TRUE,
+                          varianceratios = NULL, rfunction = NULL, anticoef = NULL,
+                          effectsize = 2, contrasts = contr.sum, parallel = FALSE,
+                          detailedoutput = FALSE, advancedoptions = NULL) {
 
-  if(class(RunMatrix) %in% c("tbl","tbl_df") && blocking) {
+  if (class(RunMatrix) %in% c("tbl", "tbl_df") && blocking) {
     warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
   }
 
-  if(!is.null(advancedoptions)) {
-    if(is.null(advancedoptions$GUI)) {
+  if (!is.null(advancedoptions)) {
+    if (is.null(advancedoptions$GUI)) {
       advancedoptions$GUI = FALSE
     }
-    if(!is.null(advancedoptions$progressBarUpdater)) {
+    if (!is.null(advancedoptions$progressBarUpdater)) {
       progressBarUpdater = advancedoptions$progressBarUpdater
     } else {
       progressBarUpdater = NULL
@@ -225,9 +228,9 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #detect pre-set contrasts
   presetcontrasts = list()
-  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
-    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
-      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+  for (x in names(RunMatrix[lapply(RunMatrix, class) %in% c("character", "factor")])) {
+    if (!is.null(attr(RunMatrix[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]], "contrasts")
     }
   }
 
@@ -235,122 +238,122 @@ eval_design_mc = function(RunMatrix, model, alpha,
   RunMatrix = as.data.frame(RunMatrix)
 
   #Detect externally generated blocking columns and convert to rownames
-  if(is.null(attr(RunMatrix,"splitanalyzable")) &&
-     any(grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE)) ||
-     any(grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE))) {
-    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$",colnames(RunMatrix),perl=TRUE) | grepl("(Whole Plots|Subplots)",colnames(RunMatrix),perl=TRUE)
-    if(blocking) {
+  if (is.null(attr(RunMatrix, "splitanalyzable")) &&
+     any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
+     any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
+    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) | grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
+    if (blocking) {
       warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
-      blockmatrix = RunMatrix[,blockcols,drop=FALSE]
-      blockmatrix = blockmatrix[,order(unlist(lapply(lapply(blockmatrix,unique),length))),drop=FALSE]
-      blockvals = lapply(blockmatrix,unique)
-      rownamematrix = matrix(nrow=nrow(RunMatrix),ncol=ncol(blockmatrix) + 1)
-      for(col in 1:ncol(blockmatrix)) {
+      blockmatrix = RunMatrix[, blockcols, drop = FALSE]
+      blockmatrix = blockmatrix[, order(unlist(lapply(lapply(blockmatrix, unique), length))), drop = FALSE]
+      blockvals = lapply(blockmatrix, unique)
+      rownamematrix = matrix(nrow = nrow(RunMatrix), ncol = ncol(blockmatrix) + 1)
+      for (col in 1:ncol(blockmatrix)) {
         uniquevals = blockvals[[col]]
         blockcounter = 1
-        for(block in uniquevals) {
-          if(col == 1) {
-            rownamematrix[blockmatrix[,col] == block,col] = blockcounter
+        for (block in uniquevals) {
+          if (col == 1) {
+            rownamematrix[blockmatrix[, col] == block, col] = blockcounter
             blockcounter = blockcounter + 1
           }
-          if(col != 1) {
-            superblock = rownamematrix[blockmatrix[,col] == block,col-1][1]
-            modop = length(unique(blockmatrix[blockmatrix[,col-1] == superblock,col]))
-            if(blockcounter %% modop == 0) {
-              rownamematrix[blockmatrix[,col] == block,col] = modop
+          if (col != 1) {
+            superblock = rownamematrix[blockmatrix[, col] == block, col - 1][1]
+            modop = length(unique(blockmatrix[blockmatrix[, col - 1] == superblock, col]))
+            if (blockcounter %% modop == 0) {
+              rownamematrix[blockmatrix[, col] == block, col] = modop
             } else {
-              rownamematrix[blockmatrix[,col] == block,col] = blockcounter %% modop
+              rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
             }
             blockcounter = blockcounter + 1
           }
-          if(col == ncol(blockmatrix)) {
-            rownamematrix[blockmatrix[,col] == block,col+1] = 1:sum(blockmatrix[,col] == block)
+          if (col == ncol(blockmatrix)) {
+            rownamematrix[blockmatrix[, col] == block, col + 1] = 1:sum(blockmatrix[, col] == block)
           }
         }
         blockcounter = blockcounter + 1
       }
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[,!blockcols,drop=FALSE]
+      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
       attributes(RunMatrix) = allattr
-      rownames(RunMatrix) = apply(rownamematrix,1,paste,collapse=".")
+      rownames(RunMatrix) = apply(rownamematrix, 1, paste, collapse = ".")
     } else {
       warning("Detected externally generated blocking columns but blocking not turned on: ignoring blocking structure and removing blocking columns.")
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[,!blockcols,drop=FALSE]
+      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
       attributes(RunMatrix) = allattr
     }
   }
 
   #Remove skpr-generated REML blocking indicators if present
-  if(!is.null(attr(RunMatrix,"splitanalyzable"))) {
-    if(attr(RunMatrix,"splitanalyzable")) {
+  if (!is.null(attr(RunMatrix, "splitanalyzable"))) {
+    if (attr(RunMatrix, "splitanalyzable")) {
       allattr = attributes(RunMatrix)
-      RunMatrix = RunMatrix[,-1:-length(allattr$splitcolumns)]
+      RunMatrix = RunMatrix[, -1:-length(allattr$splitcolumns)]
       allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
       attributes(RunMatrix) = allattr
     }
   }
 
   #----- Convert dots in formula to terms -----#
-  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(",paste0(colnames(RunMatrix), collapse=" + "),")")
-    additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
+  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
+    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
+    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
+    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
+    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
   }
 
   glmfamilyname = glmfamily
 
   #------Auto-set random generating function----#
-  if(is.null(rfunction)) {
-    if(glmfamily == "gaussian") {
-      rfunction = function(X,b,blockvector) {return(rnorm(n=nrow(X), mean = X %*% b + blockvector, sd = 1))}
+  if (is.null(rfunction)) {
+    if (glmfamily == "gaussian") {
+      rfunction = function(X, b, blockvector) rnorm(n = nrow(X), mean = X %*% b + blockvector, sd = 1)
     }
-    if(glmfamily == "binomial") {
-      rfunction = function(X,b,blockvector) {return(rbinom(n=nrow(X), size = 1, prob = 1/(1+exp(-(X %*% b + blockvector)))))}
+    if (glmfamily == "binomial") {
+      rfunction = function(X, b, blockvector) rbinom(n = nrow(X), size = 1, prob = 1 / (1 + exp(-(X %*% b + blockvector))))
     }
-    if(glmfamily == "poisson") {
-      rfunction = function(X,b,blockvector) {return(rpois(n=nrow(X), lambda = exp((X %*% b + blockvector))))}
+    if (glmfamily == "poisson") {
+      rfunction = function(X, b, blockvector) rpois(n = nrow(X), lambda = exp(X %*% b + blockvector))
     }
-    if(glmfamily == "exponential") {
-      glmfamily = Gamma(link="log")
-      rfunction = function(X,b,blockvector) {return(rexp(n=nrow(X), rate = exp(-(X %*% b + blockvector))))}
+    if (glmfamily == "exponential") {
+      glmfamily = Gamma(link = "log")
+      rfunction = function(X, b, blockvector) rexp(n = nrow(X), rate = exp(-(X %*% b + blockvector)))
     }
   }
 
   #------Normalize/Center numeric columns ------#
-  for(column in 1:ncol(RunMatrix)) {
-    if(is.numeric(RunMatrix[,column])) {
-      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
-      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
+  for (column in 1:ncol(RunMatrix)) {
+    if (is.numeric(RunMatrix[, column])) {
+      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
+      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
     }
   }
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
-  #Variables used later: contrastslist, contrastslist_correlationmatrix
-  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+  #Variables used later: contrastslist, contrastslist_cormat
+  RunMatrixReduced = reduceRunMatrix(RunMatrix, model)
 
-  contrastslist_correlationmatrix = list()
+  contrastslist_cormat = list()
   contrastslist = list()
-  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
-    if(!(x %in% names(presetcontrasts))) {
+  for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
+    if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
     } else {
       contrastslist[[x]] = presetcontrasts[[x]]
     }
-    contrastslist_correlationmatrix[[x]] = contr.simplex
+    contrastslist_cormat[[x]] = contr.simplex
 
   }
-  if(length(contrastslist) < 1) {
+  if (length(contrastslist) < 1) {
     contrastslist = NULL
-    contrastslist_correlationmatrix = NULL
+    contrastslist_cormat = NULL
   }
 
-  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
+  ModelMatrix = model.matrix(model, RunMatrixReduced, contrasts.arg = contrastslist)
 
   #saving model for return attribute
   generatingmodel = model
@@ -363,103 +366,100 @@ eval_design_mc = function(RunMatrix, model, alpha,
   if (!missing(anticoef) && !missing(effectsize)) {
     warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")
   }
-  if(missing(anticoef)) {
+  if (missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrixReduced, model)
     anticoef = anticoef_from_delta(default_coef, effectsize, glmfamilyname)
-    if(!("(Intercept)" %in% colnames(ModelMatrix))) {
+    if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
     }
   }
-  if(length(anticoef) != dim(ModelMatrix)[2]) {
+  if (length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
   }
 
   #-------------- Blocking errors --------------#
   #Variables used later: blockgroups, varianceratios, V
   blocknames = rownames(RunMatrix)
-  blocklist = strsplit(blocknames,".",fixed=TRUE)
+  blocklist = strsplit(blocknames, ".", fixed = TRUE)
 
-  if(any(lapply(blocklist,length) > 1)) {
-    if(blocking) {
+  if (any(lapply(blocklist, length) > 1)) {
+    if (blocking) {
 
-      blockstructure = do.call(rbind,blocklist)
-      blockgroups = apply(blockstructure,2,blockingstructure)
+      blockstructure = do.call(rbind, blocklist)
+      blockgroups = apply(blockstructure, 2, blockingstructure)
 
 
       blockMatrixSize = nrow(RunMatrix)
       V = diag(blockMatrixSize)
-      # if(length(blockgroups) == 1 | is.matrix(blockgroups)) {
-      #   stop("No blocking detected. Specify block structure in row names or set blocking=FALSE")
-      # }
 
-      if(!is.null(varianceratios) && max(unlist(lapply(blocklist,length)))-1 != length(varianceratios) && length(varianceratios) != 1) {
+      if (!is.null(varianceratios) && max(unlist(lapply(blocklist, length))) - 1 != length(varianceratios) && length(varianceratios) != 1) {
         warning("varianceratios length does not match number of split plots. Defaulting to variance ratio of 1 for all strata. ")
-        varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
+        varianceratios = rep(1, max(unlist(lapply(blocklist, length))) - 1)
       }
-      if(length(varianceratios) == 1 && max(unlist(lapply(blocklist,length)))-1 != length(varianceratios)) {
-        varianceratios = rep(varianceratios,max(unlist(lapply(blocklist,length)))-1)
+      if (length(varianceratios) == 1 && max(unlist(lapply(blocklist, length))) - 1 != length(varianceratios)) {
+        varianceratios = rep(varianceratios, max(unlist(lapply(blocklist, length))) - 1)
       }
-      if(is.null(varianceratios)) {
-        varianceratios = rep(1,max(unlist(lapply(blocklist,length)))-1)
+      if (is.null(varianceratios)) {
+        varianceratios = rep(1, max(unlist(lapply(blocklist, length))) - 1)
       }
 
       blockcounter = 1
 
       blockgroups2 = blockgroups[-length(blockgroups)]
-      for(block in blockgroups2) {
-        V[1:block[1],1:block[1]] =  V[1:block[1],1:block[1]]+varianceratios[blockcounter]
+      for (block in blockgroups2) {
+        V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceratios[blockcounter]
         placeholder = block[1]
-        for(i in 2:length(block)) {
-          V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] = V[(placeholder+1):(placeholder+block[i]),(placeholder+1):(placeholder+block[i])] + varianceratios[blockcounter]
+        for (i in 2:length(block)) {
+          V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] = V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] + varianceratios[blockcounter]
           placeholder = placeholder + block[i]
         }
-        blockcounter = blockcounter+1
+        blockcounter = blockcounter + 1
       }
     }
   } else {
-    if(blocking) {
+    if (blocking) {
       warning("Blocking set to TRUE, but no blocks detected in rownames. Blocking ignored.")
-      blocking=FALSE
+      blocking = FALSE
     }
   }
 
-  rblocknoise = function(noise,groups) {
+  rblocknoise = function(noise, groups) {
     listblocknoise = list()
-    for(i in 1:(length(groups)-1)) {
+    for (i in 1:(length(groups) - 1)) {
       blocktemp = list()
-      for(j in 1:length(groups[[i]])) {
-        row = rnorm(n=1,mean=0,sd=sqrt(noise[i]))
-        blocktemp[[j]] = do.call(rbind, replicate(groups[[i]][j],row,simplify = FALSE))
+      for (j in 1:length(groups[[i]])) {
+        row = rnorm(n = 1, mean = 0, sd = sqrt(noise[i]))
+        blocktemp[[j]] = do.call(rbind, replicate(groups[[i]][j], row, simplify = FALSE))
       }
-      listblocknoise[[i]] = do.call(rbind,blocktemp)
+      listblocknoise[[i]] = do.call(rbind, blocktemp)
     }
-    totalblocknoise = Reduce("+",listblocknoise)
+    totalblocknoise = Reduce("+", listblocknoise)
     return(totalblocknoise)
   }
 
   #------------ Generate Responses -------------#
   #Variables used later: responses
-  responses = matrix(ncol=nsim,nrow=nrow(ModelMatrix))
-  if(blocking) {
-    for(i in 1:nsim) {
-      responses[,i] = rfunction(ModelMatrix,anticoef,rblocknoise(noise=varianceratios,groups=blockgroups))
+  responses = matrix(ncol = nsim, nrow = nrow(ModelMatrix))
+  if (blocking) {
+    for (i in 1:nsim) {
+      responses[, i] = rfunction(ModelMatrix, anticoef, rblocknoise(noise = varianceratios, groups = blockgroups))
     }
   } else {
-    responses = replicate(nsim, rfunction(ModelMatrix,anticoef,rep(0,nrow(ModelMatrix))))
+    responses = replicate(nsim, rfunction(ModelMatrix, anticoef, rep(0, nrow(ModelMatrix))))
   }
 
   #-------Update formula with random blocks------#
   #Variables used later: model, model_formula
-  if(blocking) {
-    genBlockIndicators = function(blockgroup) {return(rep(1:length(blockgroup),blockgroup))}
-    blockindicators = lapply(blockgroups,genBlockIndicators)
+  if (blocking) {
+    genBlockIndicators = function(blockgroup) rep(1:length(blockgroup), blockgroup)
+    blockindicators = lapply(blockgroups, genBlockIndicators)
     randomeffects = c()
-    for(i in 1:(length(blockgroups)-1)) {
-      RunMatrixReduced[paste("skprBlock",i,sep="")] = blockindicators[[i]]
-      randomeffects = c(randomeffects, paste("( 1 | skprBlock",i, " )", sep=""))
+    for (i in 1:(length(blockgroups) - 1)) {
+      RunMatrixReduced[paste("skprBlock", i, sep = "")] = blockindicators[[i]]
+      randomeffects = c(randomeffects, paste("( 1 | skprBlock", i, " )", sep = ""))
     }
-    randomeffects = paste(randomeffects, collapse=" + ")
-    blockform = paste("~. + ", randomeffects, sep="")
+    randomeffects = paste(randomeffects, collapse = " + ")
+    blockform = paste("~. + ", randomeffects, sep = "")
     #Adding random block variables to formula
     model = update.formula(model, blockform)
   } else {
@@ -471,9 +471,9 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #------------- Effect Power Settings ------------#
 
-  if(!is.null(advancedoptions$anovatest)) {
+  if (!is.null(advancedoptions$anovatest)) {
     anovatest = advancedoptions$anovatest
-    if(anovatest == "F") {
+    if (anovatest == "F") {
       pvalstring = "Pr(>F)"
     } else {
       pvalstring = "Pr(>Chisq)"
@@ -482,7 +482,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
     anovatest = "Wald"
     pvalstring = "Pr(>Chisq)"
   }
-  if(!is.null(advancedoptions$anovatype)) {
+  if (!is.null(advancedoptions$anovatype)) {
     anovatype = advancedoptions$anovatype
   } else {
     anovatype = "III"
@@ -490,55 +490,55 @@ eval_design_mc = function(RunMatrix, model, alpha,
 
   #---------------- Run Simulations ---------------#
 
-  progressbarupdates = floor(seq(1,nsim,length.out=50))
+  progressbarupdates = floor(seq(1, nsim, length.out = 50))
   progresscurrent = 1
+  estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
 
-  if(!parallel) {
+  if (!parallel) {
     pvallist = list()
     effectpvallist = list()
     stderrlist = list()
     iterlist = list()
     power_values = rep(0, ncol(ModelMatrix))
     effect_power_values = c()
-    estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
     for (j in 1:nsim) {
-      if(!is.null(progressBarUpdater)) {
-        if(nsim > 50) {
-          if(progressbarupdates[progresscurrent] == j) {
-            progressBarUpdater(1/50)
+      if (!is.null(progressBarUpdater)) {
+        if (nsim > 50) {
+          if (progressbarupdates[progresscurrent] == j) {
+            progressBarUpdater(1 / 50)
             progresscurrent = progresscurrent + 1
           }
         } else {
-          progressBarUpdater(1/nsim)
+          progressBarUpdater(1 / nsim)
         }
       }
 
       #simulate the data.
-      RunMatrixReduced$Y = responses[,j]
+      RunMatrixReduced$Y = responses[, j]
       if (blocking) {
-        if(glmfamilyname == "gaussian") {
-          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type=anovatype,test="Pr(>Chisq)")
+        if (glmfamilyname == "gaussian") {
+          fit = lme4::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
           }
         } else {
-          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type=anovatype,test=pvalstring, test.statistic = anovatest)
+          fit = lme4::glmer(model_formula, data = RunMatrixReduced, family = glmfamily, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = anovatype, test = pvalstring, test.statistic = anovatest)
           }
         }
         estimates[j, ] = coef(summary(fit))[, 1]
       } else {
         if (glmfamilyname == "gaussian") {
-          fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type=anovatype,test="Pr(>F)")
+          fit = lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>F)")
           }
 
         } else {
-          fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type=anovatype,test=pvalstring, test.statistic=anovatest)
+          fit = glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = anovatype, test = pvalstring, test.statistic = anovatest)
           }
         }
         estimates[j, ] = coef(fit)
@@ -546,67 +546,67 @@ eval_design_mc = function(RunMatrix, model, alpha,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       pvallist[[j]] = pvals
-      if(j == 1 && calceffect) {
-        effect_power_values = c(effect_power_values,rep(0,length(effect_pvals)))
+      if (j == 1 && calceffect) {
+        effect_power_values = c(effect_power_values, rep(0, length(effect_pvals)))
       }
-      stderrlist[[j]] = coef(summary(fit))[,2]
+      stderrlist[[j]] = coef(summary(fit))[, 2]
       if (!blocking) {
         iterlist[[j]] = fit$iter
       } else {
         iterlist[[j]] = NA
       }
-      if(calceffect) {
+      if (calceffect) {
         effectpvallist[[j]] = effect_pvals
         effect_power_values[effect_pvals < alpha] = effect_power_values[effect_pvals < alpha] + 1
       }
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
     }
     #We are going to output a tidy data.frame with the results.
-    attr(power_values, "pvals") = do.call(rbind,pvallist)
-    if(calceffect) {
-      attr(power_values, "effect_pvals") = do.call(rbind,effectpvallist)
+    attr(power_values, "pvals") = do.call(rbind, pvallist)
+    if (calceffect) {
+      attr(power_values, "effect_pvals") = do.call(rbind, effectpvallist)
     }
-    attr(power_values, "stderrors") = do.call(rbind,stderrlist)
-    attr(power_values, "fisheriterations") = do.call(rbind,iterlist)
+    attr(power_values, "stderrors") = do.call(rbind, stderrlist)
+    attr(power_values, "fisheriterations") = do.call(rbind, iterlist)
     power_values = power_values / nsim
-    if(calceffect) {
+    if (calceffect) {
       effect_power_values = effect_power_values / nsim
       names(effect_power_values) = names(effectpvallist[[1]])
     }
   } else {
-    if(is.null(options("cores")[[1]])) {
+    if (is.null(options("cores")[[1]])) {
       numbercores = parallel::detectCores()
     } else {
       numbercores = options("cores")[[1]]
     }
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
-    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export=c("extractPvalues","effectpowermc"),.packages = c("lme4")) %dopar% {
+    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4")) %dopar% {
       #simulate the data.
-      RunMatrixReduced$Y = responses[,j]
+      RunMatrixReduced$Y = responses[, j]
       if (blocking) {
-        if(glmfamilyname == "gaussian") {
-          fit = lme4::lmer(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+        if (glmfamilyname == "gaussian") {
+          fit = lme4::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
           }
         } else {
-          fit = lme4::glmer(model_formula, data=RunMatrixReduced, family=glmfamily, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)")
+          fit = lme4::glmer(model_formula, data = RunMatrixReduced, family = glmfamily, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
           }
         }
         estimates = coef(summary(fit))[, 1]
       } else {
         if (glmfamilyname == "gaussian") {
-          fit = lm(model_formula, data=RunMatrixReduced, contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>F)")
+          fit = lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>F)")
           }
         } else {
-          fit = glm(model_formula, family=glmfamily, data=RunMatrixReduced,contrasts = contrastslist)
-          if(calceffect) {
-            effect_pvals = effectpowermc(fit,type="III",test="Pr(>Chisq)",test.statistic="Wald")
+          fit = glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+          if (calceffect) {
+            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)", test.statistic = "Wald")
           }
         }
         estimates = coef(fit)
@@ -614,68 +614,68 @@ eval_design_mc = function(RunMatrix, model, alpha,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)
       power_values = rep(0, length(pvals))
-      if(calceffect) {
-        effect_power_values = rep(0,length(effect_pvals))
+      if (calceffect) {
+        effect_power_values = rep(0, length(effect_pvals))
         names(effect_power_values) = names(effect_pvals)
         effect_power_values[effect_pvals < alpha] = 1
       }
-      stderrval = coef(summary(fit))[,2]
+      stderrval = coef(summary(fit))[, 2]
       power_values[pvals < alpha] = 1
       if (!blocking && !is.null(fit$iter)) {
         iterval = fit$iter
       } else {
         iterval = NA
       }
-      if(calceffect) {
-        list("parameterpower" = power_values, "effectpower" = effect_power_values, "estimates" = estimates, "pvals" = c(pvals),"strerrval" = stderrval, "iterval" = iterval)
+      if (calceffect) {
+        list("parameterpower" = power_values, "effectpower" = effect_power_values, "estimates" = estimates, "pvals" = c(pvals), "strerrval" = stderrval, "iterval" = iterval)
       } else {
         list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals, "strerrval" = stderrval, "iterval" = iterval)
       }
     }
     parallel::stopCluster(cl)
-    power_values = apply(do.call(rbind,power_estimates[,"parameterpower"]), 2, sum) / nsim
-    if(calceffect) {
-      effect_power_values = apply(do.call(rbind,power_estimates[,"effectpower"]), 2, sum) / nsim
+    power_values = apply(do.call(rbind, power_estimates[, "parameterpower"]), 2, sum) / nsim
+    if (calceffect) {
+      effect_power_values = apply(do.call(rbind, power_estimates[, "effectpower"]), 2, sum) / nsim
     }
-    estimates = do.call(rbind,power_estimates[,"estimates"])
-    attr(power_values,"pvals") = do.call(rbind,power_estimates[,"pvals"])
-    attr(power_values,"stderrors") = do.call(rbind,power_estimates[,"strerrval"])
-    attr(power_values,"fisheriterations") = do.call(rbind,power_estimates[,"iterval"])
+    estimates = do.call(rbind, power_estimates[, "estimates"])
+    attr(power_values, "pvals") = do.call(rbind, power_estimates[, "pvals"])
+    attr(power_values, "stderrors") = do.call(rbind, power_estimates[, "strerrval"])
+    attr(power_values, "fisheriterations") = do.call(rbind, power_estimates[, "iterval"])
   }
   #output the results (tidy data format)
-  if(calceffect) {
-    retval = data.frame(parameter=c(names(effect_power_values),parameter_names),
-                        type=c(rep("effect.power.mc",length(effect_power_values)),rep("parameter.power.mc",length(parameter_names))),
-                        power=c(effect_power_values,power_values))
+  if (calceffect) {
+    retval = data.frame(parameter = c(names(effect_power_values), parameter_names),
+                        type = c(rep("effect.power.mc", length(effect_power_values)), rep("parameter.power.mc", length(parameter_names))),
+                        power = c(effect_power_values, power_values))
   } else {
-    retval = data.frame(parameter=parameter_names,
-                        type=rep("parameter.power.mc",length(parameter_names)),
-                        power=power_values)
+    retval = data.frame(parameter = parameter_names,
+                        type = rep("parameter.power.mc", length(parameter_names)),
+                        power = power_values)
   }
   attr(retval, "modelmatrix") = ModelMatrix
   attr(retval, "anticoef") = anticoef
 
-  levelvector = sapply(lapply(RunMatrixReduced,unique),length)
-  classvector = sapply(lapply(RunMatrixReduced,unique),class) == "factor"
-  mm = gen_momentsmatrix(colnames(ModelMatrix),levelvector,classvector)
+  levelvector = sapply(lapply(RunMatrixReduced, unique), length)
+  classvector = sapply(lapply(RunMatrixReduced, unique), class) == "factor"
+  mm = gen_momentsmatrix(colnames(ModelMatrix), levelvector, classvector)
 
-  if(glmfamilyname == "binomial") {
-    pvalmat = attr(power_values,"pvals")
+  if (glmfamilyname == "binomial") {
+    pvalmat = attr(power_values, "pvals")
     likelyseparation = FALSE
-    for(i in 2:ncol(pvalmat)) {
-      pvalcount = hist(pvalmat[,i],breaks=seq(0,1,0.05),plot=FALSE)
-      likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > nsim/15)
+    for (i in 2:ncol(pvalmat)) {
+      pvalcount = hist(pvalmat[, i], breaks = seq(0, 1, 0.05), plot = FALSE)
+      likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > nsim / 15)
     }
-    if(likelyseparation && !advancedoptions$GUI) {
+    if (likelyseparation && !advancedoptions$GUI) {
       warning("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.")
     }
   }
 
-  modelmatrix_cor = model.matrix(generatingmodel,RunMatrixReduced,contrasts.arg=contrastslist_correlationmatrix)
-  if(ncol(modelmatrix_cor) > 2) {
+  modelmatrix_cor = model.matrix(generatingmodel, RunMatrixReduced, contrasts.arg = contrastslist_cormat)
+  if (ncol(modelmatrix_cor) > 2) {
     tryCatch({
-      if("(Intercept)" %in% colnames(modelmatrix_cor)) {
-        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1,-1])
+      if ("(Intercept)" %in% colnames(modelmatrix_cor)) {
+        correlation.matrix = abs(cov2cor(solve(t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor))[-1, -1])
         colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
         rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
       } else {
@@ -683,22 +683,21 @@ eval_design_mc = function(RunMatrix, model, alpha,
         colnames(correlation.matrix) = colnames(modelmatrix_cor)
         rownames(correlation.matrix) = colnames(modelmatrix_cor)
       }
-      attr(retval,"correlation.matrix") = round(correlation.matrix,8)
+      attr(retval, "correlation.matrix") = round(correlation.matrix, 8)
     }, error = function(e) {})
   }
 
-  if(detailedoutput) {
-    if(nrow(retval) != length(anticoef)){
-      retval$anticoef = c(rep(NA,nrow(retval) - length(anticoef)), anticoef)
+  if (detailedoutput) {
+    if (nrow(retval) != length(anticoef)){
+      retval$anticoef = c(rep(NA, nrow(retval) - length(anticoef)), anticoef)
     } else {
       retval$anticoef = anticoef
     }
     retval$alpha = alpha
     if (is.character(glmfamilyname)) {
       retval$glmfamily = glmfamilyname
-    }
-    else { #user supplied a glm family object
-      retval$glmfamily = paste(glmfamilyname, collapse = ' ')
+    } else { #user supplied a glm family object
+      retval$glmfamily = paste(glmfamilyname, collapse = " ")
     }
     retval$trials = nrow(RunMatrix)
     retval$nsim = nsim
@@ -706,22 +705,22 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   colnames(estimates) = parameter_names
-  if(!blocking) {
-    attr(retval,"variance.matrix") = diag(nrow(modelmatrix_cor))
-    attr(retval,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar=diag(nrow(modelmatrix_cor)))
-    attr(retval,"D") = 100*DOptimality(modelmatrix_cor)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+  if (!blocking) {
+    attr(retval, "variance.matrix") = diag(nrow(modelmatrix_cor))
+    attr(retval, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
+    attr(retval, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
   } else {
-    attr(retval,"variance.matrix") = V
-    attr(retval,"I") = IOptimality(modelmatrix_cor,momentsMatrix = mm, blockedVar = V)
-    attr(retval,"D") = 100*DOptimalityBlocked(modelmatrix_cor,blockedVar=V)^(1/ncol(modelmatrix_cor))/nrow(modelmatrix_cor)
+    attr(retval, "variance.matrix") = V
+    attr(retval, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
+    attr(retval, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
   }
-  attr(retval,"generating.model") = generatingmodel
-  attr(retval,"runmatrix") = RunMatrixReduced
-  attr(retval,"variance.matrix") = V
-  attr(retval, 'estimates') = estimates
-  attr(retval, 'pvals') = attr(power_values, "pvals")
-  attr(retval, 'stderrors') = attr(power_values, "stderrors")
-  attr(retval, 'fisheriterations') = attr(power_values,"fisheriterations")
+  attr(retval, "generating.model") = generatingmodel
+  attr(retval, "runmatrix") = RunMatrixReduced
+  attr(retval, "variance.matrix") = V
+  attr(retval, "estimates") = estimates
+  attr(retval, "pvals") = attr(power_values, "pvals")
+  attr(retval, "stderrors") = attr(power_values, "stderrors")
+  attr(retval, "fisheriterations") = attr(power_values, "fisheriterations")
   return(retval)
 }
-globalVariables('i')
+globalVariables("i")

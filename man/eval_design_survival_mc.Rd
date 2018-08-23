@@ -8,7 +8,7 @@ eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
   distribution = "gaussian", censorpoint = NA, censortype = "right",
   rfunctionsurv = NULL, anticoef = NULL, effectsize = 2,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
-  progressBarUpdater = NULL, ...)
+  advancedoptions = NULL, ...)
 }
 \arguments{
 \item{RunMatrix}{The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].}
@@ -30,7 +30,7 @@ the \code{rfunctionsurv} parameter, then this parameter will be ignored.}
 
 \item{censortype}{The type of censoring (either "left" or "right"). Default "right".}
 
-\item{rfunctionsurv}{Random number generator function. Should be a function of the form f(X,b), where X is the
+\item{rfunctionsurv}{Random number generator function. Should be a function of the form f(X, b), where X is the
 model matrix and b are the anticipated coefficients. This function should return a \code{Surv} object from
 the \code{survival} package. You do not need to provide this argument if \code{distribution} is one of
 the supported choices and you are satisfied with the default behavior described below.}
@@ -48,7 +48,7 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 \item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
 
-\item{progressBarUpdater}{Default NULL. Function called in non-parallel simulations that can be used to update external progress bar.}
+\item{advancedoptions}{Default NULL. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }
@@ -73,9 +73,9 @@ If not supplied by the user, \code{rfunctionsurv} will be generated based on the
 argument as follows:
 \tabular{lr}{
 \bold{distribution}  \tab \bold{generating function} \cr
-"gaussian"                  \tab \code{rnorm(mean = X \%*\% b, sd=1)}           \cr
+"gaussian"                  \tab \code{rnorm(mean = X \%*\% b, sd = 1)}           \cr
 "exponential"               \tab \code{rexp(rate = exp(-X \%*\% b))}           \cr
-"lognormal"                 \tab \code{rlnorm(meanlog = X \%*\% b, sdlog=1)}           \cr
+"lognormal"                 \tab \code{rlnorm(meanlog = X \%*\% b, sdlog = 1)}           \cr
 }
 
 In each case, if a simulated data point is past the censorpoint (greater than for right-censored, less than for
@@ -108,16 +108,16 @@ and the other coefficients will be
 #with the basic functionality of eval_design_mc.
 
 #We first generate a simple 2-level design using expand.grid:
-basicdesign = expand.grid(a=c(-1, 1))
-design = gen_design(candidateset=basicdesign, model=~a, trials=15)
+basicdesign = expand.grid(a = c(-1, 1))
+design = gen_design(candidateset = basicdesign, model = ~a, trials = 15)
 
 #We can then evaluate the power of the design in the same way as eval_design_mc,
 #now including the type of censoring (either right or left) and the point at which
 #the data should be censored:
 
-eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
-                        nsim=100, distribution="exponential",
-                        censorpoint=5,censortype="right")
+eval_design_survival_mc(RunMatrix = design, model = ~a, alpha = 0.05,
+                        nsim = 100, distribution = "exponential",
+                        censorpoint = 5, censortype = "right")
 
 #Built-in Monte Carlo random generating functions are included for the gaussian, exponential,
 #and lognormal distributions.
@@ -126,16 +126,16 @@ eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.05,
 #random generating function and changing the distribution argument.
 
 rlognorm = function(X, b) {
-  Y = rlnorm(n=nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
+  Y = rlnorm(n = nrow(X), meanlog = X \%*\% b, sdlog = 0.4)
   censored = Y > 1.2
   Y[censored] = 1.2
-  return(survival::Surv(time=Y, event=!censored, type="right"))
+  return(survival::Surv(time = Y, event = !censored, type = "right"))
 }
 
 #Any additional arguments are passed into the survreg function call.  As an example, you
 #might want to fix the "scale" argument to survreg, when fitting a lognormal:
 
-eval_design_survival_mc(RunMatrix=design, model=~a, alpha=0.2, nsim=100,
-                        distribution="lognormal", rfunctionsurv=rlognorm,
-                        anticoef=c(0.184,0.101), scale=0.4)
+eval_design_survival_mc(RunMatrix = design, model = ~a, alpha = 0.2, nsim = 100,
+                        distribution = "lognormal", rfunctionsurv = rlognorm,
+                        anticoef = c(0.184, 0.101), scale = 0.4)
 }

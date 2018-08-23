@@ -10,7 +10,7 @@
 #'@param model The statistical model used to fit the data.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations.
-#'@param rfunction Random number generator function. Should be a function of the form f(X,b), where X is the
+#'@param rfunction Random number generator function. Should be a function of the form f(X, b), where X is the
 #'model matrix and b are the anticipated coefficients.
 #'@param fitfunction Function used to fit the data. Should be of the form f(formula, X, contrasts)
 #'where X is the model matrix. If contrasts do not need to be specified for the user supplied
@@ -40,17 +40,17 @@
 #'#To begin, first let us generate the same design and random generation function shown in the
 #'#eval_design_survival_mc examples:
 #'
-#'basicdesign = expand.grid(a=c(-1,1))
-#'design = gen_design(candidateset=basicdesign,model=~a,trials=100,
-#'                          optimality="D",repeats=100)
+#'basicdesign = expand.grid(a = c(-1, 1))
+#'design = gen_design(candidateset = basicdesign, model = ~a, trials = 100,
+#'                          optimality = "D", repeats = 100)
 #'
 #'#Random number generating function
 #'
-#'rsurvival = function(X,b) {
-#'  Y = rexp(n=nrow(X),rate=exp(-(X %*% b)))
+#'rsurvival = function(X, b) {
+#'  Y = rexp(n = nrow(X), rate = exp(-(X %*% b)))
 #'  censored = Y > 1
 #'  Y[censored] = 1
-#'  return(survival::Surv(time=Y,event=!censored,type="right"))
+#'  return(survival::Surv(time = Y, event = !censored, type = "right"))
 #'}
 #'
 #'#We now need to tell the package how we want to fit our data,
@@ -58,8 +58,8 @@
 #'#If the contrasts aren't required, "contrastslist" should be set to NULL.
 #'#This should return some type of fit object.
 #'
-#'fitsurv = function(formula, X, contrastslist=NULL) {
-#'  return(survival::survreg(formula, data=X,dist="exponential"))
+#'fitsurv = function(formula, X, contrastslist = NULL) {
+#'  return(survival::survreg(formula, data = X, dist = "exponential"))
 #'}
 #'
 #'
@@ -67,27 +67,29 @@
 #'#from the fit function. This is how to extract the p-values from the survreg fit object:
 #'
 #'pvalsurv = function(fit) {
-#'  return(summary(fit)$table[,4])
+#'  return(summary(fit)$table[, 4])
 #'}
 #'
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
 #'
-#'d=eval_design_custom_mc(RunMatrix=design,model=~a,alpha=0.05,nsim=100,
-#'                      fitfunction=fitsurv, pvalfunction=pvalsurv, rfunction=rsurvival, effectsize=1)
+#'d = eval_design_custom_mc(RunMatrix = design, model = ~a,
+#'                          alpha = 0.05, nsim = 100,
+#'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
+#'                          rfunction = rsurvival, effectsize = 1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
 eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, effectsize=2, contrasts = contr.sum,
+                                 anticoef, effectsize = 2, contrasts = contr.sum,
                                  coef_function = coef,
                                  parameternames = NULL,
-                                 parallel=FALSE, parallelpackages=NULL) {
+                                 parallel = FALSE, parallelpackages = NULL) {
 
   #detect pre-set contrasts
   presetcontrasts = list()
-  for(x in names(RunMatrix[lapply(RunMatrix,class) %in% c("character", "factor")])) {
-    if(!is.null(attr(RunMatrix[[x]],"contrasts"))) {
-      presetcontrasts[[x]] = attr(RunMatrix[[x]],"contrasts")
+  for (x in names(RunMatrix[lapply(RunMatrix, class) %in% c("character", "factor")])) {
+    if (!is.null(attr(RunMatrix[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(RunMatrix[[x]], "contrasts")
     }
   }
 
@@ -95,60 +97,58 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   RunMatrix = as.data.frame(RunMatrix)
 
   #----- Convert dots in formula to terms -----#
-  if(any(unlist(strsplit(as.character(model[2]),"\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(",paste0(colnames(RunMatrix), collapse=" + "),")")
-    additionterms = unlist(strsplit(as.character(model[2]),"\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms,split="\\s\\*\\s"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=" * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms,split="\\:"),gsub,pattern="^\\.$",replacement=dotreplace),paste0,collapse=":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse=" + "), sep=""))
+  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
+    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
+    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
+    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
+    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
   }
 
   #------Normalize/Center numeric columns ------#
-  for(column in 1:ncol(RunMatrix)) {
-    if(is.numeric(RunMatrix[,column])) {
-      midvalue = mean(c(max(RunMatrix[,column]),min(RunMatrix[,column])))
-      RunMatrix[,column] = (RunMatrix[,column]-midvalue)/(max(RunMatrix[,column])-midvalue)
+  for (column in 1:ncol(RunMatrix)) {
+    if (is.numeric(RunMatrix[, column])) {
+      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
+      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
     }
   }
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix,model)
+  RunMatrixReduced = reduceRunMatrix(RunMatrix, model)
 
   contrastslist = list()
-  for(x in names(RunMatrixReduced[lapply(RunMatrixReduced,class) %in% c("character", "factor")])) {
-    if(!(x %in% names(presetcontrasts))) {
+  for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
+    if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
     } else {
       contrastslist[[x]] = presetcontrasts[[x]]
     }
   }
 
-  if(length(contrastslist) < 1) {
+  if (length(contrastslist) < 1) {
     contrastslist = NULL
   }
 
-  ModelMatrix = model.matrix(model,RunMatrixReduced,contrasts.arg=contrastslist)
+  ModelMatrix = model.matrix(model, RunMatrixReduced, contrasts.arg = contrastslist)
   #We'll need the parameter and effect names for output
-  if(is.null(parameternames)) {
+  if (is.null(parameternames)) {
     parameter_names = colnames(ModelMatrix)
   } else {
     parameter_names = parameternames
   }
-  effect_names = c("(Intercept)", attr(terms(model), 'term.labels'))
-
 
   # autogenerate anticipated coefficients
   if (!missing(effectsize) && !missing(anticoef)) {
     warning("User defined anticipated coefficnets (anticoef) detected; ignoring effectsize argument.")
   }
-  if(missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced,model) * effectsize / 2
-    if(!("(Intercept)" %in% colnames(ModelMatrix))) {
+  if (missing(anticoef)) {
+    anticoef = gen_anticoef(RunMatrixReduced, model) * effectsize / 2
+    if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
     }
   }
-  if(length(anticoef) != dim(ModelMatrix)[2]) {
+  if (length(anticoef) != dim(ModelMatrix)[2]) {
     stop("Wrong number of anticipated coefficients")
   }
 
@@ -157,13 +157,13 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
 
-  if(!parallel) {
+  if (!parallel) {
     power_values = rep(0, length(parameter_names))
     estimates = list()
     for (j in 1:nsim) {
 
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef)
+      RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
 
       #fit a model to the simulated data.
       fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
@@ -176,7 +176,7 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     power_values = power_values / nsim
 
   } else {
-    if(is.null(options("cores")[[1]])) {
+    if (is.null(options("cores")[[1]])) {
       numbercores = parallel::detectCores()
     } else {
       numbercores = options("cores")[[1]]
@@ -184,10 +184,10 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
 
-    power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind",.packages = parallelpackages) %dopar% {
+    power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages = parallelpackages) %dopar% {
       power_values = rep(0, ncol(ModelMatrix))
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix,anticoef)
+      RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
 
       #fit a model to the simulated data.
       fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
@@ -207,12 +207,12 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
     estimates = power_estimates[, (nparam + 1):ncol(power_estimates)]
   }
   #output the results (tidy data format)
-  retval = data.frame(parameter=parameter_names,
-                      type="custom.power.mc",
-                      power=power_values)
-  attr(retval, 'estimatesnames') = parameter_names
-  attr(retval, 'estimates') = estimates
+  retval = data.frame(parameter = parameter_names,
+                      type = "custom.power.mc",
+                      power = power_values)
+  attr(retval, "estimatesnames") = parameter_names
+  attr(retval, "estimates") = estimates
   retval
 
 }
-globalVariables('i')
+globalVariables("i")

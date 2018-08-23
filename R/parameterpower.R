@@ -5,22 +5,23 @@
 #'@param X The model matrix
 #'@param anticoef The anticipated coefficients
 #'@param alpha the specified type-I error
-#'@param vInv The V inverse matrix
+#'@param vinv The V inverse matrix
 #'@return The parameter power for the parameters
 #'@keywords internal
-parameterpower = function(RunMatrix,anticoef,alpha,vInv=NULL) {
+parameterpower = function(RunMatrix, anticoef, alpha, vinv = NULL) {
   #Generating the parameter isolating vectors
-  Q = vector("list",dim(attr(RunMatrix,"modelmatrix"))[2])
-  for(i in 1:length(Q)) {
-    vec = rep(0,dim(attr(RunMatrix,"modelmatrix"))[2])
+  q = vector("list", dim(attr(RunMatrix, "modelmatrix"))[2])
+  for (i in 1:length(q)) {
+    vec = rep(0, dim(attr(RunMatrix, "modelmatrix"))[2])
     vec[i] = 1
-    Q[[i]] = t(vec)
+    q[[i]] = t(vec)
   }
-
-  power = c(length(Q))
-  for(j in 1:length(Q)) {
-    power[j] = calculatepower(attr(RunMatrix,"modelmatrix"),Q[[j]],calcnoncentralparam(attr(RunMatrix,"modelmatrix"),Q[[j]],anticoef,vInv=vInv),alpha)
+  power = c(length(q))
+  for (j in 1:length(q)) {
+    power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), q[[j]],
+                              calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
+                                                  q[[j]], anticoef, vinv = vinv),
+                              alpha)
   }
-
   return(power)
 }

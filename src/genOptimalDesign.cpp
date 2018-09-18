@@ -5,23 +5,28 @@ using namespace Rcpp;
 //implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
 Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, int nTrials);
 
-Eigen::VectorXi sample_replace(Eigen::VectorXi index, int number_sampled, int size) {
+Eigen::VectorXi sample_replace(int max_value, int size) {
+  Eigen::VectorXi index(size);
   for (int i = 0; i < size; i++) {
-    index(i) = number_sampled * unif_rand();
+    index(i) = max_value * unif_rand();
   }
   return(index);
 }
 
-Eigen::VectorXi sample_noreplace(Eigen::VectorXi index, int number_sampled, int size) {
+Eigen::VectorXi sample_noreplace(int max_value, int size) {
+  if(size > max_value) {
+    throw std::range_error("argument `size` cannot be greater than `max_value` when sampling without replacment");
+  }
   int i, j;
-  Eigen::VectorXi sub(number_sampled);
-  for (i = 0; i < number_sampled; i++) {
+  Eigen::VectorXi index(size);
+  Eigen::VectorXi sub(max_value);
+  for (i = 0; i < max_value; i++) {
     sub(i) = i;
   }
   for (i = 0; i < size; i++) {
-    j = number_sampled * unif_rand();
+    j = max_value * unif_rand();
     index(i) = sub(j);
-    sub(j) = sub(--number_sampled);
+    sub(j) = sub(--max_value);
   }
   return(index);
 }
@@ -172,25 +177,32 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
     }
   }
+  Eigen::VectorXi shuffledindices;
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   for (int check = 0; check < maxSingularityChecks; check++) {
     if(!isSingular(initialdesign)) {
       break; //design is nonsingular
     }
-    Eigen::VectorXi orderedindices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
-    Eigen::VectorXi shuffledindices = sample_noreplace(orderedindices, totalPoints, false);
+    if(nTrials <= totalPoints) {
+      shuffledindices = sample_noreplace(totalPoints, nTrials);
+    } else {
+      shuffledindices = sample_noreplace(nTrials, nTrials);
+      for(int i = 0; i < shuffledindices.size(); i++) {
+        shuffledindices(i) %= totalPoints;
+      }
+    }
 
     for (int i = augmentedrows; i < nTrials; i++) {
-      initialdesign.row(i) = candidatelist.row(shuffledindices(i % totalPoints));
-      aliasdesign.row(i) = aliascandidatelist.row(shuffledindices(i % totalPoints));
-      initialRows(i) = shuffledindices(i % totalPoints) + 1; //R indexes start at 1
+      initialdesign.row(i) = candidatelist.row(shuffledindices(i));
+      aliasdesign.row(i) = aliascandidatelist.row(shuffledindices(i));
+      initialRows(i) = shuffledindices(i) + 1; //R indexes start at 1
     }
   }
   //If initialdesign is still singular, use the Gram-Schmidt orthogonalization procedure, which
   //should return a non-singular matrix if one can be constructed from the candidate set
   if (isSingular(initialdesign)) {
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
-    Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows, initrows.rows(), false);
+    Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows.rows(), nTrials);
     for (int i = augmentedrows; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
       aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
@@ -695,6 +707,13 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   //check and log whether there are inter-strata interactions
   int numberinteractions = interactions.size();
   bool interstrata = (numberinteractions > 0);
+  Eigen::VectorXd orderinteraction(interactions.size());
+  if(interstrata) {
+    for(int i = 0; i < numberinteractions; i++) {
+      orderinteraction[i] = as<NumericVector>(interactions[i]).size();
+    }
+  }
+
   //Generate blocking structure inverse covariance matrix
   const Eigen::MatrixXd vInv = blockedVar.colPivHouseholderQr().inverse();
   Eigen::MatrixXd ones(initialdesign.rows(),1);
@@ -724,16 +743,25 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   combinedAliasDesign.leftCols(blockedCols) = blockeddesign;
   combinedAliasDesign.middleCols(blockedCols, designColsAlias) = aliasdesign;
 
+  Eigen::VectorXd interactiontemp(nTrials);
+  Eigen::VectorXd interactiontempalias(nTrials);
   if(interstrata) {
     for(int i = 0; i < numberinteractions; i++) {
-      combinedDesign.col(blockedCols+designCols + i) = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1).cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[i])[1]-1));
-      combinedAliasDesign.col(blockedCols+designColsAlias + i) = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1).cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[i])[1]-1));
+      interactiontemp = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1);
+      interactiontempalias = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1);
+      for(int kk = 1; kk < orderinteraction[i]; kk++) {
+        interactiontemp = interactiontemp.cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[i])[kk]-1));
+        interactiontempalias = interactiontempalias.cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[i])[kk]-1));
+      }
+      combinedDesign.col(blockedCols+designCols + i) = interactiontemp;
+      combinedAliasDesign.col(blockedCols+designColsAlias + i) = interactiontempalias;
     }
   }
 
   IntegerVector candidateRow = initialRows;
   Eigen::MatrixXd test(combinedDesign.cols(),combinedDesign.cols());
   test.setZero();
+  Eigen::VectorXi shuffledindices;
   if(nTrials < candidatelist.cols() + blockedCols + numberinteractions) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
@@ -741,22 +769,34 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     if (!isSingularBlocked(combinedDesign,vInv)){
       break;
     }
-    Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(totalPoints, 0, totalPoints-1);
-    Eigen::VectorXi shuffledindices = sample_noreplace(ordered_indices, totalPoints, false);
-
+    if(nTrials <= totalPoints) {
+      shuffledindices = sample_noreplace(totalPoints, nTrials);
+    } else {
+      shuffledindices = sample_noreplace(nTrials, nTrials);
+      for(int i = 0; i < shuffledindices.size(); i++) {
+        shuffledindices(i) %= totalPoints;
+      }
+    }
     for (int i = 0; i < nTrials; i++) {
-      candidateRow(i) = shuffledindices(i % totalPoints) + 1;
-      initialRows(i) = shuffledindices(i % totalPoints) + 1;
-      combinedDesign.block(i, blockedCols, 1, designCols) = candidatelist.row(shuffledindices(i % totalPoints));
-      combinedAliasDesign.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(shuffledindices(i % totalPoints));
-      if (interstrata) {
-        for(int j = 0; j < numberinteractions; j++) {
-          combinedDesign.col(blockedCols+designCols + j) = combinedDesign.col(as<NumericVector>(interactions[j])[0]-1).cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[j])[1]-1));
-          combinedAliasDesign.col(blockedCols+designColsAlias + j) = combinedAliasDesign.col(as<NumericVector>(interactions[j])[0]-1).cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[j])[1]-1));
+      candidateRow(i) = shuffledindices(i) + 1;
+      initialRows(i) = shuffledindices(i) + 1;
+      combinedDesign.block(i, blockedCols, 1, designCols) = candidatelist.row(shuffledindices(i));
+      combinedAliasDesign.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(shuffledindices(i));
+      if(interstrata) {
+        for(int i = 0; i < numberinteractions; i++) {
+          interactiontemp = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1);
+          interactiontempalias = combinedAliasDesign.col(as<NumericVector>(interactions[i])[0]-1);
+          for(int k = 1; k < orderinteraction[i]; k++) {
+            interactiontemp = interactiontemp.cwiseProduct(combinedDesign.col(as<NumericVector>(interactions[i])[k]-1));
+            interactiontempalias = interactiontempalias.cwiseProduct(combinedAliasDesign.col(as<NumericVector>(interactions[i])[k]-1));
+          }
+          combinedDesign.col(blockedCols+designCols + i) = interactiontemp;
+          combinedAliasDesign.col(blockedCols+designColsAlias + i) = interactiontempalias;
         }
       }
     }
   }
+
   // If still no non-singular design, returns NA.
   if (isSingularBlocked(combinedDesign,vInv)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
@@ -779,6 +819,8 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   double priorOptimum = 0;
   double minDelta = tolerance;
   double newdel;
+  double interactiontempval;
+  double interactiontempvalalias;
   bool pointallowed = false;
   //Generate a D-optimal design, fixing the blocking factors
   if(condition == "D") {
@@ -798,7 +840,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              temp(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
 
@@ -820,9 +866,14 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -854,7 +905,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
-                temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+                interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+                for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                  interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+                }
+                temp(i,blockedCols+designCols + k) = interactiontempval;
               }
             }
 
@@ -882,7 +937,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -918,7 +977,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
-                temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+                interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+                for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                  interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+                }
+                temp(i,blockedCols+designCols + k) = interactiontempval;
               }
             }
             pointallowed = true;
@@ -945,7 +1008,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -974,7 +1041,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              temp(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
 
@@ -1001,7 +1072,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -1032,7 +1107,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              temp(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
 
@@ -1062,7 +1141,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -1091,7 +1174,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              temp(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
 
@@ -1121,7 +1208,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -1153,10 +1244,13 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
 
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
-
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              temp(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
 
@@ -1182,8 +1276,14 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
-              combinedAliasDesign(i,blockedCols+designColsAlias + k) = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedAliasDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              interactiontempvalalias = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+                interactiontempvalalias *= combinedAliasDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
+              combinedAliasDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -1235,8 +1335,14 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               tempalias.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(j);
               if(interstrata) {
                 for(int k = 0; k < numberinteractions; k++) {
-                  temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
-                  tempalias(i,blockedCols+designColsAlias + k) = tempalias(i,as<NumericVector>(interactions[k])[0]-1) * tempalias(i,as<NumericVector>(interactions[k])[1]-1);
+                  interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+                  interactiontempvalalias = tempalias(i,as<NumericVector>(interactions[k])[0]-1);
+                  for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                    interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+                    interactiontempvalalias *= tempalias(i,as<NumericVector>(interactions[k])[kk]-1);
+                  }
+                  temp(i,blockedCols+designCols + k) = interactiontempval;
+                  tempalias(i,blockedCols+designColsAlias + k) = interactiontempvalalias;
                 }
               }
 
@@ -1268,8 +1374,14 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
-                combinedDesignTemp(i,blockedCols+designCols + k) = combinedDesignTemp(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesignTemp(i,as<NumericVector>(interactions[k])[1]-1);
-                combinedAliasDesign(i,blockedCols+designColsAlias + k) = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedAliasDesign(i,as<NumericVector>(interactions[k])[1]-1);
+                interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+                interactiontempvalalias = combinedAliasDesign(i,as<NumericVector>(interactions[k])[0]-1);
+                for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                  interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+                  interactiontempvalalias *= combinedAliasDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+                }
+                combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
+                combinedAliasDesign(i,blockedCols+designCols + k) = interactiontempval;
               }
             }
             candidateRowTemp[i] = entryy+1;
@@ -1314,7 +1426,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              temp(i,blockedCols+designCols + k) = temp(i,as<NumericVector>(interactions[k])[0]-1) * temp(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= temp(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              temp(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
 
@@ -1344,7 +1460,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              combinedDesign(i,blockedCols+designCols + k) = combinedDesign(i,as<NumericVector>(interactions[k])[0]-1) * combinedDesign(i,as<NumericVector>(interactions[k])[1]-1);
+              interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
+              for(int kk = 1; kk < orderinteraction[k]; kk++) {
+                interactiontempval *= combinedDesign(i,as<NumericVector>(interactions[k])[kk]-1);
+              }
+              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
           }
           candidateRow[i] = entryy+1;
@@ -1391,8 +1511,7 @@ Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, int nTr
     }
   }
   //Then fill in the design with N - p randomly chosen rows from the candidatelist
-  Eigen::VectorXi ordered_indices = Eigen::VectorXi::LinSpaced(candidatelist2.rows(), 0, candidatelist2.rows()-1);
-  Eigen::VectorXi random_indices = sample_replace(ordered_indices, nTrials, true);
+  Eigen::VectorXi random_indices = sample_replace(nTrials, nTrials);
   for (int i = p; i < nTrials; i++) {
     design_rows(i) = random_indices(i);
   }

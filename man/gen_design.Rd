@@ -51,7 +51,7 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 \item{varianceratio}{The ratio between the interblock and intra-block variance for a given stratum in
 a split plot design. Default 1.}
 
-\item{contrast}{Function used to generate the encoding for categorical variables. Default "contr.simplex", a orthonormal sum contrast.}
+\item{contrast}{Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.}
 
 \item{aliaspower}{Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 

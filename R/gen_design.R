@@ -405,7 +405,7 @@ gen_design = function(candidateset, model, trials,
         # Find columns of model matrices corresponding to the interactions, to determine what to multiply in the
         # Optimal design generation process.
         lineartermsinteraction = unique(unlist(strsplit(wholeinteractionterms, split = "(\\s\\*\\s)|(:)", perl = TRUE)))
-        extract_intnames_formula = as.formula(paste0("~", paste(c(lineartermsinteraction, wholeinteractionterms), collapse = " + ")))
+        extract_intnames_formula = as.formula(paste0("~", paste(c(lineartermsinteraction, splitterms[!regularmodel], wholeinteractionterms), collapse = " + ")))
         combinedcand = cbind(candidateset[1,, drop = FALSE], splitplotdesign[1,, drop = FALSE])
         allcolnames = suppressWarnings(colnames(model.matrix(extract_intnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist)))
         interactionnames = allcolnames[grepl("(\\s\\*\\s)|(:)", allcolnames, perl = TRUE)]
@@ -426,8 +426,10 @@ gen_design = function(candidateset, model, trials,
 
         for (interaction_col in interactionnames) {
           term_vals = unlist(strsplit(interaction_col, split = "(\\s\\*\\s)|(:)", perl = TRUE))
-          interactionlist[[interactioncounter]] = which(correct_order_colnames %in% term_vals)
-          interactioncounter = interactioncounter + 1
+          if(any(term_vals %in% submm)) {
+            interactionlist[[interactioncounter]] = which(correct_order_colnames %in% term_vals)
+            interactioncounter = interactioncounter + 1
+          }
         }
       } else {
         interactionlist = list()
@@ -813,6 +815,7 @@ gen_design = function(candidateset, model, trials,
       blockedFactors = c(colnames(blockedmodelmatrix), colnames(candidatesetmm)[-1])
       blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
     } else {
+      interactionnames = interactionnames[!(interactionnames %in% colnames(blockedmodelmatrix))]
       blockedFactors = c(colnames(blockedmodelmatrix), colnames(candidatesetmm)[-1], interactionnames)
       blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
     }

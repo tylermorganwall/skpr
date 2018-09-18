@@ -58,8 +58,7 @@ assumes a signal-to-noise ratio of 2, but this can be changed with the
 \code{effectsize} or \code{anticoef} parameters.
 }
 \details{
-This function evaluates the power of experimental designs, mostly following the
-approach described in "Optimal Design of Experiments: A Case Study Approach, " by Goos and Jones (2011).
+This function evaluates the power of experimental designs.
 
 Power is calculated under a linear regression framework: you intend to fit a
 linear model to the data, of the form

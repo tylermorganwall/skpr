@@ -1,4 +1,34 @@
-﻿skpr v0.53.4 (Release date: 2018-07-11):
+﻿skpr v0.56.1 (Release date: 2018-09-21):
+================
+
+Major changes:
+
+• Major code clean-up to standardize style and spacing within code
+
+• `magrittr` pipe %>% now imported by default
+
+Minor changes/Bug fixes:
+
+• Split-plot design generation bugfixes for interactions between whole and subplots
+
+skpr v0.54.3 (Release date: 2018-08-08):
+================
+
+Major changes:
+
+• Added Monte Carlo effect power through the `car` package's Anova function
+
+Minor changes/Bug fixes:
+
+• Change correlation plot palette to viridis 
+
+• Bugfix for disallowed combinations between nesting levels in split-plot designs
+
+• Fixed missing varianceratios documentation in eval_design_mc 
+
+• Changed file paths to use file.path() 
+
+skpr v0.53.4 (Release date: 2018-07-11):
 ================
 
 Bug fix:

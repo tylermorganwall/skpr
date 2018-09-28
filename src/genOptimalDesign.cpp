@@ -5,6 +5,7 @@ using namespace Rcpp;
 //implements the Gram-Schmidt orthogonalization procdure to generate an initial non-singular design
 Eigen::VectorXi orthogonal_initial(const Eigen::MatrixXd& candidatelist, int nTrials);
 
+//sample with replacement
 Eigen::VectorXi sample_replace(int max_value, int size) {
   Eigen::VectorXi index(size);
   for (int i = 0; i < size; i++) {
@@ -13,6 +14,7 @@ Eigen::VectorXi sample_replace(int max_value, int size) {
   return(index);
 }
 
+//sample without replacement
 Eigen::VectorXi sample_noreplace(int max_value, int size) {
   if(size > max_value) {
     throw std::range_error("argument `size` cannot be greater than `max_value` when sampling without replacment");
@@ -111,11 +113,6 @@ bool isSingular(const Eigen::MatrixXd& currentDesign) {
   return(!XtX.colPivHouseholderQr().isInvertible());
 }
 
-template <typename T>
-Rcpp::NumericVector arma2vec(const T& x) {
-  return Rcpp::NumericVector(x.begin(), x.end());
-}
-
 double calculateCustomOptimality(const Eigen::MatrixXd& currentDesign, Function customOpt) {
   return as<double>(customOpt(Rcpp::Named("currentDesign", currentDesign)));
 }
@@ -151,6 +148,7 @@ Eigen::MatrixXd rankUpdateValue(Eigen::MatrixXd& vinv, const Eigen::VectorXd& po
 //`@param aliascandidatelist The full candidate set with the aliasing model in model matrix form.
 //`@param minDopt Minimum D-optimality during an Alias-optimal search.
 //`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
+//`@param augmentedrows The rows that are fixed during the design search.
 //`@return List of design information.
 // [[Rcpp::export]]
 List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
@@ -172,6 +170,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   if(nTrials < candidatelist.cols()) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
+  //Check for singularity from a column perfectly correlating with the intercept.
   for(int j = 1; j < candidatelist.cols(); j++) {
     if(candidatelist.col(0).cwiseEqual(candidatelist.col(j)).all()) {
       throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
@@ -232,7 +231,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::MatrixXd f2(initialdesign.cols(),2);
   Eigen::MatrixXd f2vinv(2,initialdesign.cols());
 
-  //Transpose matrices for faster element access (Armadillo stores data column-wise)
+  //Transpose matrices for faster element access
   Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
   Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
   Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
@@ -240,7 +239,6 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   if(condition == "D" || condition == "G") {
     newOptimum = calculateDOptimality(initialdesign);
     priorOptimum = newOptimum/2;
-
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (int i = augmentedrows; i < nTrials; i++) {
@@ -280,6 +278,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         found = false;
         entryx = 0;
         entryy = 0;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           newdel = calculateIOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),momentsmatrix);
           if(newdel < del) {
@@ -315,6 +314,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         found = false;
         entryx = 0;
         entryy = 0;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           newdel = calculateAOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv));
           if(newdel < del) {
@@ -355,8 +355,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         entryy = 0;
         del=0;
         xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-
-        //Search through all candidate set points to find best switch (if one exists).
+        //Search through candidate set for potential exchanges for row i
         search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
         if (found) {
           //Update the inverse with the rank-2 update formula.
@@ -414,6 +413,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           entryy = 0;
           temp = initialdesignTemp;
           tempalias = aliasdesign;
+          //Search through candidate set for potential exchanges for row i
           for (int j = 0; j < totalPoints; j++) {
             temp.row(i) = candidatelist.row(j);
             tempalias.row(i) = aliascandidatelist.row(j);
@@ -469,6 +469,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
@@ -513,6 +514,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.row(i) = candidatelist.row(j);
           newdel = calculateTOptimality(temp);
@@ -550,6 +552,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.row(i) = candidatelist.row(j);
           newdel = calculateEOptimality(temp);
@@ -589,6 +592,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.row(i) = candidatelist.row(j);
           newdel = calculateCustomOptimality(temp,customOpt);
@@ -745,6 +749,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
 
   Eigen::VectorXd interactiontemp(nTrials);
   Eigen::VectorXd interactiontempalias(nTrials);
+  //Calculate interaction terms of initial design.
   if(interstrata) {
     for(int i = 0; i < numberinteractions; i++) {
       interactiontemp = combinedDesign.col(as<NumericVector>(interactions[i])[0]-1);
@@ -765,6 +770,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   if(nTrials < candidatelist.cols() + blockedCols + numberinteractions) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
+  //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   for (int check = 0; check < maxSingularityChecks; check++) {
     if (!isSingularBlocked(combinedDesign,vInv)){
       break;
@@ -801,6 +807,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   if (isSingularBlocked(combinedDesign,vInv)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
+  // Checks for disallowed combinations, and marks those points as `mustchange` during the search if found
   if(anydisallowed) {
     for(int i = 0; i < nTrials; i++) {
       for(int j = 0; j < disallowed.rows(); j++) {
@@ -836,8 +843,10 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -848,6 +857,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
           }
 
+          //Check for disallowed combinations
           pointallowed = true;
           if(anydisallowed) {
             for(int k = 0; k < disallowed.rows(); k++) {
@@ -856,6 +866,8 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               }
             }
           }
+
+          //Check if optimality condition improved and can perform exchange
           newdel = calculateBlockedDOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
             found = true;
@@ -866,7 +878,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
-
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -899,10 +911,12 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+            //Calculate interaction terms for sub-whole plot interactions
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
                 interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -912,7 +926,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
                 temp(i,blockedCols+designCols + k) = interactiontempval;
               }
             }
-
+            //Check for disallowed combinations
             pointallowed = true;
             if(anydisallowed) {
               for(int k = 0; k < disallowed.rows(); k++) {
@@ -921,7 +935,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
                 }
               }
             }
-
+            //Check if optimality condition improved and can perform exchange
             newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
             if((newdel < del || mustchange[i]) && pointallowed) {
               found = true;
@@ -935,6 +949,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -971,10 +986,12 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+            //Calculate interaction terms for sub-whole plot interactions
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
                 interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -984,6 +1001,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
                 temp(i,blockedCols+designCols + k) = interactiontempval;
               }
             }
+            //Check for disallowed combinations
             pointallowed = true;
             if(anydisallowed) {
               for(int k = 0; k < disallowed.rows(); k++) {
@@ -992,7 +1010,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
                 }
               }
             }
-
+            //Check if optimality condition improved and can perform exchange
             newdel = calculateBlockedAOptimality(temp,vInv);
             if((newdel < del || mustchange[i]) && pointallowed) {
               found = true;
@@ -1006,6 +1024,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1037,8 +1056,10 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1049,6 +1070,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
           }
 
+          //Check for disallowed combinations
           pointallowed = true;
           if(anydisallowed) {
             for(int k = 0; k < disallowed.rows(); k++) {
@@ -1057,7 +1079,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               }
             }
           }
-
+          //Check if optimality condition improved and can perform exchange
           newdel = calculateBlockedTOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
             if(!isSingularBlocked(temp,vInv)) {
@@ -1070,6 +1092,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1103,8 +1126,10 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1115,6 +1140,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
           }
 
+          //Check for disallowed combinations
           pointallowed = true;
           if(anydisallowed) {
             for(int k = 0; k < disallowed.rows(); k++) {
@@ -1123,6 +1149,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               }
             }
           }
+          //Check if optimality condition improved and can perform exchange
           try {
             newdel = calculateBlockedEOptimality(temp, vInv);
           } catch (std::runtime_error& e) {
@@ -1139,6 +1166,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1170,8 +1198,10 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1183,6 +1213,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           }
 
           pointallowed = true;
+          //Check for disallowed combinations
           if(anydisallowed) {
             for(int k = 0; k < disallowed.rows(); k++) {
               if(temp.row(i).cwiseEqual(disallowed.row(k)).all()) {
@@ -1190,6 +1221,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               }
             }
           }
+          //Check if optimality condition improved and can perform exchange
           try {
             newdel = calculateBlockedGOptimality(temp, vInv);
           } catch (std::runtime_error& e) {
@@ -1206,6 +1238,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1241,9 +1274,10 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-
+        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1254,6 +1288,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
           }
 
+          //Check for disallowed combinations
           pointallowed = true;
           if(anydisallowed) {
             for(int k = 0; k < disallowed.rows(); k++) {
@@ -1262,7 +1297,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               }
             }
           }
-
+          //Check if optimality condition improved and can perform exchange
           newdel = calculateBlockedDOptimality(temp, vInv);
           if((newdel > del || mustchange[i]) && pointallowed) {
             found = true;
@@ -1274,6 +1309,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
           combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1329,10 +1365,12 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           entryy = 0;
           temp = combinedDesignTemp;
           tempalias = combinedAliasDesign;
+          //Search through candidate set for potential exchanges for row i
           for (int j = 0; j < totalPoints; j++) {
             try {
               temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
               tempalias.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(j);
+              //Calculate interaction terms for sub-whole plot interactions
               if(interstrata) {
                 for(int k = 0; k < numberinteractions; k++) {
                   interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1346,9 +1384,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
                 }
               }
 
-              currentA = calculateBlockedAliasTrace(temp,tempalias,vInv);
-              currentD = calculateBlockedDEffNN(temp,vInv);
-
+              //Check for disallowed combinations
               pointallowed = true;
               if(anydisallowed) {
                 for(int k = 0; k < disallowed.rows(); k++) {
@@ -1357,7 +1393,9 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
                   }
                 }
               }
-
+              //Check if optimality condition improved and can perform exchange
+              currentA = calculateBlockedAliasTrace(temp,tempalias,vInv);
+              currentD = calculateBlockedDEffNN(temp,vInv);
               newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
 
               if(newdel > optimum && calculateBlockedDEff(temp,vInv) > minDopt) {
@@ -1372,6 +1410,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
           if (found) {
             combinedDesignTemp.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
             combinedAliasDesign.block(entryx, blockedCols, 1, designColsAlias) = aliascandidatelist.row(entryy);
+            //Calculate interaction terms for sub-whole plot interactions
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
                 interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1416,6 +1455,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedCustomOptimality(combinedDesign, customBlockedOpt, vInv);
+      //Search through candidate set for potential exchanges for row i
       for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
@@ -1424,6 +1464,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         temp = combinedDesign;
         for (int j = 0; j < totalPoints; j++) {
           temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  temp(i,as<NumericVector>(interactions[k])[0]-1);
@@ -1434,6 +1475,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
             }
           }
 
+          //Check for disallowed combinations
           pointallowed = true;
           if(anydisallowed) {
             for(int k = 0; k < disallowed.rows(); k++) {
@@ -1442,6 +1484,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
               }
             }
           }
+          //Check if optimality condition improved and can perform exchange
           try {
             newdel = calculateBlockedCustomOptimality(temp, customBlockedOpt, vInv);
           } catch (std::runtime_error& e) {
@@ -1458,6 +1501,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
+          //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
               interactiontempval =  combinedDesign(i,as<NumericVector>(interactions[k])[0]-1);

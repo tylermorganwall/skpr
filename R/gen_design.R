@@ -294,28 +294,21 @@ gen_design = function(candidateset, model, trials,
     progressBarUpdater = NULL
   }
 
-  #Remove skpr-generated REML blocking indicators if present
-  if (!is.null(attr(splitplotdesign, "splitanalyzable"))) {
-    if (attr(splitplotdesign, "splitanalyzable")) {
-      allattr = attributes(splitplotdesign)
-      splitplotdesign = splitplotdesign[, -1:-length(allattr$splitcolumns)]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
-      attributes(splitplotdesign) = allattr
-    }
-  }
-
   #covert tibbles
   candidateset = as.data.frame(candidateset)
   if (!is.null(splitplotdesign)){
     splitplotdesign = as.data.frame(splitplotdesign)
   }
 
+  #Remove skpr-generated REML blocking indicators if present
+  splitplotdesign = remove_skpr_blockcols(splitplotdesign)
+
   #Throw error if backticks detected
   if (grepl("`", as.character(model)[2], fixed = TRUE)) {
     stop("skpr does not support backticks in gen_design. Use variable names without backticks and try again.")
   }
 
-  #----- Convert dots in formula to terms -----#
+  #----- Convert dots in formula to terms, taking split-plot design into account -----#
   if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
     if (is.null(splitplotdesign)) {
       dotreplace = paste0("(", paste0(attr(candidateset, "names"), collapse = " + "), ")")
@@ -452,10 +445,10 @@ gen_design = function(candidateset, model, trials,
 
   #------Ensure the candidate set has no single-valued columns------#
   if (nrow(candidateset) == 0) {
-    stop("The candidate set has zero rows. This won't do.")
+    stop("The candidate set has zero rows.")
   }
   if (ncol(candidateset) == 0) {
-    stop("The candidate set has zero columns. This won't do.")
+    stop("The candidate set has zero columns.")
   }
   for (colno in 1:ncol(candidateset)) {
     if (length(unique(candidateset[[colno]])) == 1) {
@@ -466,31 +459,11 @@ gen_design = function(candidateset, model, trials,
   #------Normalize/Center numeric columns ------#
   candidatesetnormalized = candidateset
 
-  for (column in 1:ncol(candidateset)) {
-    if (is.numeric(candidateset[, column])) {
-      maxvalue = max(candidateset[, column])
-      minvalue = min(candidateset[, column])
-      midvalue = mean(c(maxvalue, minvalue))
-      candidatesetnormalized[, column] = (candidateset[, column] - midvalue) / (maxvalue - midvalue)
-    }
-  }
-  fullcandidatesetnorm = fullcandidateset
-  for (column in 1:ncol(fullcandidateset)) {
-    if (is.numeric(fullcandidateset[, column])) {
-      maxvalue = max(fullcandidateset[, column])
-      minvalue = min(fullcandidateset[, column])
-      midvalue = mean(c(maxvalue, minvalue))
-      fullcandidatesetnorm[, column] = (fullcandidateset[, column] - midvalue) / (maxvalue - midvalue)
-    }
-  }
+  candidatesetnormalized = normalize_numeric_runmatrix(candidateset)
+  fullcandidatesetnorm = normalize_numeric_runmatrix(fullcandidateset)
+
   if (!is.null(splitplotdesign)) {
-    spdnormalized = splitplotdesign
-    for (column in 1:ncol(spdnormalized)) {
-      if (is.numeric(spdnormalized[, column])) {
-        midvalue = mean(c(max(spdnormalized[, column]), min(spdnormalized[, column])))
-        spdnormalized[, column] = (spdnormalized[, column] - midvalue) / (max(spdnormalized[, column]) - midvalue)
-      }
-    }
+    spdnormalized = normalize_numeric_runmatrix(splitplotdesign)
   }
 
   #----Check for augmented design and normalize/equalize factor levels if present----#
@@ -517,15 +490,8 @@ gen_design = function(candidateset, model, trials,
         augmentdesign[, i] = factor(augmentdesign[, i], levels = levels(candidateset[, i]))
       }
     }
-
     #Normalize
-    augmentnormalized = augmentdesign
-    for (column in 1:ncol(augmentnormalized)) {
-      if (is.numeric(augmentnormalized[, column])) {
-        midvalue = mean(c(max(augmentnormalized[, column]), min(augmentnormalized[, column])))
-        augmentnormalized[, column] = (augmentnormalized[, column] - midvalue) / (max(augmentnormalized[, column]) - midvalue)
-      }
-    }
+    augmentnormalized = normalize_numeric_runmatrix(augmentdesign)
     augmentedrows = nrow(augmentdesign)
   } else {
     augmentedrows = 0

@@ -238,72 +238,13 @@ eval_design_mc = function(RunMatrix, model, alpha,
   RunMatrix = as.data.frame(RunMatrix)
 
   #Detect externally generated blocking columns and convert to rownames
-  if (is.null(attr(RunMatrix, "splitanalyzable")) &&
-     any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
-     any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
-    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) | grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
-    if (blocking) {
-      warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
-      blockmatrix = RunMatrix[, blockcols, drop = FALSE]
-      blockmatrix = blockmatrix[, order(unlist(lapply(lapply(blockmatrix, unique), length))), drop = FALSE]
-      blockvals = lapply(blockmatrix, unique)
-      rownamematrix = matrix(nrow = nrow(RunMatrix), ncol = ncol(blockmatrix) + 1)
-      for (col in 1:ncol(blockmatrix)) {
-        uniquevals = blockvals[[col]]
-        blockcounter = 1
-        for (block in uniquevals) {
-          if (col == 1) {
-            rownamematrix[blockmatrix[, col] == block, col] = blockcounter
-            blockcounter = blockcounter + 1
-          }
-          if (col != 1) {
-            superblock = rownamematrix[blockmatrix[, col] == block, col - 1][1]
-            modop = length(unique(blockmatrix[blockmatrix[, col - 1] == superblock, col]))
-            if (blockcounter %% modop == 0) {
-              rownamematrix[blockmatrix[, col] == block, col] = modop
-            } else {
-              rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
-            }
-            blockcounter = blockcounter + 1
-          }
-          if (col == ncol(blockmatrix)) {
-            rownamematrix[blockmatrix[, col] == block, col + 1] = 1:sum(blockmatrix[, col] == block)
-          }
-        }
-        blockcounter = blockcounter + 1
-      }
-      allattr = attributes(RunMatrix)
-      allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
-      attributes(RunMatrix) = allattr
-      rownames(RunMatrix) = apply(rownamematrix, 1, paste, collapse = ".")
-    } else {
-      warning("Detected externally generated blocking columns but blocking not turned on: ignoring blocking structure and removing blocking columns.")
-      allattr = attributes(RunMatrix)
-      allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
-      attributes(RunMatrix) = allattr
-    }
-  }
+  RunMatrix = convert_blockcolumn_rownames(RunMatrix, blocking)
 
   #Remove skpr-generated REML blocking indicators if present
-  if (!is.null(attr(RunMatrix, "splitanalyzable"))) {
-    if (attr(RunMatrix, "splitanalyzable")) {
-      allattr = attributes(RunMatrix)
-      RunMatrix = RunMatrix[, -1:-length(allattr$splitcolumns)]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
-      attributes(RunMatrix) = allattr
-    }
-  }
+  RunMatrix = remove_skpr_blockcols(RunMatrix)
 
   #----- Convert dots in formula to terms -----#
-  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
-    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
-  }
+  model = convert_model_dots(RunMatrix,model)
 
   glmfamilyname = glmfamily
 
@@ -325,12 +266,7 @@ eval_design_mc = function(RunMatrix, model, alpha,
   }
 
   #------Normalize/Center numeric columns ------#
-  for (column in 1:ncol(RunMatrix)) {
-    if (is.numeric(RunMatrix[, column])) {
-      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
-      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
-    }
-  }
+  RunMatrix = normalize_numeric_runmatrix(RunMatrix)
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
@@ -423,26 +359,12 @@ eval_design_mc = function(RunMatrix, model, alpha,
     }
   }
 
-  rblocknoise = function(noise, groups) {
-    listblocknoise = list()
-    for (i in 1:(length(groups) - 1)) {
-      blocktemp = list()
-      for (j in 1:length(groups[[i]])) {
-        row = rnorm(n = 1, mean = 0, sd = sqrt(noise[i]))
-        blocktemp[[j]] = do.call(rbind, replicate(groups[[i]][j], row, simplify = FALSE))
-      }
-      listblocknoise[[i]] = do.call(rbind, blocktemp)
-    }
-    totalblocknoise = Reduce("+", listblocknoise)
-    return(totalblocknoise)
-  }
-
   #------------ Generate Responses -------------#
   #Variables used later: responses
   responses = matrix(ncol = nsim, nrow = nrow(ModelMatrix))
   if (blocking) {
     for (i in 1:nsim) {
-      responses[, i] = rfunction(ModelMatrix, anticoef, rblocknoise(noise = varianceratios, groups = blockgroups))
+      responses[, i] = rfunction(ModelMatrix, anticoef, generate_noise_block(noise = varianceratios, groups = blockgroups))
     }
   } else {
     responses = replicate(nsim, rfunction(ModelMatrix, anticoef, rep(0, nrow(ModelMatrix))))

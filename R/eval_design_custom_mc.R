@@ -97,21 +97,13 @@ eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfu
   RunMatrix = as.data.frame(RunMatrix)
 
   #----- Convert dots in formula to terms -----#
-  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
-    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
-  }
+  model = convert_model_dots(RunMatrix,model)
 
   #------Normalize/Center numeric columns ------#
-  for (column in 1:ncol(RunMatrix)) {
-    if (is.numeric(RunMatrix[, column])) {
-      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
-      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
-    }
-  }
+  RunMatrix = normalize_numeric_runmatrix(RunMatrix)
+
+  #Remove skpr-generated REML blocking indicators if present
+  RunMatrix = remove_skpr_blockcols(RunMatrix)
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model

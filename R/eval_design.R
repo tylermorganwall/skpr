@@ -164,78 +164,13 @@ eval_design = function(RunMatrix, model, alpha, blocking = FALSE, anticoef = NUL
   RunMatrix = as.data.frame(RunMatrix)
 
   #Detect externally generated blocking columns and convert to rownames
-  if (is.null(attr(RunMatrix, "splitanalyzable")) &&
-     any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
-     any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
-    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) |
-                grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
-    if (blocking) {
-      warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
-      blockmatrix = RunMatrix[, blockcols, drop = FALSE]
-      blockmatrix = blockmatrix[, order(unlist(lapply(lapply(blockmatrix, unique), length))), drop = FALSE]
-      blockvals = lapply(blockmatrix, unique)
-      rownamematrix = matrix(nrow = nrow(RunMatrix), ncol = ncol(blockmatrix) + 1)
-      for (col in 1:ncol(blockmatrix)) {
-        uniquevals = blockvals[[col]]
-        blockcounter = 1
-        for (block in uniquevals) {
-          if (col == 1) {
-            rownamematrix[blockmatrix[, col] == block, col] = blockcounter
-            blockcounter = blockcounter + 1
-          }
-          if (col != 1) {
-            superblock = rownamematrix[blockmatrix[, col] == block, col - 1][1]
-            modop = length(unique(blockmatrix[blockmatrix[, col - 1] == superblock, col]))
-            if (blockcounter %% modop == 0) {
-              rownamematrix[blockmatrix[, col] == block, col] = modop
-            } else {
-              rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
-            }
-            blockcounter = blockcounter + 1
-          }
-          if (col == ncol(blockmatrix)) {
-            rownamematrix[blockmatrix[, col] == block, col + 1] = 1:sum(blockmatrix[, col] == block)
-          }
-        }
-        blockcounter = blockcounter + 1
-      }
-      allattr = attributes(RunMatrix)
-      allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
-      attributes(RunMatrix) = allattr
-      rownames(RunMatrix) = apply(rownamematrix, 1, paste, collapse = ".")
-    } else {
-      warning("Detected externally generated blocking columns but blocking not turned on:
-              ignoring blocking structure and removing blocking columns.")
-      allattr = attributes(RunMatrix)
-      allattr$names = allattr$names[!blockcols]
-      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
-      attributes(RunMatrix) = allattr
-    }
-  }
+  RunMatrix = convert_blockcolumn_rownames(RunMatrix, blocking)
 
   #Remove skpr-generated REML blocking columns if present
-  if (!is.null(attr(RunMatrix, "splitanalyzable"))) {
-    if (attr(RunMatrix, "splitanalyzable")) {
-      allattr = attributes(RunMatrix)
-      RunMatrix = RunMatrix[, -1:-length(allattr$splitcolumns)]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
-      attributes(RunMatrix) = allattr
-    }
-  }
+  RunMatrix = remove_skpr_blockcols(RunMatrix)
 
   #----- Convert dots in formula to terms -----#
-  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
-    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"),
-                                  gsub, pattern = "^\\.$", replacement = dotreplace),
-                           paste0, collapse = " * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"),
-                                     gsub, pattern = "^\\.$", replacement = dotreplace),
-                              paste0, collapse = ":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
-  }
+  model = convert_model_dots(RunMatrix,model)
 
   RunMatrix = reduceRunMatrix(RunMatrix, model)
 
@@ -257,12 +192,7 @@ eval_design = function(RunMatrix, model, alpha, blocking = FALSE, anticoef = NUL
   }
 
   #------Normalize/Center numeric columns ------#
-  for (column in 1:ncol(RunMatrix)) {
-    if (is.numeric(RunMatrix[, column])) {
-      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
-      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
-    }
-  }
+  RunMatrix = normalize_numeric_runmatrix(RunMatrix)
 
   #-Generate Model Matrix & Anticipated Coefficients-#
   #Variables used later: anticoef
@@ -469,46 +399,14 @@ eval_design = function(RunMatrix, model, alpha, blocking = FALSE, anticoef = NUL
     #and the rest to zero. (If equally low results, apply 1 -1 pattern to lowest)
 
     if (conservative == TRUE) {
-      groupvars = attr(attr(results, "modelmatrix"), "assign")
-      uniquevars = unique(groupvars)
-      orderedunique = uniquevars[order(uniquevars)]
-      parresults = results[results$type == "parameter.power", ]
-      parresults$variable = groupvars
-      conservative_anticoef = c()
-
-      for (var in orderedunique) {
-        powers = parresults$power[parresults$variable == var]
-        if (length(powers) == 1) {
-          conservative_anticoef = c(conservative_anticoef, 1)
-        }
-        if (length(powers) > 1) {
-          if (length(which(abs(powers - min(powers)) < 1E-10)) == 1) {
-            coefvec = rep(0, length(powers))
-            coefvec[which.min(powers)] = 1
-            conservative_anticoef = c(conservative_anticoef, coefvec)
-          }
-          if (length(which(abs(powers - min(powers)) < 1E-10)) > 1) {
-            numberofequal = length(which(abs(powers - min(powers)) < 1E-10))
-            exponents = 1:numberofequal + 1
-            values = rep(-1, numberofequal) ^ exponents
-            if (numberofequal > 2) {
-              values[3:length(values)] = 0
-            }
-            coefvec = rep(0, length(powers))
-            coefvec[which(abs(powers - min(powers)) < 1E-10)] = values
-            conservative_anticoef = c(conservative_anticoef, coefvec)
-          }
-        }
-      }
       #at this point, since we are going to specify anticoef, do not use the effectsize argument
       #in the subsequent call. Do replicate the magnitudes from the original anticoef
-      conservative_anticoef = conservative_anticoef * effectsize / 2
+      conservative_anticoef = calc_conservative_anticoef(results,effectsize)
       results = eval_design(RunMatrix = RunMatrix, model = model, alpha = alpha, blocking = blocking,
                   anticoef = conservative_anticoef,
                   detailedoutput = detailedoutput,
                   varianceratios = varianceratios, contrasts = contrasts, conservative = FALSE)
     }
-
     return(results)
   }
 }

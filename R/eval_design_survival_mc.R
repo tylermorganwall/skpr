@@ -138,26 +138,13 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   }
 
   #Remove skpr-generated REML blocking indicators if present
-  if (!is.null(attr(RunMatrix, "splitanalyzable"))) {
-    if (attr(RunMatrix, "splitanalyzable")) {
-      allattr = attributes(RunMatrix)
-      RunMatrix = RunMatrix[, -1:-length(allattr$splitcolumns)]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
-      attributes(RunMatrix) = allattr
-    }
-  }
+  RunMatrix = remove_skpr_blockcols(RunMatrix)
 
   #covert tibbles
   RunMatrix = as.data.frame(RunMatrix)
 
   #----- Convert dots in formula to terms -----#
-  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
-    dotreplace = paste0("(", paste0(colnames(RunMatrix), collapse = " + "), ")")
-    additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
-    multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
-    interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-    model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
-  }
+  model = convert_model_dots(RunMatrix,model)
 
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if (is.na(censorpoint)) {
@@ -199,12 +186,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
 
 
   #------Normalize/Center numeric columns ------#
-  for (column in 1:ncol(RunMatrix)) {
-    if (is.numeric(RunMatrix[, column])) {
-      midvalue = mean(c(max(RunMatrix[, column]), min(RunMatrix[, column])))
-      RunMatrix[, column] = (RunMatrix[, column] - midvalue) / (max(RunMatrix[, column]) - midvalue)
-    }
-  }
+  RunMatrix = normalize_numeric_runmatrix(RunMatrix)
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model

@@ -5,7 +5,7 @@
 #'user-supplied fitting library and power is estimated by the fraction of times a parameter is significant. Returns
 #'a data frame of parameter powers.
 #'
-#'@param RunMatrix The run matrix of the design. Internally, \code{eval_design_custom_mc} rescales each numeric column
+#'@param design The experimental design. Internally, \code{eval_design_custom_mc} rescales each numeric column
 #'to the range [-1, 1].
 #'@param model The statistical model used to fit the data.
 #'@param alpha The type-I error.
@@ -73,41 +73,47 @@
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
 #'
-#'d = eval_design_custom_mc(RunMatrix = design, model = ~a,
+#'d = eval_design_custom_mc(design = design, model = ~a,
 #'                          alpha = 0.05, nsim = 100,
 #'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
 #'                          rfunction = rsurvival, effectsize = 1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
-eval_design_custom_mc = function(RunMatrix, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
+eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, effectsize = 2, contrasts = contr.sum,
                                  coef_function = coef,
                                  parameternames = NULL,
-                                 parallel = FALSE, parallelpackages = NULL) {
-
+                                 parallel = FALSE, parallelpackages = NULL, ...) {
+  args = list(...)
+  if("RunMatrix" %in% names(args)) {
+    stop("RunMatrix argument deprecated. Use `design` instead.")
+  }
   #detect pre-set contrasts
   presetcontrasts = list()
-  for (x in names(RunMatrix[lapply(RunMatrix, class) %in% c("character", "factor")])) {
-    if (!is.null(attr(RunMatrix[[x]], "contrasts"))) {
-      presetcontrasts[[x]] = attr(RunMatrix[[x]], "contrasts")
+  for (x in names(design[lapply(design, class) %in% c("character", "factor")])) {
+    if (!is.null(attr(design[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
 
   #covert tibbles
-  RunMatrix = as.data.frame(RunMatrix)
+  run_matrix_processed = as.data.frame(design)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(RunMatrix,model)
+  model = convert_model_dots(run_matrix_processed,model)
+
+  #----- Rearrange formula terms by order -----#
+  model = rearrange_formula_by_order(model)
 
   #------Normalize/Center numeric columns ------#
-  RunMatrix = normalize_numeric_runmatrix(RunMatrix)
+  run_matrix_processed = normalize_numeric_runmatrix(run_matrix_processed)
 
   #Remove skpr-generated REML blocking indicators if present
-  RunMatrix = remove_skpr_blockcols(RunMatrix)
+  run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix, model)
+  RunMatrixReduced = reduceRunMatrix(run_matrix_processed, model)
 
   contrastslist = list()
   for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {

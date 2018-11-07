@@ -9,6 +9,7 @@
 #'
 #'\dontrun{skprGUIbrowser()}
 # nocov start
+
 skprGUIbrowser = function() {
   appDir = system.file("shiny", "skprGUI", package = "skpr")
   if (appDir == "") {

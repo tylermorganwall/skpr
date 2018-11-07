@@ -4,17 +4,17 @@
 \alias{eval_design}
 \title{Calculate Power of an Experimental Design}
 \usage{
-eval_design(RunMatrix, model, alpha, blocking = FALSE, anticoef = NULL,
+eval_design(design, model, alpha, blocking = FALSE, anticoef = NULL,
   effectsize = 2, varianceratios = 1, contrasts = contr.sum,
   conservative = FALSE, detailedoutput = FALSE)
 }
 \arguments{
-\item{RunMatrix}{The run matrix being evaluated. Internally, \code{eval_design} rescales each numeric column
+\item{design}{The experimental design. Internally, \code{eval_design} rescales each numeric column
 to the range [-1, 1], so you do not need to do this scaling manually.}
 
 \item{model}{The model used in evaluating the design. It can be a subset of the model used to
 generate the design, or include higher order effects not in the original design generation. It cannot include
-factors that are not present in the run matrix.}
+factors that are not present in the experimental design.}
 
 \item{alpha}{The specified type-I error.}
 
@@ -89,14 +89,14 @@ optdesign = gen_design(candidateset = factorial,
                       model= ~A + B + C, trials = 11, optimality = "D", repeats = 100)
 
 #Now evaluating that design (with default anticipated coefficients and a effectsize of 2):
-eval_design(RunMatrix = optdesign, model= ~A + B + C, alpha = 0.2)
+eval_design(design = optdesign, model= ~A + B + C, alpha = 0.2)
 
 #Evaluating a subset of the design (which changes the power due to a different number of
 #degrees of freedom)
-eval_design(RunMatrix = optdesign, model= ~A + C, alpha = 0.2)
+eval_design(design = optdesign, model= ~A + C, alpha = 0.2)
 
 #Halving the signal-to-noise ratio by setting a different effectsize (default is 2):
-eval_design(RunMatrix = optdesign, model= ~A + B + C, alpha = 0.2, effectsize = 1)
+eval_design(design = optdesign, model= ~A + B + C, alpha = 0.2, effectsize = 1)
 
 #With 3+ level categorical factors, the choice of anticipated coefficients directly changes the
 #final power calculation. For the most conservative power calculation, that involves

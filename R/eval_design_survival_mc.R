@@ -4,7 +4,7 @@
 #'right- or left-censored. Power is evaluated with a Monte Carlo simulation,
 #'using the \code{survival} package and \code{survreg} to fit the data. Split-plot designs are not supported.
 #'
-#'@param RunMatrix The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].
+#'@param design The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].
 #'@param model The statistical model used to fit the data.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations. Default 1000.
@@ -86,7 +86,7 @@
 #'#now including the type of censoring (either right or left) and the point at which
 #'#the data should be censored:
 #'
-#'eval_design_survival_mc(RunMatrix = design, model = ~a, alpha = 0.05,
+#'eval_design_survival_mc(design = design, model = ~a, alpha = 0.05,
 #'                         nsim = 100, distribution = "exponential",
 #'                         censorpoint = 5, censortype = "right")
 #'
@@ -106,19 +106,22 @@
 #'#Any additional arguments are passed into the survreg function call.  As an example, you
 #'#might want to fix the "scale" argument to survreg, when fitting a lognormal:
 #'
-#'eval_design_survival_mc(RunMatrix = design, model = ~a, alpha = 0.2, nsim = 100,
+#'eval_design_survival_mc(design = design, model = ~a, alpha = 0.2, nsim = 100,
 #'                         distribution = "lognormal", rfunctionsurv = rlognorm,
 #'                         anticoef = c(0.184, 0.101), scale = 0.4)
-eval_design_survival_mc = function(RunMatrix, model, alpha,
+eval_design_survival_mc = function(design, model, alpha,
                                    nsim = 1000, distribution = "gaussian", censorpoint = NA, censortype = "right",
                                    rfunctionsurv = NULL, anticoef = NULL, effectsize = 2, contrasts = contr.sum,
                                    parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL, ...) {
-
+  args = list(...)
+  if("RunMatrix" %in% names(args)) {
+    stop("RunMatrix argument deprecated. Use `design` instead.")
+  }
   #detect pre-set contrasts
   presetcontrasts = list()
-  for (x in names(RunMatrix[lapply(RunMatrix, class) %in% c("character", "factor")])) {
-    if (!is.null(attr(RunMatrix[[x]], "contrasts"))) {
-      presetcontrasts[[x]] = attr(RunMatrix[[x]], "contrasts")
+  for (x in names(design[lapply(design, class) %in% c("character", "factor")])) {
+    if (!is.null(attr(design[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
 
@@ -138,13 +141,16 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
   }
 
   #Remove skpr-generated REML blocking indicators if present
-  RunMatrix = remove_skpr_blockcols(RunMatrix)
+  run_matrix_processed = remove_skpr_blockcols(design)
 
   #covert tibbles
-  RunMatrix = as.data.frame(RunMatrix)
+  run_matrix_processed = as.data.frame(run_matrix_processed)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(RunMatrix,model)
+  model = convert_model_dots(run_matrix_processed,model)
+
+  #----- Rearrange formula terms by order -----#
+  model = rearrange_formula_by_order(model)
 
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if (is.na(censorpoint)) {
@@ -186,11 +192,11 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
 
 
   #------Normalize/Center numeric columns ------#
-  RunMatrix = normalize_numeric_runmatrix(RunMatrix)
+  run_matrix_processed = normalize_numeric_runmatrix(run_matrix_processed)
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(RunMatrix, model)
+  RunMatrixReduced = reduceRunMatrix(run_matrix_processed, model)
 
   contrastslist = list()
   for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
@@ -314,7 +320,7 @@ eval_design_survival_mc = function(RunMatrix, model, alpha,
     retval$anticoef = anticoef
     retval$alpha = alpha
     retval$distribution = distribution
-    retval$trials = nrow(RunMatrix)
+    retval$trials = nrow(run_matrix_processed)
     retval$nsim = nsim
   }
   retval

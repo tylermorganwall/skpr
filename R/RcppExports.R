@@ -17,10 +17,6 @@ calculateDEfficiency <- function(currentDesign) {
     .Call(`_skpr_calculateDEfficiency`, currentDesign)
 }
 
-covarianceMatrix <- function(design) {
-    .Call(`_skpr_covarianceMatrix`, design)
-}
-
 covarianceMatrixPseudo <- function(design) {
     .Call(`_skpr_covarianceMatrixPseudo`, design)
 }

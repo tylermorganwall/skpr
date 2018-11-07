@@ -1495,7 +1495,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       if (input$evaltype == "lm") {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating Design:</code><br>",
-                         "eval_design(RunMatrix = design, <br>", rep("&nbsp;", 12),
+                         "eval_design(design = design, <br>", rep("&nbsp;", 12),
                          "model = ", regularmodelstring(), ", <br>", rep("&nbsp;", 12),
                          "alpha = ", input$alpha), collapse = "")
         if (isblockingtext()) {
@@ -1543,7 +1543,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       if (input$evaltype == "glm") {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating (Monte Carlo) Design:</code><br>",
-                         "eval_design_mc(RunMatrix = design, <br>", rep("&nbsp;", 15),
+                         "eval_design_mc(design = design, <br>", rep("&nbsp;", 15),
                          "model = ", regularmodelstring(), ", <br>", rep("&nbsp;", 15),
                          "alpha = ", input$alpha), collapse = "")
         if (isblockingtext()) {
@@ -1604,7 +1604,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       if (input$evaltype == "surv") {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating (Monte Carlo Survival) Design:</code><br>",
-                         "eval_design_survival_mc(RunMatrix = design, <br>", rep("&nbsp;", 24),
+                         "eval_design_survival_mc(design = design, <br>", rep("&nbsp;", 24),
                          "model = ", as.character(as.formula(input$model)), ", <br>", rep("&nbsp;", 24),
                          "alpha = ", input$alpha), collapse = "")
         if (input$nsim_surv != 1000) {
@@ -1874,7 +1874,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
     }, {
       calculate_results = function(runmat) {
         if (evaluationtype() == "lm") {
-          eval_design(RunMatrix = runmat,
+          eval_design(design = runmat,
                       model = as.formula(input$model),
                       alpha = input$alpha,
                       blocking = isblocking(),
@@ -1910,7 +1910,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
         effectsize_async = effectsize()
         detailedoutput_async = input$detailedoutput
         return(future({
-          temp = skpr::eval_design_mc(RunMatrix = runmat_async,
+          temp = skpr::eval_design_mc(design = runmat_async,
                                 model = model_async,
                                 alpha = alpha_async,
                                 blocking = blocking_async,
@@ -1949,7 +1949,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
         effectsize_async = effectsize()
         detailedoutput_async = input$detailedoutput
         return(future({
-          temp = eval_design_survival_mc(RunMatrix = runmat_async,
+          temp = eval_design_survival_mc(design = runmat_async,
                                 model = model_async,
                                 alpha = alpha_async,
                                 nsim = nsim_async,

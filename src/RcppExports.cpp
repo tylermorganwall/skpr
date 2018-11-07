@@ -51,17 +51,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// covarianceMatrix
-Eigen::MatrixXd covarianceMatrix(const Eigen::MatrixXd& design);
-RcppExport SEXP _skpr_covarianceMatrix(SEXP designSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type design(designSEXP);
-    rcpp_result_gen = Rcpp::wrap(covarianceMatrix(design));
-    return rcpp_result_gen;
-END_RCPP
-}
 // covarianceMatrixPseudo
 Eigen::MatrixXd covarianceMatrixPseudo(const Eigen::MatrixXd& design);
 RcppExport SEXP _skpr_covarianceMatrixPseudo(SEXP designSEXP) {
@@ -170,7 +159,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_skpr_calcAliasTrace", (DL_FUNC) &_skpr_calcAliasTrace, 2},
     {"_skpr_calculateAOptimalityPseudo", (DL_FUNC) &_skpr_calculateAOptimalityPseudo, 1},
     {"_skpr_calculateDEfficiency", (DL_FUNC) &_skpr_calculateDEfficiency, 1},
-    {"_skpr_covarianceMatrix", (DL_FUNC) &_skpr_covarianceMatrix, 1},
     {"_skpr_covarianceMatrixPseudo", (DL_FUNC) &_skpr_covarianceMatrixPseudo, 1},
     {"_skpr_DOptimality", (DL_FUNC) &_skpr_DOptimality, 1},
     {"_skpr_DOptimalityBlocked", (DL_FUNC) &_skpr_DOptimalityBlocked, 2},

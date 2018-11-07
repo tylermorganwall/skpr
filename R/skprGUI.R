@@ -1403,7 +1403,7 @@ skprGUI = function(inputValue1, inputValue2) {
       if (input$evaltype == "lm") {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating Design:</code><br>",
-                         "eval_design(RunMatrix = design, <br>", rep("&nbsp;", 12),
+                         "eval_design(design = design, <br>", rep("&nbsp;", 12),
                          "model = ", regularmodelstring(), ", <br>", rep("&nbsp;", 12),
                          "alpha = ", input$alpha), collapse = "")
         if (isblockingtext()) {
@@ -1451,7 +1451,7 @@ skprGUI = function(inputValue1, inputValue2) {
       if (input$evaltype == "glm") {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating (Monte Carlo) Design:</code><br>",
-                         "eval_design_mc(RunMatrix = design, <br>", rep("&nbsp;", 15),
+                         "eval_design_mc(design = design, <br>", rep("&nbsp;", 15),
                          "model = ", regularmodelstring(), ", <br>", rep("&nbsp;", 15),
                          "alpha = ", input$alpha), collapse = "")
         if (isblockingtext()) {
@@ -1512,7 +1512,7 @@ skprGUI = function(inputValue1, inputValue2) {
       if (input$evaltype == "surv") {
         first = paste0(c(first,
                          "<code style=\"color:#468449\"># Evaluating (Monte Carlo Survival) Design:</code><br>",
-                         "eval_design_survival_mc(RunMatrix = design, <br>", rep("&nbsp;", 24),
+                         "eval_design_survival_mc(design = design, <br>", rep("&nbsp;", 24),
                          "model = ", as.character(as.formula(input$model)), ", <br>", rep("&nbsp;", 24),
                          "alpha = ", input$alpha), collapse = "")
         if (input$nsim_surv != 1000) {
@@ -1738,7 +1738,7 @@ skprGUI = function(inputValue1, inputValue2) {
     powerresults = reactive({
       input$evalbutton
       if (evaluationtype() == "lm") {
-        eval_design(RunMatrix = isolate(runmatrix()),
+        eval_design(design = isolate(runmatrix()),
                     model = as.formula(isolate(input$model)),
                     alpha = isolate(input$alpha),
                     blocking = isblocking(),
@@ -1755,7 +1755,7 @@ skprGUI = function(inputValue1, inputValue2) {
         }
         if (isolate(input$parallel_eval_glm)) {
           showNotification("Simulating (no progress bar with multicore on):", type = "message")
-          eval_design_mc(RunMatrix = isolate(runmatrix()),
+          eval_design_mc(design = isolate(runmatrix()),
                          model = isolate(as.formula(input$model)),
                          alpha = isolate(input$alpha),
                          blocking = isolate(isblocking()),
@@ -1768,7 +1768,7 @@ skprGUI = function(inputValue1, inputValue2) {
                          advancedoptions = list(GUI = TRUE))
         } else {
           withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
-            eval_design_mc(RunMatrix = isolate(runmatrix()),
+            eval_design_mc(design = isolate(runmatrix()),
                            model = isolate(as.formula(input$model)),
                            alpha = isolate(input$alpha),
                            blocking = isolate(isblocking()),
@@ -1793,7 +1793,7 @@ skprGUI = function(inputValue1, inputValue2) {
         }
         if (isolate(input$parallel_eval_surv)) {
           showNotification("Simulating (no progress bar with multicore on):", type = "message")
-          eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
+          eval_design_survival_mc(design = isolate(runmatrix()),
                                   model = isolate(as.formula(input$model)),
                                   alpha = isolate(input$alpha),
                                   nsim = isolate(input$nsim),
@@ -1805,7 +1805,7 @@ skprGUI = function(inputValue1, inputValue2) {
                                   parallel = isolate(input$parallel_eval_surv))
         } else {
           withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
-            eval_design_survival_mc(RunMatrix = isolate(runmatrix()),
+            eval_design_survival_mc(design = isolate(runmatrix()),
                                     model = isolate(as.formula(input$model)),
                                     alpha = isolate(input$alpha),
                                     nsim = isolate(input$nsim),

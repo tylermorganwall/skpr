@@ -325,6 +325,8 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
+  #----- Rearrange formula terms by order -----#
+  model = rearrange_formula_by_order(model)
 
   if (is.null(contrast)) {
     contrast = function(n) contr.simplex(n, size = sqrt(n - 1))
@@ -471,18 +473,20 @@ gen_design = function(candidateset, model, trials,
     if (!is.null(splitplotdesign)) {
       stop("Design augmentation not available with split-plot designs.")
     }
-    if (any(colnames(augmentdesign) != colnames(candidateset))) {
+    if (any(colnames(augmentdesign)[order(colnames(augmentdesign))] != colnames(candidateset)[order(colnames(candidateset))])) {
       stop("Column names for augmented design and candidate set must be equal.")
     }
     if (ncol(augmentdesign) != ncol(candidateset)) {
       stop("Number of columns in the augmented design must equal number of columns in the candidate set.")
     }
-    if (any(unlist(lapply(augmentdesign, class)) != unlist(lapply(candidateset, class)))) {
+    if (any(unlist(lapply(augmentdesign, class))[order(colnames(augmentdesign))] !=
+            unlist(lapply(candidateset, class))[order(colnames(candidateset))])) {
       stop("All column types in the augmented design should be equal to the column types in the candidate set.")
     }
     if (nrow(augmentdesign) >= trials) {
       stop("Total number of trials must exceed the number of runs in augmented design.")
     }
+    augmentdesign = augmentdesign[,colnames(candidateset)]
     #Check and make sure factor levels are equal
     for (i in 1:ncol(augmentdesign)) {
       if (is.character(augmentdesign[, i]) || is.factor(augmentdesign[, i])) {
@@ -1083,7 +1087,7 @@ gen_design = function(candidateset, model, trials,
 
   tryCatch({
     if (ncol(designmm) > 2) {
-      correlation.matrix = abs(cov2cor(covarianceMatrix(designmm))[-1, -1])
+      correlation.matrix = abs(cov2cor(t(designmm) %*% designmm)[-1, -1])
       colnames(correlation.matrix) = colnames(designmm)[-1]
       rownames(correlation.matrix) = colnames(designmm)[-1]
       attr(design, "correlation.matrix") = round(correlation.matrix, 8)

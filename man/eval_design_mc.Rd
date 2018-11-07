@@ -4,19 +4,19 @@
 \alias{eval_design_mc}
 \title{Monte Carlo Power Evaluation for Experimental Designs}
 \usage{
-eval_design_mc(RunMatrix, model, alpha, blocking = FALSE, nsim = 1000,
+eval_design_mc(design, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", calceffect = TRUE, varianceratios = NULL,
   rfunction = NULL, anticoef = NULL, effectsize = 2,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
   advancedoptions = NULL)
 }
 \arguments{
-\item{RunMatrix}{The run matrix of the design. Internally, \code{eval_design_mc} rescales each numeric column
+\item{design}{The experimental design. Internally, \code{eval_design_mc} rescales each numeric column
 to the range [-1, 1].}
 
 \item{model}{The model used in evaluating the design. It can be a subset of the model used to
 generate the design, or include higher order effects not in the original design generation. It cannot include
-factors that are not present in the run matrix.}
+factors that are not present in the experimental design.}
 
 \item{alpha}{The type-I error. p-values less than this will be counted as significant.}
 
@@ -62,7 +62,7 @@ also provides the encoding used for categorical factors. If you want to specify 
 coefficients manually, do so in the order the parameters appear in the model matrix.
 }
 \description{
-Evaluates the power of an experimental design, given its run matrix and the
+Evaluates the power of an experimental design, given the run matrix and the
 statistical model to be fit to the data, using monte carlo simulation. Simulated data is fit using a
 generalized linear model
 and power is estimated by the fraction of times a parameter is significant.
@@ -142,7 +142,7 @@ designcoffee = gen_design(factorialcoffee,
 #To evaluate this design using a normal approximation, we just use eval_design
 #(here using the default settings for contrasts, effectsize, and the anticipated coefficients):
 
-eval_design(RunMatrix = designcoffee, model = ~cost + type + size, 0.05)
+eval_design(design = designcoffee, model = ~cost + type + size, 0.05)
 
 #To evaluate this design with a Monte Carlo method, we enter the same information
 #used in eval_design, with the addition of the number of simulations "nsim" and the distribution
@@ -158,22 +158,22 @@ eval_design(RunMatrix = designcoffee, model = ~cost + type + size, 0.05)
 #using the normal approximation in eval_design. Like eval_design, we can also change
 #effectsize to produce a different signal-to-noise ratio:
 
-\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type + size, alpha = 0.05,
+\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size, alpha = 0.05,
               nsim = 100, glmfamily = "gaussian", effectsize = 1)}
 
 #Like eval_design, we can also evaluate the design with a different model than
 #the one that generated the design.
-\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type, alpha = 0.05,
+\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type, alpha = 0.05,
               nsim = 100, glmfamily = "gaussian")}
 
 
 #And here it is evaluated with interactions included:
-\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type + size + cost * type, 0.05,
+\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size + cost * type, 0.05,
               nsim = 100, glmfamily = "gaussian")}
 
 #We can also set "parallel = TRUE" to use all the cores available to speed up
 #computation.
-\dontrun{eval_design_mc(RunMatrix = designcoffee, model = ~cost + type + size, 0.05,
+\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size, 0.05,
               nsim = 10000, glmfamily = "gaussian", parallel = TRUE)}
 
 #We can also evaluate split-plot designs. First, let us generate the split-plot design:

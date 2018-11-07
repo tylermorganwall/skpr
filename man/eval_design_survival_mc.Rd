@@ -4,14 +4,14 @@
 \alias{eval_design_survival_mc}
 \title{Evaluate Power for Survival Design}
 \usage{
-eval_design_survival_mc(RunMatrix, model, alpha, nsim = 1000,
+eval_design_survival_mc(design, model, alpha, nsim = 1000,
   distribution = "gaussian", censorpoint = NA, censortype = "right",
   rfunctionsurv = NULL, anticoef = NULL, effectsize = 2,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
   advancedoptions = NULL, ...)
 }
 \arguments{
-\item{RunMatrix}{The run matrix of the design. Internally, all numeric columns will be rescaled to [-1, +1].}
+\item{design}{The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].}
 
 \item{model}{The statistical model used to fit the data.}
 
@@ -115,7 +115,7 @@ design = gen_design(candidateset = basicdesign, model = ~a, trials = 15)
 #now including the type of censoring (either right or left) and the point at which
 #the data should be censored:
 
-eval_design_survival_mc(RunMatrix = design, model = ~a, alpha = 0.05,
+eval_design_survival_mc(design = design, model = ~a, alpha = 0.05,
                         nsim = 100, distribution = "exponential",
                         censorpoint = 5, censortype = "right")
 
@@ -135,7 +135,7 @@ rlognorm = function(X, b) {
 #Any additional arguments are passed into the survreg function call.  As an example, you
 #might want to fix the "scale" argument to survreg, when fitting a lognormal:
 
-eval_design_survival_mc(RunMatrix = design, model = ~a, alpha = 0.2, nsim = 100,
+eval_design_survival_mc(design = design, model = ~a, alpha = 0.2, nsim = 100,
                         distribution = "lognormal", rfunctionsurv = rlognorm,
                         anticoef = c(0.184, 0.101), scale = 0.4)
 }

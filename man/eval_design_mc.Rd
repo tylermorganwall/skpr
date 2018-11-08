@@ -8,7 +8,7 @@ eval_design_mc(design, model, alpha, blocking = FALSE, nsim = 1000,
   glmfamily = "gaussian", calceffect = TRUE, varianceratios = NULL,
   rfunction = NULL, anticoef = NULL, effectsize = 2,
   contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
-  advancedoptions = NULL)
+  advancedoptions = NULL, ...)
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -53,6 +53,8 @@ for a categorical factor using the contrasts function, those will be used. Other
 \item{advancedoptions}{Default NULL. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 `advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.}
+
+\item{...}{Additional arguments.}
 }
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information

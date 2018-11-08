@@ -29,6 +29,7 @@
 #'anticipated coefficents should be conservative or not. TRUE will give the most conservative
 #'estimate of power by setting all but one level in each categorical factor's anticipated coefficients
 #'to zero. Default FALSE.
+#'@param ... Additional arguments.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power. Several
 #'design diagnostics are stored as attributes of the data frame. In particular,
 #'the \code{modelmatrix} attribute contains the model matrix that was used for power evaluation. This is

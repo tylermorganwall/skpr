@@ -30,6 +30,7 @@
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
+#'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
 #'@import foreach doParallel stats

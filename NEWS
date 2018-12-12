@@ -1,4 +1,17 @@
-﻿skpr v0.56.1 (Release date: 2018-09-21):
+﻿skpr v0.57.0 (Release date: 2018-09-21):
+================
+
+Major changes:
+
+• Changed "RunMatrix" argument to "design" in evaluation functions. 
+ 
+Minor Changes/Bug fixes
+
+• Fixed bug with model ordering when augmenting an existing design
+
+• Reduce replication in code and improve documentation 
+
+skpr v0.56.1 (Release date: 2018-09-21):
 ================
 
 Major changes:

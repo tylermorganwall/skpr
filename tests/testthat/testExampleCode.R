@@ -227,7 +227,7 @@ test_that("eval_design example code runs without errors", {
   #'#Generating blocked design
   expect_silent({coffeeblockdesign = gen_design(factorialcoffee, ~caffeine, trials = 12)})
   expect_silent({coffeefinaldesign = gen_design(factorialcoffee, model = ~caffeine + cost + size + type, trials = 36,
-                                 splitplotdesign = coffeeblockdesign, splitplotsizes = 3)})
+                                 splitplotdesign = coffeeblockdesign)})
   #'
   #'#Evaluating design
   expect_silent(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE))

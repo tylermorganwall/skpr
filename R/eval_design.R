@@ -168,7 +168,8 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   run_matrix_processed = as.data.frame(design)
 
   #Detect externally generated blocking columns and convert to rownames
-  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking)
+  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking, varianceratios)
+  zlist = attr(run_matrix_processed,"z.matrix.list")
 
   #Remove skpr-generated REML blocking columns if present
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
@@ -253,14 +254,82 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       blockcounter = blockcounter + 1
     }
     vinv = solve(V)
+    #Below code detects the split-plot columns, and adjusts the degrees of
+    #freedom to n_block - 2 for that layer
+
+    degrees_of_freedom = unlist(lapply(blockgroups,length)) - 2
+    splitlayer = rep(0,ncol(run_matrix_processed))
+    for(i in 1:length(blockgroups)) {
+      currentrow = 1
+      isblockcol = rep(TRUE,ncol(run_matrix_processed))
+      temp_block_str = blockgroups[[i]]
+      for(j in 1:length(temp_block_str)) {
+        if(temp_block_str[j] - 1 > 0) {
+          for(k in 0:(temp_block_str[j] - 2)) {
+            isblockcol = isblockcol & run_matrix_processed[currentrow + k,] == run_matrix_processed[currentrow + 1 + k,]
+          }
+        }
+        currentrow = currentrow + temp_block_str[j]
+      }
+      splitlayer[isblockcol & splitlayer == 0] = i
+    }
+    splitcopy = splitlayer
+    for(i in 1:length(degrees_of_freedom)) {
+      splitcopy[splitcopy == i] = degrees_of_freedom[i]
+    }
+    splitcopy[splitcopy == 0] = NA
+    if ("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix"))) {
+      if(all(is.na(splitcopy))) {
+        degrees_of_freedom = c(NA,splitcopy)
+      } else {
+        degrees_of_freedom = c(min(splitcopy,na.rm = TRUE), splitcopy)
+      }
+    } else {
+      degrees_of_freedom = splitcopy
+    }
+    degrees_of_freedom = calc_interaction_degrees(run_matrix_processed, model, contrasts, splitlayer, degrees_of_freedom)
+
+    if ("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix"))) {
+      extract_intnames_formula = ~1
+      parameter_names = list()
+      parameter_names[["(Intercept)"]] = "(Intercept)"
+
+    } else {
+      extract_intnames_formula = ~-1
+      parameter_names = list()
+    }
+
+    for(i in (length(parameter_names)+1):length(degrees_of_freedom)) {
+      currentterm = names(degrees_of_freedom)[i]
+      extract_intnames_formula = update.formula(extract_intnames_formula, as.formula(paste0("~. + ", currentterm)))
+      newcolnames = suppressWarnings(colnames(model.matrix(extract_intnames_formula, data = design, contrasts.arg = contrastslist)))
+      parameter_names[[currentterm]] = newcolnames[!(newcolnames %in% unlist(parameter_names))]
+    }
   } else {
     vinv = NULL
+    degrees_of_freedom = NULL
+    parameter_names = NULL
   }
-
 
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(run_matrix_processed, "modelmatrix"), "assign")[-1]) != 1)) {
-    effectresults = rep(parameterpower(run_matrix_processed, anticoef, alpha, vinv = vinv), 2)
+    factornames = attr(terms(model), "term.labels")
+    factormatrix = attr(terms(model), "factors")
+    interactionterms = factornames[apply(factormatrix, 2, sum) > 1]
+    higherorderterms = factornames[!(gsub("`", "", factornames, fixed = TRUE) %in% colnames(run_matrix_processed)) &
+                                     !(apply(factormatrix, 2, sum) > 1)]
+    levelvector = sapply(lapply(run_matrix_processed, unique), length)
+    levelvector[lapply(run_matrix_processed, class) == "numeric"] = 2
+    if ("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix"))) {
+      levelvector = c(1, levelvector - 1)
+    } else {
+      levelvector = levelvector - 1
+    }
+    higherorderlevelvector = rep(1, length(higherorderterms))
+    names(higherorderlevelvector) = higherorderterms
+    levelvector = c(levelvector, higherorderlevelvector)
+    effectresults = rep(parameterpower(run_matrix_processed, levelvector, anticoef, alpha,
+                                       vinv = vinv, degrees = degrees_of_freedom,parameter_names = parameter_names), 2)
     typevector = c(rep("effect.power", length(effectresults) / 2), rep("parameter.power", length(effectresults) / 2))
     namevector = rep(colnames(attr(run_matrix_processed, "modelmatrix")), 2)
 
@@ -293,6 +362,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
                                        blockedVar = diag(nrow(modelmatrix_cor)))
       attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
+      attr(results, "z.matrix.list") = zlist
       attr(results, "variance.matrix") = V
       attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
       attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
@@ -334,8 +404,10 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       levelvector = c(levelvector, numberlevels)
     }
 
-    effectresults = effectpower(run_matrix_processed, levelvector, anticoef, alpha, vinv = vinv)
-    parameterresults = parameterpower(run_matrix_processed, anticoef, alpha, vinv = vinv)
+    effectresults = effectpower(run_matrix_processed, levelvector, anticoef,
+                                alpha, vinv = vinv, degrees = degrees_of_freedom)
+    parameterresults = parameterpower(run_matrix_processed, levelvector, anticoef,
+                                      alpha, vinv = vinv, degrees = degrees_of_freedom, parameter_names = parameter_names)
 
     typevector = c(rep("effect.power", length(effectresults)), rep("parameter.power", length(parameterresults)))
     if ("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix"))) {
@@ -389,6 +461,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
       attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
+      attr(results, "z.matrix.list") = zlist
       attr(results, "variance.matrix") = V
       attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
       attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)

@@ -4,7 +4,7 @@
 \alias{calculatepower}
 \title{Calculate Power}
 \usage{
-calculatepower(X, L, lambda, alpha)
+calculatepower(X, L, lambda, alpha, degrees_of_freedom)
 }
 \arguments{
 \item{X}{The model matrix}
@@ -14,6 +14,8 @@ calculatepower(X, L, lambda, alpha)
 \item{lambda}{The non-centrality parameter for the F test}
 
 \item{alpha}{the specified type-I error}
+
+\item{degrees_of_freedom}{The number of degrees of freedom.}
 }
 \value{
 The power for a given parameter L, given the

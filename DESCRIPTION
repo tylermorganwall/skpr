@@ -32,7 +32,8 @@ Imports:
     shinyjs,
     car,
     viridis,
-    magrittr
+    magrittr,
+    lmerTest
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat
 Encoding: UTF-8

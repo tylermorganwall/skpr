@@ -5,6 +5,18 @@ AOptimality <- function(currentDesign) {
     .Call(`_skpr_AOptimality`, currentDesign)
 }
 
+DOptimality <- function(currentDesign) {
+    .Call(`_skpr_DOptimality`, currentDesign)
+}
+
+DOptimalityBlocked <- function(currentDesign, blockedVar) {
+    .Call(`_skpr_DOptimalityBlocked`, currentDesign, blockedVar)
+}
+
+IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {
+    .Call(`_skpr_IOptimality`, currentDesign, momentsMatrix, blockedVar)
+}
+
 calcAliasTrace <- function(currentDesign, aliasMatrix) {
     .Call(`_skpr_calcAliasTrace`, currentDesign, aliasMatrix)
 }
@@ -21,14 +33,6 @@ covarianceMatrixPseudo <- function(design) {
     .Call(`_skpr_covarianceMatrixPseudo`, design)
 }
 
-DOptimality <- function(currentDesign) {
-    .Call(`_skpr_DOptimality`, currentDesign)
-}
-
-DOptimalityBlocked <- function(currentDesign, blockedVar) {
-    .Call(`_skpr_DOptimalityBlocked`, currentDesign, blockedVar)
-}
-
 genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows) {
     .Call(`_skpr_genOptimalDesign`, initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows)
 }
@@ -39,9 +43,5 @@ genBlockedOptimalDesign <- function(initialdesign, candidatelist, blockeddesign,
 
 getPseudoInverse <- function(currentDesign) {
     .Call(`_skpr_getPseudoInverse`, currentDesign)
-}
-
-IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {
-    .Call(`_skpr_IOptimality`, currentDesign, momentsMatrix, blockedVar)
 }
 

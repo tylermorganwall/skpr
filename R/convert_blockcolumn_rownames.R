@@ -5,7 +5,7 @@
 #'@param blocking Whether random effects should be included.
 #'@return Row-name encoded blocked run matrix
 #'@keywords internal
-convert_blockcolumn_rownames = function(RunMatrix, blocking) {
+convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios) {
   if (is.null(attr(RunMatrix, "splitanalyzable")) &&
       any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
       any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
@@ -40,6 +40,24 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking) {
         }
         blockcounter = blockcounter + 1
       }
+      blockgroups = lapply(blockmatrix,table)
+      names(blockgroups) = NULL
+      zlist = list()
+      if(length(varianceratios) == 1 && length(blockgroups) > 1) {
+        varianceratios = rep(varianceratios[1],length(blockgroups))
+      }
+      for(i in seq_along(1:length(blockgroups))) {
+        tempblocks = blockgroups[[i]]
+        tempnumberblocks = length(tempblocks)
+        ztemp = matrix(0,nrow=nrow(RunMatrix),ncol=tempnumberblocks)
+        currentrow = 1
+        for(j in 1:tempnumberblocks) {
+          ztemp[currentrow:(currentrow + tempblocks[j] - 1),j] = varianceratios[i]
+          currentrow = currentrow + tempblocks[j]
+        }
+        zlist[[i]] = ztemp
+      }
+      attr(RunMatrix,"z.matrix.list") = zlist
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
       RunMatrix = RunMatrix[, !blockcols, drop = FALSE]

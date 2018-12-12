@@ -9,9 +9,16 @@
 #'@return p-values
 #'@keywords internal
 effectpowermc = function(fit, type="III", test = "Pr(>Chisq)", ...) {
-  anovafit = car::Anova(fit, type = type, ... )
-  effectnames = rownames(anovafit)
-  effect_pvals = as.vector(as.matrix(anovafit[test]))
+  if(class(fit)[1] == "lmerModLmerTest") {
+    test = "Pr(>F)"
+    anovafit = suppressMessages(anova(fit, type = type, ... ))
+    effectnames = rownames(anovafit)
+    effect_pvals = as.vector(as.matrix(anovafit[test]))
+  } else {
+    anovafit = car::Anova(fit, type = type, ... )
+    effectnames = rownames(anovafit)
+    effect_pvals = as.vector(as.matrix(anovafit[test]))
+  }
   if ("Residuals" %in% effectnames) {
     effect_pvals = effect_pvals[-length(effect_pvals)]
     names(effect_pvals) = effectnames[-length(effectnames)]

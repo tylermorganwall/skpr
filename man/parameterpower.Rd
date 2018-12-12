@@ -4,16 +4,19 @@
 \alias{parameterpower}
 \title{Calculates parameter power}
 \usage{
-parameterpower(RunMatrix, anticoef, alpha, vinv = NULL)
+parameterpower(RunMatrix, levelvector = NULL, anticoef, alpha,
+  vinv = NULL, degrees = NULL, parameter_names)
 }
 \arguments{
+\item{RunMatrix}{The run matrix}
+
+\item{levelvector}{The number of levels in each parameter (1st is always the intercept)}
+
 \item{anticoef}{The anticipated coefficients}
 
 \item{alpha}{the specified type-I error}
 
 \item{vinv}{The V inverse matrix}
-
-\item{X}{The model matrix}
 }
 \value{
 The parameter power for the parameters

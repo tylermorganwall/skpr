@@ -357,7 +357,7 @@ gen_design = function(candidateset, model, trials,
       contrastslistsubplot[[x]] = contrast
     }
 
-    if (length(contrastslistspd) == 0) {
+    if (length(contrastslistsubplot) == 0) {
       contrastslistsubplot = NULL
     }
 
@@ -587,6 +587,18 @@ gen_design = function(candidateset, model, trials,
         placeholder = placeholder + block[i]
       }
       blockcounter = blockcounter + 1
+    }
+    zlist = list()
+    for(i in seq_along(1:length(blockgroups))) {
+      tempblocks = blockgroups[[i]]
+      tempnumberblocks = length(tempblocks)
+      ztemp = matrix(0,nrow=trials,ncol=tempnumberblocks)
+      currentrow = 1
+      for(j in 1:tempnumberblocks) {
+        ztemp[currentrow:(currentrow + tempblocks[j] - 1),j] = varianceRatios[i]
+        currentrow = currentrow + tempblocks[j]
+      }
+      zlist[[i]] = ztemp
     }
   }
 
@@ -1069,6 +1081,7 @@ gen_design = function(candidateset, model, trials,
     attr(design, "moments.matrix") = blockedmm
     attr(design, "V") = V
     attr(design, "varianceratios") = varianceRatios
+    attr(design, "z.matrix.list") = zlist
     finallist = list()
     counterfinallist = 1
     for (row in 1:nrow(splitplotdesign)) {

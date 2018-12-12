@@ -18,6 +18,9 @@ extractPvalues = function(model_fit) {
     se = coef(summary(model_fit))[, 2]
     return(2 * pnorm(-abs(estimates / se)))
   }
+  if (model_type == "lmerModLmerTest") {
+    return(coef(summary(model_fit))[, 5])
+  }
   if (model_type == "survreg") {
     return(summary(model_fit)$table[, 4])
   }

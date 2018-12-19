@@ -242,7 +242,14 @@ eval_design_mc = function(design, model, alpha,
   run_matrix_processed = as.data.frame(design)
 
   #Detect externally generated blocking columns and convert to rownames
-  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking)
+  if(is.null(varianceratios)) {
+    if(!is.null(attr(design, "varianceratios"))) {
+      varianceratios = attr(design, "varianceratios")
+    } else {
+      varianceratios = 1
+    }
+  }
+  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking, varianceratios)
 
   #Remove skpr-generated REML blocking indicators if present
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
@@ -448,7 +455,7 @@ eval_design_mc = function(design, model, alpha,
       RunMatrixReduced$Y = responses[, j]
       if (blocking) {
         if (glmfamilyname == "gaussian") {
-          fit = lme4::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+          fit = suppressWarnings(lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist))
           if (calceffect) {
             effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
           }
@@ -512,12 +519,12 @@ eval_design_mc = function(design, model, alpha,
     }
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
-    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4")) %dopar% {
+    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4","lmerTest")) %dopar% {
       #simulate the data.
       RunMatrixReduced$Y = responses[, j]
       if (blocking) {
         if (glmfamilyname == "gaussian") {
-          fit = lme4::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+          fit = suppressWarnings(lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist))
           if (calceffect) {
             effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
           }

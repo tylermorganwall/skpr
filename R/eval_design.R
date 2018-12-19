@@ -168,7 +168,8 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   run_matrix_processed = as.data.frame(design)
 
   #Detect externally generated blocking columns and convert to rownames
-  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking)
+  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking, varianceratios)
+  zlist = attr(run_matrix_processed,"z.matrix.list")
 
   #Remove skpr-generated REML blocking columns if present
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
@@ -257,7 +258,6 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
     vinv = NULL
   }
 
-
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(run_matrix_processed, "modelmatrix"), "assign")[-1]) != 1)) {
     effectresults = rep(parameterpower(run_matrix_processed, anticoef, alpha, vinv = vinv), 2)
@@ -293,6 +293,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
                                        blockedVar = diag(nrow(modelmatrix_cor)))
       attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
+      attr(results, "z.matrix.list") = zlist
       attr(results, "variance.matrix") = V
       attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
       attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
@@ -389,6 +390,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
       attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
+      attr(results, "z.matrix.list") = zlist
       attr(results, "variance.matrix") = V
       attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
       attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)

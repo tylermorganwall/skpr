@@ -4,12 +4,14 @@
 \alias{convert_blockcolumn_rownames}
 \title{Convert Block Column to Rownames}
 \usage{
-convert_blockcolumn_rownames(RunMatrix, blocking)
+convert_blockcolumn_rownames(RunMatrix, blocking, varianceratios)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}
 
 \item{blocking}{Whether random effects should be included.}
+
+\item{varianceratios}{A vector of variance ratios for each level of restricted randomization}
 }
 \value{
 Row-name encoded blocked run matrix

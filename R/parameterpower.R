@@ -2,13 +2,14 @@
 #'
 #'@description Calculates parameter power
 #'
-#'@param X The model matrix
+#'@param RunMatrix The run matrix
+#'@param levelvector The number of levels in each parameter (1st is always the intercept)
 #'@param anticoef The anticipated coefficients
 #'@param alpha the specified type-I error
 #'@param vinv The V inverse matrix
 #'@return The parameter power for the parameters
 #'@keywords internal
-parameterpower = function(RunMatrix, anticoef, alpha, vinv = NULL) {
+parameterpower = function(RunMatrix, levelvector=NULL, anticoef, alpha, vinv = NULL, degrees=NULL, parameter_names) {
   #Generating the parameter isolating vectors
   q = vector("list", dim(attr(RunMatrix, "modelmatrix"))[2])
   for (i in 1:length(q)) {
@@ -16,12 +17,25 @@ parameterpower = function(RunMatrix, anticoef, alpha, vinv = NULL) {
     vec[i] = 1
     q[[i]] = t(vec)
   }
+  if(is.null(degrees)) {
+    degrees = rep(dim(attr(RunMatrix, "modelmatrix"))[1]-dim(attr(RunMatrix, "modelmatrix"))[2],length(q))
+  } else {
+    degrees_long = rep(0,length(q))
+    for(i in 1:length(parameter_names)) {
+      for(term in parameter_names[[i]]) {
+        degrees_long[which(term == colnames(attr(RunMatrix, "modelmatrix")))] = degrees[i]
+      }
+    }
+    degrees_long[is.na(degrees_long)] = dim(attr(RunMatrix, "modelmatrix"))[1]-dim(attr(RunMatrix, "modelmatrix"))[2]
+    degrees = degrees_long
+  }
+
   power = c(length(q))
   for (j in 1:length(q)) {
     power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), q[[j]],
                               calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
                                                   q[[j]], anticoef, vinv = vinv),
-                              alpha)
+                              alpha, degrees[j])
   }
   return(power)
 }

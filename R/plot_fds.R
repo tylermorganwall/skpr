@@ -1,8 +1,8 @@
-#'@title Plots design diagnostics
+#'@title Fraction of Design Space Plot
 #'
-#'@description Plots design diagnostics
+#'@description Creates a fraction of design space plot
 #'
-#'@param genoutput The run matrix
+#'@param genoutput The design, or the output of the power evaluation functions.
 #'@param model The model, by default uses the model used in eval_design or gen_design.
 #'@param continuouslength Default 9. The precision of the continuous variables.
 #'@return Plots design diagnostics
@@ -38,8 +38,8 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11) {
   if (is.null(model)) {
     model = attr(genoutput, "generating.model")
   }
-  if (!is.null(attr(genoutput, "runmatrix"))) {
-    genoutput = attr(genoutput, "runmatrix")
+  if (!is.null(attr(genoutput, "run.matrix"))) {
+    genoutput = attr(genoutput, "run.matrix")
   }
 
   factornames = colnames(genoutput)[unlist(lapply(genoutput, class)) %in% c("factor", "character")]

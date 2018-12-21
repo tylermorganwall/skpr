@@ -12,7 +12,7 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios) {
       any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
     blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) | grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
     if (blocking) {
-      warning("Detected externally generated blocking columns: attempting to interpret blocking structure.")
+      message("Detected externally generated blocking columns: attempting to interpret blocking structure.")
       blockmatrix = RunMatrix[, blockcols, drop = FALSE]
       blockmatrix = blockmatrix[, order(unlist(lapply(lapply(blockmatrix, unique), length))), drop = FALSE]
       blockvals = lapply(blockmatrix, unique)
@@ -20,6 +20,7 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios) {
       for (col in 1:ncol(blockmatrix)) {
         uniquevals = blockvals[[col]]
         blockcounter = 1
+        wholeblockcounter = 1
         for (block in uniquevals) {
           if (col == 1) {
             rownamematrix[blockmatrix[, col] == block, col] = blockcounter
@@ -28,10 +29,16 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios) {
           if (col != 1) {
             superblock = rownamematrix[blockmatrix[, col] == block, col - 1][1]
             modop = length(unique(blockmatrix[blockmatrix[, col - 1] == superblock, col]))
-            if (blockcounter %% modop == 0) {
-              rownamematrix[blockmatrix[, col] == block, col] = modop
+            if(modop == 1) {
+              rownamematrix[blockmatrix[, col] == block, col] = wholeblockcounter
+              wholeblockcounter = wholeblockcounter + 1
             } else {
-              rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
+              wholeblockcounter = 1
+              if (blockcounter %% modop == 0) {
+                rownamematrix[blockmatrix[, col] == block, col] = modop
+              } else {
+                rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
+              }
             }
             blockcounter = blockcounter + 1
           }

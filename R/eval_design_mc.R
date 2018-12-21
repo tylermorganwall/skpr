@@ -211,9 +211,6 @@ eval_design_mc = function(design, model, alpha,
   if("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
   }
-  if (class(design) %in% c("tbl", "tbl_df") && blocking) {
-    warning("Tibbles strip out rownames, which encode blocking information. Use data frames if the design has a split plot structure. Converting input to data frame")
-  }
 
   if (!is.null(advancedoptions)) {
     if (is.null(advancedoptions$GUI)) {

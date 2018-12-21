@@ -40,12 +40,12 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
     }
   }
   if (is.null(attr(genoutput, "variance.matrix") )) {
-    genoutput = eval_design(genoutput, ~., 0.2)
+    genoutput = eval_design(genoutput, model, 0.2)
   }
   V = attr(genoutput, "variance.matrix")
   if (is.null(model)) {
-    if (!is.null(attr(genoutput, "runmatrix"))) {
-      variables = paste0("`", colnames(attr(genoutput, "runmatrix")), "`")
+    if (!is.null(attr(genoutput, "run.matrix"))) {
+      variables = paste0("`", colnames(attr(genoutput, "run.matrix")), "`")
     } else {
       variables =  paste0("`", colnames(genoutput), "`")
     }
@@ -53,8 +53,8 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
     linearmodel = paste0(c("~", linearterms), collapse = "")
     model = as.formula(paste(c(linearmodel, as.character(aliasmodel(as.formula(linearmodel), power = pow)[2])), collapse = " + "))
   }
-  if (!is.null(attr(genoutput, "runmatrix"))) {
-    genoutput = attr(genoutput, "runmatrix")
+  if (!is.null(attr(genoutput, "run.matrix"))) {
+    genoutput = attr(genoutput, "run.matrix")
   }
   factornames = colnames(genoutput)[unlist(lapply(genoutput, class)) %in% c("factor", "character")]
   if (length(factornames) > 0) {

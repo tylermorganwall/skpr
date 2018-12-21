@@ -10,7 +10,6 @@
 #'@return Degrees of freedom vector
 #'@keywords internal
 calc_interaction_degrees = function(design, model, contrast, split_layers, split_degrees) {
-
   contrastslistspd = list()
   for (x in names(design[lapply(design, class) %in% c("factor", "character")])) {
     contrastslistspd[[x]] = contrast
@@ -29,9 +28,15 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
   }
   model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
   splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
-  degrees_of_freedom = rep(NA,length(splitterms)+1)
-  degrees_of_freedom[1:length(split_degrees)] = split_degrees
-  names(degrees_of_freedom) = c("(Intercept)", splitterms)
+  if(!nointercept) {
+    degrees_of_freedom = rep(min(split_degrees),length(splitterms)+1)
+    degrees_of_freedom[2:(length(split_degrees)+1)] = split_degrees
+    names(degrees_of_freedom) = c("(Intercept)", splitterms)
+  } else {
+    degrees_of_freedom = rep(min(split_degrees),length(splitterms))
+    degrees_of_freedom[1:(length(split_degrees))] = split_degrees
+    names(degrees_of_freedom) = c(splitterms)
+  }
   interactions = list()
   if(max(split_layers) > 0) {
     for(i in 1:max(split_layers,na.rm=TRUE)) {

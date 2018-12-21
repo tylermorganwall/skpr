@@ -2,12 +2,12 @@
 % Please edit documentation in R/plot_fds.R
 \name{plot_fds}
 \alias{plot_fds}
-\title{Plots design diagnostics}
+\title{Fraction of Design Space Plot}
 \usage{
 plot_fds(genoutput, model = NULL, continuouslength = 11)
 }
 \arguments{
-\item{genoutput}{The run matrix}
+\item{genoutput}{The design, or the output of the power evaluation functions.}
 
 \item{model}{The model, by default uses the model used in eval_design or gen_design.}
 
@@ -17,7 +17,7 @@ plot_fds(genoutput, model = NULL, continuouslength = 11)
 Plots design diagnostics
 }
 \description{
-Plots design diagnostics
+Creates a fraction of design space plot
 }
 \examples{
 #We can pass either the output of gen_design or eval_design to plot_correlations

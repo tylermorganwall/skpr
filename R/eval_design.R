@@ -150,11 +150,6 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   if("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
   }
-  if (class(design) %in% c("tbl", "tbl_df") && blocking) {
-    warning("Tibbles strip out rownames, which encode blocking information.
-            Use data frames if the design has a split plot structure.
-            Converting input to data frame")
-  }
 
   #detect pre-set contrasts
   presetcontrasts = list()
@@ -163,7 +158,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
-
+  nointercept = attr(stats::terms.formula(model,data=design),"intercept") == 0
   #covert tibbles
   run_matrix_processed = as.data.frame(design)
 
@@ -179,6 +174,9 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
 
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model)
+  if(nointercept) {
+    attr(stats::terms.formula(model),"intercept") = 0
+  }
 
   #---- Reduce run matrix to terms in model ---#
   run_matrix_processed = reduceRunMatrix(run_matrix_processed, model)
@@ -213,7 +211,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   if (missing(anticoef)) {
     default_coef = gen_anticoef(run_matrix_processed, model)
     anticoef = anticoef_from_delta(default_coef, effectsize, "gaussian")
-    if (!("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix")))) {
+    if (nointercept) {
       anticoef = anticoef[-1]
     }
   }
@@ -225,6 +223,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   #-----Generate V inverse matrix-----X
   #Variables used later: V, vinv
   if (blocking) {
+
     blocklist = strsplit(rownames(run_matrix_processed), ".", fixed = TRUE)
 
     existingBlockStructure = do.call(rbind, blocklist)
@@ -254,11 +253,12 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       blockcounter = blockcounter + 1
     }
     vinv = solve(V)
-    #Below code detects the split-plot columns, and adjusts the degrees of
-    #freedom to n_block - 2 for that layer
+    #Below code detects the split-plot columns, and adjusts the degrees of freedom
 
-    degrees_of_freedom = unlist(lapply(blockgroups,length)) - 2
-    splitlayer = rep(0,ncol(run_matrix_processed))
+    numberblocks = c(1,unlist(lapply(blockgroups,length)),nrow(run_matrix_processed))
+    lowest_level = length(lapply(blockgroups,length)) + 1
+
+    splitlayer = rep(lowest_level,ncol(run_matrix_processed))
     for(i in 1:length(blockgroups)) {
       currentrow = 1
       isblockcol = rep(TRUE,ncol(run_matrix_processed))
@@ -271,25 +271,66 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
         }
         currentrow = currentrow + temp_block_str[j]
       }
-      splitlayer[isblockcol & splitlayer == 0] = i
+      splitlayer[isblockcol & splitlayer == lowest_level] = i
     }
-    splitcopy = splitlayer
-    for(i in 1:length(degrees_of_freedom)) {
-      splitcopy[splitcopy == i] = degrees_of_freedom[i]
-    }
-    splitcopy[splitcopy == 0] = NA
-    if ("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix"))) {
-      if(all(is.na(splitcopy))) {
-        degrees_of_freedom = c(NA,splitcopy)
-      } else {
-        degrees_of_freedom = c(min(splitcopy,na.rm = TRUE), splitcopy)
+    isblockinglayer = rep(FALSE,length(numberblocks))
+    isblockinglayer[splitlayer+1] = TRUE
+    if (!nointercept) {
+      m = c()
+      currentlayer = 1
+      for(i in 1:(max(splitlayer)+1)) {
+        if(isblockinglayer[i]) {
+          layercols = which(currentlayer == splitlayer+1)
+          mtemp = numberblocks[i] - numberblocks[i-1]
+          for(i in 1:length(layercols)) {
+            if(is.numeric(run_matrix_processed[,layercols[i]])) {
+              mtemp = mtemp - 1
+            } else {
+              cat_degrees = length(unique(run_matrix_processed[,layercols[i] ])) - 1
+              mtemp = mtemp - cat_degrees
+            }
+          }
+          m = c(m,mtemp)
+          currentlayer = currentlayer + 1
+        } else {
+          if(i == 1) {
+            m = c(m,numberblocks[i])
+          } else {
+            m = c(m,numberblocks[i]-numberblocks[i-1])
+          }
+          currentlayer = currentlayer + 1
+        }
       }
     } else {
-      degrees_of_freedom = splitcopy
+      m = c()
+      currentlayer = 1
+      for(i in 1:(max(splitlayer)+1)) {
+        if(isblockinglayer[i]) {
+          layercols = which(currentlayer == splitlayer+1)
+          mtemp = numberblocks[i] - numberblocks[i-1]
+          for(i in 1:length(layercols)) {
+            if(is.numeric(run_matrix_processed[,layercols[i]])) {
+              mtemp = mtemp - 1
+            } else {
+              cat_degrees = length(unique(run_matrix_processed[,layercols[i] ])) - 1
+              mtemp = mtemp - cat_degrees
+            }
+          }
+          m = c(m,mtemp)
+          currentlayer = currentlayer + 1
+        } else {
+          if(i == 1) {
+            m = c(m,0)
+          } else {
+            m = c(m,numberblocks[i]-numberblocks[i-1])
+          }
+          currentlayer = currentlayer + 1
+        }
+      }
     }
+    degrees_of_freedom = m[isblockinglayer]
     degrees_of_freedom = calc_interaction_degrees(run_matrix_processed, model, contrasts, splitlayer, degrees_of_freedom)
-
-    if ("(Intercept)" %in% colnames(attr(run_matrix_processed, "modelmatrix"))) {
+    if (!nointercept) {
       extract_intnames_formula = ~1
       parameter_names = list()
       parameter_names[["(Intercept)"]] = "(Intercept)"
@@ -310,7 +351,6 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
     degrees_of_freedom = NULL
     parameter_names = NULL
   }
-
   #This returns if everything is continuous (no categorical)
   if (!any(table(attr(attr(run_matrix_processed, "modelmatrix"), "assign")[-1]) != 1)) {
     factornames = attr(terms(model), "term.labels")
@@ -447,7 +487,8 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       attr(results, "correlation.matrix") = round(correlation.matrix, 8)
     }
     attr(results, "generating.model") = model
-    attr(results, "runmatrix") = run_matrix_processed
+    attr(results, "run.matrix") = run_matrix_processed
+    attr(results, "model.matrix") = modelmatrix_cor
 
     levelvector = sapply(lapply(run_matrix_processed, unique), length)
     classvector = sapply(lapply(run_matrix_processed, unique), class) == "factor"

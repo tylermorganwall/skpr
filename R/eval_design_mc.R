@@ -226,6 +226,11 @@ eval_design_mc = function(design, model, alpha,
     advancedoptions$GUI = FALSE
     progressBarUpdater = NULL
   }
+  if(attr(terms.formula(model,data=design),"intercept") == 1) {
+    nointercept = FALSE
+  } else {
+    nointercept = TRUE
+  }
 
   #detect pre-set contrasts
   presetcontrasts = list()
@@ -237,11 +242,10 @@ eval_design_mc = function(design, model, alpha,
 
   #covert tibbles
   run_matrix_processed = as.data.frame(design)
-
   #Detect externally generated blocking columns and convert to rownames
   if(is.null(varianceratios)) {
     if(!is.null(attr(design, "varianceratios"))) {
-      varianceratios = attr(design, "varianceratios")
+      varianceratios = attr(design, "varianceratios")[-1]
     } else {
       varianceratios = 1
     }
@@ -256,6 +260,9 @@ eval_design_mc = function(design, model, alpha,
 
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model)
+  if(nointercept) {
+    model = update.formula(model,~-1 + .)
+  }
 
   glmfamilyname = glmfamily
 
@@ -299,7 +306,6 @@ eval_design_mc = function(design, model, alpha,
     contrastslist = NULL
     contrastslist_cormat = NULL
   }
-
   ModelMatrix = model.matrix(model, RunMatrixReduced, contrasts.arg = contrastslist)
 
   #saving model for return attribute
@@ -316,7 +322,7 @@ eval_design_mc = function(design, model, alpha,
     }
   }
   if (missing(anticoef) || is.null(anticoef)) {
-    default_coef = gen_anticoef(RunMatrixReduced, model)
+    default_coef = gen_anticoef(RunMatrixReduced, model, nointercept)
     anticoef = anticoef_from_delta(default_coef, effectsize, glmfamilyname)
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
@@ -330,7 +336,6 @@ eval_design_mc = function(design, model, alpha,
   #Variables used later: blockgroups, varianceratios, V
   blocknames = rownames(run_matrix_processed)
   blocklist = strsplit(blocknames, ".", fixed = TRUE)
-
   if (any(lapply(blocklist, length) > 1)) {
     if (blocking) {
 
@@ -397,13 +402,15 @@ eval_design_mc = function(design, model, alpha,
     blockform = paste("~. + ", randomeffects, sep = "")
     #Adding random block variables to formula
     model = update.formula(model, blockform)
+    if(nointercept) {
+      model = update.formula(model, ~-1 + .)
+    }
   } else {
     V = diag(nrow(run_matrix_processed))
   }
 
   model_formula = update.formula(model, Y ~ .)
   RunMatrixReduced$Y = 1
-
   #------------- Effect Power Settings ------------#
 
   if (!is.null(advancedoptions$anovatest)) {
@@ -428,7 +435,6 @@ eval_design_mc = function(design, model, alpha,
   progressbarupdates = floor(seq(1, nsim, length.out = 50))
   progresscurrent = 1
   estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
-
   if (!parallel) {
     pvallist = list()
     effectpvallist = list()

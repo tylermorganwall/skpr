@@ -139,6 +139,11 @@ eval_design_survival_mc = function(design, model, alpha,
     advancedoptions$GUI = FALSE
     progressBarUpdater = NULL
   }
+  if(attr(terms.formula(model,data=design),"intercept") == 1) {
+    nointercept = FALSE
+  } else {
+    nointercept = TRUE
+  }
 
   #Remove skpr-generated REML blocking indicators if present
   run_matrix_processed = remove_skpr_blockcols(design)
@@ -219,7 +224,7 @@ eval_design_survival_mc = function(design, model, alpha,
     warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")
   }
   if (missing(anticoef)) {
-    default_coef = gen_anticoef(RunMatrixReduced, model)
+    default_coef = gen_anticoef(RunMatrixReduced, model, nointercept)
     anticoef = anticoef_from_delta_surv(default_coef, effectsize, distribution)
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]

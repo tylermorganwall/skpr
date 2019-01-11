@@ -30,11 +30,15 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
   splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
   if(!nointercept) {
     degrees_of_freedom = rep(min(split_degrees),length(splitterms)+1)
-    degrees_of_freedom[2:(length(split_degrees)+1)] = split_degrees
+    for(i in 1:length(split_layers)) {
+      degrees_of_freedom[i+1] = split_degrees[split_layers[i]+1]
+    }
     names(degrees_of_freedom) = c("(Intercept)", splitterms)
   } else {
     degrees_of_freedom = rep(min(split_degrees),length(splitterms))
-    degrees_of_freedom[1:(length(split_degrees))] = split_degrees
+    for(i in 1:length(split_layers)) {
+      degrees_of_freedom[i] = split_degrees[split_layers[i]]
+    }
     names(degrees_of_freedom) = c(splitterms)
   }
   interactions = list()

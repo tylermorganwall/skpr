@@ -506,11 +506,7 @@ gen_design = function(candidateset, model, trials,
   #-----generate blocked design with replicates-----#
   if (!is.null(splitplotdesign)) {
     if (!is.null(attr(splitplotdesign, "varianceratios"))) {
-      if (!is.null(attr(splitplotdesign, "varianceratios"))) {
-        varianceRatios = c(attr(splitplotdesign, "varianceratios"), varianceratio)
-      } else {
-        varianceRatios = varianceratio
-      }
+      varianceRatios = c(attr(splitplotdesign, "varianceratios"), varianceratio)
     } else {
       varianceRatios = varianceratio
     }

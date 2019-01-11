@@ -96,6 +96,11 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
+  if(attr(terms.formula(model,data=design),"intercept") == 1) {
+    nointercept = FALSE
+  } else {
+    nointercept = TRUE
+  }
 
   #covert tibbles
   run_matrix_processed = as.data.frame(design)
@@ -142,7 +147,7 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
     warning("User defined anticipated coefficnets (anticoef) detected; ignoring effectsize argument.")
   }
   if (missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model) * effectsize / 2
+    anticoef = gen_anticoef(RunMatrixReduced, model,nointercept) * effectsize / 2
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
     }

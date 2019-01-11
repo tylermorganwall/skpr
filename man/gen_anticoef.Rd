@@ -4,10 +4,14 @@
 \alias{gen_anticoef}
 \title{Generates Anticipated Coefficients}
 \usage{
-gen_anticoef(RunMatrix, model)
+gen_anticoef(RunMatrix, model, nointercept)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}
+
+\item{model}{The model}
+
+\item{nointercept}{TRUE if intercept not in model}
 }
 \value{
 Anticipated coefficients.

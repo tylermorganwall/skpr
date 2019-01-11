@@ -62,25 +62,37 @@ assumes a signal-to-noise ratio of 2, but this can be changed with the
 \details{
 This function evaluates the power of experimental designs.
 
-Power is calculated under a linear regression framework: you intend to fit a
-linear model to the data, of the form
+If the design is has no blocking or restrictions on randomization, the model assumed is:
 
-\eqn{y = X \beta + \epsilon}, (plus blocking terms, if applicable)
+\eqn{y = X \beta + \epsilon}.
 
-where \eqn{y} is the vector of experimental responses, \eqn{X} is the model matrix, \eqn{\beta} is
-the vector of model coefficients, and \eqn{\epsilon} is the statistical noise. \code{eval_design}
-assumes that \eqn{\epsilon} is
-normally distributed with zero mean and unit variance (root-mean-square error is 1), and
-calculates both parameter power and effect power.
-Parameter power is the probability of rejecting the hypothesis \eqn{\beta_i = 0}, where \eqn{\beta_i} is a single parameter
-in the model,
-while effect power is the probability of rejecting the hypothesis \eqn{\beta_{i} = 0}, where \eqn{\beta_{i}} is the set of all
-parameters associated with the effect in question. The two powers are equivalent for continuous factors and
-two-level categorical factors, but they can be different for categorical factors with three or more levels.
+If the design is a split-plot design, the model is as follows:
 
-When using \code{conservative = TRUE}, \code{eval_design} first evaluates the power with default coefficients. Then,
+\ifelse{html}{\eqn{y = X \beta + Z b}\out{<sub>i</sub>} + \eqn{\epsilon}\out{<sub>ij</sub>}}{\eqn{y = X \beta + Z b_{i} + \epsilon_{ij}}},
+
+Here, \eqn{y} is the vector of experimental responses, \eqn{X} is the model matrix, \eqn{\beta} is
+the vector of model coefficients, \eqn{Z_{i}} are the blocking indicator,
+\eqn{b_{i}} is the random variable associated with the \eqn{i}th block, and \eqn{\epsilon}
+is a random variable normally distributed with zero mean and unit variance (root-mean-square error is 1.0).
+
+\code{eval_design} calculates both parameter power as well as effect power, defined as follows:
+
+1) Parameter power is the probability of rejecting the hypothesis \eqn{H_0 : \beta_i = 0}, where \eqn{\beta_i} is a single parameter
+in the model
+2) Effect power is the probability of rejecting the hypothesis \eqn{H_0 : \beta_{1} = \beta_{2} = ... = \beta_{n} 0} for all \eqn{n} coefficients
+for a categorical factor.
+
+The two power types are equivalent for continuous factors and two-level categorical factors,
+but they will differ for categorical factors with three or more levels.
+
+For split-plot designs, the degrees of freedom are allocated to each term according to the algorithm
+given in "Mixed-Effects Models in S and S-PLUS" (Pinheiro and Bates, pp. 91).
+
+When using \code{conservative = TRUE}, \code{eval_design} first evaluates the power with the default (or given) coefficients. Then,
 for each multi-level categorical, it sets all coefficients to zero except the level that produced the lowest power,
-and then re-evaluates the power with this modified set of anticipated coefficients.
+and then re-evaluates the power with this modified set of anticipated coefficients. If there are two or more
+equal power values in a multi-level categorical, two of the lowest equal terms are given opposite sign anticipated coefficients
+and the rest (for that categorical factor) are set to zero.
 }
 \examples{
 #Generating a simple 2x3 factorial to feed into our optimal design generation

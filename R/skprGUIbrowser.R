@@ -5,9 +5,8 @@
 #'@import shiny
 #'@export
 #'@examples
-#'#Type skprGUIbrowser() to begin
+#'#Type `skprGUIbrowser()` to begin
 #'
-#'\dontrun{skprGUIbrowser()}
 # nocov start
 
 skprGUIbrowser = function() {

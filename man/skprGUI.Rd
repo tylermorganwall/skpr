@@ -15,7 +15,6 @@ skprGUI(inputValue1, inputValue2)
 skprGUI provides a graphical user interface to skpr, within R Studio.
 }
 \examples{
-#Type skprGUI() to begin
+#Type `skprGUI()` to begin
 
-\dontrun{skprGUI()}
 }

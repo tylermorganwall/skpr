@@ -10,7 +10,6 @@ skprGUIbrowser()
 skprGUI provides a graphical user interface to skpr, in an external browser.
 }
 \examples{
-#Type skprGUIbrowser() to begin
+#Type `skprGUIbrowser()` to begin
 
-\dontrun{skprGUIbrowser()}
 }

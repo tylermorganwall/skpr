@@ -8,9 +8,8 @@
 #'@import future promises shiny rintrojs shinythemes knitr kableExtra
 #'@export
 #'@examples
-#'#Type skprGUIserver() to begin
+#'#Type `skprGUIserver()` to begin
 #'
-#'\dontrun{skprGUIserver()}
 # nocov start
 skprGUIserver = function(inputValue1, inputValue2) {
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);

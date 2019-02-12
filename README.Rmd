@@ -87,20 +87,20 @@ design = gen_design(candidateset = candidate_set,
 design
 
 #Evaluate power for the design with an allowable type-I error of 5%
-eval_design(RunMatrix = design,
+eval_design(design = design,
             model = ~temp + type + beansize,
             alpha=0.05)
 
 #Evaluate power for the design using a Monte Carlo simulation. 
 #Here, we set the effect size (here, the signal-to-noise ratio) to 1.5.
-eval_design_mc(RunMatrix = design,
+eval_design_mc(design = design,
                model = ~temp + type + beansize,
                alpha=0.05,
                effectsize=1.5)
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
-eval_design_mc(RunMatrix = design,
+eval_design_mc(design = design,
                model = ~temp + type + beansize,
                nsim=5000,
                glmfamily = "poisson",

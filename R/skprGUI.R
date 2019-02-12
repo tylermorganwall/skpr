@@ -8,9 +8,8 @@
 #'@import shiny rintrojs shinythemes knitr kableExtra
 #'@export
 #'@examples
-#'#Type skprGUI() to begin
+#'#Type `skprGUI()` to begin
 #'
-#'\dontrun{skprGUI()}
 # nocov start
 skprGUI = function(inputValue1, inputValue2) {
 

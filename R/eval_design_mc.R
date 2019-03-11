@@ -221,10 +221,47 @@ eval_design_mc = function(design, model, alpha,
     } else {
       progressBarUpdater = NULL
     }
+    if(is.null(advancedoptions$alphacorrection)) {
+      advancedoptions$alphacorrection = TRUE
+    } else {
+      advancedoptions$alphacorrection = FALSE
+    }
   } else {
     advancedoptions = list()
     advancedoptions$GUI = FALSE
+    advancedoptions$alphacorrection = TRUE
     progressBarUpdater = NULL
+  }
+  if(advancedoptions$alphacorrection && glmfamily != "gaussian" && blocking) {
+    advancedoptions$alphacorrection = FALSE
+    if(is.null(advancedoptions$alphanull)) {
+      effectsizetemp = c(effectsize[1],effectsize[1])
+    } else {
+      effectsizetemp = advancedoptions$alphanull
+    }
+    nullresults = eval_design_mc(design=design, model=model, alpha=alpha,
+                   blocking = blocking, nsim = nsim, glmfamily = glmfamily, calceffect = calceffect,
+                   varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef,
+                   effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
+                   detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
+    if(attr(terms.formula(model),"intercept") == 1) {
+      alpha_parameter = c(alpha,apply(attr(nullresults,"pvals"),2,quantile,probs=alpha)[-1])
+      alpha_parameter[alpha_parameter > alpha] = alpha
+      if(calceffect) {
+        alpha_effect = c(alpha,apply(attr(nullresults,"effect_pvals"),2,quantile,probs=alpha)[-1])
+        alpha_effect[alpha_effect > alpha] = alpha
+      }
+    } else {
+      alpha_parameter = apply(attr(nullresults,"pvals"),2,quantile,probs=alpha)
+      alpha_parameter[alpha_parameter > alpha] = alpha
+      if(calceffect) {
+        alpha_effect = apply(attr(nullresults,"effect_pvals"),2,quantile,probs=alpha)
+        alpha_effect[alpha_effect > alpha] = alpha
+      }
+    }
+  } else {
+    alpha_effect = alpha
+    alpha_parameter = alpha
   }
   if(attr(terms.formula(model,data=design),"intercept") == 1) {
     nointercept = FALSE
@@ -421,7 +458,11 @@ eval_design_mc = function(design, model, alpha,
       pvalstring = "Pr(>Chisq)"
     }
   } else {
-    anovatest = "Wald"
+    if(blocking) {
+      anovatest = "Chisq"
+    } else {
+      anovatest = "Wald"
+    }
     pvalstring = "Pr(>Chisq)"
   }
   if (!is.null(advancedoptions$anovatype)) {
@@ -498,9 +539,9 @@ eval_design_mc = function(design, model, alpha,
       }
       if (calceffect) {
         effectpvallist[[j]] = effect_pvals
-        effect_power_values[effect_pvals < alpha] = effect_power_values[effect_pvals < alpha] + 1
+        effect_power_values[effect_pvals < alpha_effect] = effect_power_values[effect_pvals < alpha_effect] + 1
       }
-      power_values[pvals < alpha] = power_values[pvals < alpha] + 1
+      power_values[pvals < alpha_parameter] = power_values[pvals < alpha_parameter] + 1
     }
     #We are going to output a tidy data.frame with the results.
     attr(power_values, "pvals") = do.call(rbind, pvallist)
@@ -522,61 +563,65 @@ eval_design_mc = function(design, model, alpha,
     }
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
-    power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4","lmerTest")) %dopar% {
-      #simulate the data.
-      RunMatrixReduced$Y = responses[, j]
-      if (blocking) {
-        if (glmfamilyname == "gaussian") {
-          fit = suppressWarnings(lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist))
-          if (calceffect) {
-            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
+    tryCatch({
+      power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4","lmerTest")) %dopar% {
+        #simulate the data.
+        RunMatrixReduced$Y = responses[, j]
+        if (blocking) {
+          if (glmfamilyname == "gaussian") {
+            fit = suppressWarnings(lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist))
+            if (calceffect) {
+              effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
+            }
+          } else {
+            fit = lme4::glmer(model_formula, data = RunMatrixReduced, family = glmfamily, contrasts = contrastslist)
+            if (calceffect) {
+              effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
+            }
           }
+          estimates = coef(summary(fit))[, 1]
         } else {
-          fit = lme4::glmer(model_formula, data = RunMatrixReduced, family = glmfamily, contrasts = contrastslist)
-          if (calceffect) {
-            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)")
+          if (glmfamilyname == "gaussian") {
+            fit = lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+            if (calceffect) {
+              effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>F)")
+            }
+          } else {
+            fit = glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+            if (calceffect) {
+              effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)", test.statistic = "Wald")
+            }
           }
+          estimates = coef(fit)
         }
-        estimates = coef(summary(fit))[, 1]
-      } else {
-        if (glmfamilyname == "gaussian") {
-          fit = lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
-          if (calceffect) {
-            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>F)")
-          }
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        pvals = extractPvalues(fit)
+        power_values = rep(0, length(pvals))
+        if (calceffect) {
+          effect_power_values = rep(0, length(effect_pvals))
+          names(effect_power_values) = names(effect_pvals)
+          effect_power_values[effect_pvals < alpha_effect] = 1
+        }
+        stderrval = coef(summary(fit))[, 2]
+        power_values[pvals < alpha_parameter] = 1
+        if (!blocking && !is.null(fit$iter)) {
+          iterval = fit$iter
         } else {
-          fit = glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
-          if (calceffect) {
-            effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)", test.statistic = "Wald")
-          }
+          iterval = NA
         }
-        estimates = coef(fit)
+        if (calceffect) {
+          list("parameterpower" = power_values, "effectpower" = effect_power_values, "estimates" = estimates, "pvals" = c(pvals), "effectpvals" = effect_pvals, "strerrval" = stderrval, "iterval" = iterval)
+        } else {
+          list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals, "strerrval" = stderrval, "iterval" = iterval)
+        }
       }
-      #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = extractPvalues(fit)
-      power_values = rep(0, length(pvals))
-      if (calceffect) {
-        effect_power_values = rep(0, length(effect_pvals))
-        names(effect_power_values) = names(effect_pvals)
-        effect_power_values[effect_pvals < alpha] = 1
-      }
-      stderrval = coef(summary(fit))[, 2]
-      power_values[pvals < alpha] = 1
-      if (!blocking && !is.null(fit$iter)) {
-        iterval = fit$iter
-      } else {
-        iterval = NA
-      }
-      if (calceffect) {
-        list("parameterpower" = power_values, "effectpower" = effect_power_values, "estimates" = estimates, "pvals" = c(pvals), "strerrval" = stderrval, "iterval" = iterval)
-      } else {
-        list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals, "strerrval" = stderrval, "iterval" = iterval)
-      }
-    }
-    parallel::stopCluster(cl)
+    }, finally = {
+      parallel::stopCluster(cl)
+    })
     power_values = apply(do.call(rbind, power_estimates[, "parameterpower"]), 2, sum) / nsim
     if (calceffect) {
       effect_power_values = apply(do.call(rbind, power_estimates[, "effectpower"]), 2, sum) / nsim
+      attr(power_values, "effect_pvals") = do.call(rbind, power_estimates[, "effectpvals"])
     }
     estimates = do.call(rbind, power_estimates[, "estimates"])
     attr(power_values, "pvals") = do.call(rbind, power_estimates[, "pvals"])
@@ -660,6 +705,7 @@ eval_design_mc = function(design, model, alpha,
   attr(retval, "variance.matrix") = V
   attr(retval, "estimates") = estimates
   attr(retval, "pvals") = attr(power_values, "pvals")
+  attr(retval, "effect_pvals") = attr(power_values, "effect_pvals")
   attr(retval, "stderrors") = attr(power_values, "stderrors")
   attr(retval, "fisheriterations") = attr(power_values, "fisheriterations")
 

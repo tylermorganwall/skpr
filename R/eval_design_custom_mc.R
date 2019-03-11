@@ -188,25 +188,28 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
 
-    power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages = parallelpackages) %dopar% {
-      power_values = rep(0, ncol(ModelMatrix))
-      #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
+    tryCatch({
+      power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages = parallelpackages) %dopar% {
+        power_values = rep(0, ncol(ModelMatrix))
+        #simulate the data.
+        RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
 
-      #fit a model to the simulated data.
-      fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
+        #fit a model to the simulated data.
+        fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
 
-      #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = pvalfunction(fit)
-      power_values[pvals < alpha] = 1
-      estimates = coef_function(fit)
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        pvals = pvalfunction(fit)
+        power_values[pvals < alpha] = 1
+        estimates = coef_function(fit)
 
-      #We are going to output a tidy data.frame with the results, so just append the effect powers
-      #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
-      #or effect power.
-      c(power_values, estimates)
-    }
-    parallel::stopCluster(cl)
+        #We are going to output a tidy data.frame with the results, so just append the effect powers
+        #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
+        #or effect power.
+        c(power_values, estimates)
+      }
+    }, finally = {
+      parallel::stopCluster(cl)
+    })
     power_values = apply(power_estimates[, 1:nparam], 2, sum) / nsim
     estimates = power_estimates[, (nparam + 1):ncol(power_estimates)]
   }

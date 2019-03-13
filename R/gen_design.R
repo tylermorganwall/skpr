@@ -288,6 +288,11 @@ gen_design = function(candidateset, model, trials,
     } else {
       progressBarUpdater = NULL
     }
+     if (!is.null(advancedoptions$amodel)) {
+      amodel = advancedoptions$amodel
+    } else {
+      amodel = NULL
+    }
   } else {
     advancedoptions = list()
     advancedoptions$GUI = FALSE
@@ -635,12 +640,13 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  if (is.null(splitplotdesign)) {
-    amodel = aliasmodel(model, aliaspower)
-  } else {
-    amodel = aliasmodel(modelnowholeformula, aliaspower)
+  if(is.null(amodel)){
+   if (is.null(splitplotdesign)) {
+     amodel = aliasmodel(model, aliaspower)
+   } else {
+     amodel = aliasmodel(modelnowholeformula, aliaspower)
+   }
   }
-
   if (model == amodel && optimality == "ALIAS") {
     stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
                   aliaspower, ". Try setting aliaspower = ", aliaspower + 1), collapse = ""))

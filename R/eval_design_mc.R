@@ -369,9 +369,6 @@ eval_design_mc = function(design, model, alpha,
   }
   if (missing(anticoef) || is.null(anticoef)) {
     default_coef = gen_anticoef(RunMatrixReduced, model, nointercept)
-    if(glmfamilyname == "binomial" && (any(effectsize <= 0) || any(effectsize >= 1))) {
-      stop("Binomial effect sizes must be between (but not equal to) 1 and 0")
-    }
     anticoef = anticoef_from_delta(default_coef, effectsize, glmfamilyname)
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]

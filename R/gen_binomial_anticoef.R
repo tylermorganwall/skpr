@@ -16,8 +16,8 @@
 #'@return Anticipated coefficients.
 #'@keywords internal
 gen_binomial_anticoef = function(anticoef, lowprob, highprob) {
-  if (highprob > 1 || highprob < 0 || lowprob > 1 || lowprob < 0) {
-    stop("Binomial anticipated coefficients generation error: Probabilities must be between 0 and 1")
+  if (highprob >= 1 || highprob <= 0 || lowprob >= 1 || lowprob <= 0) {
+    stop("Binomial anticipated coefficients generation error: Probabilities must be between (and not equal to) 0 and 1")
   }
   b0 = 1 / 2 * log(lowprob * highprob / (1 - lowprob) / (1 - highprob))
   b = 1 / 2 * log(highprob * (1 - lowprob) / (1 - highprob) / lowprob)

@@ -1832,7 +1832,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
             if (ncol(runmat) > 1) {
               runmatrixprocessed = lapply(runmat, spec_color_if)
               prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order, runmat), ], "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
+              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
             } else {
               rownumbers = order(runmat[, 1])
               runreturn = list(runmat[order(runmat[, 1]), ])
@@ -1841,12 +1841,12 @@ skprGUIserver = function(inputValue1, inputValue2) {
               runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed, spec_color_if))
               rownames(runmatrixprocessed) = rownumbers
               prelimhtml = kable_styling(knitr::kable(runmatrixprocessed, "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
+              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
             }
           } else {
             runmatrixprocessed = lapply(runmat, spec_color_if)
             prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed), "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-            gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\);)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
+            gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
           }
         } else {
           if (input$orderdesign) {

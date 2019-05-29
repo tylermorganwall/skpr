@@ -17,10 +17,14 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept,model,
   } else {
     numberblocks = c(unlist(lapply(blockgroups,length)),nrow(run_matrix_processed))
   }
+  model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
+  splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
+  interactions = is_intralayer_interaction(run_matrix_processed, model, splitlayer)
   if (!nointercept) {
     m = c(1)
     currentlayer = 1
     for(i in 2:(max(splitlayer)+1)) {
+      interaction_cols_layer = interactions[[currentlayer]]
       layercols = which(currentlayer == splitlayer)
       mtemp = numberblocks[i] - numberblocks[i-1]
       if(length(layercols) > 0) {
@@ -31,6 +35,16 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept,model,
             cat_degrees = length(unique(run_matrix_processed[,layercols[j] ])) - 1
             mtemp = mtemp - cat_degrees
           }
+        }
+      }
+      for(j in seq_len(length(interaction_cols_layer))) {
+        if(interaction_cols_layer[j]) {
+          interaction_cols = unlist(strsplit(splitterms[j],":"))
+          temp_degrees = 1
+          for(col_name in interaction_cols) {
+            temp_degrees = temp_degrees*(length(unique(run_matrix_processed[,col_name ])) - 1)
+          }
+          mtemp = mtemp - temp_degrees
         }
       }
       m = c(m,mtemp)

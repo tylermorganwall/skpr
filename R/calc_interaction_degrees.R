@@ -28,19 +28,8 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
   }
   model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
   splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
-  if(!nointercept) {
-    degrees_of_freedom = rep(min(split_degrees),length(splitterms)+1)
-    for(i in 1:length(split_layers)) {
-      degrees_of_freedom[i+1] = split_degrees[split_layers[i]+1]
-    }
-    names(degrees_of_freedom) = c("(Intercept)", splitterms)
-  } else {
-    degrees_of_freedom = rep(min(split_degrees),length(splitterms))
-    for(i in 1:length(split_layers)) {
-      degrees_of_freedom[i] = split_degrees[split_layers[i]]
-    }
-    names(degrees_of_freedom) = c(splitterms)
-  }
+  ismaineffect = rep(FALSE,length(splitterms))
+  ismaineffect[1:length(split_layers)] = TRUE
   interactions = list()
   if(max(split_layers) > 0) {
     for(i in 1:max(split_layers,na.rm=TRUE)) {
@@ -57,6 +46,20 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
       interactions[[i]] = FALSE
     }
   }
+
+  if(!nointercept) {
+    degrees_of_freedom = rep(min(split_degrees),length(splitterms)+1)
+    for(i in 1:length(split_layers)) {
+      degrees_of_freedom[i+1] = split_degrees[split_layers[i]+1]
+    }
+    names(degrees_of_freedom) = c("(Intercept)", splitterms)
+  } else {
+    degrees_of_freedom = rep(min(split_degrees),length(splitterms))
+    for(i in 1:length(split_layers)) {
+      degrees_of_freedom[i] = split_degrees[split_layers[i]]
+    }
+    names(degrees_of_freedom) = c(splitterms)
+  }
   #get higher order terms
   for(term in colnames(design)) {
     arith_terms = splitterms[grepl(paste0("(I\\(", term, "\\^.+\\))"), splitterms, perl = TRUE)]
@@ -64,7 +67,6 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
       degrees_of_freedom[arith_term] = degrees_of_freedom[term]
     }
   }
-
   #Effect terms
   for(i in seq_along(1:max(split_layers,na.rm=TRUE))) {
     subplotterms = colnames(design)
@@ -74,6 +76,16 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
     for (term in subplotterms) {
       regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)")
       regularmodel = regularmodel | grepl(regex, splitterms, perl = TRUE)
+    }
+    #get whole:whole interaction terms
+    wholewholeinteractionterms = splitterms[!ismaineffect & interactions[[i]]]
+    for(term in wholewholeinteractionterms) {
+      subterms = unlist(strsplit(term, split = ":", fixed = TRUE))
+      maxdegree = c()
+      for(subterm in subterms) {
+        maxdegree = max(c(maxdegree, degrees_of_freedom[subterm]))
+      }
+      degrees_of_freedom[term] = maxdegree
     }
     #get whole:non-whole interaction terms
     wholeinteractionterms = splitterms[regularmodel & interactions[[i]]]

@@ -19,15 +19,18 @@ effectpower = function(RunMatrix, levelvector, anticoef, alpha, vinv = NULL, deg
   for (i in 1:(length(g) - 1)) {
     L[[i]] = genparammatrix(dim(attr(RunMatrix, "modelmatrix"))[2], levelvector[i], g[i])
   }
-  if(is.null(degrees)) {
-    degrees = rep(dim(attr(RunMatrix, "modelmatrix"))[1]-dim(attr(RunMatrix, "modelmatrix"))[2],length(L))
+  if (is.null(degrees)) {
+    degrees = rep(dim(attr(RunMatrix, "modelmatrix"))[1] -
+                    dim(attr(RunMatrix, "modelmatrix"))[2],length(L))
   } else {
-    degrees[is.na(degrees)] = dim(attr(RunMatrix, "modelmatrix"))[1]-dim(attr(RunMatrix, "modelmatrix"))[2]
+    degrees[is.na(degrees)] = dim(attr(RunMatrix, "modelmatrix"))[1] -
+      dim(attr(RunMatrix, "modelmatrix"))[2]
   }
   power = c(length(L))
   for (j in 1:length(L)) {
     power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), L[[j]],
-                              calcnoncentralparam(attr(RunMatrix, "modelmatrix"), L[[j]], anticoef, vinv = vinv),
+                              calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
+                                                  L[[j]], anticoef, vinv = vinv),
                               alpha, degrees[j])
   }
   return(power)

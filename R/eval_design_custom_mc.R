@@ -86,7 +86,7 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
                                  parameternames = NULL,
                                  parallel = FALSE, parallelpackages = NULL, ...) {
   args = list(...)
-  if("RunMatrix" %in% names(args)) {
+  if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
   }
   #detect pre-set contrasts
@@ -96,7 +96,7 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
-  if(attr(terms.formula(model,data=design),"intercept") == 1) {
+  if (attr(terms.formula(model, data = design), "intercept") == 1) {
     nointercept = FALSE
   } else {
     nointercept = TRUE
@@ -106,7 +106,7 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
   run_matrix_processed = as.data.frame(design)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_processed,model)
+  model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model)
@@ -147,7 +147,7 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
     warning("User defined anticipated coefficnets (anticoef) detected; ignoring effectsize argument.")
   }
   if (missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model,nointercept) * effectsize / 2
+    anticoef = gen_anticoef(RunMatrixReduced, model, nointercept) * effectsize / 2
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
     }

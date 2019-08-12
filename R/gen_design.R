@@ -407,7 +407,7 @@ gen_design = function(candidateset, model, trials,
         # Optimal design generation process.
         lineartermsinteraction = unique(unlist(strsplit(wholeinteractionterms, split = "(\\s\\*\\s)|(:)", perl = TRUE)))
         extract_intnames_formula = as.formula(paste0("~", paste(c(lineartermsinteraction, splitterms[!regularmodel], wholeinteractionterms), collapse = " + ")))
-        combinedcand = cbind(candidateset[1,, drop = FALSE], splitplotdesign[1,, drop = FALSE])
+        combinedcand = cbind(candidateset[1, , drop = FALSE], splitplotdesign[1, , drop = FALSE])
         allcolnames = suppressWarnings(colnames(model.matrix(extract_intnames_formula, data = combinedcand, contrasts.arg = fullcontrastlist)))
         interactionnames = allcolnames[grepl("(\\s\\*\\s)|(:)", allcolnames, perl = TRUE)]
 
@@ -427,7 +427,7 @@ gen_design = function(candidateset, model, trials,
 
         for (interaction_col in interactionnames) {
           term_vals = unlist(strsplit(interaction_col, split = "(\\s\\*\\s)|(:)", perl = TRUE))
-          if(any(term_vals %in% submm)) {
+          if (any(term_vals %in% submm)) {
             interactionlist[[interactioncounter]] = which(correct_order_colnames %in% term_vals)
             interactioncounter = interactioncounter + 1
           }
@@ -492,7 +492,7 @@ gen_design = function(candidateset, model, trials,
     if (nrow(augmentdesign) >= trials) {
       stop("Total number of trials must exceed the number of runs in augmented design.")
     }
-    augmentdesign = augmentdesign[,colnames(candidateset)]
+    augmentdesign = augmentdesign[, colnames(candidateset)]
     #Check and make sure factor levels are equal
     for (i in 1:ncol(augmentdesign)) {
       if (is.character(augmentdesign[, i]) || is.factor(augmentdesign[, i])) {
@@ -579,8 +579,13 @@ gen_design = function(candidateset, model, trials,
       rownames(splitPlotReplicateDesign) = paste(blockIndicators, blockRuns, sep = ".")
     }
     blockMatrixSize = sum(splitplotsizes)
-    V = diag(blockMatrixSize) * varianceRatios[1]
-    blockcounter = 2
+    if(length(varianceRatios) > 1) {
+      V = diag(blockMatrixSize) * varianceRatios[1]
+      blockcounter = 2
+    } else {
+      V = diag(blockMatrixSize)
+      blockcounter = 1
+    }
     for (block in blockgroups) {
       V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceRatios[blockcounter]
       placeholder = block[1]
@@ -591,13 +596,13 @@ gen_design = function(candidateset, model, trials,
       blockcounter = blockcounter + 1
     }
     zlist = list()
-    for(i in seq_along(1:length(blockgroups))) {
+    for (i in seq_along(1:length(blockgroups))) {
       tempblocks = blockgroups[[i]]
       tempnumberblocks = length(tempblocks)
-      ztemp = matrix(0,nrow=trials,ncol=tempnumberblocks)
+      ztemp = matrix(0, nrow = trials, ncol = tempnumberblocks)
       currentrow = 1
-      for(j in 1:tempnumberblocks) {
-        ztemp[currentrow:(currentrow + tempblocks[j] - 1),j] = varianceRatios[i]
+      for (j in 1:tempnumberblocks) {
+        ztemp[currentrow:(currentrow + tempblocks[j] - 1), j] = varianceRatios[i]
         currentrow = currentrow + tempblocks[j]
       }
       zlist[[i]] = ztemp
@@ -641,7 +646,7 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  if(is.null(amodel)){
+  if (is.null(amodel)) {
    if (is.null(splitplotdesign)) {
      amodel = aliasmodel(model, aliaspower)
    } else {
@@ -1183,7 +1188,7 @@ gen_design = function(candidateset, model, trials,
 
   if (!randomized) {
     allattr = attributes(design)
-    design = design[do.call(order, design),, drop = FALSE]
+    design = design[do.call(order, design), , drop = FALSE]
     attributes(design) = allattr
   }
 

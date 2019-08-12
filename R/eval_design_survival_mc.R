@@ -114,7 +114,7 @@ eval_design_survival_mc = function(design, model, alpha,
                                    rfunctionsurv = NULL, anticoef = NULL, effectsize = 2, contrasts = contr.sum,
                                    parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL, ...) {
   args = list(...)
-  if("RunMatrix" %in% names(args)) {
+  if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
   }
   #detect pre-set contrasts
@@ -139,7 +139,7 @@ eval_design_survival_mc = function(design, model, alpha,
     advancedoptions$GUI = FALSE
     progressBarUpdater = NULL
   }
-  if(attr(terms.formula(model,data=design),"intercept") == 1) {
+  if (attr(terms.formula(model, data = design), "intercept") == 1) {
     nointercept = FALSE
   } else {
     nointercept = TRUE
@@ -152,7 +152,7 @@ eval_design_survival_mc = function(design, model, alpha,
   run_matrix_processed = as.data.frame(run_matrix_processed)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_processed,model)
+  model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model)
@@ -276,7 +276,7 @@ eval_design_survival_mc = function(design, model, alpha,
       estimates[j, ] = coef(fit)
     }
     power_values = power_values / nsim
-    pvals = do.call(rbind,pvallist)
+    pvals = do.call(rbind, pvallist)
 
   } else {
     if (is.null(options("cores")[[1]])) {
@@ -310,9 +310,9 @@ eval_design_survival_mc = function(design, model, alpha,
     }, finally  = {
       parallel::stopCluster(cl)
     })
-    power_values = apply(do.call(rbind,power_estimates[, "parameterpower"]), 2, sum) / nsim
+    power_values = apply(do.call(rbind, power_estimates[, "parameterpower"]), 2, sum) / nsim
     pvals = do.call(rbind, power_estimates[, "pvals"])
-    estimates = do.call(rbind,power_estimates[, "estimates"])
+    estimates = do.call(rbind, power_estimates[, "estimates"])
   }
   #output the results (tidy data format)
   retval = data.frame(parameter = parameter_names,

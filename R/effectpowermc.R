@@ -9,7 +9,7 @@
 #'@return p-values
 #'@keywords internal
 effectpowermc = function(fit, type="III", test = "Pr(>Chisq)", ...) {
-  if(class(fit)[1] == "lmerModLmerTest") {
+  if (class(fit)[1] == "lmerModLmerTest") {
     test = "Pr(>F)"
     anovafit = suppressMessages(anova(fit, type = type, ... ))
     effectnames = rownames(anovafit)

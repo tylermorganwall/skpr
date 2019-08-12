@@ -159,7 +159,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
                        contrasts = contr.sum, conservative = FALSE,
                        detailedoutput = FALSE, ...) {
   args = list(...)
-  if("RunMatrix" %in% names(args)) {
+  if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
   }
 
@@ -170,23 +170,23 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
-  nointercept = attr(stats::terms.formula(model,data=design),"intercept") == 0
+  nointercept = attr(stats::terms.formula(model, data = design), "intercept") == 0
   #covert tibbles
   run_matrix_processed = as.data.frame(design)
 
   #Detect externally generated blocking columns and convert to rownames
   run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking, varianceratios)
-  zlist = attr(run_matrix_processed,"z.matrix.list")
+  zlist = attr(run_matrix_processed, "z.matrix.list")
 
   #Remove skpr-generated REML blocking columns if present
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_processed,model)
+  model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model)
-  if(nointercept) {
+  if (nointercept) {
     model = update.formula(model, ~-1 + . )
   }
 
@@ -235,10 +235,10 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   #-----Generate V inverse matrix-----X
   #Variables used later: V, vinv, degrees_of_freedom, parameter_names
   if (blocking) {
-    V = convert_rownames_to_covariance(run_matrix_processed,varianceratios)
+    V = convert_rownames_to_covariance(run_matrix_processed, varianceratios)
     vinv = solve(V)
     #Below code detects the split-plot columns, and calculates the adjusted degrees of freedom for each term
-    degrees_of_freedom = calculate_degrees_of_freedom(run_matrix_processed, nointercept,model,contrasts)
+    degrees_of_freedom = calculate_degrees_of_freedom(run_matrix_processed, nointercept, model, contrasts)
     if (!nointercept) {
       extract_intnames_formula = ~1
       parameter_names = list()
@@ -270,8 +270,8 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
     levelvector = c(1, levelvector - 1)
   } else {
     levelvector = levelvector - 1
-    for(i in 1:ncol(run_matrix_processed)) {
-      if(class(run_matrix_processed[,i]) %in% c("character", "factor")) {
+    for (i in 1:ncol(run_matrix_processed)) {
+      if (class(run_matrix_processed[, i]) %in% c("character", "factor")) {
         levelvector[i] = levelvector[i] + 1
         break
       }
@@ -368,7 +368,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   if (conservative == TRUE) {
     #at this point, since we are going to specify anticoef, do not use the effectsize argument
     #in the subsequent call. Do replicate the magnitudes from the original anticoef
-    conservative_anticoef = calc_conservative_anticoef(results,effectsize)
+    conservative_anticoef = calc_conservative_anticoef(results, effectsize)
     results = eval_design(design = design, model = model, alpha = alpha, blocking = blocking,
                 anticoef = conservative_anticoef,
                 detailedoutput = detailedoutput,

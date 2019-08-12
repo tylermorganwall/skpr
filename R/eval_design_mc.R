@@ -209,7 +209,7 @@ eval_design_mc = function(design, model, alpha,
                           effectsize = 2, contrasts = contr.sum, parallel = FALSE,
                           detailedoutput = FALSE, advancedoptions = NULL, ...) {
   args = list(...)
-  if("RunMatrix" %in% names(args)) {
+  if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
   }
 
@@ -240,31 +240,31 @@ eval_design_mc = function(design, model, alpha,
     advancedoptions$save_simulated_responses = FALSE
   }
   alpha_adjust = FALSE
-  if(advancedoptions$alphacorrection && glmfamily != "gaussian" && blocking) {
+  if (advancedoptions$alphacorrection && glmfamily != "gaussian" && blocking) {
     alpha_adjust = TRUE
     advancedoptions$alphacorrection = FALSE
-    if(is.null(advancedoptions$alphanull)) {
-      effectsizetemp = c(effectsize[1],effectsize[1])
+    if (is.null(advancedoptions$alphanull)) {
+      effectsizetemp = c(effectsize[1], effectsize[1])
     } else {
       effectsizetemp = advancedoptions$alphanull
     }
-    nullresults = eval_design_mc(design=design, model=model, alpha=alpha,
+    nullresults = eval_design_mc(design = design, model = model, alpha = alpha,
                    blocking = blocking, nsim = nsim, glmfamily = glmfamily, calceffect = calceffect,
                    varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef,
                    effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
                    detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
-    if(attr(terms.formula(model),"intercept") == 1) {
-      alpha_parameter = c(alpha,apply(attr(nullresults,"pvals"),2,quantile,probs=alpha)[-1])
+    if (attr(terms.formula(model), "intercept") == 1) {
+      alpha_parameter = c(alpha, apply(attr(nullresults, "pvals"), 2, quantile, probs = alpha)[-1])
       alpha_parameter[alpha_parameter > alpha] = alpha
-      if(calceffect) {
-        alpha_effect = c(alpha,apply(attr(nullresults,"effect_pvals"),2,quantile,probs=alpha)[-1])
+      if (calceffect) {
+        alpha_effect = c(alpha, apply(attr(nullresults, "effect_pvals"), 2, quantile, probs = alpha)[-1])
         alpha_effect[alpha_effect > alpha] = alpha
       }
     } else {
-      alpha_parameter = apply(attr(nullresults,"pvals"),2,quantile,probs=alpha)
+      alpha_parameter = apply(attr(nullresults, "pvals"), 2, quantile, probs = alpha)
       alpha_parameter[alpha_parameter > alpha] = alpha
-      if(calceffect) {
-        alpha_effect = apply(attr(nullresults,"effect_pvals"),2,quantile,probs=alpha)
+      if (calceffect) {
+        alpha_effect = apply(attr(nullresults, "effect_pvals"), 2, quantile, probs = alpha)
         alpha_effect[alpha_effect > alpha] = alpha
       }
     }
@@ -272,7 +272,7 @@ eval_design_mc = function(design, model, alpha,
     alpha_effect = alpha
     alpha_parameter = alpha
   }
-  if(attr(terms.formula(model,data=design),"intercept") == 1) {
+  if (attr(terms.formula(model, data = design), "intercept") == 1) {
     nointercept = FALSE
   } else {
     nointercept = TRUE
@@ -302,12 +302,12 @@ eval_design_mc = function(design, model, alpha,
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_processed,model)
+  model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model)
   if(nointercept) {
-    model = update.formula(model,~-1 + .)
+    model = update.formula(model, ~-1 + .)
   }
 
   glmfamilyname = glmfamily
@@ -594,9 +594,9 @@ eval_design_mc = function(design, model, alpha,
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl, cores = numbercores)
     tryCatch({
-      power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4","lmerTest")) %dopar% {
+      power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4", "lmerTest")) %dopar% {
         #simulate the data.
-        fiterror=FALSE
+        fiterror = FALSE
         RunMatrixReduced$Y = responses[, j]
         if (blocking) {
           if (glmfamilyname == "gaussian") {
@@ -736,7 +736,7 @@ eval_design_mc = function(design, model, alpha,
     retval$nsim = nsim
     retval$blocking = blocking
     if(calceffect) {
-      retval$error_adjusted_alpha = c(alpha_effect,alpha_parameter)
+      retval$error_adjusted_alpha = c(alpha_effect, alpha_parameter)
     } else {
       retval$error_adjusted_alpha = alpha_parameter
     }
@@ -753,8 +753,8 @@ eval_design_mc = function(design, model, alpha,
     attr(retval, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
   }
   if(alpha_adjust) {
-    attr(retval, "null_pvals") = attr(nullresults,"pvals")
-    attr(retval, "null_effect_pvals") = attr(nullresults,"effect_pvals")
+    attr(retval, "null_pvals") = attr(nullresults, "pvals")
+    attr(retval, "null_effect_pvals") = attr(nullresults, "effect_pvals")
   }
   attr(retval, "generating.model") = generatingmodel
   attr(retval, "runmatrix") = RunMatrixReduced

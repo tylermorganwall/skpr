@@ -11,11 +11,11 @@
 is_intralayer_interaction = function(design, model, split_layers) {
   model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
   splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
-  ismaineffect = rep(FALSE,length(splitterms))
+  ismaineffect = rep(FALSE, length(splitterms))
   ismaineffect[1:length(split_layers)] = TRUE
   interactions = list()
-  if(max(split_layers) > 0) {
-    for(i in 1:max(split_layers,na.rm=TRUE)) {
+  if (max(split_layers) > 0) {
+    for (i in 1:max(split_layers, na.rm = TRUE)) {
       wholeplotterms = colnames(design)[split_layers == i]
       wholeorwholeinteraction = rep(FALSE, length(splitterms))
       for (term in wholeplotterms) {
@@ -25,7 +25,7 @@ is_intralayer_interaction = function(design, model, split_layers) {
       interactions[[i]] = wholeorwholeinteraction & !ismaineffect
     }
   } else {
-    for(i in seq_along(1:max(split_layers,na.rm=TRUE))) {
+    for(i in seq_along(1:max(split_layers, na.rm=TRUE))) {
       interactions[[i]] = FALSE
     }
   }

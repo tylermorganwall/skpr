@@ -9,7 +9,7 @@
 #'@keywords internal
 gen_anticoef = function(RunMatrix, model, nointercept) {
   #calculate levels for anticipated coefficients, with or without higher order effects
-  if(nointercept) {
+  if (nointercept) {
     first_intercept_cat = TRUE
   } else {
     first_intercept_cat = FALSE
@@ -40,19 +40,19 @@ gen_anticoef = function(RunMatrix, model, nointercept) {
 
   for (i in 1:length(levels)) {
     if (type[i] %in% c("character", "factor") && levels[i] %% 2 == 0) {
-      if(!first_intercept_cat) {
+      if (!first_intercept_cat) {
         anticoef = c(anticoef, rep(c(1, -1), levels[i] / 2))
       } else {
         anticoef = c(anticoef, 1, rep(c(-1, 1), levels[i] / 2))
-        first_intercept_cat=FALSE
+        first_intercept_cat = FALSE
       }
     }
     if (type[i] %in% c("character", "factor") && levels[i] %% 2 == 1) {
-      if(!first_intercept_cat) {
+      if (!first_intercept_cat) {
         anticoef = c(anticoef, 1, rep(c(-1, 1), (levels[i] - 1) / 2))
       } else {
         anticoef = c(anticoef, rep(c(1, -1), (levels[i] - 1) / 2))
-        first_intercept_cat=FALSE
+        first_intercept_cat = FALSE
       }
     }
     if (type[i] == "numeric" || type[i] == "integer") {

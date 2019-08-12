@@ -17,12 +17,13 @@ parameterpower = function(RunMatrix, levelvector=NULL, anticoef, alpha, vinv = N
     vec[i] = 1
     q[[i]] = t(vec)
   }
-  if(is.null(degrees)) {
-    degrees = rep(dim(attr(RunMatrix, "modelmatrix"))[1]-dim(attr(RunMatrix, "modelmatrix"))[2],length(q))
+  if (is.null(degrees)) {
+    degrees = rep(dim(attr(RunMatrix, "modelmatrix"))[1] -
+                    dim(attr(RunMatrix, "modelmatrix"))[2],length(q))
   } else {
     degrees_long = rep(0,length(q))
-    for(i in 1:length(parameter_names)) {
-      for(term in parameter_names[[i]]) {
+    for (i in 1:length(parameter_names)) {
+      for (term in parameter_names[[i]]) {
         degrees_long[which(term == colnames(attr(RunMatrix, "modelmatrix")))] = degrees[i]
       }
     }

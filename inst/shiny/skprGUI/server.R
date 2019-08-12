@@ -569,7 +569,7 @@ function(input, output, session) {
                      "<code style=\"color:#468449\">#design$Y = results <br><br></code>",
                      ifelse(!isblockingtext(),
                             "<code style=\"color:#468449\">## Now analyze the linear model with lm:</code><br><br>",
-                            "<code style=\"color:#468449\">## Now analyze the blocked linear model with lmer (from the lme4 package):<br><br></code>"),
+                            "<code style=\"color:#468449\">## Now analyze the blocked linear model with lmer (from the lme4 package) and lmerTest:<br><br></code>"),
                      ifelse(!isblockingtext(),
                             paste0("<code style=\"color:#468449\">#lm(formula = Y ", regularmodelstring(),
                                    ", data = design",
@@ -577,7 +577,7 @@ function(input, output, session) {
                                           paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ", contraststring(), ")</code>"),
                                           ")<br><br></code>")),
                             paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
-                                   "<code style=\"color:#468449\">#lme4::lmer(formula = Y ",
+                                   "<code style=\"color:#468449\">#library(lmerTest)<br>#lme4::lmer(formula = Y ",
                                    modelwithblocks(),
                                    ", data = design",
                                    ifelse(anyfactors(), paste0(", <br>#          ", "contrasts = ", contraststring(), "))<br><br>"), "))<br><br></code>"))))

@@ -170,6 +170,23 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
+  # reorder levels for the conservative calculation (if not a balanced design)
+  if (conservative) {
+    for (x in names(design[lapply(design, class) %in% c("character", "factor")])) {
+      number_levels = table(design[[x]])
+      if(length(unique(number_levels)) != 1) {
+        if(identical(contrasts, contr.sum)) {
+          number_levels = table(design[[x]])
+          order_levels = names(number_levels)[order(number_levels)]
+          design[[x]] = factor(design[[x]], levels = rev(order_levels))
+        } else if (identical(contrasts, contr.treatment)) {
+          number_levels = table(design[[x]])
+          order_levels = names(number_levels)[order(number_levels)]
+          design[[x]] = factor(design[[x]], levels = order_levels)
+        }
+      }
+    }
+  }
   nointercept = attr(stats::terms.formula(model, data = design), "intercept") == 0
   #covert tibbles
   run_matrix_processed = as.data.frame(design)

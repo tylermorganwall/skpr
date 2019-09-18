@@ -6,7 +6,8 @@
 \usage{
 eval_design(design, model, alpha, blocking = FALSE, anticoef = NULL,
   effectsize = 2, varianceratios = 1, contrasts = contr.sum,
-  conservative = FALSE, detailedoutput = FALSE, ...)
+  conservative = FALSE, reorder_factors = FALSE,
+  detailedoutput = FALSE, ...)
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design} rescales each numeric column
@@ -18,12 +19,12 @@ factors that are not present in the experimental design.}
 
 \item{alpha}{The specified type-I error.}
 
-\item{blocking}{Default FALSE. If TRUE, \code{eval_design} will look at the rownames to determine blocking structure.}
+\item{blocking}{Default `FALSE`. If `TRUE``, \code{eval_design} will look at the rownames to determine blocking structure.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}
 
-\item{effectsize}{The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
+\item{effectsize}{The signal-to-noise ratio. Default `2`. For continuous factors, this specifies the
 difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
 normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
 the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.}
@@ -35,11 +36,15 @@ this ratio can be a vector specifying the variance ratio for each subplot. Other
 for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{conservative}{Specifies whether default method for generating
-anticipated coefficents should be conservative or not. TRUE will give the most conservative
-estimate of power by setting all but one level in each categorical factor's anticipated coefficients
-to zero. Default FALSE.}
+anticipated coefficents should be conservative or not. `TRUE` will give the most conservative
+estimate of power by setting all but one (or multiple if they are equally low) level in each categorical factor's anticipated coefficients
+to zero. Default `FALSE`.}
 
-\item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
+\item{reorder_factors}{Default `FALSE`. If `TRUE`, the levels will be reordered to generate the most conservative calculation of effect power.
+The function searches through all possible reference levels for a given factor and chooses the one that results in the lowest effect power.
+The reordering will be presenting in the output when `detailedoutput = TRUE`.}
+
+\item{detailedoutput}{If `TRUE``, return additional information about evaluation in results. Default FALSE.}
 
 \item{...}{Additional arguments.}
 }

@@ -13,10 +13,10 @@
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
 #'@param alpha The specified type-I error.
-#'@param blocking Default FALSE. If TRUE, \code{eval_design} will look at the rownames to determine blocking structure.
+#'@param blocking Default `FALSE`. If `TRUE``, \code{eval_design} will look at the rownames to determine blocking structure.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.
-#'@param effectsize The signal-to-noise ratio. Default 2. For continuous factors, this specifies the
+#'@param effectsize The signal-to-noise ratio. Default `2`. For continuous factors, this specifies the
 #' difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
 #' normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
 #' the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.
@@ -24,11 +24,14 @@
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param contrasts Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
+#'@param detailedoutput If `TRUE``, return additional information about evaluation in results. Default FALSE.
 #'@param conservative Specifies whether default method for generating
-#'anticipated coefficents should be conservative or not. TRUE will give the most conservative
-#'estimate of power by setting all but one level in each categorical factor's anticipated coefficients
-#'to zero. Default FALSE.
+#'anticipated coefficents should be conservative or not. `TRUE` will give the most conservative
+#'estimate of power by setting all but one (or multiple if they are equally low) level in each categorical factor's anticipated coefficients
+#'to zero. Default `FALSE`.
+#'@param reorder_factors Default `FALSE`. If `TRUE`, the levels will be reordered to generate the most conservative calculation of effect power.
+#'The function searches through all possible reference levels for a given factor and chooses the one that results in the lowest effect power.
+#'The reordering will be presenting in the output when `detailedoutput = TRUE`.
 #'@param ... Additional arguments.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power. Several
 #'design diagnostics are stored as attributes of the data frame. In particular,
@@ -156,8 +159,9 @@
 #'#Deeper levels of blocking can be specified with additional periods.
 eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
                        effectsize = 2, varianceratios = 1,
-                       contrasts = contr.sum, conservative = FALSE,
+                       contrasts = contr.sum, conservative = FALSE, reorder_factors = FALSE,
                        detailedoutput = FALSE, ...) {
+  input_design = design
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
@@ -379,17 +383,56 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
     results$trials = nrow(run_matrix_processed)
   }
 
+
   #For conservative coefficients, look for lowest power results from non-conservative calculation and set them to one
   #and the rest to zero. (If equally low results, apply 1 -1 pattern to lowest)
 
-  if (conservative == TRUE) {
+  if (conservative) {
     #at this point, since we are going to specify anticoef, do not use the effectsize argument
     #in the subsequent call. Do replicate the magnitudes from the original anticoef
     conservative_anticoef = calc_conservative_anticoef(results, effectsize)
     results = eval_design(design = design, model = model, alpha = alpha, blocking = blocking,
                 anticoef = conservative_anticoef,
                 detailedoutput = detailedoutput,
-                varianceratios = varianceratios, contrasts = contrasts, conservative = FALSE)
+                varianceratios = varianceratios, contrasts = contrasts, conservative = FALSE, reorder_factors = reorder_factors)
+  }
+
+  if(reorder_factors) {
+    if(detailedoutput) {
+      results$reordered_factors = NA
+    }
+    results_temp = results
+    sum_effect_power = sum(with(results_temp, power[type == "effect.power"]))
+    for(i in seq_len(ncol(design))) {
+      if(is.factor(design[,i])) {
+        number_factors = length(levels(design[,i]))
+        temp_design = design
+        cycle = list()
+        cycle[[1]] = levels(temp_design[,i])
+        order_cycle = seq_len(number_factors)
+        for(j in seq_len(number_factors)[-1]) {
+          order_cycle = c(order_cycle[-1],order_cycle[1])
+          cycle[[j]] = levels(temp_design[,i])[order_cycle]
+        }
+        for(j in seq_len(number_factors)) {
+          temp_design[,i] = factor(temp_design[,i],cycle[[j]])
+          adjusted_sum_power = eval_design(design = temp_design, model = model, alpha = alpha, blocking = blocking,
+                                           detailedoutput = detailedoutput,
+                                           varianceratios = varianceratios, contrasts = contrasts, conservative = conservative,
+                                           reorder_factors = FALSE)
+          new_sum_power = sum(with(adjusted_sum_power, power[type == "effect.power"]))
+          if(new_sum_power < sum_effect_power) {
+            design[,i] = factor(design[,i],cycle[[j]])
+            results_temp = adjusted_sum_power
+            sum_effect_power = new_sum_power
+            if(detailedoutput) {
+              results_temp$reordered_factors[results_temp$parameter == names(temp_design)[i]] = paste0(cycle[[j]], collapse = " ")
+            }
+          }
+        }
+      }
+    }
+    results = results_temp
   }
   return(results)
 }

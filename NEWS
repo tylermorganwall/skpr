@@ -1,4 +1,83 @@
-﻿skpr v0.57.0 (Release date: 2018-09-21):
+﻿skpr v0.61.3 (Release date: 2019-09-18):
+================
+
+Minor changes:
+
+• Added `reorder_factors` argument to eval_design() as an option to iteratively search for the most conservative reference level and report that power for effect power
+
+skpr v0.61.2 (Release date: 2019-08-12):
+================
+
+Minor changes:
+
+• `gen_design()` Fix blocking issue
+
+• `skprGUI()` Add lmerTest to code pane
+
+• `extractPvalues()` Fix test issue with >1 length logical
+
+• Linting changes (adding spaces)
+
+skpr v0.61.2 (Release date: 2019-05-29):
+================
+
+Minor changes:
+
+• Add error message for binomial effect sizes outside of allowable range
+
+skpr v0.61.0 (Release date: 2019-03-11):
+================
+
+Major changes:
+
+• `eval_design_mc()` Added option to retrieve simulated responses by setting advancedoptions = list(save_simulated_responses = TRUE)
+
+• `eval_design()` Fixed degrees of freedom when intra-plot interaction terms present
+
+Minor changes:
+
+• `eval_design_mc()` Suppress warning messages for effect power calculations during Monte Carlo power simulations and handle case when Anova cannot be fit
+
+skpr v0.60.0 (Release date: 2019-03-11):
+================
+
+Major changes:
+
+• Add empirical alpha correction in non-Gaussian Monte Carlo simulations to correct for inflated type-I error
+
+Minor changes:
+
+• Added code to always clean up parallel R sessions
+
+skpr v0.59.0 (Release date: 2019-02-12):
+================
+
+Major changes:
+
+• Fixed issues when intercept not included in model but categorical factor present
+
+Minor changes:
+
+• Compartmentalized code in eval_design to make it easier to understand 
+
+• Documentation improvements
+
+skpr v0.58.0 (Release date: 2018-12-21):
+================
+
+Major changes:
+
+• Updated eval_design to adjust degrees of freedom as specified in Pinheiro and Bates
+
+Minor Changes/Bug fixes
+
+• Removed warning about tibbles
+
+• Changed blocking structure warning to message
+
+• Adjusted attribute names
+
+skpr v0.57.0 (Release date: 2018-09-21):
 ================
 
 Major changes:

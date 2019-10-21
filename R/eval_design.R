@@ -32,6 +32,8 @@
 #'@param reorder_factors Default `FALSE`. If `TRUE`, the levels will be reordered to generate the most conservative calculation of effect power.
 #'The function searches through all possible reference levels for a given factor and chooses the one that results in the lowest effect power.
 #'The reordering will be presenting in the output when `detailedoutput = TRUE`.
+#'@param advancedoptions Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
+#'gives the degree at which the Alias matrix should be calculated.
 #'@param ... Additional arguments.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power. Several
 #'design diagnostics are stored as attributes of the data frame. In particular,
@@ -160,7 +162,7 @@
 eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
                        effectsize = 2, varianceratios = 1,
                        contrasts = contr.sum, conservative = FALSE, reorder_factors = FALSE,
-                       detailedoutput = FALSE, ...) {
+                       detailedoutput = FALSE, advancedoptions = NULL, ...) {
   input_design = design
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
@@ -190,6 +192,14 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
         }
       }
     }
+  }
+  if(is.null(advancedoptions$aliaspower)) {
+    aliaspower = 2
+  } else {
+    if(!is.numeric(advancedoptions$aliaspower)) {
+      stop("advancedoptions$aliaspower must be a positive integer")
+    }
+    aliaspower = advancedoptions$aliaspower
   }
   nointercept = attr(stats::terms.formula(model, data = design), "intercept") == 0
   #covert tibbles
@@ -336,7 +346,6 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
 
   modelmatrix_cor = model.matrix(model, run_matrix_processed, contrasts.arg = contrastslist_cormat)
   if (ncol(modelmatrix_cor) > 2) {
-
     if (!blocking) {
       V = diag(nrow(modelmatrix_cor))
     }
@@ -349,8 +358,25 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
       colnames(correlation.matrix) = colnames(modelmatrix_cor)
       rownames(correlation.matrix) = colnames(modelmatrix_cor)
     }
-
     attr(results, "correlation.matrix") = round(correlation.matrix, 8)
+    tryCatch({
+      if (ncol(attr(run_matrix_processed, "modelmatrix")) > 2) {
+        amodel = aliasmodel(model, aliaspower)
+        if (amodel != model) {
+          aliasmatrix = suppressWarnings({
+            model.matrix(aliasmodel(model, aliaspower), design, contrasts.arg = contrastslist)[, -1]
+          })
+          A = solve(t(attr(run_matrix_processed, "modelmatrix")) %*%
+                      attr(run_matrix_processed, "modelmatrix")) %*%
+                    t(attr(run_matrix_processed, "modelmatrix")) %*% aliasmatrix
+          attr(results, "alias.matrix") = A
+          attr(results, "trA") = sum(diag(t(A) %*% A))
+        } else {
+          attr(results, "alias.matrix") = "No alias matrix calculated: full model specified"
+          attr(results, "trA") = "No alias trace calculated: full model specified"
+        }
+      }
+    }, error = function(e) {})
   }
   attr(results, "generating.model") = model
   attr(results, "run.matrix") = run_matrix_processed
@@ -382,6 +408,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
     results$alpha = alpha
     results$trials = nrow(run_matrix_processed)
   }
+
 
 
   #For conservative coefficients, look for lowest power results from non-conservative calculation and set them to one

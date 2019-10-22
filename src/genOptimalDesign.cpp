@@ -60,6 +60,11 @@ double calculateDOptimality(const Eigen::MatrixXd& currentDesign) {
   return(XtX.partialPivLu().determinant());  //works without partialPivLu()
 }
 
+double calculateDOptimalityLog(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(XtX.llt().matrixL().toDenseMatrix().diagonal().array().log().sum());
+}
+
 double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& momentsMatrix) {
   return((currentV * momentsMatrix).trace());
 }
@@ -101,6 +106,10 @@ double calculateAliasTrace(const Eigen::MatrixXd& currentV,
 double calculateDEff(const Eigen::MatrixXd& currentDesign, double numbercols, double numberrows) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
   return(pow(XtX.partialPivLu().determinant(), 1/numbercols) / numberrows);
+}
+
+double calculateDEffLog(const Eigen::MatrixXd& currentDesign, double numbercols, double numberrows) {
+  return(pow(exp(calculateDOptimalityLog(currentDesign)), 1/numbercols) / numberrows);
 }
 
 double calculateDEffNN(const Eigen::MatrixXd& currentDesign, double numbercols) {
@@ -235,20 +244,28 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
   Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
   Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
+
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
     newOptimum = calculateDOptimality(initialdesign);
+    if(std::isinf(newOptimum)) {
+      newOptimum = exp(calculateDOptimalityLog(initialdesign));
+    }
+
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
+
         found = false;
         entryy = 0;
         del=0;
         xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
         //Search through all candidate set points to find best switch (if one exists).
+
         search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
+
         if (found) {
           //Update the inverse with the rank-2 update formula.
           rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
@@ -265,6 +282,9 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     }
     initialdesign = initialdesign_trans.transpose();
     newOptimum = calculateDEff(initialdesign,numbercols,numberrows);
+    if(std::isinf(newOptimum)) {
+      newOptimum = calculateDEffLog(initialdesign,numbercols,numberrows);
+    }
   }
   //Generate an I-optimal design
   if(condition == "I") {
@@ -629,6 +649,11 @@ double calculateBlockedDOptimality(const Eigen::MatrixXd& currentDesign, const E
   return((currentDesign.transpose()*gls*currentDesign).partialPivLu().determinant());
 }
 
+double calculateBlockedDOptimalityLog(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& gls) {
+  Eigen::MatrixXd XtX = (currentDesign.transpose()*gls*currentDesign);
+  return(exp(XtX.llt().matrixL().toDenseMatrix().diagonal().array().log().sum()));
+}
+
 double calculateBlockedIOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& momentsMatrix,const Eigen::MatrixXd& gls) {
   return(((currentDesign.transpose()*gls*currentDesign).llt().solve(momentsMatrix)).trace());
 }
@@ -833,10 +858,16 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
   if(condition == "D") {
     Eigen::MatrixXd temp;
     newOptimum = calculateBlockedDOptimality(combinedDesign, vInv);
+    if(std::isinf(newOptimum)) {
+      newOptimum = calculateBlockedDOptimalityLog(combinedDesign, vInv);
+    }
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
       del = calculateBlockedDOptimality(combinedDesign,vInv);
+      if(std::isinf(del)) {
+        del = calculateBlockedDOptimalityLog(combinedDesign, vInv);
+      }
       for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
@@ -869,6 +900,9 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
 
           //Check if optimality condition improved and can perform exchange
           newdel = calculateBlockedDOptimality(temp, vInv);
+          if(std::isinf(newdel)) {
+            newdel = calculateBlockedDOptimalityLog(temp, vInv);
+          }
           if((newdel > del || mustchange[i]) && pointallowed) {
             found = true;
             entryx = i; entryy = j;
@@ -895,6 +929,9 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd cand
         }
       }
       newOptimum = calculateBlockedDOptimality(combinedDesign, vInv);
+      if(std::isinf(newOptimum)) {
+        newOptimum = calculateBlockedDOptimalityLog(combinedDesign, vInv);
+      }
     }
   }
   //Generate an I-optimal design, fixing the blocking factors

@@ -746,11 +746,21 @@ eval_design_mc = function(design, model, alpha,
   if (!blocking) {
     attr(retval, "variance.matrix") = diag(nrow(modelmatrix_cor))
     attr(retval, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
-    attr(retval, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    deffic = DOptimality(modelmatrix_cor)
+    if(!is.infinite(deffic)) {
+      attr(results, "D") =  100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    } else {
+      attr(results, "D") =  100 * DOptimalityLog(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    }
   } else {
     attr(retval, "variance.matrix") = V
     attr(retval, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
-    attr(retval, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    deffic = DOptimalityBlocked(modelmatrix_cor, blockedVar = V)
+    if(!is.infinite(deffic)) {
+      attr(results, "D") =  100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    } else {
+      attr(results, "D") =  100 * DOptimalityBlockedLog(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    }
   }
   if(alpha_adjust) {
     attr(retval, "null_pvals") = attr(nullresults, "pvals")

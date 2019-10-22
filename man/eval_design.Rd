@@ -7,7 +7,7 @@
 eval_design(design, model, alpha, blocking = FALSE, anticoef = NULL,
   effectsize = 2, varianceratios = 1, contrasts = contr.sum,
   conservative = FALSE, reorder_factors = FALSE,
-  detailedoutput = FALSE, ...)
+  detailedoutput = FALSE, advancedoptions = NULL, ...)
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design} rescales each numeric column
@@ -45,6 +45,9 @@ The function searches through all possible reference levels for a given factor a
 The reordering will be presenting in the output when `detailedoutput = TRUE`.}
 
 \item{detailedoutput}{If `TRUE``, return additional information about evaluation in results. Default FALSE.}
+
+\item{advancedoptions}{Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
+gives the degree at which the Alias matrix should be calculated.}
 
 \item{...}{Additional arguments.}
 }

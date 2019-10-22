@@ -392,12 +392,22 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   if (!blocking) {
     attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor))
     attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
-    attr(results, "D") = 100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    deffic = DOptimality(modelmatrix_cor)
+    if(!is.infinite(deffic)) {
+      attr(results, "D") =  100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    } else {
+      attr(results, "D") =  100 * DOptimalityLog(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    }
   } else {
     attr(results, "z.matrix.list") = zlist
     attr(results, "variance.matrix") = V
     attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)
-    attr(results, "D") = 100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    deffic = DOptimalityBlocked(modelmatrix_cor, blockedVar = V)
+    if(!is.infinite(deffic)) {
+      attr(results, "D") =  100 * DOptimalityBlocked(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    } else {
+      attr(results, "D") =  100 * DOptimalityBlockedLog(modelmatrix_cor, blockedVar = V) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+    }
   }
   if (detailedoutput) {
     if (nrow(results) != length(anticoef)){

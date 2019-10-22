@@ -9,8 +9,16 @@ DOptimality <- function(currentDesign) {
     .Call(`_skpr_DOptimality`, currentDesign)
 }
 
+DOptimalityLog <- function(currentDesign) {
+    .Call(`_skpr_DOptimalityLog`, currentDesign)
+}
+
 DOptimalityBlocked <- function(currentDesign, blockedVar) {
     .Call(`_skpr_DOptimalityBlocked`, currentDesign, blockedVar)
+}
+
+DOptimalityBlockedLog <- function(currentDesign, blockedVar) {
+    .Call(`_skpr_DOptimalityBlockedLog`, currentDesign, blockedVar)
 }
 
 IOptimality <- function(currentDesign, momentsMatrix, blockedVar) {

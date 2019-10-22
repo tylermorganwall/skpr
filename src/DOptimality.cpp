@@ -9,3 +9,9 @@ double DOptimality(const Eigen::MatrixXd& currentDesign) {
   return(XtX.partialPivLu().determinant());
 }
 
+// [[Rcpp::export]]
+double DOptimalityLog(const Eigen::MatrixXd& currentDesign) {
+  Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
+  return(exp(XtX.llt().matrixL().toDenseMatrix().diagonal().array().log().sum()));
+}
+

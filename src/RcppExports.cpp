@@ -28,6 +28,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// DOptimalityLog
+double DOptimalityLog(const Eigen::MatrixXd& currentDesign);
+RcppExport SEXP _skpr_DOptimalityLog(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(DOptimalityLog(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
 // DOptimalityBlocked
 double DOptimalityBlocked(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& blockedVar);
 RcppExport SEXP _skpr_DOptimalityBlocked(SEXP currentDesignSEXP, SEXP blockedVarSEXP) {
@@ -37,6 +48,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type blockedVar(blockedVarSEXP);
     rcpp_result_gen = Rcpp::wrap(DOptimalityBlocked(currentDesign, blockedVar));
+    return rcpp_result_gen;
+END_RCPP
+}
+// DOptimalityBlockedLog
+double DOptimalityBlockedLog(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& blockedVar);
+RcppExport SEXP _skpr_DOptimalityBlockedLog(SEXP currentDesignSEXP, SEXP blockedVarSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type blockedVar(blockedVarSEXP);
+    rcpp_result_gen = Rcpp::wrap(DOptimalityBlockedLog(currentDesign, blockedVar));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -157,7 +180,9 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_skpr_AOptimality", (DL_FUNC) &_skpr_AOptimality, 1},
     {"_skpr_DOptimality", (DL_FUNC) &_skpr_DOptimality, 1},
+    {"_skpr_DOptimalityLog", (DL_FUNC) &_skpr_DOptimalityLog, 1},
     {"_skpr_DOptimalityBlocked", (DL_FUNC) &_skpr_DOptimalityBlocked, 2},
+    {"_skpr_DOptimalityBlockedLog", (DL_FUNC) &_skpr_DOptimalityBlockedLog, 2},
     {"_skpr_IOptimality", (DL_FUNC) &_skpr_IOptimality, 3},
     {"_skpr_calcAliasTrace", (DL_FUNC) &_skpr_calcAliasTrace, 2},
     {"_skpr_calculateAOptimalityPseudo", (DL_FUNC) &_skpr_calculateAOptimalityPseudo, 1},

@@ -1052,8 +1052,12 @@ gen_design = function(candidateset, model, trials,
   if (blocking) {
     design = cbind(splitPlotReplicateDesign, design)
   }
-
-  attr(design, "D-Efficiency") =  100 * DOptimality(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
+  deffic = DOptimality(designmm)
+  if(!is.infinite(deffic)) {
+    attr(design, "D-Efficiency") =  100 * DOptimality(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
+  } else {
+    attr(design, "D-Efficiency") =  100 * DOptimalityLog(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
+  }
   attr(design, "A-Efficiency") = tryCatch({AOptimality(designmm)}, error = function(e) {})
   if (!blocking) {
     tryCatch({

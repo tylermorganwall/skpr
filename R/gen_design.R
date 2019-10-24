@@ -424,7 +424,6 @@ gen_design = function(candidateset, model, trials,
         interactioncounter = 1
         interactionlist = list()
         #get model matrix of everything except whole/interactions
-
         for (interaction_col in interactionnames) {
           term_vals = unlist(strsplit(interaction_col, split = "(\\s\\*\\s)|(:)", perl = TRUE))
           if (any(term_vals %in% submm)) {
@@ -805,7 +804,13 @@ gen_design = function(candidateset, model, trials,
       blockedFactors = c(colnames(blockedmodelmatrix), colnames(candidatesetmm)[-1])
       blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
     } else {
-      interactionnames = interactionnames[!(interactionnames %in% colnames(blockedmodelmatrix))]
+      blocked_interactions = colnames(blockedmodelmatrix)[grepl(":",colnames(blockedmodelmatrix),fixed=TRUE)]
+      potential_blocked_interactions = c()
+      for(i in seq_len(length(blocked_interactions))) {
+        potential_blocked_interactions = c(potential_blocked_interactions,
+                                           potential_permuted_factors(unlist(strsplit(blocked_interactions[[i]],":"))))
+      }
+      interactionnames = interactionnames[!(interactionnames %in% potential_blocked_interactions)]
       blockedFactors = c(colnames(blockedmodelmatrix), colnames(candidatesetmm)[-1], interactionnames)
       blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
     }

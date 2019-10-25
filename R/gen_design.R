@@ -1200,7 +1200,9 @@ gen_design = function(candidateset, model, trials,
     design = design[do.call(order, design), , drop = FALSE]
     attributes(design) = allattr
   }
-
+  if(any(is.na(design))) {
+    stop("Was not able to generate design, possibly due to a combination of disallowed combinations and model terms")
+  }
   return(design)
 }
 globalVariables("i")

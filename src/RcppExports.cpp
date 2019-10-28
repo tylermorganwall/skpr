@@ -6,17 +6,6 @@
 
 using namespace Rcpp;
 
-// AOptimality
-double AOptimality(const Eigen::MatrixXd& currentDesign);
-RcppExport SEXP _skpr_AOptimality(SEXP currentDesignSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
-    rcpp_result_gen = Rcpp::wrap(AOptimality(currentDesign));
-    return rcpp_result_gen;
-END_RCPP
-}
 // DOptimality
 double DOptimality(const Eigen::MatrixXd& currentDesign);
 RcppExport SEXP _skpr_DOptimality(SEXP currentDesignSEXP) {
@@ -63,6 +52,39 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calculateDEfficiency
+double calculateDEfficiency(const Eigen::MatrixXd& currentDesign);
+RcppExport SEXP _skpr_calculateDEfficiency(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateDEfficiency(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
+// AOptimality
+double AOptimality(const Eigen::MatrixXd& currentDesign);
+RcppExport SEXP _skpr_AOptimality(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(AOptimality(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateAOptimalityPseudo
+double calculateAOptimalityPseudo(const Eigen::MatrixXd& currentDesign);
+RcppExport SEXP _skpr_calculateAOptimalityPseudo(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateAOptimalityPseudo(currentDesign));
+    return rcpp_result_gen;
+END_RCPP
+}
 // IOptimality
 double IOptimality(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& momentsMatrix, const Eigen::MatrixXd& blockedVar);
 RcppExport SEXP _skpr_IOptimality(SEXP currentDesignSEXP, SEXP momentsMatrixSEXP, SEXP blockedVarSEXP) {
@@ -88,28 +110,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calculateAOptimalityPseudo
-double calculateAOptimalityPseudo(const Eigen::MatrixXd& currentDesign);
-RcppExport SEXP _skpr_calculateAOptimalityPseudo(SEXP currentDesignSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
-    rcpp_result_gen = Rcpp::wrap(calculateAOptimalityPseudo(currentDesign));
-    return rcpp_result_gen;
-END_RCPP
-}
-// calculateDEfficiency
-double calculateDEfficiency(const Eigen::MatrixXd& currentDesign);
-RcppExport SEXP _skpr_calculateDEfficiency(SEXP currentDesignSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
-    rcpp_result_gen = Rcpp::wrap(calculateDEfficiency(currentDesign));
-    return rcpp_result_gen;
-END_RCPP
-}
 // covarianceMatrixPseudo
 Eigen::MatrixXd covarianceMatrixPseudo(const Eigen::MatrixXd& design);
 RcppExport SEXP _skpr_covarianceMatrixPseudo(SEXP designSEXP) {
@@ -118,6 +118,17 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type design(designSEXP);
     rcpp_result_gen = Rcpp::wrap(covarianceMatrixPseudo(design));
+    return rcpp_result_gen;
+END_RCPP
+}
+// getPseudoInverse
+Eigen::MatrixXd getPseudoInverse(const Eigen::MatrixXd& currentDesign);
+RcppExport SEXP _skpr_getPseudoInverse(SEXP currentDesignSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    rcpp_result_gen = Rcpp::wrap(getPseudoInverse(currentDesign));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -165,32 +176,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// getPseudoInverse
-Eigen::MatrixXd getPseudoInverse(const Eigen::MatrixXd& currentDesign);
-RcppExport SEXP _skpr_getPseudoInverse(SEXP currentDesignSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
-    rcpp_result_gen = Rcpp::wrap(getPseudoInverse(currentDesign));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_skpr_AOptimality", (DL_FUNC) &_skpr_AOptimality, 1},
     {"_skpr_DOptimality", (DL_FUNC) &_skpr_DOptimality, 1},
     {"_skpr_DOptimalityLog", (DL_FUNC) &_skpr_DOptimalityLog, 1},
     {"_skpr_DOptimalityBlocked", (DL_FUNC) &_skpr_DOptimalityBlocked, 2},
     {"_skpr_DOptimalityBlockedLog", (DL_FUNC) &_skpr_DOptimalityBlockedLog, 2},
+    {"_skpr_calculateDEfficiency", (DL_FUNC) &_skpr_calculateDEfficiency, 1},
+    {"_skpr_AOptimality", (DL_FUNC) &_skpr_AOptimality, 1},
+    {"_skpr_calculateAOptimalityPseudo", (DL_FUNC) &_skpr_calculateAOptimalityPseudo, 1},
     {"_skpr_IOptimality", (DL_FUNC) &_skpr_IOptimality, 3},
     {"_skpr_calcAliasTrace", (DL_FUNC) &_skpr_calcAliasTrace, 2},
-    {"_skpr_calculateAOptimalityPseudo", (DL_FUNC) &_skpr_calculateAOptimalityPseudo, 1},
-    {"_skpr_calculateDEfficiency", (DL_FUNC) &_skpr_calculateDEfficiency, 1},
     {"_skpr_covarianceMatrixPseudo", (DL_FUNC) &_skpr_covarianceMatrixPseudo, 1},
+    {"_skpr_getPseudoInverse", (DL_FUNC) &_skpr_getPseudoInverse, 1},
     {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 10},
     {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 14},
-    {"_skpr_getPseudoInverse", (DL_FUNC) &_skpr_getPseudoInverse, 1},
     {NULL, NULL, 0}
 };
 

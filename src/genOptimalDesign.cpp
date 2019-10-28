@@ -66,14 +66,19 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   //should return a non-singular matrix if one can be constructed from the candidate set
   if (isSingular(initialdesign)) {
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
+    //If all elements are equal here, nullification algorithm was unable to find a design--return NA
+    if(initrows.minCoeff() == initrows.maxCoeff()) {
+      return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
+    }
+
     Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows.rows(), nTrials);
+
     for (int i = augmentedrows; i < nTrials; i++) {
       initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
       aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
       initialRows(i) = initrows_shuffled(i) + 1; //R indexes start at 1
     }
   }
-
   //If still no non-singular design, returns NA.
   if (isSingular(initialdesign)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));

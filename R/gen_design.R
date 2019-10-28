@@ -947,9 +947,10 @@ gen_design = function(candidateset, model, trials,
   if (length(designs) == 0) {
     stop(paste0("For a design with ", trials, " trials and ",
                 ncol(candidatesetmm) + ifelse(blocking, ncol(blockedmodelmatrix) - 1 + length(interactionlist), 0),
-                " parameters, skpr was not able to find non-singular design within given number of repeats.",
+                " parameters, skpr was not able to find non-singular design within given number of repeats. ",
                 "Increase repeats argument and try again. If still no designs are found, reduce the number ",
-                "of model parameters or increase the number of trials."))
+                "of model parameters or increase the number of trials. This failure to find a design could ",
+                "also be the result of disallowed combinations preventing a non-singular design from existing, given the model."))
   }
 
   if (!is.null(advancedoptions$alias_tie_tolerance) && advancedoptions$alias_tie_tolerance != 0) {
@@ -1199,9 +1200,6 @@ gen_design = function(candidateset, model, trials,
     allattr = attributes(design)
     design = design[do.call(order, design), , drop = FALSE]
     attributes(design) = allattr
-  }
-  if(any(is.na(design))) {
-    stop("Was not able to generate design, possibly due to a combination of disallowed combinations and model terms")
   }
   return(design)
 }

@@ -71,12 +71,19 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
       return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
     }
 
-    Eigen::VectorXi initrows_shuffled = sample_noreplace(initrows.rows(), nTrials);
+    //Replace non-augmented rows with orthogonal design
+    for (int i = 0; i < nTrials - augmentedrows; i++) {
+      initialdesign.row(i + augmentedrows) = candidatelist.row(initrows(i));
+      aliasdesign.row(i + augmentedrows) = aliascandidatelist.row(initrows(i));
+      initialRows(i + augmentedrows) = initrows(i) + 1; //R indexes start at 1
+    }
 
+    //Shuffle design
+    Eigen::VectorXi initrows_shuffled = sample_noreplace(nTrials - augmentedrows, nTrials - augmentedrows);
     for (int i = augmentedrows; i < nTrials; i++) {
-      initialdesign.row(i) = candidatelist.row(initrows_shuffled(i));
-      aliasdesign.row(i) = aliascandidatelist.row(initrows_shuffled(i));
-      initialRows(i) = initrows_shuffled(i) + 1; //R indexes start at 1
+      initialdesign.row(i) = initialdesign.row(augmentedrows + initrows_shuffled(i));
+      aliasdesign.row(i) = aliasdesign.row(augmentedrows + initrows_shuffled(i));
+      initialRows(i) = augmentedrows + initrows_shuffled(i) + 1; //R indexes start at 1
     }
   }
   //If still no non-singular design, returns NA.

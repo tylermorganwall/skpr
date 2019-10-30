@@ -1197,9 +1197,17 @@ gen_design = function(candidateset, model, trials,
   }
 
   if (!randomized) {
-    allattr = attributes(design)
-    design = design[do.call(order, design), , drop = FALSE]
-    attributes(design) = allattr
+    if(is.null(augmentdesign)) {
+      allattr = attributes(design)
+      design = design[do.call(order, design), , drop = FALSE]
+      attributes(design) = allattr
+    } else {
+      allattr = attributes(design)
+      noaugmentdesign = design[-(1:nrow(augmentdesign)), , drop = FALSE]
+      noaugmentdesign = noaugmentdesign[do.call(order, noaugmentdesign), , drop = FALSE]
+      design = rbind(augmentdesign, noaugmentdesign)
+      attributes(design) = allattr
+    }
   }
   return(design)
 }

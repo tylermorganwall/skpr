@@ -871,53 +871,109 @@ function(input, output, session) {
 
   powerresults = reactive({
     input$evalbutton
+    power_color = function(powercol, alphaval = 0.2) {
+      colorvalues = cut(c(0,1,powercol), 10, labels = FALSE)[-(1:2)]
+      powercol = unlist(lapply(powercol,sprintf,fmt = "%.3f"))
+      colorvals = paste0("rgba(",
+                         apply(t(col2rgb(hcl(h = 250, c = seq(10,50,length.out = 10), l = seq(100,20,length.out = 10)))), 1,  paste0, collapse = ", ")
+                         ,", 0.4)")
+      cell_spec(powercol, "html", background =  colorvals[colorvalues], background_as_tile = FALSE)
+    }
+    white_color = function(othercol, alphaval = 0.2) {
+      cell_spec(othercol, "html", background = "rgba(255, 255, 255, 1)", background_as_tile = FALSE)
+    }
     if (evaluationtype() == "lm") {
-      eval_design(design = isolate(runmatrix()),
-                  model = as.formula(isolate(input$model)),
-                  alpha = isolate(input$alpha),
-                  blocking = isblocking(),
-                  effectsize = isolate(effectsize()),
-                  conservative = isolate(input$conservative),
-                  detailedoutput = isolate(input$detailedoutput))
+      powerval = eval_design(design = isolate(runmatrix()),
+                             model = as.formula(isolate(input$model)),
+                             alpha = isolate(input$alpha),
+                             blocking = isblocking(),
+                             effectsize = isolate(effectsize()),
+                             conservative = isolate(input$conservative),
+                             detailedoutput = isolate(input$detailedoutput))
+      powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
+      powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
+      prelimhtml = kable_styling(knitr::kable(powerval, "html",
+                                              row.names = TRUE, escape = FALSE, align = "r"), "striped",
+                                 full_width = FALSE, position = "left")
+      gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+           x = prelimhtml, perl = TRUE)
     }
   })
   powerresultsglm = reactive({
     input$evalbutton
+    power_color = function(powercol, alphaval = 0.2) {
+      colorvalues = cut(c(0,1,powercol), 10, labels = FALSE)[-(1:2)]
+      powercol = unlist(lapply(powercol,sprintf,fmt = "%.3f"))
+      colorvals = paste0("rgba(",
+                         apply(t(col2rgb(hcl(h = 250, c = seq(10,50,length.out = 10), l = seq(100,20,length.out = 10)))), 1,  paste0, collapse = ", ")
+                         ,", 0.4)")
+      cell_spec(powercol, "html", background =  colorvals[colorvalues], background_as_tile = FALSE)
+    }
+    white_color = function(othercol, alphaval = 0.2) {
+      cell_spec(othercol, "html", background = "rgba(255, 255, 255, 1)", background_as_tile = FALSE)
+    }
     if (isolate(evaluationtype()) == "glm") {
       if (isolate(input$setseed)) {
         set.seed(isolate(input$seed))
       }
       if (isolate(input$parallel_eval_glm)) {
         showNotification("Simulating (no progress bar with multicore on):", type = "message")
-        eval_design_mc(design = isolate(runmatrix()),
-                       model = isolate(as.formula(input$model)),
-                       alpha = isolate(input$alpha),
-                       blocking = isolate(isblocking()),
-                       nsim = isolate(input$nsim),
-                       varianceratios = isolate(input$varianceratio),
-                       glmfamily = isolate(input$glmfamily),
-                       effectsize = isolate(effectsize()),
-                       parallel = isolate(input$parallel_eval_glm),
-                       detailedoutput = isolate(input$detailedoutput),
-                       advancedoptions = list(GUI = TRUE))
+        powerval = eval_design_mc(design = isolate(runmatrix()),
+                                  model = isolate(as.formula(input$model)),
+                                  alpha = isolate(input$alpha),
+                                  blocking = isolate(isblocking()),
+                                  nsim = isolate(input$nsim),
+                                  varianceratios = isolate(input$varianceratio),
+                                  glmfamily = isolate(input$glmfamily),
+                                  effectsize = isolate(effectsize()),
+                                  parallel = isolate(input$parallel_eval_glm),
+                                  detailedoutput = isolate(input$detailedoutput),
+                                  advancedoptions = list(GUI = TRUE))
+
+        powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
+        powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
+        prelimhtml = kable_styling(knitr::kable(powerval, "html",
+                                                row.names = TRUE, escape = FALSE, align = "r"), "striped",
+                                   full_width = FALSE, position = "left")
+        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+             x = prelimhtml, perl = TRUE)
       } else {
         withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
-          eval_design_mc(design = isolate(runmatrix()),
-                         model = isolate(as.formula(input$model)),
-                         alpha = isolate(input$alpha),
-                         blocking = isolate(isblocking()),
-                         nsim = isolate(input$nsim),
-                         varianceratios = isolate(input$varianceratio),
-                         glmfamily = isolate(input$glmfamily),
-                         effectsize = isolate(effectsize()),
-                         parallel = isolate(input$parallel_eval_glm),
-                         detailedoutput = isolate(input$detailedoutput),
-                         advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))})
+          powerval = eval_design_mc(design = isolate(runmatrix()),
+                                    model = isolate(as.formula(input$model)),
+                                    alpha = isolate(input$alpha),
+                                    blocking = isolate(isblocking()),
+                                    nsim = isolate(input$nsim),
+                                    varianceratios = isolate(input$varianceratio),
+                                    glmfamily = isolate(input$glmfamily),
+                                    effectsize = isolate(effectsize()),
+                                    parallel = isolate(input$parallel_eval_glm),
+                                    detailedoutput = isolate(input$detailedoutput),
+                                    advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))})
+
+        powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
+        powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
+        prelimhtml = kable_styling(knitr::kable(powerval, "html",
+                                                row.names = TRUE, escape = FALSE, align = "r"), "striped",
+                                   full_width = FALSE, position = "left")
+        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+             x = prelimhtml, perl = TRUE)
       }
     }
   })
   powerresultssurv = reactive({
     input$evalbutton
+    power_color = function(powercol, alphaval = 0.2) {
+      colorvalues = cut(c(0,1,powercol), 10, labels = FALSE)[-(1:2)]
+      powercol = unlist(lapply(powercol,sprintf,fmt = "%.3f"))
+      colorvals = paste0("rgba(",
+                         apply(t(col2rgb(hcl(h = 250, c = seq(10,50,length.out = 10), l = seq(100,20,length.out = 10)))), 1,  paste0, collapse = ", ")
+                         ,", 0.4)")
+      cell_spec(powercol, "html", background =  colorvals[colorvalues], background_as_tile = FALSE)
+    }
+    white_color = function(othercol, alphaval = 0.2) {
+      cell_spec(othercol, "html", background = "rgba(255, 255, 255, 1)", background_as_tile = FALSE)
+    }
     if (isolate(evaluationtype()) == "surv") {
       if (isolate(input$setseed)) {
         set.seed(isolate(input$seed))
@@ -927,28 +983,42 @@ function(input, output, session) {
       }
       if (isolate(input$parallel_eval_surv)) {
         showNotification("Simulating (no progress bar with multicore on):", type = "message")
-        eval_design_survival_mc(design = isolate(runmatrix()),
-                                model = isolate(as.formula(input$model)),
-                                alpha = isolate(input$alpha),
-                                nsim = isolate(input$nsim),
-                                censorpoint = isolate(input$censorpoint),
-                                censortype = isolate(input$censortype),
-                                distribution = isolate(input$distribution),
-                                effectsize = isolate(effectsize()),
-                                detailedoutput = isolate(input$detailedoutput),
-                                parallel = isolate(input$parallel_eval_surv))
+        powerval = eval_design_survival_mc(design = isolate(runmatrix()),
+                                           model = isolate(as.formula(input$model)),
+                                           alpha = isolate(input$alpha),
+                                           nsim = isolate(input$nsim),
+                                           censorpoint = isolate(input$censorpoint),
+                                           censortype = isolate(input$censortype),
+                                           distribution = isolate(input$distribution),
+                                           effectsize = isolate(effectsize()),
+                                           detailedoutput = isolate(input$detailedoutput),
+                                           parallel = isolate(input$parallel_eval_surv))
+        powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
+        powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
+        prelimhtml = kable_styling(knitr::kable(powerval, "html",
+                                                row.names = TRUE, escape = FALSE, align = "r"), "striped",
+                                   full_width = FALSE, position = "left")
+        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+             x = prelimhtml, perl = TRUE)
       } else {
         withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
-          eval_design_survival_mc(design = isolate(runmatrix()),
-                                  model = isolate(as.formula(input$model)),
-                                  alpha = isolate(input$alpha),
-                                  nsim = isolate(input$nsim),
-                                  censorpoint = isolate(input$censorpoint),
-                                  censortype = isolate(input$censortype),
-                                  distribution = isolate(input$distribution),
-                                  effectsize = isolate(effectsize()),
-                                  detailedoutput = isolate(input$detailedoutput),
-                                  advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+          powerval = eval_design_survival_mc(design = isolate(runmatrix()),
+                                             model = isolate(as.formula(input$model)),
+                                             alpha = isolate(input$alpha),
+                                             nsim = isolate(input$nsim),
+                                             censorpoint = isolate(input$censorpoint),
+                                             censortype = isolate(input$censortype),
+                                             distribution = isolate(input$distribution),
+                                             effectsize = isolate(effectsize()),
+                                             detailedoutput = isolate(input$detailedoutput),
+                                             advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+          powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
+          powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
+          prelimhtml = kable_styling(knitr::kable(powerval, "html",
+                                                  row.names = TRUE, escape = FALSE, align = "r"), "striped",
+                                     full_width = FALSE, position = "left")
+          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+               x = prelimhtml, perl = TRUE)
         })
       }
     }
@@ -1006,17 +1076,16 @@ function(input, output, session) {
     }
   }
 
-  output$powerresults = renderTable({
+  output$powerresults = function() {
     powerresults()
-  }, digits = 4, hover = TRUE, align = "c")
-
-  output$powerresultsglm = renderTable({
+  }
+  output$powerresultsglm = function() {
     powerresultsglm()
-  }, digits = 4, hover = TRUE, align = "c")
+  }
 
-  output$powerresultssurv = renderTable({
+  output$powerresultssurv = function() {
     powerresultssurv()
-  }, digits = 4, hover = TRUE, align = "c")
+  }
 
   output$aliasplot = renderPlot({
     input$submitbutton

@@ -935,8 +935,8 @@ function(input, output, session) {
         prelimhtml = kable_styling(knitr::kable(powerval, "html",
                                                 row.names = TRUE, escape = FALSE, align = "r"), "striped",
                                    full_width = FALSE, position = "left")
-        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-             x = prelimhtml, perl = TRUE)
+        list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+                  x = prelimhtml, perl = TRUE),powerval)
       } else {
         withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
           powerval = eval_design_mc(design = isolate(runmatrix()),
@@ -956,8 +956,8 @@ function(input, output, session) {
         prelimhtml = kable_styling(knitr::kable(powerval, "html",
                                                 row.names = TRUE, escape = FALSE, align = "r"), "striped",
                                    full_width = FALSE, position = "left")
-        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-             x = prelimhtml, perl = TRUE)
+        list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+                  x = prelimhtml, perl = TRUE),powerval)
       }
     }
   })
@@ -998,8 +998,8 @@ function(input, output, session) {
         prelimhtml = kable_styling(knitr::kable(powerval, "html",
                                                 row.names = TRUE, escape = FALSE, align = "r"), "striped",
                                    full_width = FALSE, position = "left")
-        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-             x = prelimhtml, perl = TRUE)
+        list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+                  x = prelimhtml, perl = TRUE),powerval)
       } else {
         withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
           powerval = eval_design_survival_mc(design = isolate(runmatrix()),
@@ -1017,8 +1017,8 @@ function(input, output, session) {
           prelimhtml = kable_styling(knitr::kable(powerval, "html",
                                                   row.names = TRUE, escape = FALSE, align = "r"), "striped",
                                      full_width = FALSE, position = "left")
-          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-               x = prelimhtml, perl = TRUE)
+          list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+                    x = prelimhtml, perl = TRUE),powerval)
         })
       }
     }
@@ -1080,11 +1080,11 @@ function(input, output, session) {
     powerresults()
   }
   output$powerresultsglm = function() {
-    powerresultsglm()
+    powerresultsglm()[[1]]
   }
 
   output$powerresultssurv = function() {
-    powerresultssurv()
+    powerresultssurv()[[1]]
   }
 
   output$aliasplot = renderPlot({
@@ -1145,29 +1145,33 @@ function(input, output, session) {
   output$simulatedpvalues = renderPlot({
     updateval = c(powerresultsglm(),powerresultssurv())
     if(isolate(evaluationtype() == "glm")) {
-      pvalrows = isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
-      if (!is.null(attr(powerresultsglm(), "pvals"))) {
+      pvalrows = isolate(floor(ncol(attr(powerresultsglm()[[2]], "pvals")) / 3) + 1)
+      if (!is.null(attr(powerresultsglm()[[2]], "pvals"))) {
         par(mfrow = c(pvalrows, 3))
-        for (col in 1:isolate(ncol(attr(powerresultsglm(), "pvals")))) {
-          isolate(hist(attr(powerresultsglm(), "pvals")[, col], breaks = seq(0, 1, 0.05), main = colnames(attr(powerresultsglm(), "pvals"))[col], xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
+        for (col in 1:isolate(ncol(attr(powerresultsglm()[[2]], "pvals")))) {
+          isolate(hist(attr(powerresultsglm()[[2]], "pvals")[, col], breaks = seq(0, 1, 0.05),
+                       main = colnames(attr(powerresultsglm()[[2]], "pvals"))[col],
+                       xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
         }
       }
     }
     if(isolate(evaluationtype() == "surv")) {
-      pvalrows = isolate(floor(ncol(attr(powerresultssurv(), "pvals")) / 3) + 1)
-      if (!is.null(attr(powerresultssurv(), "pvals"))) {
+      pvalrows = isolate(floor(ncol(attr(powerresultssurv()[[2]], "pvals")) / 3) + 1)
+      if (!is.null(attr(powerresultssurv()[[2]], "pvals"))) {
         par(mfrow = c(pvalrows, 3))
-        for (col in 1:isolate(ncol(attr(powerresultssurv(), "pvals")))) {
-          isolate(hist(attr(powerresultssurv(), "pvals")[, col], breaks = seq(0, 1, 0.05), main = colnames(attr(powerresultssurv(), "pvals"))[col], xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
+        for (col in 1:isolate(ncol(attr(powerresultssurv()[[2]], "pvals")))) {
+          isolate(hist(attr(powerresultssurv()[[2]], "pvals")[, col], breaks = seq(0, 1, 0.05),
+                       main = colnames(attr(powerresultssurv()[[2]], "pvals"))[col],
+                       xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
         }
       }
     }
   })
   output$parameterestimates = renderPlot({
     input$evalbutton
-    if (!is.null(attr(powerresultsglm(), "estimates"))) {
-      ests = apply(attr(powerresultsglm(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
-      truth = attr(powerresultsglm(), "anticoef")
+    if (!is.null(attr(powerresultsglm()[[2]], "estimates"))) {
+      ests = apply(attr(powerresultsglm()[[2]], "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
+      truth = attr(powerresultsglm()[[2]], "anticoef")
       if (isolate(input$glmfamily) == "binomial") {
         ests = exp(ests) / (1 + exp(ests))
         truth = exp(truth) / (1 + exp(truth))
@@ -1200,9 +1204,9 @@ function(input, output, session) {
 
   output$parameterestimatessurv = renderPlot({
     input$evalbutton
-    if (!is.null(attr(powerresultssurv(), "estimates"))) {
-      ests = apply(attr(powerresultssurv(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
-      truth = attr(powerresultssurv(), "anticoef")
+    if (!is.null(attr(powerresultssurv()[[2]], "estimates"))) {
+      ests = apply(attr(powerresultssurv()[[2]], "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
+      truth = attr(powerresultssurv()[[2]], "anticoef")
       if (isolate(input$distibution) == "exponential") {
         ests = exp(ests)
         truth = exp(truth)
@@ -1227,9 +1231,9 @@ function(input, output, session) {
 
   output$responsehistogram = renderPlot({
     input$evalbutton
-    if (!is.null(attr(powerresultsglm(), "estimates"))) {
-      responses = as.vector(attr(powerresultsglm(), "estimates") %*% t(attr(powerresultsglm(), "modelmatrix")))
-      trueresponses = as.vector(attr(powerresultsglm(), "anticoef") %*% t(attr(powerresultsglm(), "modelmatrix")))
+    if (!is.null(attr(powerresultsglm()[[2]], "estimates"))) {
+      responses = as.vector(attr(powerresultsglm()[[2]], "estimates") %*% t(attr(powerresultsglm()[[2]], "modelmatrix")))
+      trueresponses = as.vector(attr(powerresultsglm()[[2]], "anticoef") %*% t(attr(powerresultsglm()[[2]], "modelmatrix")))
       widths = hist(trueresponses, plot = FALSE)$counts
       widths = widths[widths != 0]
       widths = sqrt(widths)
@@ -1283,9 +1287,9 @@ function(input, output, session) {
 
   output$responsehistogramsurv = renderPlot({
     input$evalbutton
-    if (!is.null(attr(powerresultssurv(), "estimates"))) {
-      responses = as.vector(attr(powerresultssurv(), "estimates") %*% t(attr(powerresultssurv(), "modelmatrix")))
-      trueresponses = as.vector(attr(powerresultssurv(), "anticoef") %*% t(attr(powerresultssurv(), "modelmatrix")))
+    if (!is.null(attr(powerresultssurv()[[2]], "estimates"))) {
+      responses = as.vector(attr(powerresultssurv()[[2]], "estimates") %*% t(attr(powerresultssurv()[[2]], "modelmatrix")))
+      trueresponses = as.vector(attr(powerresultssurv()[[2]], "anticoef") %*% t(attr(powerresultssurv()[[2]], "modelmatrix")))
       widths = hist(trueresponses, plot = FALSE)$counts
       widths = widths[widths != 0]
       widths = sqrt(widths)
@@ -1317,8 +1321,8 @@ function(input, output, session) {
     input$evalbutton
     likelyseparation = FALSE
     if (isolate(input$evaltype) == "glm" && isolate(input$glmfamily) == "binomial") {
-      if (!is.null(attr(powerresultsglm(), "pvals"))) {
-        pvalmat = attr(powerresultsglm(), "pvals")
+      if (!is.null(attr(powerresultsglm()[[2]], "pvals"))) {
+        pvalmat = attr(powerresultsglm()[[2]], "pvals")
         for (i in 2:ncol(pvalmat)) {
           pvalcount = hist(pvalmat[, i], breaks = seq(0, 1, 0.05), plot = FALSE)
           likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim) / 15)

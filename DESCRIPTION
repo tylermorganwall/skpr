@@ -32,7 +32,8 @@ Imports:
     car,
     viridis,
     magrittr,
-    lmerTest
+    lmerTest,
+    methods
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat
 Encoding: UTF-8

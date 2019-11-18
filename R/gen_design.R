@@ -484,9 +484,16 @@ gen_design = function(candidateset, model, trials,
     if (ncol(augmentdesign) != ncol(candidateset)) {
       stop("Number of columns in the augmented design must equal number of columns in the candidate set.")
     }
-    if (any(unlist(lapply(augmentdesign, class))[order(colnames(augmentdesign))] !=
-            unlist(lapply(candidateset, class))[order(colnames(candidateset))])) {
-      stop("All column types in the augmented design should be equal to the column types in the candidate set.")
+    aug_coltype = unlist(lapply(augmentdesign, class))[order(colnames(augmentdesign))]
+    cand_coltype = unlist(lapply(candidateset, class))[order(colnames(candidateset))]
+    if (any(aug_coltype != cand_coltype)) {
+      warning("Augmented designed column types '", paste0(aug_coltype[aug_coltype != cand_coltype],collapse=", "),
+              "' for columns '",paste0(colnames(candidateset)[aug_coltype != cand_coltype],collapse=", "),
+              "' don't match candidate set '",paste0(cand_coltype[aug_coltype != cand_coltype],collapse=", "),
+              "'--attempting to covert columns to that of the candidate set")
+      for(i in 1:ncol(augmentdesign)) {
+        augmentdesign[,i] = methods::as(augmentdesign[,i],cand_coltype[i])
+      }
     }
     if (nrow(augmentdesign) >= trials) {
       stop("Total number of trials must exceed the number of runs in augmented design.")

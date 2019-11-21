@@ -66,16 +66,21 @@ design. If TRUE, the design also will have extra columns to indicate the blockin
 
 \item{randomized}{Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.}
 
-\item{advancedoptions}{Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
-are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
-matrix when calculating optimality tie-breakers), "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
-considered equal before considering the aliasing structure),  "alias_compare" (which if set to FALSE turns off alias tie breaking completely),
-"aliasmodel" (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
-and "progressBarUpdater" (a function called in non-parallel optimal searches that can be used to update an external progress bar).}
+\item{advancedoptions}{Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
+are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing
+matrix when calculating optimality tie-breakers), `alias_tie_tolerance` (the smallest absolute difference in the optimality criterion where designs are
+considered equal before considering the aliasing structure),  `alias_compare`` (which if set to FALSE turns off alias tie breaking completely),
+`aliasmodel` (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
+and `progressBarUpdater`` (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
+`g_efficiency_method`, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
+"optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
+and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
+the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
+or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.}
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-information in its attributes, which can be accessed with the attr function.
+information in its attributes, which can be accessed with the `get_attributes()` and `get_optimality()` functions.
 }
 \description{
 Creates an experimental design given a model, desired number of runs, and a data frame of candidate
@@ -254,25 +259,13 @@ design_to_augment = gen_design(candidateset, ~height + weight + range, 5)
 augmented_design = gen_design(candidateset,
                              ~height + weight + range, 16, augmentdesign = design_to_augment)
 
-#A design's diagnostics can be accessed via the following attributes:
+#A design's diagnostics can be accessed via the `get_optimality()` function:
 
-#D Efficiency
-attr(design, "D")
-#A Efficiency
-attr(design, "A")
-#The average prediction variance across the design space
-attr(design, "I")
-#G Efficiency
-attr(design, "G")
-#The minimum eigenvalue of the information matrix
-attr(design, "E")
-#The trace of the infomration matrix
-attr(design, "T")
-#The Alias Matrix
-attr(design, "alias.matrix")
+get_optimality(design)
 
-#The correlation matrix can be accessed via the "correlation.matrix" attribute:
-correlation.matrix = attr(design2, "correlation.matrix")
+#And design attributes can be accessed with the `get_attribute()` function:
+
+get_attribute(design)
 
 #A correlation color map can be produced by calling the plot_correlation command with the output
 #of gen_design()

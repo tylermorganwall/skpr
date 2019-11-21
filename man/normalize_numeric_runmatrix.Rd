@@ -4,7 +4,7 @@
 \alias{normalize_numeric_runmatrix}
 \title{Normalize Run Matrix}
 \usage{
-normalize_numeric_runmatrix(RunMatrix)
+normalize_numeric_runmatrix(RunMatrix, augmented = NULL)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}

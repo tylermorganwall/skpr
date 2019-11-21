@@ -45,6 +45,10 @@ getPseudoInverse <- function(currentDesign) {
     .Call(`_skpr_getPseudoInverse`, currentDesign)
 }
 
+GEfficiency <- function(currentDesign, candset) {
+    .Call(`_skpr_GEfficiency`, currentDesign, candset)
+}
+
 genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows) {
     .Call(`_skpr_genOptimalDesign`, initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows)
 }

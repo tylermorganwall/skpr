@@ -43,14 +43,19 @@
 #'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
 #'@param randomized Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.
-#'@param advancedoptions Default NULL. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
-#'are "design_search_tolerance" (the smallest fractional increase below which the design search terminates), "alias_tie_power" (the degree of the aliasing
-#'matrix when calculating optimality tie-breakers), "alias_tie_tolerance" (the smallest absolute difference in the optimality criterion where designs are
-#'considered equal before considering the aliasing structure),  "alias_compare" (which if set to FALSE turns off alias tie breaking completely),
-#'"aliasmodel" (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
-#'and "progressBarUpdater" (a function called in non-parallel optimal searches that can be used to update an external progress bar).
+#'@param advancedoptions Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
+#'are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing
+#'matrix when calculating optimality tie-breakers), `alias_tie_tolerance` (the smallest absolute difference in the optimality criterion where designs are
+#'considered equal before considering the aliasing structure),  `alias_compare`` (which if set to FALSE turns off alias tie breaking completely),
+#'`aliasmodel` (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
+#'and `progressBarUpdater`` (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
+#'`g_efficiency_method`, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
+#'"optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
+#'and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
+#'the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
+#'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-#'information in its attributes, which can be accessed with the attr function.
+#'information in its attributes, which can be accessed with the `get_attributes()` and `get_optimality()` functions.
 #'@import doRNG
 #'@export
 #'@details
@@ -223,25 +228,13 @@
 #'augmented_design = gen_design(candidateset,
 #'                              ~height + weight + range, 16, augmentdesign = design_to_augment)
 #'
-#'#A design's diagnostics can be accessed via the following attributes:
+#'#A design's diagnostics can be accessed via the `get_optimality()` function:
 #'
-#'#D Efficiency
-#'attr(design, "D")
-#'#A Efficiency
-#'attr(design, "A")
-#'#The average prediction variance across the design space
-#'attr(design, "I")
-#'#G Efficiency
-#'attr(design, "G")
-#'#The minimum eigenvalue of the information matrix
-#'attr(design, "E")
-#'#The trace of the infomration matrix
-#'attr(design, "T")
-#'#The Alias Matrix
-#'attr(design, "alias.matrix")
+#'get_optimality(design)
 #'
-#'#The correlation matrix can be accessed via the "correlation.matrix" attribute:
-#'correlation.matrix = attr(design2, "correlation.matrix")
+#'#And design attributes can be accessed with the `get_attribute()` function:
+#'
+#'get_attribute(design)
 #'
 #'#A correlation color map can be produced by calling the plot_correlation command with the output
 #'#of gen_design()
@@ -294,9 +287,46 @@ gen_design = function(candidateset, model, trials,
     } else {
       amodel = NULL
     }
+    if(!is.null(advancedoptions$g_efficiency_method) && advancedoptions$g_efficiency_method != "none") {
+      if(advancedoptions$g_efficiency_method == "random") {
+        if(is.null(advancedoptions$g_efficiency_samples))  {
+          advancedoptions$g_efficiency_samples = 1000
+        }
+      } else if (advancedoptions$g_efficiency_method == "optim") {
+        if(is.null(advancedoptions$g_efficiency_samples))  {
+          advancedoptions$g_efficiency_samples = 1
+        }
+      } else if (advancedoptions$g_efficiency_method == "custom") {
+        if(is.null(advancedoptions$g_efficiency_samples) || is.numeric(advancedoptions$g_efficiency_samples))  {
+          warning("no data.frame passed to advancedoptions$g_efficiency_samples, ignoring and using random sampling")
+          advancedoptions$g_efficiency_method == "random"
+          advancedoptions$g_efficiency_samples = 1000
+        }
+        contrastslisttemp = list()
+        for (x in names(advancedoptions$g_efficiency_samples[lapply(advancedoptions$g_efficiency_samples, class) %in%
+                                                             c("factor", "character")])) {
+          contrastslisttemp[[x]] = contrast
+        }
+        if (length(contrastslisttemp) == 0) {
+          advancedoptions$g_efficiency_samples = model.matrix(model,
+                                        normalize_numeric_runmatrix(advancedoptions$g_efficiency_samples))
+        } else {
+          advancedoptions$g_efficiency_samples = suppressWarnings(model.matrix(model,
+                                                         normalize_numeric_runmatrix(advancedoptions$g_efficiency_samples),
+                                                         contrasts.arg = contrastslisttemp))
+        }
+      } else {
+        warning("advancedoptions$g_efficiency_method not recognized, defaulting to random search")
+        advancedoptions$g_efficiency_method = "random"
+        advancedoptions$g_efficiency_samples = 1000
+      }
+    } else {
+      advancedoptions$g_efficiency_method = "none"
+    }
   } else {
     advancedoptions = list()
     advancedoptions$GUI = FALSE
+    advancedoptions$g_efficiency_method = "none"
     progressBarUpdater = NULL
   }
 
@@ -463,16 +493,6 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  #------Normalize/Center numeric columns ------#
-  candidatesetnormalized = candidateset
-
-  candidatesetnormalized = normalize_numeric_runmatrix(candidateset)
-  fullcandidatesetnorm = normalize_numeric_runmatrix(fullcandidateset)
-
-  if (!is.null(splitplotdesign)) {
-    spdnormalized = normalize_numeric_runmatrix(splitplotdesign)
-  }
-
   #----Check for augmented design and normalize/equalize factor levels if present----#
   if (!is.null(augmentdesign)) {
     if (!is.null(splitplotdesign)) {
@@ -507,12 +527,21 @@ gen_design = function(candidateset, model, trials,
       }
     }
     #Normalize
-    augmentnormalized = normalize_numeric_runmatrix(augmentdesign)
+    augmentnormalized = normalize_numeric_runmatrix(augmentdesign, candidateset)
     augmentedrows = nrow(augmentdesign)
   } else {
     augmentedrows = 0
   }
 
+  #------Normalize/Center numeric columns ------#
+  candidatesetnormalized = candidateset
+
+  candidatesetnormalized = normalize_numeric_runmatrix(candidateset, augmentdesign)
+  fullcandidatesetnorm = normalize_numeric_runmatrix(fullcandidateset, augmentdesign)
+
+  if (!is.null(splitplotdesign)) {
+    spdnormalized = normalize_numeric_runmatrix(splitplotdesign)
+  }
 
   blocking = FALSE
   #-----generate blocked design with replicates-----#
@@ -1072,26 +1101,11 @@ gen_design = function(candidateset, model, trials,
     attr(design, "D-Efficiency") =  100 * DOptimalityLog(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
   }
   attr(design, "A-Efficiency") = tryCatch({AOptimality(designmm)}, error = function(e) {})
-  if (!blocking) {
-    tryCatch({
-      attr(design, "G") = 100 * (ncol(designmm)) / (nrow(designmm) * max(diag(designmm %*% solve(t(designmm) %*% designmm) %*% t(designmm))))
-      attr(design, "T") = sum(diag(t(designmm) %*% designmm))
-      attr(design, "E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
-      attr(design, "variance.matrix") = diag(nrow(designmm))
-      attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = mm, blockedVar = diag(nrow(designmm)))
-    }, error = function(e) {})
-  } else {
-    tryCatch({
-      attr(design, "variance.matrix") = V
-      vinv = solve(V)
-      attr(design, "G") = 100 * (ncol(designmm)) / (nrow(designmm) * max(diag(designmm %*% solve(t(designmm) %*% vinv %*% designmm) %*% t(designmm) %*% vinv)))
-      attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = blockedmm, blockedVar = V)
-    }, error = function(e) {})
-  }
   attr(design, "model.matrix") = designmm
   attr(design, "generating.model") = model
   attr(design, "generating.criterion") = optimality
   attr(design, "generating.contrast") = contrast
+  attr(design, "contrastslist") = contrastslist
 
   if (!blocking) {
     rownames(design) = 1:nrow(design)
@@ -1143,6 +1157,36 @@ gen_design = function(candidateset, model, trials,
     }
   }, error = function(e) {})
 
+  if (!blocking) {
+    tryCatch({
+      if(advancedoptions$g_efficiency_method == "none") {
+        attr(design, "G") = "Not Computed"
+      } else if(advancedoptions$g_efficiency_method != "custom") {
+        attr(design, "G") = calculate_gefficiency(design, calculation_type = advancedoptions$g_efficiency_method,
+                                                  randsearches = advancedoptions$g_efficiency_samples)
+      } else {
+        attr(design, "G") = calculate_gefficiency(design, calculation_type = advancedoptions$g_efficiency_method,
+                                                  design_space_mm = advancedoptions$g_efficiency_samples)
+      }
+      attr(design, "T") = sum(diag(t(designmm) %*% designmm))
+      attr(design, "E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
+      attr(design, "variance.matrix") = diag(nrow(designmm))
+      attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = mm, blockedVar = diag(nrow(designmm)))
+    }, error = function(e) {
+      if(is.null(attr(design, "G"))) attr(design, "G") = NA
+      if(is.null(attr(design, "T"))) attr(design, "T") = NA
+      if(is.null(attr(design, "E"))) attr(design, "E") = NA
+      if(is.null(attr(design, "variance.matrix"))) attr(design, "variance.matrix") = NA
+      if(is.null(attr(design, "I"))) attr(design, "I") = NA
+    })
+  } else {
+    tryCatch({
+      attr(design, "variance.matrix") = V
+      vinv = solve(V)
+      attr(design, "G") = 100 * (ncol(designmm)) / (nrow(designmm) * max(diag(designmm %*% solve(t(designmm) %*% vinv %*% designmm) %*% t(designmm) %*% vinv)))
+      attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = blockedmm, blockedVar = V)
+    }, error = function(e) {})
+  }
   #Re-order factors so levels with the lowest number of factors come first
   for (i in 1:ncol(design)) {
     if (!is.numeric(design[[i]])) {
@@ -1150,7 +1194,6 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  attr(design, "contrastslist") = contrastslist
   if (optimality == "D") {
     if (blocking) {
       attr(design, "optimalsearchvalues") = unlist(criteria)
@@ -1168,7 +1211,7 @@ gen_design = function(candidateset, model, trials,
   if (optimality == "G") {
     attr(design, "optimalsearchvalues") = 100 * (ncol(designmm)) / (nrow(designmm) * unlist(criteria))
   }
-  if (optimality %in% c("ALIAS", "I", "E", "T")) {
+  if (optimality %in% c("ALIAS", "I", "E", "T","CUSTOM")) {
     attr(design, "optimalsearchvalues") = unlist(criteria)
   }
   attr(design, "bestiterations") = best

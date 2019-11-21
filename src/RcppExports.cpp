@@ -132,6 +132,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// GEfficiency
+double GEfficiency(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candset);
+RcppExport SEXP _skpr_GEfficiency(SEXP currentDesignSEXP, SEXP candsetSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type currentDesign(currentDesignSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type candset(candsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(GEfficiency(currentDesign, candset));
+    return rcpp_result_gen;
+END_RCPP
+}
 // genOptimalDesign
 List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist, const std::string condition, const Eigen::MatrixXd& momentsmatrix, NumericVector initialRows, Eigen::MatrixXd aliasdesign, const Eigen::MatrixXd& aliascandidatelist, double minDopt, double tolerance, int augmentedrows);
 RcppExport SEXP _skpr_genOptimalDesign(SEXP initialdesignSEXP, SEXP candidatelistSEXP, SEXP conditionSEXP, SEXP momentsmatrixSEXP, SEXP initialRowsSEXP, SEXP aliasdesignSEXP, SEXP aliascandidatelistSEXP, SEXP minDoptSEXP, SEXP toleranceSEXP, SEXP augmentedrowsSEXP) {
@@ -189,6 +201,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_skpr_calcAliasTrace", (DL_FUNC) &_skpr_calcAliasTrace, 2},
     {"_skpr_covarianceMatrixPseudo", (DL_FUNC) &_skpr_covarianceMatrixPseudo, 1},
     {"_skpr_getPseudoInverse", (DL_FUNC) &_skpr_getPseudoInverse, 1},
+    {"_skpr_GEfficiency", (DL_FUNC) &_skpr_GEfficiency, 2},
     {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 10},
     {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 14},
     {NULL, NULL, 0}

@@ -291,34 +291,7 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   }
 
   factornames = attr(terms(model), "term.labels")
-  factormatrix = attr(terms(model), "factors")
-  interactionterms = factornames[apply(factormatrix, 2, sum) > 1]
-  higherorderterms = factornames[!(gsub("`", "", factornames, fixed = TRUE) %in% colnames(run_matrix_processed)) &
-                                 !(apply(factormatrix, 2, sum) > 1)]
-  levelvector = sapply(lapply(run_matrix_processed, unique), length)
-  levelvector[lapply(run_matrix_processed, class) == "numeric"] = 2
-  if (!nointercept) {
-    levelvector = c(1, levelvector - 1)
-  } else {
-    levelvector = levelvector - 1
-    for (i in 1:ncol(run_matrix_processed)) {
-      if (class(run_matrix_processed[, i]) %in% c("character", "factor")) {
-        levelvector[i] = levelvector[i] + 1
-        break
-      }
-    }
-  }
-  higherorderlevelvector = rep(1, length(higherorderterms))
-  names(higherorderlevelvector) = higherorderterms
-  levelvector = c(levelvector, higherorderlevelvector)
-
-  for (interaction in interactionterms) {
-    numberlevels = 1
-    for (term in unlist(strsplit(interaction, split = "(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"))) {
-      numberlevels = numberlevels * levelvector[gsub("`", "", term, fixed = TRUE)]
-    }
-    levelvector = c(levelvector, numberlevels)
-  }
+  levelvector = calculate_level_vector(run_matrix_processed, model, nointercept)
 
   effectresults = effectpower(run_matrix_processed, levelvector, anticoef,
                               alpha, vinv = vinv, degrees = degrees_of_freedom)

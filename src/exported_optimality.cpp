@@ -37,7 +37,7 @@ double calculateDEfficiency(const Eigen::MatrixXd& currentDesign) {
 // [[Rcpp::export]]
 double AOptimality(const Eigen::MatrixXd& currentDesign) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  return(100 / (currentDesign.rows() * XtX.partialPivLu().inverse().trace() / currentDesign.cols()));
+  return(100 * currentDesign.cols() / ((currentDesign.rows() * (XtX.partialPivLu().inverse())).trace()));
 }
 
 // [[Rcpp::export]]
@@ -69,6 +69,13 @@ Eigen::MatrixXd covarianceMatrixPseudo(const Eigen::MatrixXd& design) {
 // [[Rcpp::export]]
 Eigen::MatrixXd getPseudoInverse(const Eigen::MatrixXd& currentDesign) {
   return(currentDesign.completeOrthogonalDecomposition().pseudoInverse());
+}
+
+// [[Rcpp::export]]
+double GEfficiency(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candset) {
+  Eigen::MatrixXd V = (currentDesign.transpose()*currentDesign).partialPivLu().inverse();
+  Eigen::MatrixXd results = candset*V*candset.transpose();
+  return(100*((double)currentDesign.cols()/(double)currentDesign.rows())*1/results.diagonal().maxCoeff());
 }
 
 

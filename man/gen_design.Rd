@@ -261,7 +261,7 @@ augmented_design = gen_design(candidateset,
 
 #A design's diagnostics can be accessed via the `get_optimality()` function:
 
-get_optimality(design)
+get_optimality(augmented_design)
 
 #And design attributes can be accessed with the `get_attribute()` function:
 

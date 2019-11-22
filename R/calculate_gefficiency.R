@@ -18,7 +18,7 @@ calculate_gefficiency = function(design, calculation_type = "random", randsearch
   factorvars = attr(design,"contrastslist")
   variables = variables[!variables %in% names(factorvars)]
   rand_vector = function(factorlist, model_entries_mul) {
-    fulloutput = unlist(purrr::map(model_entries_mul, lazyeval::lazy_eval, data = factorlist))
+    fulloutput = unlist(lapply(model_entries_mul, lazyeval::lazy_eval, data = factorlist))
     matrix(fulloutput,1,length(fulloutput))
   }
   calculate_optimality_for_point = function(x, infval = FALSE) {
@@ -40,7 +40,7 @@ calculate_gefficiency = function(design, calculation_type = "random", randsearch
     }
     100 * (ncol(designmm)) / (nrow(designmm) * max(diag(mc_mm %*% solve(t(designmm) %*% designmm) %*% t(mc_mm))))
   }
-  modelentries = names(skpr:::calculate_level_vector(design,get_attribute(design,"model"), FALSE))
+  modelentries = names(calculate_level_vector(design,get_attribute(design,"model"), FALSE))
   factorvars = attr(design,"contrastslist")
   variables = all.vars(get_attribute(design,"model"))
   variables = variables[!variables %in% names(factorvars)]
@@ -58,7 +58,7 @@ calculate_gefficiency = function(design, calculation_type = "random", randsearch
   if(calculation_type == "optim") {
     vals = list()
     lowest = 100
-    for(i in 1:10) {
+    for(i in 1:randsearches) {
       vals[[i]] = optim(2*runif(length(variables))-1,calculate_optimality_for_point, method = "SANN")$value
       if(vals[[i]] < lowest) {
         lowest = vals[[i]]

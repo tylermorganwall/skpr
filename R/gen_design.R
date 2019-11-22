@@ -230,7 +230,7 @@
 #'
 #'#A design's diagnostics can be accessed via the `get_optimality()` function:
 #'
-#'get_optimality(design)
+#'get_optimality(augmented_design)
 #'
 #'#And design attributes can be accessed with the `get_attribute()` function:
 #'
@@ -294,7 +294,7 @@ gen_design = function(candidateset, model, trials,
         }
       } else if (advancedoptions$g_efficiency_method == "optim") {
         if(is.null(advancedoptions$g_efficiency_samples))  {
-          advancedoptions$g_efficiency_samples = 1
+          advancedoptions$g_efficiency_samples = 10
         }
       } else if (advancedoptions$g_efficiency_method == "custom") {
         if(is.null(advancedoptions$g_efficiency_samples) || is.numeric(advancedoptions$g_efficiency_samples))  {

@@ -20,5 +20,25 @@ A dataframe of optimality conditions. `D`, `A`, and `G` are efficiencies (value 
 Returns a list of optimality values (or one value in particular)
 }
 \examples{
-#We can pass either the output of gen_design or eval_design to plot_correlations
+# We can extract the optimality of a design from either the output of `gen_design()`
+# or the output of `eval_design()`
+
+factorialcoffee = expand.grid(cost = c(1, 2),
+                             type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+                             size = as.factor(c("Short", "Grande", "Venti")))
+
+designcoffee = gen_design(factorialcoffee, ~cost + size + type, trials = 29,
+                         optimality = "D", repeats = 100)
+
+#Extract a list of all attributes
+get_optimality(designcoffee)
+
+#Get just one attribute
+get_optimality(designcoffee,"D")
+
+# Extract from `eval_design()` output
+power_output = eval_design(designcoffee, model = ~cost + size + type,
+                          alpha = 0.05, detailedoutput = TRUE)
+
+get_optimality(power_output,"I")
 }

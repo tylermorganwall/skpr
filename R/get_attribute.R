@@ -10,7 +10,27 @@
 #'@return A list of attributes.
 #'@export
 #'@examples
-#'#We can pass either the output of gen_design or eval_design to plot_correlations
+#'# We can extract the attributes of a design from either the output of `gen_design()`
+#'# or the output of `eval_design()`
+#'
+#'factorialcoffee = expand.grid(cost = c(1, 2),
+#'                              type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
+#'                              size = as.factor(c("Short", "Grande", "Venti")))
+#'
+#'designcoffee = gen_design(factorialcoffee, ~cost + size + type, trials = 29,
+#'                          optimality = "D", repeats = 100)
+#'
+#'#Extract a list of all attributes
+#'get_attribute(designcoffee)
+#'
+#'#Get just one attribute
+#'get_attribute(designcoffee,"model.matrix")
+#'
+#'# Extract from `eval_design()` output
+#'power_output = eval_design(designcoffee, model = ~cost + size + type,
+#'                           alpha = 0.05, detailedoutput = TRUE)
+#'
+#'get_attribute(power_output,"correlation.matrix")
 get_attribute = function(output, attr = NULL, round = TRUE) {
   attr_list = list()
   attr_list[["model.matrix"]] = attr(output,"model.matrix")

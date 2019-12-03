@@ -1460,7 +1460,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       }
       if (isblockingtext()) {
         first = paste(c(first, ", <br>", rep("&nbsp;", 20),
-                        "splitplotsizes = ", sizevector), collapse = "")
+                        "blocksizes = ", sizevector), collapse = "")
       }
       if (input$optimality != "D") {
         first = paste(c(first, ", <br>", rep("&nbsp;", 20),
@@ -1488,7 +1488,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       }
       if (isblockingtext()) {
         first = paste(c(first, ", <br>", rep("&nbsp;", 20),
-                        "splitcolumns = ", ifelse(input$splitanalyzable, "TRUE", "FALSE")), collapse = "")
+                        "add_blocking_columns = ", ifelse(input$splitanalyzable, "TRUE", "FALSE")), collapse = "")
       }
       first = paste0(c(first, ")<br><br>"), collapse = "")
       if (input$evaltype == "lm") {
@@ -1533,7 +1533,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
                                        ifelse(anyfactors(),
                                               paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ", contraststring(), ")</code>"),
                                               ")<br><br></code>")),
-                                paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                                paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument add_blocking_columns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
                                   "<code style=\"color:#468449\">#library(lmerTest)<br>#lme4::lmer(formula = Y ",
                                   modelwithblocks(),
                                   ", data = design",
@@ -1593,7 +1593,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
                                      ifelse(anyfactors(),
                                             paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ", contraststring(), ")</code>"),
                                             ")<br><br></code>")),
-                              paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                              paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument add_blocking_columns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
                                      "<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
                                      modelwithblocks(),
                                      ", data = design",
@@ -1791,19 +1791,19 @@ skprGUIserver = function(inputValue1, inputValue2) {
         aliaspower_async = input$aliaspower
         varianceratio_async = input$varianceratio
         mindopt_async =  input$mindopt
-        splitcolumns_aync = input$splitanalyzable
+        add_blocking_columns_aync = input$splitanalyzable
         return(future({
           temp = skpr::gen_design(candidateset = candidatesetall_async,
                    model = as.formula(model_async),
                    trials = trials_async,
                    splitplotdesign = spd,
-                   splitplotsizes = sizevector,
+                   blocksizes = sizevector,
                    optimality = optimality_async,
                    repeats = repeats_async,
                    varianceratio = varianceratio_async,
                    aliaspower = aliaspower_async,
                    minDopt = mindopt_async,
-                   splitcolumns = splitcolumns_aync,
+                   add_blocking_columns = add_blocking_columns_aync,
                    advancedoptions = list(GUI = TRUE, progressBarUpdater = progress_bar_updater))
           attr(temp, "generating.model") = NULL
           saveRDS(temp, file = file.path(tempdir_runmatrix, paste0(unique_file_name2, ".Rds")))

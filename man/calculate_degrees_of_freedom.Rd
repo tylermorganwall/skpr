@@ -4,8 +4,12 @@
 \alias{calculate_degrees_of_freedom}
 \title{Calculate Degrees of Freedom}
 \usage{
-calculate_degrees_of_freedom(run_matrix_processed, nointercept, model,
-  contrasts)
+calculate_degrees_of_freedom(
+  run_matrix_processed,
+  nointercept,
+  model,
+  contrasts
+)
 }
 \arguments{
 \item{run_matrix_processed}{The design}

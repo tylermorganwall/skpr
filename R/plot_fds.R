@@ -21,7 +21,6 @@
 #'
 #'plot_fds(design)
 plot_fds = function(genoutput, model = NULL, continuouslength = 11) {
-
   #Remove skpr-generated REML blocking indicators if present
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
@@ -30,6 +29,12 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11) {
       allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
       attributes(genoutput) = allattr
     }
+  }
+  if (!is.null(attr(genoutput, "splitcolumns"))) {
+    allattr = attributes(genoutput)
+    genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
+    allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+    attributes(genoutput) = allattr
   }
 
   Iopt = attr(genoutput, "I")
@@ -94,7 +99,6 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11) {
   varsorderedscaled = varsordered / scale * Iopt
   midval = varsorderedscaled[5000]
   maxyaxis = max(varsorderedscaled) + max(varsorderedscaled) / 20
-
   plot(1:length(varsorderedscaled) / length(varsorderedscaled), varsorderedscaled, ylim = c(0, maxyaxis), type = "n",
        xlab = "Fraction of Design Space", ylab = "Prediction Variance",
        xlim = c(0, 1), xaxs = "i", yaxs = "i")

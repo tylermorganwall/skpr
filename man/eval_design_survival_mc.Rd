@@ -4,11 +4,23 @@
 \alias{eval_design_survival_mc}
 \title{Evaluate Power for Survival Design}
 \usage{
-eval_design_survival_mc(design, model, alpha, nsim = 1000,
-  distribution = "gaussian", censorpoint = NA, censortype = "right",
-  rfunctionsurv = NULL, anticoef = NULL, effectsize = 2,
-  contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
-  advancedoptions = NULL, ...)
+eval_design_survival_mc(
+  design,
+  model,
+  alpha,
+  nsim = 1000,
+  distribution = "gaussian",
+  censorpoint = NA,
+  censortype = "right",
+  rfunctionsurv = NULL,
+  anticoef = NULL,
+  effectsize = 2,
+  contrasts = contr.sum,
+  parallel = FALSE,
+  detailedoutput = FALSE,
+  advancedoptions = NULL,
+  ...
+)
 }
 \arguments{
 \item{design}{The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].}

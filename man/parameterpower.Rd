@@ -4,8 +4,15 @@
 \alias{parameterpower}
 \title{Calculates parameter power}
 \usage{
-parameterpower(RunMatrix, levelvector = NULL, anticoef, alpha,
-  vinv = NULL, degrees = NULL, parameter_names)
+parameterpower(
+  RunMatrix,
+  levelvector = NULL,
+  anticoef,
+  alpha,
+  vinv = NULL,
+  degrees = NULL,
+  parameter_names
+)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}

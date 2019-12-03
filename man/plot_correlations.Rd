@@ -4,8 +4,13 @@
 \alias{plot_correlations}
 \title{Plots design diagnostics}
 \usage{
-plot_correlations(genoutput, model = NULL, customcolors = NULL,
-  pow = 2, custompar = NULL)
+plot_correlations(
+  genoutput,
+  model = NULL,
+  customcolors = NULL,
+  pow = 2,
+  custompar = NULL
+)
 }
 \arguments{
 \item{genoutput}{The output of either gen_design or eval_design/eval_design_mc}

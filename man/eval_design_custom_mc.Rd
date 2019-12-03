@@ -4,10 +4,23 @@
 \alias{eval_design_custom_mc}
 \title{Monte Carlo power evaluation for experimental designs with user-supplied libraries}
 \usage{
-eval_design_custom_mc(design, model, alpha, nsim, rfunction, fitfunction,
-  pvalfunction, anticoef, effectsize = 2, contrasts = contr.sum,
-  coef_function = coef, parameternames = NULL, parallel = FALSE,
-  parallelpackages = NULL, ...)
+eval_design_custom_mc(
+  design,
+  model,
+  alpha,
+  nsim,
+  rfunction,
+  fitfunction,
+  pvalfunction,
+  anticoef,
+  effectsize = 2,
+  contrasts = contr.sum,
+  coef_function = coef,
+  parameternames = NULL,
+  parallel = FALSE,
+  parallelpackages = NULL,
+  ...
+)
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design_custom_mc} rescales each numeric column

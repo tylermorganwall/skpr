@@ -15,24 +15,26 @@
 #'@param model The statistical model used to generate the test design.
 #'@param trials The number of runs in the design.
 #'@param splitplotdesign If NULL, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
-#'this argument specifies the design for
-#'all of the factors harder to change than the current set of factors.
+#'this argument specifies the design for all of the factors harder to change than the current set of factors.
 #'Each row corresponds to a block in which the harder to change factors will be held
-#'constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{splitplotsizes},
+#'constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{blocksizes},
 #'and the optimal design is found for all of the factors given in the
-#'\code{model} argument, taking into consideration the fixed and replicated hard-to-change factors.
-#'@param splitplotsizes Default NULL. Specifies the block size for each row of harder-to-change factors given in the
-#'argument \code{splitplotdesign}. If missing, `gen_design`` will attempt to allocate the runs in the most balanced design possible,
+#'\code{model} argument, taking into consideration the fixed and replicated hard-to-change factors. If \code{blocksizes} is missing,
+#'`gen_design` will attempt to allocate the runs in the most balanced design possible,
 #'given the number of blocks given in the argument `splitplotdesign` and the total number of `trials`.
-#'If the input is a vector, each entry of the vector determines the size of the sub-plot for that whole plot setting.
-#'If the input is an integer, each block will be of that size.
+#'@param blocksizes Default `NULL`. Specifies the block size(s) for design generation. If only one number is passed, `gen_design()`
+#'will create blocks of the specified size, and if the total number of run specified in `trials` is not divisible by the number,
+#'`gen_design()` will attempt to allocate the runs in the most balanced design possible. If a list is passed, each entry
+#'in the list will specify an additional layer of blocking. If `splitplotdesign` is not `NULL`, this argument
+#'specifies the number of subplots within each whole plot (each whole plot corresponding to a row in the `splitplotdesign` data.frame).
 #'@param optimality Default "D". The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 #' define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
 #' "CUSTOM" optimality split-plot designs, the user must instead define customBlockedOpt, which should be a function of the model matrix and the variance-covariance matrix. For
 #'information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.
 #'@param augmentdesign Default NULL. A dataframe of runs that are fixed during the optimal search process. The columns of augmentdesign must match those of the candidate set.
 #'The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.
-#'@param repeats The number of times to repeat the search for the best optimal design. Default 20.
+#'@param repeats Default `20`. The number of times to repeat the search for the best optimal design.
+#'@param custom_v Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.
 #'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
 #'a split plot design. Default 1.
 #'@param contrast Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.
@@ -40,7 +42,7 @@
 #'@param minDopt Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
 #'@param parallel Default FALSE. If TRUE, the optimal design search will use all the available cores. This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting options("cores") to the desired number. NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
-#'@param splitcolumns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
+#'@param add_blocking_columns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
 #'@param randomized Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.
 #'@param advancedoptions Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
@@ -116,6 +118,25 @@
 #'gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
 #'           optimality = "A", repeats = 10)
 #'
+#'#A blocked design can be generated by specifying the `blocksizes` argument. Passing a single
+#'#number will create designs with blocks of that size, while passing multiple values in a list
+#'#will specify multiple layers of blocking.
+#'
+#'#Specify a single layer
+#'gen_design(quad_candidates, ~a + b + c, 21, blocksizes=3, add_blocking_column=TRUE)
+#'
+#'#Manually specify the block sizes for a single layer, must add to `trials``
+#'gen_design(quad_candidates, ~a + b + c, 21, blocksizes=c(4,3,2,3,3,3,3),
+#'           add_blocking_column=TRUE)
+#'
+#'#Multiple layers of blocking
+#'gen_design(quad_candidates, ~a + b + c, 21, blocksizes=list(7,3),
+#'           add_blocking_column=TRUE)
+#'
+#'#Multiple layers of blocking, specified individually
+#'gen_design(quad_candidates, ~a + b + c, 21, blocksizes=list(7,c(4,3,2,3,3,3,3)),
+#'           add_blocking_column=TRUE)
+#'
 #'#A split-plot design can be generated by first generating an optimal blocking design using the
 #'#hard-to-change factors and then using that as the input for the split-plot design.
 #'#This generates an optimal subplot design that accounts for the existing split-plot settings.
@@ -135,13 +156,13 @@
 #'designsplitplot = gen_design(splitplotcandidateset, ~Altitude + Range + Power, trials = 33,
 #'                              splitplotdesign = hardtochangedesign, repeats = 10)
 #'
-#'#If we want to allocate the blocks manually, we can do that with the argument `splitplotsizes`. This
+#'#If we want to allocate the blocks manually, we can do that with the argument `blocksizes`. This
 #'#vector must sum to the number of `trials` specified.
 #'
 #'#Putting this all together:
 #'designsplitplot = gen_design(splitplotcandidateset, ~Altitude + Range + Power, trials = 33,
 #'                              splitplotdesign = hardtochangedesign,
-#'                              splitplotsizes = c(4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2), repeats = 10)
+#'                              blocksizes = c(4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2), repeats = 10)
 #'
 #'#The split-plot structure is encoded into the row names, with a period
 #'#demarcating the blocking level. This process can be repeated for arbitrary
@@ -159,19 +180,19 @@
 #'
 #'#Each Location block has 2 blocks of Climate:
 #'temp = gen_design(splitplotcandidateset2, ~Location + Climate,
-#'                   trials = 12, splitplotdesign = temp, splitplotsizes = 2,
+#'                   trials = 12, splitplotdesign = temp, blocksizes = 2,
 #'                   varianceratio = 1, repeats = 10)
 #'
 #'#Each Climate block has 4 blocks of Vineyard:
 #'temp = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard,
-#'                   trials = 48, splitplotdesign = temp, splitplotsizes = 4,
+#'                   trials = 48, splitplotdesign = temp, blocksizes = 4,
 #'                   varianceratio = 1, repeats = 10)
 #'
 #'#Each Vineyard block has 4 runs with different Age:
 #'\dontrun{
 #'splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard + Age,
-#'                                        trials = 192, splitplotdesign = temp, splitplotsizes = 4,
-#'                                        varianceratio = 1, splitcolumns = TRUE)
+#'                                        trials = 192, splitplotdesign = temp, blocksizes = 4,
+#'                                        varianceratio = 1, add_blocking_columns = TRUE)
 #'}
 #'#gen_design also supports user-defined optimality criterion. The user defines a function
 #'#of the model matrix named customOpt, and gen_design will attempt to generate a design
@@ -211,7 +232,7 @@
 #'
 #'design = gen_design(candlistcustom,
 #'                    ~Altitude + Range + Power, trials = 33,
-#'                    splitplotdesign = htcdesign, splitplotsizes = 3,
+#'                    splitplotdesign = htcdesign, blocksizes = 3,
 #'                    optimality = "CUSTOM", repeats = 10)
 #'
 #'#gen_design can also augment an existing design. Input a dataframe of pre-existing runs
@@ -249,11 +270,11 @@
 #'#eval_design_survival_mc (Monte Carlo survival analysis), and
 #'#eval_design_custom_mc (Custom Library Monte Carlo)
 gen_design = function(candidateset, model, trials,
-                      splitplotdesign = NULL, splitplotsizes = NULL, optimality = "D",
-                      augmentdesign = NULL,
-                      repeats = 20, varianceratio = 1, contrast = contr.simplex,
+                      splitplotdesign = NULL, blocksizes = NULL, optimality = "D",
+                      augmentdesign = NULL, repeats = 20,
+                      custom_v = NULL, varianceratio = 1, contrast = contr.simplex,
                       aliaspower = 2, minDopt = 0.8,
-                      parallel = FALSE, timer = FALSE, splitcolumns = FALSE, randomized = TRUE,
+                      parallel = FALSE, timer = FALSE, add_blocking_columns = FALSE, randomized = TRUE,
                       advancedoptions = NULL) {
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
@@ -543,6 +564,7 @@ gen_design = function(candidateset, model, trials,
     spdnormalized = normalize_numeric_runmatrix(splitplotdesign)
   }
 
+  splitplot = FALSE
   blocking = FALSE
   #-----generate blocked design with replicates-----#
   if (!is.null(splitplotdesign)) {
@@ -551,44 +573,48 @@ gen_design = function(candidateset, model, trials,
     } else {
       varianceRatios = varianceratio
     }
-    blocking = TRUE
-    if (is.null(splitplotsizes)) {
+    splitplot = TRUE
+    if (is.null(blocksizes)) {
       if (trials < 2 * nrow(splitplotdesign)) {
         warning("Warning: Some blocks in `splitplotdesign` only have one replicate.")
       }
       if (trials %% nrow(splitplotdesign) == 0) {
-        splitplotsizes = trials / nrow(splitplotdesign)
+        blocksizes = trials / nrow(splitplotdesign)
       } else {
         sizevector = c(rep(ceiling(trials / nrow(splitplotdesign)), nrow(splitplotdesign)))
         unbalancedruns = ceiling(trials / nrow(splitplotdesign)) * nrow(splitplotdesign) - trials
         sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
-        splitplotsizes = sizevector
+        blocksizes = sizevector
       }
     }
-    if (length(splitplotsizes) == 1) {
-      splitplotsizes = rep(splitplotsizes, nrow(splitplotdesign))
+    if(is.list(blocksizes)) {
+      warning("For split plot designs, only one layer of blocking can be specified via `blocksizes`--extracted first element of list to use as blocking vector")
+      blocksizes = blocksizes[[1]]
     }
-    if (trials != sum(splitplotsizes)) {
+    if (length(blocksizes) == 1) {
+      blocksizes = rep(blocksizes, nrow(splitplotdesign))
+    }
+    if (trials != sum(blocksizes)) {
       stop("Blocked replicates does not equal the number of trials input")
     }
-    if (nrow(splitplotdesign) != length(splitplotsizes)) {
+    if (nrow(splitplotdesign) != length(blocksizes)) {
       stop("Need to specify a size for each row in the given split plot design")
     }
     alreadyBlocking = FALSE
     initialrownames = rownames(splitplotdesign)
     blocklist = strsplit(initialrownames, ".", fixed = TRUE)
-    blockgroups = list(splitplotsizes)
+    blockgroups = list(blocksizes)
 
     if (any(lapply(blocklist, length) > 1)) {
       alreadyBlocking = TRUE
-      initialrownames = rep(rownames(splitplotdesign), splitplotsizes)
+      initialrownames = rep(rownames(splitplotdesign), blocksizes)
       blocklist = strsplit(initialrownames, ".", fixed = TRUE)
       existingblockstructure = do.call(rbind, blocklist)
       blockgroups = apply(existingblockstructure, 2, blockingstructure)
     }
     withinBlockRun = function(runs) 1:runs
 
-    blockIndicators = rep(1:length(splitplotsizes), splitplotsizes)
+    blockIndicators = rep(1:length(blocksizes), blocksizes)
 
     blockvars = colnames(splitplotdesign)
     blocks = list()
@@ -597,8 +623,8 @@ gen_design = function(candidateset, model, trials,
     }
 
     blockRuns = c()
-    for (i in 1:length(splitplotsizes)) {
-      blockRuns = c(blockRuns, withinBlockRun(splitplotsizes[i]))
+    for (i in 1:length(blocksizes)) {
+      blockRuns = c(blockRuns, withinBlockRun(blocksizes[i]))
     }
 
     if (length(blocks[[1]]) > 1) {
@@ -613,7 +639,7 @@ gen_design = function(candidateset, model, trials,
     } else {
       rownames(splitPlotReplicateDesign) = paste(blockIndicators, blockRuns, sep = ".")
     }
-    blockMatrixSize = sum(splitplotsizes)
+    blockMatrixSize = sum(blocksizes)
     if(length(varianceRatios) > 1) {
       V = diag(blockMatrixSize) * varianceRatios[1]
       blockcounter = 2
@@ -641,6 +667,94 @@ gen_design = function(candidateset, model, trials,
         currentrow = currentrow + tempblocks[j]
       }
       zlist[[i]] = ztemp
+    }
+  } else if (!is.null(blocksizes) || !is.null(custom_v)) {
+    if (length(varianceratio) == 1) {
+      if(is.list(blocksizes)) {
+        varianceratio = c(1,rep(varianceratio,length(blocksizes)))
+      }
+    } else {
+      if(is.list(blocksizes)) {
+        if(length(varianceratio) < length(blocksizes) + 1) {
+          stop("Number of blocking layers (specified in the list passed to `blocksizes` argument) does not equal number of entries in argument `varianceratio`. Set a ratio for each layer or one value for all layers.` ")
+        }
+      }
+    }
+    if(is.list(blocksizes)) {
+      for(i in seq_len(length(blocksizes))) {
+        if (length(blocksizes[[i]]) == 1) {
+          if (trials %% blocksizes[[i]] == 0) {
+            sizevector = rep(blocksizes[[i]], trials/blocksizes[[i]])
+          } else {
+            sizevector = rep(blocksizes[[i]],  ceiling(trials/blocksizes[[i]]))
+            unbalancedruns = blocksizes[[i]] *  ceiling(trials/blocksizes[[i]]) - trials
+            sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
+          }
+          blocksizes[[i]] = sizevector
+        } else {
+          if(sum(blocksizes[[i]]) != trials) {
+            stop("sum(blocksize[[",i,"]]) layer not equal to number of trials: ", trials)
+          }
+        }
+      }
+    } else {
+      if (length(blocksizes) == 1) {
+        if (trials %% blocksizes == 0) {
+          sizevector = rep(blocksizes, trials/blocksizes)
+        } else {
+          sizevector = rep(blocksizes,  ceiling(trials/blocksizes))
+          unbalancedruns = blocksizes *  ceiling(trials/blocksizes) - trials
+          sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
+        }
+        blocksizes = sizevector
+      }
+    }
+    blocking = TRUE
+    if(!is.null(blocksizes)) {
+      if(is.list(blocksizes)) {
+        blockMatrixSize = sum(blocksizes[[1]])
+        if(length(varianceratio) > 1) {
+          V = diag(blockMatrixSize) * varianceratio[1]
+          blockcounter = 2
+        } else {
+          V = diag(blockMatrixSize)
+          blockcounter = 1
+        }
+        for(i in seq_len(length(blocksizes))) {
+          blockgroups = list(blocksizes[[i]])
+          for (block in blockgroups) {
+            V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceratio[blockcounter]
+            placeholder = block[1]
+            for (i in 2:length(block)) {
+              V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] = V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] + varianceratio[blockcounter]
+              placeholder = placeholder + block[i]
+            }
+            blockcounter = blockcounter + 1
+          }
+        }
+      } else {
+        blockgroups = list(blocksizes)
+        blockMatrixSize = sum(blocksizes)
+        if(length(varianceratio) > 1) {
+          V = diag(blockMatrixSize) * varianceratio[1]
+          blockcounter = 2
+        } else {
+          V = diag(blockMatrixSize)
+          blockcounter = 1
+        }
+        for (block in blockgroups) {
+          V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceratio[blockcounter]
+          placeholder = block[1]
+          for (i in 2:length(block)) {
+            V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] = V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] + varianceratio[blockcounter]
+            placeholder = placeholder + block[i]
+          }
+          blockcounter = blockcounter + 1
+        }
+      }
+    }
+    if(!is.null(custom_v)) {
+      V = custom_v
     }
   }
 
@@ -671,7 +785,7 @@ gen_design = function(candidateset, model, trials,
     }
   }
 
-  if (!blocking) {
+  if (!splitplot) {
     if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
       stop(paste("The candidateset does not support the specified model - its rank is too low.",
                  "This usually happens if disallowed combinations",
@@ -700,7 +814,7 @@ gen_design = function(candidateset, model, trials,
       aliasmm = model.matrix(amodel, candidatesetnormalized, contrasts.arg = contrastslist)
     })
   }
-  if (!blocking) {
+  if (!splitplot) {
     factors = colnames(candidatesetmm)
     levelvector = sapply(lapply(candidateset, unique), length)
     classvector = sapply(lapply(candidateset, unique), class) == "factor"
@@ -717,11 +831,19 @@ gen_design = function(candidateset, model, trials,
           if (!is.null(augmentdesign)) {
             initialdesign[1:augmentedrows, ] = augmentdesignmm
           }
-          genOutput[[i]] = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
-                                            condition = optimality, momentsmatrix = mm, initialRows = randomindices,
-                                            aliasdesign = aliasmm[randomindices, ],
-                                            aliascandidatelist = aliasmm, minDopt = minDopt,
-                                            tolerance = tolerance, augmentedrows = augmentedrows)
+          if(!blocking) {
+            genOutput[[i]] = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                              condition = optimality, momentsmatrix = mm, initialRows = randomindices,
+                                              aliasdesign = aliasmm[randomindices, ],
+                                              aliascandidatelist = aliasmm, minDopt = minDopt,
+                                              tolerance = tolerance, augmentedrows = augmentedrows)
+          } else {
+            genOutput[[i]] = genBlockedOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                                    condition = optimality, V = V, momentsmatrix = mm, initialRows = randomindices,
+                                                    aliasdesign = aliasmm[randomindices, ],
+                                                    aliascandidatelist = aliasmm, minDopt = minDopt,
+                                                    tolerance = tolerance, augmentedrows = augmentedrows)
+          }
         }
       } else {
         if (!is.null(progressBarUpdater)) {
@@ -735,11 +857,19 @@ gen_design = function(candidateset, model, trials,
         if (!is.null(augmentdesign)) {
           initialdesign[1:augmentedrows, ] = augmentdesignmm
         }
-        genOutput[[1]] = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+        if(!blocking) {
+          genOutput[[1]] = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
                                           condition = optimality, momentsmatrix = mm, initialRows = randomindices,
                                           aliasdesign = aliasmm[randomindices, ],
                                           aliascandidatelist = aliasmm, minDopt = minDopt,
                                           tolerance = tolerance, augmentedrows = augmentedrows)
+        } else {
+          genOutput[[1]] = genBlockedOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                                       condition = optimality, V = V, momentsmatrix = mm, initialRows = randomindices,
+                                                       aliasdesign = aliasmm[randomindices, ],
+                                                       aliascandidatelist = aliasmm, minDopt = minDopt,
+                                                       tolerance = tolerance, augmentedrows = augmentedrows)
+        }
         cat(paste(c("is: ", floor( (proc.time() - ptm)[3] * (repeats - 1)), " seconds."), collapse = ""))
         for (i in 2:repeats) {
           if (!is.null(progressBarUpdater)) {
@@ -750,11 +880,19 @@ gen_design = function(candidateset, model, trials,
           if (!is.null(augmentdesign)) {
             initialdesign[1:augmentedrows, ] = augmentdesignmm
           }
-          genOutput[[i]] = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+          if(!blocking) {
+            genOutput[[i]] = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
                                             condition = optimality, momentsmatrix = mm, initialRows = randomindices,
                                             aliasdesign = aliasmm[randomindices, ],
                                             aliascandidatelist = aliasmm, minDopt = minDopt,
                                             tolerance = tolerance, augmentedrows = augmentedrows)
+          } else {
+            genOutput[[i]] = genBlockedOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                                     condition = optimality, V = V, momentsmatrix = mm, initialRows = randomindices,
+                                                     aliasdesign = aliasmm[randomindices, ],
+                                                     aliascandidatelist = aliasmm, minDopt = minDopt,
+                                                     tolerance = tolerance, augmentedrows = augmentedrows)
+          }
         }
       }
     } else {
@@ -768,17 +906,25 @@ gen_design = function(candidateset, model, trials,
         doParallel::registerDoParallel(cl, cores = numbercores)
 
         genOutput = tryCatch({
-          foreach(i = 1:repeats, .export = c("genOptimalDesign")) %dorng% {
+          foreach(i = 1:repeats, .export = c("genOptimalDesign","genBlockedOptimalDesign")) %dorng% {
             randomindices = sample(nrow(candidatesetmm), trials, replace = initialreplace)
             initialdesign = candidatesetmm[randomindices, ]
             if (!is.null(augmentdesign)) {
               initialdesign[1:augmentedrows, ] = augmentdesignmm
             }
-            genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
-                             condition = optimality, momentsmatrix = mm, initialRows = randomindices,
-                             aliasdesign = aliasmm[randomindices, ],
-                             aliascandidatelist = aliasmm, minDopt = minDopt,
-                             tolerance = tolerance, augmentedrows = augmentedrows)
+            if(!blocking) {
+              genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                               condition = optimality, momentsmatrix = mm, initialRows = randomindices,
+                               aliasdesign = aliasmm[randomindices, ],
+                               aliascandidatelist = aliasmm, minDopt = minDopt,
+                               tolerance = tolerance, augmentedrows = augmentedrows)
+            } else {
+              genBlockedOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                      condition = optimality, V = V, momentsmatrix = mm, initialRows = randomindices,
+                                      aliasdesign = aliasmm[randomindices, ],
+                                      aliascandidatelist = aliasmm, minDopt = minDopt,
+                                      tolerance = tolerance, augmentedrows = augmentedrows)
+            }
           }
         }, finally = {
           tryCatch({
@@ -796,25 +942,41 @@ gen_design = function(candidateset, model, trials,
         if (!is.null(augmentdesign)) {
           initialdesign[1:augmentedrows, ] = augmentdesignmm
         }
-        genOutputOne = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+        if(!blocking) {
+          genOutputOne = genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
                                         condition = optimality, momentsmatrix = mm, initialRows = randomindices,
                                         aliasdesign = aliasmm[randomindices, ],
                                         aliascandidatelist = aliasmm, minDopt = minDopt,
                                         tolerance = tolerance, augmentedrows = augmentedrows)
+        } else {
+          genOutputOne = genBlockedOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                                 condition = optimality, V = V, momentsmatrix = mm, initialRows = randomindices,
+                                                 aliasdesign = aliasmm[randomindices, ],
+                                                 aliascandidatelist = aliasmm, minDopt = minDopt,
+                                                 tolerance = tolerance, augmentedrows = augmentedrows)
+        }
         cat(paste(c("is: ", floor( (proc.time() - ptm)[3] * (repeats - 1) / numbercores), " seconds."), collapse = ""))
 
         genOutput = tryCatch({
-          foreach(i = 2:repeats, .export = c("genOptimalDesign")) %dorng% {
+          foreach(i = 2:repeats, .export = c("genOptimalDesign","genBlockedOptimalDesign")) %dorng% {
             randomindices = sample(nrow(candidatesetmm), trials, replace = initialreplace)
             initialdesign = candidatesetmm[randomindices, ]
             if (!is.null(augmentdesign)) {
               initialdesign[1:augmentedrows, ] = augmentdesignmm
             }
-            genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+            if(!blocking) {
+              genOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
                              condition = optimality, momentsmatrix = mm, initialRows = randomindices,
                              aliasdesign = aliasmm[randomindices, ],
                              aliascandidatelist = aliasmm, minDopt = minDopt,
                              tolerance = tolerance, augmentedrows = augmentedrows)
+            } else {
+              genBlockedOptimalDesign(initialdesign = initialdesign, candidatelist = candidatesetmm,
+                                      condition = optimality, V = V, momentsmatrix = mm, initialRows = randomindices,
+                                      aliasdesign = aliasmm[randomindices, ],
+                                      aliascandidatelist = aliasmm, minDopt = minDopt,
+                                      tolerance = tolerance, augmentedrows = augmentedrows)
+            }
           }
         }, finally = {
           tryCatch({
@@ -870,7 +1032,7 @@ gen_design = function(candidateset, model, trials,
             progressBarUpdater(1 / repeats)
           }
           randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
-          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
+          genOutput[[i]] = genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                                    candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,
                                                    condition = optimality, momentsmatrix = blockedmm, initialRows = randomindices,
                                                    blockedVar = V, aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -884,7 +1046,7 @@ gen_design = function(candidateset, model, trials,
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
-        genOutput[[1]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
+        genOutput[[1]] = genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                                  candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,
                                                  condition = optimality, momentsmatrix = blockedmm, initialRows = randomindices,
                                                  blockedVar = V, aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -899,7 +1061,7 @@ gen_design = function(candidateset, model, trials,
             progressBarUpdater(1 / repeats)
           }
           randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
-          genOutput[[i]] = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
+          genOutput[[i]] = genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                                    candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,
                                                    condition = optimality, momentsmatrix = blockedmm, initialRows = randomindices,
                                                    blockedVar = V, aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -917,9 +1079,9 @@ gen_design = function(candidateset, model, trials,
         cl = parallel::makeCluster(numbercores)
         doParallel::registerDoParallel(cl, cores = numbercores)
         genOutput = tryCatch({
-          foreach(i = 1:repeats, .export = c("genBlockedOptimalDesign")) %dorng% {
+          foreach(i = 1:repeats, .export = c("genSplitPlotOptimalDesign")) %dorng% {
             randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
-            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
+            genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                     candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,
                                     condition = optimality, momentsmatrix = blockedmm, initialRows = randomindices,
                                     blockedVar = V, aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -938,7 +1100,7 @@ gen_design = function(candidateset, model, trials,
         cat("Estimated time to completion ... ")
         ptm = proc.time()
         randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
-        genOutputOne = genBlockedOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
+        genOutputOne = genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                                candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,
                                                condition = optimality, momentsmatrix = blockedmm, initialRows = randomindices,
                                                blockedVar = V, aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -947,9 +1109,9 @@ gen_design = function(candidateset, model, trials,
         cat(paste(c("is: ", floor( (proc.time() - ptm)[3] * (repeats - 1) / numbercores), " seconds."), collapse = ""))
 
         genOutput = tryCatch({
-          foreach(i = 2:repeats, .export = c("genBlockedOptimalDesign")) %dorng% {
+          foreach(i = 2:repeats, .export = c("genSplitPlotOptimalDesign")) %dorng% {
             randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
-            genBlockedOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
+            genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                     candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,
                                     condition = optimality, momentsmatrix = blockedmm, initialRows = randomindices,
                                     blockedVar = V, aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -982,7 +1144,7 @@ gen_design = function(candidateset, model, trials,
 
   if (length(designs) == 0) {
     stop(paste0("For a design with ", trials, " trials and ",
-                ncol(candidatesetmm) + ifelse(blocking, ncol(blockedmodelmatrix) - 1 + length(interactionlist), 0),
+                ncol(candidatesetmm) + ifelse(splitplot, ncol(blockedmodelmatrix) - 1 + length(interactionlist), 0),
                 " parameters, skpr was not able to find non-singular design within given number of repeats. ",
                 "Increase repeats argument and try again. If still no designs are found, reduce the number ",
                 "of model parameters or increase the number of trials. This failure to find a design could ",
@@ -1083,7 +1245,7 @@ gen_design = function(candidateset, model, trials,
     rowindex[1:nrow(augmentdesign)] = 1
   }
 
-  if (!blocking) {
+  if (!splitplot) {
     colnames(designmm) = factors
   } else {
     colnames(designmm) = blockedFactors
@@ -1091,8 +1253,38 @@ gen_design = function(candidateset, model, trials,
 
   design = constructRunMatrix(rowIndices = rowindex, candidateList = candidateset, augment = augmentdesign)
 
-  if (blocking) {
+  if (splitplot) {
     design = cbind(splitPlotReplicateDesign, design)
+  }
+
+  if(blocking) {
+    if(!is.null(blocksizes)) {
+      if(is.list(blocksizes)) {
+        for(j in rev(seq_len(length(blocksizes)))) {
+          block_col_indicator = c()
+          for(i in 1:length(blocksizes[[j]])) {
+            block_col_indicator = c(block_col_indicator, rep(i, blocksizes[[j]][i]))
+          }
+          block_col_df = data.frame(Block1=block_col_indicator)
+          allattr = attributes(design)
+          design = cbind(block_col_df, design)
+          if(!add_blocking_columns) {
+            design = convert_blockcolumn_rownames(design, TRUE, varianceratio[j])
+          }
+          colnames(design) = c(paste0("Block", j),colnames(design)[-1])
+        }
+      } else {
+        block_col_indicator = c()
+        for(i in 1:length(blocksizes)) {
+          block_col_indicator = c(block_col_indicator, rep(i, blocksizes[i]))
+        }
+        block_col_df = data.frame(Block1=block_col_indicator)
+        design = cbind(block_col_df, design)
+        if(!add_blocking_columns) {
+          design = convert_blockcolumn_rownames(design, TRUE, varianceratio)
+        }
+      }
+    }
   }
   deffic = DOptimality(designmm)
   if(!is.infinite(deffic)) {
@@ -1107,8 +1299,17 @@ gen_design = function(candidateset, model, trials,
   attr(design, "generating.contrast") = contrast
   attr(design, "contrastslist") = contrastslist
 
-  if (!blocking) {
-    rownames(design) = 1:nrow(design)
+  if (!splitplot) {
+    if(blocking) {
+      if(add_blocking_columns) {
+        rownames(design) = 1:nrow(design)
+        blockcolnames = colnames(design)[grepl("(Block|block)(\\s?)+[0-9]+$", colnames(design), perl = TRUE) |
+                                           grepl("(Whole Plots|Subplots)", colnames(design), perl = TRUE)]
+        attr(design, "splitcolumns") = blockcolnames
+      }
+    } else {
+      rownames(design) = 1:nrow(design)
+    }
     colnames(mm) = colnames(designmm)
     rownames(mm) = colnames(designmm)
     attr(design, "moments.matrix") = mm
@@ -1124,7 +1325,7 @@ gen_design = function(candidateset, model, trials,
     finallist = list()
     counterfinallist = 1
     for (row in 1:nrow(splitplotdesign)) {
-      for (size in 1:splitplotsizes[row]) {
+      for (size in 1:blocksizes[row]) {
         finallist[[counterfinallist]] = splitplotdesign[row, ]
         counterfinallist = counterfinallist + 1
       }
@@ -1157,7 +1358,7 @@ gen_design = function(candidateset, model, trials,
     }
   }, error = function(e) {})
 
-  if (!blocking) {
+  if (!splitplot && !blocking) {
     tryCatch({
       if(advancedoptions$g_efficiency_method == "none") {
         attr(design, "G") = "Not Computed"
@@ -1179,14 +1380,22 @@ gen_design = function(candidateset, model, trials,
       if(is.null(attr(design, "variance.matrix"))) attr(design, "variance.matrix") = NA
       if(is.null(attr(design, "I"))) attr(design, "I") = NA
     })
-  } else {
+  } else if (splitplot) {
     tryCatch({
       attr(design, "variance.matrix") = V
       vinv = solve(V)
       attr(design, "G") = 100 * (ncol(designmm)) / (nrow(designmm) * max(diag(designmm %*% solve(t(designmm) %*% vinv %*% designmm) %*% t(designmm) %*% vinv)))
       attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = blockedmm, blockedVar = V)
     }, error = function(e) {})
+  } else if (blocking) {
+    tryCatch({
+      attr(design, "variance.matrix") = V
+      vinv = solve(V)
+      attr(design, "G") = 100 * (ncol(designmm)) / (nrow(designmm) * max(diag(designmm %*% solve(t(designmm) %*% vinv %*% designmm) %*% t(designmm) %*% vinv)))
+      attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = mm, blockedVar = V)
+    }, error = function(e) {})
   }
+
   #Re-order factors so levels with the lowest number of factors come first
   for (i in 1:ncol(design)) {
     if (!is.numeric(design[[i]])) {
@@ -1195,14 +1404,14 @@ gen_design = function(candidateset, model, trials,
   }
 
   if (optimality == "D") {
-    if (blocking) {
+    if (splitplot) {
       attr(design, "optimalsearchvalues") = unlist(criteria)
     } else {
       attr(design, "optimalsearchvalues") = 100 * unlist(criteria)
     }
   }
   if (optimality == "A") {
-    if (blocking) {
+    if (splitplot) {
       attr(design, "optimalsearchvalues") = unlist(criteria)
     } else {
       attr(design, "optimalsearchvalues") = 100 / (nrow(designmm) * unlist(criteria) / ncol(designmm))
@@ -1215,10 +1424,12 @@ gen_design = function(candidateset, model, trials,
     attr(design, "optimalsearchvalues") = unlist(criteria)
   }
   attr(design, "bestiterations") = best
-  attr(design, "splitanalyzable") = FALSE
+  if(splitplot) {
+    attr(design, "splitanalyzable") = FALSE
+  }
 
   #Add split plot columns if splitanalyzable is TRUE
-  if (blocking) {
+  if (splitplot) {
     finalrownames = rownames(design)
     blocklist = strsplit(finalrownames, ".", fixed = TRUE)
     existingblockstructure = do.call(rbind, blocklist)
@@ -1227,7 +1438,7 @@ gen_design = function(candidateset, model, trials,
     blockcols = list()
     blocknames = paste0("Block", 1:(ncol(existingblockstructure) - 1))
     attr(design, "splitcolumns") = blocknames
-    if (splitcolumns) {
+    if (add_blocking_columns) {
       #Save attributes
       allattr = attributes(design)
 

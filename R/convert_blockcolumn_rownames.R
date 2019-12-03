@@ -65,7 +65,11 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios) {
         }
         zlist[[i]] = ztemp
       }
-      attr(RunMatrix, "z.matrix.list") = zlist
+      if(is.null(attr(RunMatrix, "z.matrix.list"))) {
+        attr(RunMatrix, "z.matrix.list") = zlist
+      } else {
+        attr(RunMatrix, "z.matrix.list") = list(attr(RunMatrix, "z.matrix.list"), zlist)
+      }
       allattr = attributes(RunMatrix)
       allattr$names = allattr$names[!blockcols]
       RunMatrix = RunMatrix[, !blockcols, drop = FALSE]

@@ -137,7 +137,7 @@
 #'coffeeblockdesign = gen_design(splitfactorialcoffee, ~caffeine, trials = 12)
 #'coffeefinaldesign = gen_design(splitfactorialcoffee,
 #'                               model = ~caffeine + cost + size + type, trials = 36,
-#'                               splitplotdesign = coffeeblockdesign, splitplotsizes = 3)
+#'                               splitplotdesign = coffeeblockdesign, blocksizes = 3)
 #'
 #'#Evaluating design
 #'eval_design(coffeefinaldesign, ~cost + size + type + caffeine, 0.2, blocking = TRUE)
@@ -163,6 +163,15 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
                        effectsize = 2, varianceratios = 1,
                        contrasts = contr.sum, conservative = FALSE, reorder_factors = FALSE,
                        detailedoutput = FALSE, advancedoptions = NULL, ...) {
+  if(missing(design)) {
+    stop("No design detected in arguments.")
+  }
+  if(missing(model)) {
+    stop("No model detected in arguments.")
+  }
+  if(missing(alpha)) {
+    stop("No alpha detected in arguments.")
+  }
   input_design = design
   args = list(...)
   if ("RunMatrix" %in% names(args)) {

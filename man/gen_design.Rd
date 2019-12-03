@@ -4,11 +4,26 @@
 \alias{gen_design}
 \title{Generate optimal experimental designs}
 \usage{
-gen_design(candidateset, model, trials, splitplotdesign = NULL,
-  splitplotsizes = NULL, optimality = "D", augmentdesign = NULL,
-  repeats = 20, varianceratio = 1, contrast = contr.simplex,
-  aliaspower = 2, minDopt = 0.8, parallel = FALSE, timer = FALSE,
-  splitcolumns = FALSE, randomized = TRUE, advancedoptions = NULL)
+gen_design(
+  candidateset,
+  model,
+  trials,
+  splitplotdesign = NULL,
+  blocksizes = NULL,
+  optimality = "D",
+  augmentdesign = NULL,
+  repeats = 20,
+  custom_v = NULL,
+  varianceratio = 1,
+  contrast = contr.simplex,
+  aliaspower = 2,
+  minDopt = 0.8,
+  parallel = FALSE,
+  timer = FALSE,
+  add_blocking_columns = FALSE,
+  randomized = TRUE,
+  advancedoptions = NULL
+)
 }
 \arguments{
 \item{candidateset}{A data frame of candidate test points; each run of the optimal design will be chosen (with replacement)
@@ -25,18 +40,19 @@ If a factor is continuous, its column should be type \code{numeric}. If a factor
 \item{trials}{The number of runs in the design.}
 
 \item{splitplotdesign}{If NULL, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
-this argument specifies the design for
-all of the factors harder to change than the current set of factors.
+this argument specifies the design for all of the factors harder to change than the current set of factors.
 Each row corresponds to a block in which the harder to change factors will be held
-constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{splitplotsizes},
+constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{blocksizes},
 and the optimal design is found for all of the factors given in the
-\code{model} argument, taking into consideration the fixed and replicated hard-to-change factors.}
+\code{model} argument, taking into consideration the fixed and replicated hard-to-change factors. If \code{blocksizes} is missing,
+`gen_design` will attempt to allocate the runs in the most balanced design possible,
+given the number of blocks given in the argument `splitplotdesign` and the total number of `trials`.}
 
-\item{splitplotsizes}{Default NULL. Specifies the block size for each row of harder-to-change factors given in the
-argument \code{splitplotdesign}. If missing, `gen_design`` will attempt to allocate the runs in the most balanced design possible,
-given the number of blocks given in the argument `splitplotdesign` and the total number of `trials`.
-If the input is a vector, each entry of the vector determines the size of the sub-plot for that whole plot setting.
-If the input is an integer, each block will be of that size.}
+\item{blocksizes}{Default `NULL`. Specifies the block size(s) for design generation. If only one number is passed, `gen_design()`
+will create blocks of the specified size, and if the total number of run specified in `trials` is not divisible by the number,
+`gen_design()` will attempt to allocate the runs in the most balanced design possible. If a list is passed, each entry
+in the list will specify an additional layer of blocking. If `splitplotdesign` is not `NULL`, this argument
+specifies the number of subplots within each whole plot (each whole plot corresponding to a row in the `splitplotdesign` data.frame).}
 
 \item{optimality}{Default "D". The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
 define a function of the model matrix named customOpt in their namespace that returns a single value, which the algorithm will attempt to optimize. For
@@ -46,7 +62,9 @@ information on the algorithm behind Alias-optimal designs, see \emph{Jones and N
 \item{augmentdesign}{Default NULL. A dataframe of runs that are fixed during the optimal search process. The columns of augmentdesign must match those of the candidate set.
 The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.}
 
-\item{repeats}{The number of times to repeat the search for the best optimal design. Default 20.}
+\item{repeats}{Default `20`. The number of times to repeat the search for the best optimal design.}
+
+\item{custom_v}{Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.}
 
 \item{varianceratio}{The ratio between the interblock and intra-block variance for a given stratum in
 a split plot design. Default 1.}
@@ -61,7 +79,7 @@ a split plot design. Default 1.}
 
 \item{timer}{Default FALSE. If TRUE, will print an estimate of the optimal design search time.}
 
-\item{splitcolumns}{Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
+\item{add_blocking_columns}{Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
 
 \item{randomized}{Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.}
@@ -147,6 +165,25 @@ gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
 gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
           optimality = "A", repeats = 10)
 
+#A blocked design can be generated by specifying the `blocksizes` argument. Passing a single
+#number will create designs with blocks of that size, while passing multiple values in a list
+#will specify multiple layers of blocking.
+
+#Specify a single layer
+gen_design(quad_candidates, ~a + b + c, 21, blocksizes=3, add_blocking_column=TRUE)
+
+#Manually specify the block sizes for a single layer, must add to `trials``
+gen_design(quad_candidates, ~a + b + c, 21, blocksizes=c(4,3,2,3,3,3,3),
+          add_blocking_column=TRUE)
+
+#Multiple layers of blocking
+gen_design(quad_candidates, ~a + b + c, 21, blocksizes=list(7,3),
+          add_blocking_column=TRUE)
+
+#Multiple layers of blocking, specified individually
+gen_design(quad_candidates, ~a + b + c, 21, blocksizes=list(7,c(4,3,2,3,3,3,3)),
+          add_blocking_column=TRUE)
+
 #A split-plot design can be generated by first generating an optimal blocking design using the
 #hard-to-change factors and then using that as the input for the split-plot design.
 #This generates an optimal subplot design that accounts for the existing split-plot settings.
@@ -166,13 +203,13 @@ hardtochangedesign = gen_design(splitplotcandidateset, model = ~Altitude,
 designsplitplot = gen_design(splitplotcandidateset, ~Altitude + Range + Power, trials = 33,
                              splitplotdesign = hardtochangedesign, repeats = 10)
 
-#If we want to allocate the blocks manually, we can do that with the argument `splitplotsizes`. This
+#If we want to allocate the blocks manually, we can do that with the argument `blocksizes`. This
 #vector must sum to the number of `trials` specified.
 
 #Putting this all together:
 designsplitplot = gen_design(splitplotcandidateset, ~Altitude + Range + Power, trials = 33,
                              splitplotdesign = hardtochangedesign,
-                             splitplotsizes = c(4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2), repeats = 10)
+                             blocksizes = c(4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2), repeats = 10)
 
 #The split-plot structure is encoded into the row names, with a period
 #demarcating the blocking level. This process can be repeated for arbitrary
@@ -190,19 +227,19 @@ temp = gen_design(splitplotcandidateset2, ~Location, trials = 6, varianceratio =
 
 #Each Location block has 2 blocks of Climate:
 temp = gen_design(splitplotcandidateset2, ~Location + Climate,
-                  trials = 12, splitplotdesign = temp, splitplotsizes = 2,
+                  trials = 12, splitplotdesign = temp, blocksizes = 2,
                   varianceratio = 1, repeats = 10)
 
 #Each Climate block has 4 blocks of Vineyard:
 temp = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard,
-                  trials = 48, splitplotdesign = temp, splitplotsizes = 4,
+                  trials = 48, splitplotdesign = temp, blocksizes = 4,
                   varianceratio = 1, repeats = 10)
 
 #Each Vineyard block has 4 runs with different Age:
 \dontrun{
 splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard + Age,
-                                       trials = 192, splitplotdesign = temp, splitplotsizes = 4,
-                                       varianceratio = 1, splitcolumns = TRUE)
+                                       trials = 192, splitplotdesign = temp, blocksizes = 4,
+                                       varianceratio = 1, add_blocking_columns = TRUE)
 }
 #gen_design also supports user-defined optimality criterion. The user defines a function
 #of the model matrix named customOpt, and gen_design will attempt to generate a design
@@ -242,7 +279,7 @@ customBlockedOpt = function(currentDesign, vInv) {
 
 design = gen_design(candlistcustom,
                    ~Altitude + Range + Power, trials = 33,
-                   splitplotdesign = htcdesign, splitplotsizes = 3,
+                   splitplotdesign = htcdesign, blocksizes = 3,
                    optimality = "CUSTOM", repeats = 10)
 
 #gen_design can also augment an existing design. Input a dataframe of pre-existing runs

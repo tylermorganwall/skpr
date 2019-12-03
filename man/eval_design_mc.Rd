@@ -4,11 +4,24 @@
 \alias{eval_design_mc}
 \title{Monte Carlo Power Evaluation for Experimental Designs}
 \usage{
-eval_design_mc(design, model, alpha, blocking = FALSE, nsim = 1000,
-  glmfamily = "gaussian", calceffect = TRUE, varianceratios = NULL,
-  rfunction = NULL, anticoef = NULL, effectsize = 2,
-  contrasts = contr.sum, parallel = FALSE, detailedoutput = FALSE,
-  advancedoptions = NULL, ...)
+eval_design_mc(
+  design,
+  model,
+  alpha,
+  blocking = FALSE,
+  nsim = 1000,
+  glmfamily = "gaussian",
+  calceffect = TRUE,
+  varianceratios = NULL,
+  rfunction = NULL,
+  anticoef = NULL,
+  effectsize = 2,
+  contrasts = contr.sum,
+  parallel = FALSE,
+  detailedoutput = FALSE,
+  advancedoptions = NULL,
+  ...
+)
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design_mc} rescales each numeric column
@@ -190,10 +203,10 @@ factorialcoffee2 = expand.grid(Temp = c(1, -1),
 vhtcdesign = gen_design(factorialcoffee2,
                        model = ~Store, trials = 6, varianceratio = 1)
 htcdesign = gen_design(factorialcoffee2, model = ~Store + Temp, trials = 18,
-                       splitplotdesign = vhtcdesign, splitplotsizes = rep(3, 6), varianceratio = 1)
+                       splitplotdesign = vhtcdesign, blocksizes = rep(3, 6), varianceratio = 1)
 splitplotdesign = gen_design(factorialcoffee2,
                             model = ~Store + Temp + cost + type + size, trials = 54,
-                            splitplotdesign = htcdesign, splitplotsizes = rep(3, 18),
+                            splitplotdesign = htcdesign, blocksizes = rep(3, 18),
                             varianceratio = 1)
 
 #Each block has an additional noise term associated with it in addition to the normal error

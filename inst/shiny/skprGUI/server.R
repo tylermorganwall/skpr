@@ -503,7 +503,7 @@ function(input, output, session) {
     }
     if (isblockingtext()) {
       first = paste(c(first, ", <br>", rep("&nbsp;", 20),
-                      "splitplotsizes = ", sizevector), collapse = "")
+                      "blocksizes = ", sizevector), collapse = "")
     }
     if (input$optimality != "D") {
       first = paste(c(first, ", <br>", rep("&nbsp;", 20),
@@ -531,7 +531,7 @@ function(input, output, session) {
     }
     if (isblockingtext()) {
       first = paste(c(first, ", <br>", rep("&nbsp;", 20),
-                      "splitcolumns = ", ifelse(input$splitanalyzable, "TRUE", "FALSE")), collapse = "")
+                      "add_blocking_columns = ", ifelse(input$splitanalyzable, "TRUE", "FALSE")), collapse = "")
     }
     first = paste0(c(first, ")<br><br>"), collapse = "")
     if (input$evaltype == "lm") {
@@ -576,7 +576,7 @@ function(input, output, session) {
                                    ifelse(anyfactors(),
                                           paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ", contraststring(), ")</code>"),
                                           ")<br><br></code>")),
-                            paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                            paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument add_blocking_columns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
                                    "<code style=\"color:#468449\">#library(lmerTest)<br>#lme4::lmer(formula = Y ",
                                    modelwithblocks(),
                                    ", data = design",
@@ -636,7 +636,7 @@ function(input, output, session) {
                                    ifelse(anyfactors(),
                                           paste0(", </code><br><code style=\"color:#468449\">#   ", "contrasts = ", contraststring(), ")</code>"),
                                           ")<br><br></code>")),
-                            paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument splitcolumns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
+                            paste0(ifelse(input$splitanalyzable, "", "<code style=\"color:#468449\">## Note: Argument add_blocking_columns needs to be active in last gen_design call in order<br>## to analyze data taking into account the split-plot structure. The code below assumes that is true. <br><br></code>"),
                                    "<code style=\"color:#468449\">#lme4::glmer(formula = Y ",
                                    modelwithblocks(),
                                    ", data = design",
@@ -832,28 +832,28 @@ function(input, output, session) {
                               model = isolate(as.formula(input$model)),
                               trials = isolate(input$trials),
                               splitplotdesign = spd,
-                              splitplotsizes = sizevector,
+                              blocksizes = sizevector,
                               optimality = isolate(optimality()),
                               repeats = isolate(input$repeats),
                               varianceratio = isolate(input$varianceratio),
                               aliaspower = isolate(input$aliaspower),
                               minDopt = isolate(input$mindopt),
                               parallel = isolate(as.logical(input$parallel)),
-                              splitcolumns = isolate(input$splitanalyzable))
+                              add_blocking_columns = isolate(input$splitanalyzable))
         } else {
           design = withProgress(message = "Generating design", value = 0, min = 0, max = 1, expr = {
             gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                        model = isolate(as.formula(input$model)),
                        trials = isolate(input$trials),
                        splitplotdesign = spd,
-                       splitplotsizes = sizevector,
+                       blocksizes = sizevector,
                        optimality = isolate(optimality()),
                        repeats = isolate(input$repeats),
                        varianceratio = isolate(input$varianceratio),
                        aliaspower = isolate(input$aliaspower),
                        minDopt = isolate(input$mindopt),
                        parallel = isolate(as.logical(input$parallel)),
-                       splitcolumns = isolate(input$splitanalyzable),
+                       add_blocking_columns = isolate(input$splitanalyzable),
                        advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))})
         }
       }

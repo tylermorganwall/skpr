@@ -161,10 +161,10 @@
 #'vhtcdesign = gen_design(factorialcoffee2,
 #'                        model = ~Store, trials = 6, varianceratio = 1)
 #'htcdesign = gen_design(factorialcoffee2, model = ~Store + Temp, trials = 18,
-#'                        splitplotdesign = vhtcdesign, splitplotsizes = rep(3, 6), varianceratio = 1)
+#'                        splitplotdesign = vhtcdesign, blocksizes = rep(3, 6), varianceratio = 1)
 #'splitplotdesign = gen_design(factorialcoffee2,
 #'                             model = ~Store + Temp + cost + type + size, trials = 54,
-#'                             splitplotdesign = htcdesign, splitplotsizes = rep(3, 18),
+#'                             splitplotdesign = htcdesign, blocksizes = rep(3, 18),
 #'                             varianceratio = 1)
 #'
 #'#Each block has an additional noise term associated with it in addition to the normal error

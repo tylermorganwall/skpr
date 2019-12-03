@@ -8,8 +8,12 @@ Either calculates G-Efficiency by Monte Carlo sampling from the design space (ig
 searching for the maximum point (slower but higher quality), or by using a user-specified candidate
 set for the design space (fastest).}
 \usage{
-calculate_gefficiency(design, calculation_type = "random",
-  randsearches = 1000, design_space_mm = NULL)
+calculate_gefficiency(
+  design,
+  calculation_type = "random",
+  randsearches = 1000,
+  design_space_mm = NULL
+)
 }
 \arguments{
 \item{RunMatrix}{The run matrix}

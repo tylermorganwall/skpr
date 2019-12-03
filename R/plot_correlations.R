@@ -39,6 +39,12 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
       attributes(genoutput) = allattr
     }
   }
+  if (!is.null(attr(genoutput, "splitcolumns"))) {
+    allattr = attributes(genoutput)
+    genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
+    allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+    attributes(genoutput) = allattr
+  }
   if (is.null(attr(genoutput, "variance.matrix") )) {
     genoutput = eval_design(genoutput, model, 0.2)
   }

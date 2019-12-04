@@ -689,6 +689,9 @@ gen_design = function(candidateset, model, trials,
             sizevector = rep(blocksizes[[i]],  ceiling(trials/blocksizes[[i]]))
             unbalancedruns = blocksizes[[i]] *  ceiling(trials/blocksizes[[i]]) - trials
             sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
+            message("Specified `trials` (",trials,") not divisible by `blocksizes` (",blocksizes[[i]],
+                    "). Generated block sizes (for blocking layer ",i ,") are: ",
+                    paste(sizevector, collapse = ", "))
           }
           blocksizes[[i]] = sizevector
         } else {
@@ -705,6 +708,8 @@ gen_design = function(candidateset, model, trials,
           sizevector = rep(blocksizes,  ceiling(trials/blocksizes))
           unbalancedruns = blocksizes *  ceiling(trials/blocksizes) - trials
           sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
+          message("Specified `trials` (",trials,") not divisible by `blocksizes` (",blocksizes,
+                  "). Generated block sizes are: ", paste(sizevector, collapse = ", "))
         }
         blocksizes = sizevector
       }
@@ -1268,10 +1273,10 @@ gen_design = function(candidateset, model, trials,
           block_col_df = data.frame(Block1=block_col_indicator)
           allattr = attributes(design)
           design = cbind(block_col_df, design)
-          if(!add_blocking_columns) {
-            design = convert_blockcolumn_rownames(design, TRUE, varianceratio[j])
-          }
           colnames(design) = c(paste0("Block", j),colnames(design)[-1])
+        }
+        if(!add_blocking_columns) {
+          design = convert_blockcolumn_rownames(design, TRUE, varianceratio, FALSE)
         }
       } else {
         block_col_indicator = c()
@@ -1281,7 +1286,7 @@ gen_design = function(candidateset, model, trials,
         block_col_df = data.frame(Block1=block_col_indicator)
         design = cbind(block_col_df, design)
         if(!add_blocking_columns) {
-          design = convert_blockcolumn_rownames(design, TRUE, varianceratio)
+          design = convert_blockcolumn_rownames(design, TRUE, varianceratio, FALSE)
         }
       }
     }

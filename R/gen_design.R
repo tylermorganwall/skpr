@@ -1290,6 +1290,9 @@ gen_design = function(candidateset, model, trials,
         }
       }
     }
+    attr(design, "blocking") = TRUE
+  } else {
+    attr(design, "blocking") = FALSE
   }
   deffic = DOptimality(designmm)
   if(!is.infinite(deffic)) {
@@ -1409,14 +1412,14 @@ gen_design = function(candidateset, model, trials,
   }
 
   if (optimality == "D") {
-    if (splitplot) {
+    if (splitplot || blocking) {
       attr(design, "optimalsearchvalues") = unlist(criteria)
     } else {
       attr(design, "optimalsearchvalues") = 100 * unlist(criteria)
     }
   }
   if (optimality == "A") {
-    if (splitplot) {
+    if (splitplot || blocking) {
       attr(design, "optimalsearchvalues") = unlist(criteria)
     } else {
       attr(design, "optimalsearchvalues") = 100 / (nrow(designmm) * unlist(criteria) / ncol(designmm))
@@ -1431,6 +1434,9 @@ gen_design = function(candidateset, model, trials,
   attr(design, "bestiterations") = best
   if(splitplot) {
     attr(design, "splitanalyzable") = FALSE
+    attr(design, "splitplot") = TRUE
+  } else {
+    attr(design, "splitplot") = FALSE
   }
 
   #Add split plot columns if splitanalyzable is TRUE

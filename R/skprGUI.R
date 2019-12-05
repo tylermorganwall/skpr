@@ -1996,8 +1996,17 @@ skprGUI = function(inputValue1, inputValue2) {
     output$optimalsearch = renderPlot({
       input$submitbutton
       if (isolate(optimality()) %in% c("D", "G", "A")) {
-        isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Efficiency (higher is better)"), type = "p", col = "red", pch = 16, ylim = c(0, 100)))
-        isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2, ylim = c(0, 100)))
+        if(attr(runmatrix(), "blocking") || attr(runmatrix(), "splitplot")) {
+          max_y_val = max(attr(runmatrix(), "optimalsearchvalues"),na.rm=TRUE)
+          statement = "Optimality Value (higher is better)"
+        }  else {
+          max_y_val = 100
+          statement = "Efficiency (higher is better)"
+        }
+        isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
+                     type = "p", col = "red", pch = 16, ylim = c(0, max_y_val)))
+        isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")],
+                       type = "p", col = "green", pch = 16, cex = 2, ylim = c(0, max_y_val)))
       } else {
         if (isolate(optimality()) == "I") {
           isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))

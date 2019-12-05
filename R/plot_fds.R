@@ -20,7 +20,7 @@
 #'design = gen_design(candidatelist, ~(X1 + X2), 15)
 #'
 #'plot_fds(design)
-plot_fds = function(genoutput, model = NULL, continuouslength = 11) {
+plot_fds = function(genoutput, model = NULL, continuouslength = 31) {
   #Remove skpr-generated REML blocking indicators if present
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
@@ -31,10 +31,12 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11) {
     }
   }
   if (!is.null(attr(genoutput, "splitcolumns"))) {
-    allattr = attributes(genoutput)
-    genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
-    allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
-    attributes(genoutput) = allattr
+    if(attr(genoutput, "blocking")) {
+      allattr = attributes(genoutput)
+      genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
+      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      attributes(genoutput) = allattr
+    }
   }
 
   Iopt = attr(genoutput, "I")

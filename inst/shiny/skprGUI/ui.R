@@ -12,6 +12,9 @@ panelstyle = "background-color: rgba(86, 96, 133, 0.3);
                 color: rgb(255, 255, 255);
                 border: 0px;"
 
+b64 = base64enc::dataURI(file=system.file("shiny", "skprGUI","www", "idalogoblacksmaller.png", package = "skpr"),
+                         mime="image/png")
+
 function(request) {
   fluidPage(theme = shinytheme("yeti"),
             shinyjs::useShinyjs(),
@@ -700,10 +703,11 @@ function(request) {
             )
               ),
             mainPanel(fluidRow(
-              column(width = 6, h1("Results")),
+              column(width = 4, h1("Results")),
               column(width = 2),
               column(width = 2, introBox(bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."), class = "bookmark", data.step = 33, data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results.")),
-              column(width = 2, actionButton(inputId = "tutorial", "Tutorial")),
+              column(width = 2, actionButton(inputId = "tutorial", "Tutorial", icon = icon("question-circle"))),
+              column(width = 2, HTML(paste0("<div style='float:right; margin-top: 25px;'><img src=",b64,"\"></img></div>"))),
               tags$style(type = "text/css", "#tutorial {margin-top: 25px;} .bookmark {margin-top: 25px;}")
             ),
             tabsetPanel(

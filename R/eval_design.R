@@ -180,14 +180,14 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
 
   #detect pre-set contrasts
   presetcontrasts = list()
-  for (x in names(design[lapply(design, class) %in% c("character", "factor")])) {
+  for (x in names(design)[lapply(design, class) %in% c("character", "factor")]) {
     if (!is.null(attr(design[[x]], "contrasts"))) {
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
   }
   # reorder levels for the conservative calculation (if not a balanced design)
   if (conservative) {
-    for (x in names(design[lapply(design, class) %in% c("character", "factor")])) {
+    for (x in names(design)[lapply(design, class) %in% c("character", "factor")]) {
       number_levels = table(design[[x]])
       if(length(unique(number_levels)) != 1) {
         if(identical(contrasts, contr.sum)) {

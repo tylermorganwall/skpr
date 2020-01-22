@@ -4,7 +4,7 @@
 \alias{plot_fds}
 \title{Fraction of Design Space Plot}
 \usage{
-plot_fds(genoutput, model = NULL, continuouslength = 11)
+plot_fds(genoutput, model = NULL, continuouslength = 31)
 }
 \arguments{
 \item{genoutput}{The design, or the output of the power evaluation functions.}

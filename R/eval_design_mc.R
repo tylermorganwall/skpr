@@ -280,7 +280,7 @@ eval_design_mc = function(design, model, alpha,
 
   #detect pre-set contrasts
   presetcontrasts = list()
-  for (x in names(design[lapply(design, class) %in% c("character", "factor")])) {
+  for (x in names(design)[lapply(design, class) %in% c("character", "factor")]) {
     if (!is.null(attr(design[[x]], "contrasts"))) {
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
@@ -339,7 +339,7 @@ eval_design_mc = function(design, model, alpha,
 
   contrastslist_cormat = list()
   contrastslist = list()
-  for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
+  for (x in names(RunMatrixReduced)[lapply(RunMatrixReduced, class) %in% c("character", "factor")]) {
     if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
     } else {

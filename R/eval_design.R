@@ -13,7 +13,7 @@
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
 #'@param alpha The specified type-I error.
-#'@param blocking Default `FALSE`. If `TRUE``, \code{eval_design} will look at the rownames to determine blocking structure.
+#'@param blocking Default `NULL`. If `TRUE`, \code{eval_design} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.
 #'@param effectsize The signal-to-noise ratio. Default `2`. For continuous factors, this specifies the
@@ -159,7 +159,7 @@
 #'rownames(coffeeblockdesign) = manualrownames
 #'
 #'#Deeper levels of blocking can be specified with additional periods.
-eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
+eval_design = function(design, model, alpha, blocking = NULL, anticoef = NULL,
                        effectsize = 2, varianceratios = 1,
                        contrasts = contr.sum, conservative = FALSE, reorder_factors = FALSE,
                        detailedoutput = FALSE, advancedoptions = NULL, ...) {
@@ -176,6 +176,19 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
+  }
+
+  if(is.null(blocking)) {
+    if(is.null(attr(design,"blocking")) && is.null(attr(design,"splitplot"))) {
+      blocking = FALSE
+    } else {
+      if(!is.null(attr(design,"blocking"))) {
+        blocking = attr(design, "blocking")
+      }
+      if(!is.null(attr(design,"splitplot"))) {
+        blocking = attr(design, "splitplot")
+      }
+    }
   }
 
   #detect pre-set contrasts
@@ -301,7 +314,6 @@ eval_design = function(design, model, alpha, blocking = FALSE, anticoef = NULL,
 
   factornames = attr(terms(model), "term.labels")
   levelvector = calculate_level_vector(run_matrix_processed, model, nointercept)
-
   effectresults = effectpower(run_matrix_processed, levelvector, anticoef,
                               alpha, vinv = vinv, degrees = degrees_of_freedom)
   parameterresults = parameterpower(run_matrix_processed, levelvector, anticoef,

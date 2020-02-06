@@ -8,7 +8,7 @@ eval_design(
   design,
   model,
   alpha,
-  blocking = FALSE,
+  blocking = NULL,
   anticoef = NULL,
   effectsize = 2,
   varianceratios = 1,
@@ -30,7 +30,7 @@ factors that are not present in the experimental design.}
 
 \item{alpha}{The specified type-I error.}
 
-\item{blocking}{Default `FALSE`. If `TRUE``, \code{eval_design} will look at the rownames to determine blocking structure.}
+\item{blocking}{Default `NULL`. If `TRUE`, \code{eval_design} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}

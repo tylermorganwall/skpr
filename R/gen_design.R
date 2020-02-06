@@ -1434,11 +1434,18 @@ gen_design = function(candidateset, model, trials,
     attr(design, "optimalsearchvalues") = unlist(criteria)
   }
   attr(design, "bestiterations") = best
+
   if(splitplot) {
     attr(design, "splitanalyzable") = FALSE
     attr(design, "splitplot") = TRUE
   } else {
     attr(design, "splitplot") = FALSE
+  }
+
+  if(blocking) {
+    attr(design, "blocked") = TRUE
+  } else {
+    attr(design, "blocked") = FALSE
   }
 
   #Add split plot columns if splitanalyzable is TRUE

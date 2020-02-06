@@ -12,26 +12,26 @@
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
 #'@param alpha The type-I error. p-values less than this will be counted as significant.
-#'@param blocking If TRUE, \code{eval_design_mc} will look at the rownames to determine blocking structure. Default FALSE.
-#'@param nsim The number of simulations to perform.
-#'@param glmfamily String indicating the family of distribution for the glm function
+#'@param blocking Default `NULL`. If `TRUE`, \code{eval_design_mc} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.
+#'@param nsim Default `1000`. The number of Monte Carlo simulations to perform.
+#'@param glmfamily Default `gaussian`. String indicating the family of distribution for the `glm` function
 #'("gaussian", "binomial", "poisson", or "exponential").
 #'@param calceffect Default `TRUE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
 #'@param varianceratios Default `1`. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
-#'@param rfunction Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
+#'@param rfunction Default `NULL`.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
 #'You only need to specify this if you do not like the default behavior described below.
-#'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
+#'@param anticoef Default `NULL`.The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.
 #'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#'@param parallel Default FALSE. If TRUE, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
-#'@param detailedoutput If TRUE, return additional information about evaluation in results.
-#'@param advancedoptions Default NULL. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
+#'@param parallel Default `FALSE`. If `TRUE`, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
+#'@param detailedoutput Default `FALSE`. If `TRUE`, return additional information about evaluation in results.
+#'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 #'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 #'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 #'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.
@@ -43,8 +43,7 @@
 #' coefficients manually, do so in the order the parameters appear in the model matrix.
 #'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
 #' with a generalized linear model, and the fraction of simulations in which a parameter
-#' is significant
-#'  (its p-value, according to the fit function used, is less than the specified \code{alpha})
+#' is significant (its p-value, according to the fit function used, is less than the specified \code{alpha})
 #' is the estimate of power for that parameter.
 #'
 #'First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
@@ -204,13 +203,35 @@
 #'#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
 #'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(design, model, alpha,
-                          blocking = FALSE, nsim = 1000, glmfamily = "gaussian", calceffect = TRUE,
+                          blocking = NULL, nsim = 1000, glmfamily = "gaussian", calceffect = TRUE,
                           varianceratios = NULL, rfunction = NULL, anticoef = NULL,
                           effectsize = 2, contrasts = contr.sum, parallel = FALSE,
                           detailedoutput = FALSE, advancedoptions = NULL, ...) {
+  if(missing(design)) {
+    stop("No design detected in arguments.")
+  }
+  if(missing(model)) {
+    stop("No model detected in arguments.")
+  }
+  if(missing(alpha)) {
+    stop("No alpha detected in arguments.")
+  }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")
+  }
+
+  if(is.null(blocking)) {
+    if(is.null(attr(design,"blocking")) && is.null(attr(design,"splitplot"))) {
+      blocking = FALSE
+    } else {
+      if(!is.null(attr(design,"blocking"))) {
+        blocking = attr(design, "blocking")
+      }
+      if(!is.null(attr(design,"splitplot"))) {
+        blocking = attr(design, "splitplot")
+      }
+    }
   }
 
   if (!is.null(advancedoptions)) {

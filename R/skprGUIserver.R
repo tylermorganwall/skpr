@@ -1435,7 +1435,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
                        "library(skpr)<br><br>",
                        ifelse(input$setseed,
                               paste0("<code style=\"color:#468449\">#Setting random number generator seed:</code><br>",
-                                     "set.seed(", input$seed, ")<br><br>"), ""),
+                                     "set.seed(", input$seed, ")<br><br>"), "<code style=\"color:#468449\">#Consider setting a seed to make this script fully reproducible.<br>#Go to Advanced->Set Random Number Generator Seed, click <br>#the checkbox, and set Random Seed to any whole number.</code><br><br>"),
                        "<code style=\"color:#468449\"># Generating candidate set:</code><br>",
                        "candidateset = expand.grid(", inputstring(), ")<br><br>",
                        ifelse(blocking,

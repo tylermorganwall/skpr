@@ -15,7 +15,7 @@ plot_correlations(
 \arguments{
 \item{genoutput}{The output of either gen_design or eval_design/eval_design_mc}
 
-\item{model}{Default NULL. If specified, it will override the default model used to generate/evaluate the design.}
+\item{model}{Default `NULL`. If specified, it will override the default model used to generate/evaluate the design.}
 
 \item{customcolors}{A vector of colors for customizing the appearance of the colormap}
 

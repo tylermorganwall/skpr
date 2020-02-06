@@ -3,7 +3,7 @@
 #'@description Plots design diagnostics
 #'
 #'@param genoutput The output of either gen_design or eval_design/eval_design_mc
-#'@param model Default NULL. If specified, it will override the default model used to generate/evaluate the design.
+#'@param model Default `NULL`. If specified, it will override the default model used to generate/evaluate the design.
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
 #'@param pow Default 2. The interaction level that the correlation map is showing.
 #'@param custompar Default NULL. Custom parameters to pass to the `par` function for base R plotting.
@@ -31,6 +31,13 @@
 #'plot_correlations(cardesign, customcolors = c("blue", "green", "yellow", "orange", "red"))
 plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow = 2, custompar = NULL) {
   #Remove skpr-generated REML blocking indicators if present
+  if(is.null(model)) {
+    if(!is.null(attr(genoutput, "generating.model"))) {
+      model = attr(genoutput, "generating.model")
+    } else {
+      model = ~.*.
+    }
+  }
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
       allattr = attributes(genoutput)

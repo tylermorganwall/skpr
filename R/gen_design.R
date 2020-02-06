@@ -366,19 +366,21 @@ gen_design = function(candidateset, model, trials,
   }
 
   #----- Convert dots in formula to terms, taking split-plot design into account -----#
-  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
+  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:|\\^")) == ".")) {
     if (is.null(splitplotdesign)) {
       dotreplace = paste0("(", paste0(attr(candidateset, "names"), collapse = " + "), ")")
       additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
       multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
       interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-      model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
+      powerterms = unlist(lapply(lapply(strsplit(interactionterms, split = "\\^"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = "^"))
+      model = as.formula(paste0("~", paste(powerterms, collapse = " + "), sep = ""))
     } else {
       dotreplace = paste0("(", paste(c(colnames(splitplotdesign), colnames(candidateset)), collapse = " + "), ")")
       additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
       multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
       interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-      model = as.formula(paste0("~", paste(interactionterms, collapse = " + "), sep = ""))
+      powerterms = unlist(lapply(lapply(strsplit(interactionterms, split = "\\^"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = "^"))
+      model = as.formula(paste0("~", paste(powerterms, collapse = " + "), sep = ""))
     }
   }
 

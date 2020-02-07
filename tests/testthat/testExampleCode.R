@@ -128,9 +128,9 @@ test_that("gen_design example code runs without errors", {
   expect_warning(eval_design(externaldesign,  ~., 0.2), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign2, ~., 0.2), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign3, ~., 0.2), "ignoring blocking structure and removing blocking columns.")
-  expect_message(eval_design(externaldesign, ~., 0.2, blocking = TRUE), "attempting to interpret blocking structure.")
-  expect_message(eval_design(externaldesign2, ~., 0.2, blocking = TRUE), "attempting to interpret blocking structure.")
-  expect_message(eval_design(externaldesign3, ~., 0.2, blocking = TRUE), "attempting to interpret blocking structure.")
+  expect_warning(eval_design(externaldesign, ~., 0.2, blocking = TRUE), "Automatically setting varianceratios to: c(1, 1)",fixed=TRUE)
+  expect_warning(eval_design(externaldesign2, ~., 0.2, blocking = TRUE), "Automatically setting varianceratios to: c(1, 1, 1)",fixed=TRUE)
+  expect_warning(eval_design(externaldesign3, ~., 0.2, blocking = TRUE), "Automatically setting varianceratios to: c(1, 1, 1)",fixed=TRUE)
 
   #test timer
   expect_output(gen_design(candlist3, ~Location, trials = 6, timer = TRUE) -> temp)
@@ -234,8 +234,11 @@ test_that("eval_design example code runs without errors", {
   #'
   #'#We can also evaluate the design with a custom ratio between the whole plot error to
   #'#the run-to-run error.
-  expect_silent(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE,
+  expect_warning(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE,
               varianceratio = 2))
+
+  expect_silent(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE,
+                             varianceratio = c(2, 1)))
 })
 
 

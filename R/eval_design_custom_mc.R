@@ -7,7 +7,10 @@
 #'
 #'@param design The experimental design. Internally, \code{eval_design_custom_mc} rescales each numeric column
 #'to the range [-1, 1].
-#'@param model The statistical model used to fit the data.
+#'@param model The model used in evaluating the design. If this is missing and the design
+#'was generated with skpr, the generating model will be used. It can be a subset of the model used to
+#'generate the design, or include higher order effects not in the original design generation. It cannot include
+#'factors that are not present in the experimental design.
 #'@param alpha The type-I error.
 #'@param nsim The number of simulations.
 #'@param rfunction Random number generator function. Should be a function of the form f(X, b), where X is the
@@ -85,6 +88,25 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
                                  coef_function = coef,
                                  parameternames = NULL,
                                  parallel = FALSE, parallelpackages = NULL, ...) {
+
+  if(missing(design)) {
+    stop("No design detected in arguments.")
+  }
+  if(missing(model) || (is.numeric(model) && missing(alpha))) {
+    if(is.numeric(model) && missing(alpha)) {
+      alpha = model
+    }
+    if(is.null(attr(design,"generating.model"))) {
+      stop("No model detected in arguments or in design attributes.")
+    } else {
+      model = attr(design,"generating.model")
+      message("Using model used to generate design: ",
+              paste(as.character(model),collapse=""))
+    }
+  }
+  if(missing(alpha)) {
+    stop("No alpha detected in arguments.")
+  }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
     stop("RunMatrix argument deprecated. Use `design` instead.")

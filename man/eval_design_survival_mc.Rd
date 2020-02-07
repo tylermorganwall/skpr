@@ -25,7 +25,10 @@ eval_design_survival_mc(
 \arguments{
 \item{design}{The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].}
 
-\item{model}{The statistical model used to fit the data.}
+\item{model}{The model used in evaluating the design. If this is missing and the design
+was generated with skpr, the generating model will be used. It can be a subset of the model used to
+generate the design, or include higher order effects not in the original design generation. It cannot include
+factors that are not present in the experimental design.}
 
 \item{alpha}{The type-I error.}
 

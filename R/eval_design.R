@@ -9,19 +9,22 @@
 #'
 #'@param design The experimental design. Internally, \code{eval_design} rescales each numeric column
 #'to the range [-1, 1], so you do not need to do this scaling manually.
-#'@param model The model used in evaluating the design. It can be a subset of the model used to
+#'@param model The model used in evaluating the design. If this is missing and the design
+#'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
 #'@param alpha The specified type-I error.
 #'@param blocking Default `NULL`. If `TRUE`, \code{eval_design} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.
-#'@param effectsize The signal-to-noise ratio. Default `2`. For continuous factors, this specifies the
+#'@param effectsize Default `2`. The signal-to-noise ratio. For continuous factors, this specifies the
 #' difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
 #' normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
 #' the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.
-#'@param varianceratios Default 1. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
-#'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
+#'@param varianceratios Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
+#'If not specified during design generation, this will default to 1. For designs with more than one subplot
+#'this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
+#'Otherwise, it will use a single value for all strata.
 #'@param contrasts Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param detailedoutput If `TRUE``, return additional information about evaluation in results. Default FALSE.
@@ -160,17 +163,33 @@
 #'
 #'#Deeper levels of blocking can be specified with additional periods.
 eval_design = function(design, model, alpha, blocking = NULL, anticoef = NULL,
-                       effectsize = 2, varianceratios = 1,
+                       effectsize = 2, varianceratios = NULL,
                        contrasts = contr.sum, conservative = FALSE, reorder_factors = FALSE,
                        detailedoutput = FALSE, advancedoptions = NULL, ...) {
   if(missing(design)) {
     stop("No design detected in arguments.")
   }
-  if(missing(model)) {
-    stop("No model detected in arguments.")
+  if(missing(model) || (is.numeric(model) && missing(alpha))) {
+    if(is.numeric(model) && missing(alpha)) {
+      alpha = model
+    }
+    if(is.null(attr(design,"generating.model"))) {
+      stop("No model detected in arguments or in design attributes.")
+    } else {
+      model = attr(design,"generating.model")
+      message("Using model used to generate design: ",
+              paste(as.character(model),collapse=""))
+    }
   }
   if(missing(alpha)) {
     stop("No alpha detected in arguments.")
+  }
+  if(is.null(varianceratios)) {
+    if(!is.null(attr(design, "varianceratios"))) {
+      varianceratios = attr(design, "varianceratios")
+    } else {
+      varianceratios = 1
+    }
   }
   input_design = design
   args = list(...)
@@ -384,7 +403,7 @@ eval_design = function(design, model, alpha, blocking = NULL, anticoef = NULL,
   attr(results, "A") = AOptimality(attr(run_matrix_processed, "modelmatrix"))
 
   if (!blocking) {
-    attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor))
+    attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor)) * varianceratios
     attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
     deffic = DOptimality(modelmatrix_cor)
     if(!is.infinite(deffic)) {

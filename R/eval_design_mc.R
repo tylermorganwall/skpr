@@ -8,7 +8,8 @@
 #'
 #'@param design The experimental design. Internally, \code{eval_design_mc} rescales each numeric column
 #'to the range [-1, 1].
-#'@param model The model used in evaluating the design. It can be a subset of the model used to
+#'@param model The model used in evaluating the design. If this is missing and the design
+#'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
 #'@param alpha The type-I error. p-values less than this will be counted as significant.
@@ -18,8 +19,10 @@
 #'("gaussian", "binomial", "poisson", or "exponential").
 #'@param calceffect Default `TRUE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
-#'@param varianceratios Default `1`. The ratio of the whole plot variance to the run-to-run variance. For designs with more than one subplot
-#'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.
+#'@param varianceratios Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
+#'If not specified during design generation, this will default to 1. For designs with more than one subplot
+#'this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
+#'Otherwise, it will use a single value for all strata.
 #'@param rfunction Default `NULL`.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
 #'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
 #'You only need to specify this if you do not like the default behavior described below.
@@ -210,11 +213,27 @@ eval_design_mc = function(design, model, alpha,
   if(missing(design)) {
     stop("No design detected in arguments.")
   }
-  if(missing(model)) {
-    stop("No model detected in arguments.")
+  if(missing(model) || (is.numeric(model) && missing(alpha))) {
+    if(is.numeric(model) && missing(alpha)) {
+      alpha = model
+    }
+    if(is.null(attr(design,"generating.model"))) {
+      stop("No model detected in arguments or in design attributes.")
+    } else {
+      model = attr(design,"generating.model")
+      message("Using model used to generate design: ",
+              paste(as.character(model),collapse=""))
+    }
   }
   if(missing(alpha)) {
     stop("No alpha detected in arguments.")
+  }
+  if(is.null(varianceratios)) {
+    if(is.null(attr(design, "varianceratios"))) {
+      varianceratios = attr(design, "varianceratios")
+    } else {
+      varianceratios = 1
+    }
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
@@ -274,7 +293,7 @@ eval_design_mc = function(design, model, alpha,
                    varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef,
                    effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
                    detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
-    if (attr(terms.formula(model), "intercept") == 1) {
+    if (attr(terms.formula(model, data = design), "intercept") == 1) {
       alpha_parameter = c(alpha, apply(attr(nullresults, "pvals"), 2, quantile, probs = alpha)[-1])
       alpha_parameter[alpha_parameter > alpha] = alpha
       if (calceffect) {

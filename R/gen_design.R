@@ -14,7 +14,7 @@
 #'If a factor is continuous, its column should be type \code{numeric}. If a factor is categorical, its column should be type \code{factor} or \code{character}.
 #'@param model The statistical model used to generate the test design.
 #'@param trials The number of runs in the design.
-#'@param splitplotdesign If NULL, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
+#'@param splitplotdesign If `NULL`, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
 #'this argument specifies the design for all of the factors harder to change than the current set of factors.
 #'Each row corresponds to a block in which the harder to change factors will be held
 #'constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{blocksizes},
@@ -35,8 +35,8 @@
 #'The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.
 #'@param repeats Default `20`. The number of times to repeat the search for the best optimal design.
 #'@param custom_v Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.
-#'@param varianceratio The ratio between the interblock and intra-block variance for a given stratum in
-#'a split plot design. Default 1.
+#'@param varianceratio Default `1`. The ratio between the interblock and intra-block variance for a given stratum in
+#'a split plot/blocked design.
 #'@param contrast Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.
 #'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
 #'@param minDopt Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
@@ -1381,7 +1381,7 @@ gen_design = function(candidateset, model, trials,
       }
       attr(design, "T") = sum(diag(t(designmm) %*% designmm))
       attr(design, "E") = min(unlist(eigen(t(designmm) %*% designmm)["values"]))
-      attr(design, "variance.matrix") = diag(nrow(designmm))
+      attr(design, "variance.matrix") = diag(nrow(designmm)) * varianceratio
       attr(design, "I") = IOptimality(as.matrix(designmm), momentsMatrix = mm, blockedVar = diag(nrow(designmm)))
     }, error = function(e) {
       if(is.null(attr(design, "G"))) attr(design, "G") = NA

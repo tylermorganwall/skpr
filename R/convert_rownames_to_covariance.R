@@ -16,10 +16,11 @@ convert_rownames_to_covariance = function(run_matrix_processed,varianceratios) {
   if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
     stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
   }
-  if (length(blockgroups) > 2 && length(varianceratios) == 1) {
-    varianceratios = rep(varianceratios, length(blockgroups) - 1)
+  if (length(blockgroups) > 1 && length(varianceratios) == 1) {
+    varianceratios = c(rep(varianceratios, length(blockgroups)-1),1)
+    warning("Automatically setting varianceratios to: c(",paste0(varianceratios,collapse=", "),")")
   }
-  if (length(blockgroups) > 2 && length(varianceratios) != 1 && length(blockgroups) - 1 != length(varianceratios)) {
+  if (length(blockgroups) != length(varianceratios)) {
     stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")
   }
   blockgroups = blockgroups[-length(blockgroups)]

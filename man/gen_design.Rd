@@ -39,7 +39,7 @@ If a factor is continuous, its column should be type \code{numeric}. If a factor
 
 \item{trials}{The number of runs in the design.}
 
-\item{splitplotdesign}{If NULL, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
+\item{splitplotdesign}{If `NULL`, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
 this argument specifies the design for all of the factors harder to change than the current set of factors.
 Each row corresponds to a block in which the harder to change factors will be held
 constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{blocksizes},
@@ -66,8 +66,8 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 
 \item{custom_v}{Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.}
 
-\item{varianceratio}{The ratio between the interblock and intra-block variance for a given stratum in
-a split plot design. Default 1.}
+\item{varianceratio}{Default `1`. The ratio between the interblock and intra-block variance for a given stratum in
+a split plot/blocked design.}
 
 \item{contrast}{Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.}
 

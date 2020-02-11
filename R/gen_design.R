@@ -35,8 +35,10 @@
 #'The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.
 #'@param repeats Default `20`. The number of times to repeat the search for the best optimal design.
 #'@param custom_v Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.
-#'@param varianceratio Default `1`. The ratio between the interblock and intra-block variance for a given stratum in
-#'a split plot/blocked design.
+#'@param varianceratio Default `1`. The ratio between the block and run-to-run variance for a given stratum in
+#'a split plot/blocked design. If the user specified a custom run-to-run variance (by providing a value to
+#'`varianceratio` to the final layer of a splitplot design), this value will still be measured against a
+#'hypothetical run-to-run variance of `1`, not the user-specified value.
 #'@param contrast Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.
 #'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
 #'@param minDopt Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
@@ -1442,10 +1444,10 @@ gen_design = function(candidateset, model, trials,
     attr(design, "splitplot") = FALSE
   }
 
-  if(blocking) {
-    attr(design, "blocked") = TRUE
+  if(blocking || !is.null(augmentdesign)) {
+    attr(design, "blocking") = TRUE
   } else {
-    attr(design, "blocked") = FALSE
+    attr(design, "blocking") = FALSE
   }
 
   #Add split plot columns if splitanalyzable is TRUE
@@ -1476,7 +1478,16 @@ gen_design = function(candidateset, model, trials,
       attr(design, "splitanalyzable") = TRUE
     }
   }
-
+  #Add block cols for augmented designs
+  if(!is.null(augmentdesign)) {
+    designnames = colnames(design)
+    allattr = attributes(design)
+    augment_block_col = data.frame(Block1 = rep(2,nrow(design)))
+    augment_block_col[1:nrow(augmentdesign),] = 1
+    design = cbind(augment_block_col, design)
+    attributes(design) = allattr
+    colnames(design) = c("Block1",designnames)
+  }
   if (!randomized) {
     if(is.null(augmentdesign)) {
       allattr = attributes(design)

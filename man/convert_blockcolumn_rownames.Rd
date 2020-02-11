@@ -8,7 +8,7 @@ convert_blockcolumn_rownames(
   RunMatrix,
   blocking,
   varianceratios,
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{

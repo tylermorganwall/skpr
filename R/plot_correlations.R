@@ -3,7 +3,9 @@
 #'@description Plots design diagnostics
 #'
 #'@param genoutput The output of either gen_design or eval_design/eval_design_mc
-#'@param model Default `NULL`. If specified, it will override the default model used to generate/evaluate the design.
+#'@param model Default `NULL`. Defaults to the model used in generating/evaluating
+#'the design, augmented with 2-factor interactions. If specified, it will override the default
+#'model used to generate/evaluate the design.
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
 #'@param pow Default 2. The interaction level that the correlation map is showing.
 #'@param custompar Default NULL. Custom parameters to pass to the `par` function for base R plotting.
@@ -31,13 +33,6 @@
 #'plot_correlations(cardesign, customcolors = c("blue", "green", "yellow", "orange", "red"))
 plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow = 2, custompar = NULL) {
   #Remove skpr-generated REML blocking indicators if present
-  if(is.null(model)) {
-    if(!is.null(attr(genoutput, "generating.model"))) {
-      model = attr(genoutput, "generating.model")
-    } else {
-      model = ~.*.
-    }
-  }
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
       allattr = attributes(genoutput)
@@ -49,7 +44,7 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   if (!is.null(attr(genoutput, "splitcolumns"))) {
     allattr = attributes(genoutput)
     genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
-    allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+    allattr$names = allattr$names[!allattr$names %in% attr(genoutput, "splitcolumns")]
     attributes(genoutput) = allattr
   }
   if (is.null(attr(genoutput, "variance.matrix") )) {
@@ -57,17 +52,27 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   }
   V = attr(genoutput, "variance.matrix")
   if (is.null(model)) {
-    if (!is.null(attr(genoutput, "run.matrix"))) {
-      variables = paste0("`", colnames(attr(genoutput, "run.matrix")), "`")
+    if (!is.null(attr(genoutput, "runmatrix"))) {
+      variables = paste0("`", colnames(attr(genoutput, "runmatrix")), "`")
     } else {
       variables =  paste0("`", colnames(genoutput), "`")
     }
     linearterms = paste(variables, collapse = " + ")
     linearmodel = paste0(c("~", linearterms), collapse = "")
-    model = as.formula(paste(c(linearmodel, as.character(aliasmodel(as.formula(linearmodel), power = pow)[2])), collapse = " + "))
+    model1 = as.formula(paste(c(linearmodel,
+                                as.character(aliasmodel(as.formula(linearmodel), power = pow)[2])
+                                ), collapse = " + "))
+    if(!is.null(attr(genoutput, "generating.model"))) {
+      modelfactors = colnames(attr(terms.formula(attr(genoutput, "generating.model")),"factors"))
+      quadmodelfactors = colnames(attr(terms.formula(model1,"factors"),"factors"))
+      otherterms = modelfactors[!modelfactors %in% quadmodelfactors]
+      model = as.formula(paste(c(model1,otherterms), collapse = " + "))
+    } else {
+      model = model1
+    }
   }
-  if (!is.null(attr(genoutput, "run.matrix"))) {
-    genoutput = attr(genoutput, "run.matrix")
+  if (!is.null(attr(genoutput, "runmatrix"))) {
+    genoutput = attr(genoutput, "runmatrix")
   }
   factornames = colnames(genoutput)[unlist(lapply(genoutput, class)) %in% c("factor", "character")]
   if (length(factornames) > 0) {

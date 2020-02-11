@@ -6,7 +6,7 @@
 #'@param varianceratios A vector of variance ratios for each level of restricted randomization
 #'@return Row-name encoded blocked run matrix
 #'@keywords internal
-convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios, verbose = TRUE) {
+convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios, verbose = FALSE) {
   if (is.null(attr(RunMatrix, "splitanalyzable")) &&
       any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
       any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {

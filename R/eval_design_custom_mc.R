@@ -11,7 +11,7 @@
 #'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
-#'@param alpha The type-I error.
+#'@param alpha Default `0.05`. The type-I error. p-values less than this will be counted as significant.
 #'@param nsim The number of simulations.
 #'@param rfunction Random number generator function. Should be a function of the form f(X, b), where X is the
 #'model matrix and b are the anticipated coefficients.
@@ -83,7 +83,8 @@
 #'                          rfunction = rsurvival, effectsize = 1)
 #'
 #'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
-eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunction, pvalfunction,
+eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
+                                 nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, effectsize = 2, contrasts = contr.sum,
                                  coef_function = coef,
                                  parameternames = NULL,
@@ -100,12 +101,7 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
       stop("No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
-      message("Using model used to generate design: ",
-              paste(as.character(model),collapse=""))
     }
-  }
-  if(missing(alpha)) {
-    stop("No alpha detected in arguments.")
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
@@ -241,7 +237,13 @@ eval_design_custom_mc = function(design, model, alpha, nsim, rfunction, fitfunct
                       power = power_values)
   attr(retval, "estimatesnames") = parameter_names
   attr(retval, "estimates") = estimates
-  retval
+  attr(retval, "alpha") = alpha
+  attr(retval, "runmatrix") = RunMatrixReduced
+  attr(retval, "anticoef") = anticoef
 
+  if(!inherits(retval,"skpr_eval_output")) {
+    class(retval) = c("skpr_eval_output", class(retval))
+  }
+  return(retval)
 }
 globalVariables("i")

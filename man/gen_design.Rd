@@ -66,8 +66,10 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 
 \item{custom_v}{Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.}
 
-\item{varianceratio}{Default `1`. The ratio between the interblock and intra-block variance for a given stratum in
-a split plot/blocked design.}
+\item{varianceratio}{Default `1`. The ratio between the block and run-to-run variance for a given stratum in
+a split plot/blocked design. If the user specified a custom run-to-run variance (by providing a value to
+`varianceratio` to the final layer of a splitplot design), this value will still be measured against a
+hypothetical run-to-run variance of `1`, not the user-specified value.}
 
 \item{contrast}{Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.}
 

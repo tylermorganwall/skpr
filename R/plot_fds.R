@@ -62,12 +62,10 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 31, plot=TRUE,
     }
   }
   if (!is.null(attr(genoutput, "splitcolumns"))) {
-    if(attr(genoutput, "blocking")) {
-      allattr = attributes(genoutput)
-      genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
-      attributes(genoutput) = allattr
-    }
+    allattr = attributes(genoutput)
+    genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
+    allattr$names = allattr$names[!allattr$names %in% attr(genoutput, "splitcolumns")]
+    attributes(genoutput) = allattr
   }
 
   Iopt = attr(genoutput, "I")
@@ -80,8 +78,8 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 31, plot=TRUE,
       model = ~.
     }
   }
-  if (!is.null(attr(genoutput, "run.matrix"))) {
-    genoutput = attr(genoutput, "run.matrix")
+  if (!is.null(attr(genoutput, "runmatrix"))) {
+    genoutput = attr(genoutput, "runmatrix")
   }
 
   factornames = colnames(genoutput)[unlist(lapply(genoutput, class)) %in% c("factor", "character")]

@@ -6,8 +6,8 @@
 \usage{
 eval_design(
   design,
-  model,
-  alpha,
+  model = NULL,
+  alpha = 0.05,
   blocking = NULL,
   anticoef = NULL,
   effectsize = 2,
@@ -29,7 +29,7 @@ was generated with skpr, the generating model will be used. It can be a subset o
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{The specified type-I error.}
+\item{alpha}{Default `0.05`. The specified type-I error.}
 
 \item{blocking}{Default `NULL`. If `TRUE`, \code{eval_design} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
 
@@ -131,6 +131,10 @@ eval_design(design = optdesign, model= ~A + B + C, alpha = 0.2)
 #degrees of freedom)
 eval_design(design = optdesign, model= ~A + C, alpha = 0.2)
 
+#We do not have to input the model if it's the same as the model used
+#During design generation. Here, we also use the default value for alpha (`0.05`)
+eval_design(optdesign)
+
 #Halving the signal-to-noise ratio by setting a different effectsize (default is 2):
 eval_design(design = optdesign, model= ~A + B + C, alpha = 0.2, effectsize = 1)
 
@@ -147,30 +151,20 @@ designcoffee = gen_design(factorialcoffee,
                          ~cost + size + type, trials = 29, optimality = "D", repeats = 100)
 
 #Evaluate the design, with default anticipated coefficients (conservative is FALSE by default).
-#(Setting detailedoutput = TRUE provides information on the anticipated
-#coefficients that were used:)
-eval_design(designcoffee, model = ~cost + size + type, alpha = 0.05, detailedoutput = TRUE)
+eval_design(designcoffee)
 
 #Evaluate the design, with conservative anticipated coefficients:
-eval_design(designcoffee, model = ~cost + size + type, alpha = 0.05, detailedoutput = TRUE,
-            conservative = TRUE)
+eval_design(designcoffee, conservative = TRUE)
 
 #which is the same as the following, but now explicitly entering the coefficients:
-eval_design(designcoffee, model = ~cost + size + type, alpha = 0.05,
-            anticoef = c(1, 1, 1, 0, 0, 1, 0), detailedoutput = TRUE)
-
-
-#If the defaults do not suit you, enter the anticipated coefficients in manually.
-eval_design(designcoffee,
-           model = ~cost + size + type, alpha = 0.05, anticoef = c(1, 1, 0, 0, 1, 0, 1))
+eval_design(designcoffee, anticoef = c(1, 1, 1, 0, 0, 1, 0))
 
 #You can also evaluate the design with higher order effects, even if they were not
 #used in design generation:
-eval_design(designcoffee, model = ~cost + size + type + cost * type, alpha = 0.05)
+eval_design(designcoffee, model = ~cost + size + type + cost * type)
 
-#Split plot designs can also be evaluated by setting the blocking parameter as TRUE.
 
-#Generating split plot design
+#Generating and evaluating a split plot design:
 splitfactorialcoffee = expand.grid(caffeine = c(1, -1),
                                   cost = c(1, 2),
                                   type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
@@ -181,24 +175,28 @@ coffeefinaldesign = gen_design(splitfactorialcoffee,
                               model = ~caffeine + cost + size + type, trials = 36,
                               splitplotdesign = coffeeblockdesign, blocksizes = 3)
 
-#Evaluating design
-eval_design(coffeefinaldesign, ~cost + size + type + caffeine, 0.2, blocking = TRUE)
+#Evaluating design (blocking is automatically detected)
+eval_design(coffeefinaldesign, 0.2, blocking = TRUE)
+
+#Manually turn blocking off to see completely randomized design power
+eval_design(coffeefinaldesign, 0.2, blocking = FALSE)
 
 #We can also evaluate the design with a custom ratio between the whole plot error to
 #the run-to-run error.
-eval_design(coffeefinaldesign, ~caffeine + cost + size + type + caffeine, 0.2, blocking = TRUE,
-            varianceratios = 2)
+eval_design(coffeefinaldesign, 0.2, varianceratios = 2)
 
 #If the design was generated outside of skpr and thus the row names do not have the
 #blocking structure encoded already, the user can add these manually. For a 12-run
-#design with 4 blocks, the rownames will be as follows:
+#design with 4 blocks, here is a vector indicated the blocks:
 
-manualrownames = paste(c(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4), rep(c(1, 2, 3), 4), sep = ".")
+blockcolumn = c(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4)
 
 #If we wanted to add this blocking structure to the design coffeeblockdesign, we would
-#simply set the rownames to this character vector:
+#add a column with the format "Block1", "Block2", "Block3" ... and each one will be treated
+#as a separate blocking layer.
 
-rownames(coffeeblockdesign) = manualrownames
+coffeeblockdesign$Block1 = blockcolumn
 
-#Deeper levels of blocking can be specified with additional periods.
+#By default, skpr will throw out the blocking columns unless the user specifies `blocking = TRUE`.
+eval_design(coffeeblockdesign, blocking=TRUE)
 }

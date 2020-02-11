@@ -12,7 +12,7 @@
 #'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
-#'@param alpha The type-I error. p-values less than this will be counted as significant.
+#'@param alpha Default `0.05`. The type-I error. p-values less than this will be counted as significant.
 #'@param blocking Default `NULL`. If `TRUE`, \code{eval_design_mc} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.
 #'@param nsim Default `1000`. The number of Monte Carlo simulations to perform.
 #'@param glmfamily Default `gaussian`. String indicating the family of distribution for the `glm` function
@@ -125,17 +125,17 @@
 #'#family used in fitting for the glm "glmfamily". For gaussian, binomial, exponential, and poisson
 #'#families, a default random generating function (rfunction) will be supplied. If another glm
 #'#family is used or the default random generating function is not adequate, a custom generating
-#'#function can be supplied by the user.
+#'#function can be supplied by the user. Like in `eval_design()`, if the model isn't entered, the
+#'#model used in generating the design will be used.
 #'
-#'\dontrun{eval_design_mc(designcoffee, model = ~cost + type + size, alpha = 0.05, nsim = 100,
-#'                        glmfamily = "gaussian")}
+#'\dontrun{eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian")}
 #'
 #'#We see here we generate approximately the same parameter powers as we do
 #'#using the normal approximation in eval_design. Like eval_design, we can also change
 #'#effectsize to produce a different signal-to-noise ratio:
 #'
-#'\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size, alpha = 0.05,
-#'               nsim = 100, glmfamily = "gaussian", effectsize = 1)}
+#'\dontrun{eval_design_mc(design = designcoffee, nsim = 100,
+#'                        glmfamily = "gaussian", effectsize = 1)}
 #'
 #'#Like eval_design, we can also evaluate the design with a different model than
 #'#the one that generated the design.
@@ -143,14 +143,14 @@
 #'               nsim = 100, glmfamily = "gaussian")}
 #'
 #'
-#'#And here it is evaluated with interactions included:
+#'#And here it is evaluated with additional interactions included:
 #'\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size + cost * type, 0.05,
 #'               nsim = 100, glmfamily = "gaussian")}
 #'
 #'#We can also set "parallel = TRUE" to use all the cores available to speed up
 #'#computation.
-#'\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size, 0.05,
-#'               nsim = 10000, glmfamily = "gaussian", parallel = TRUE)}
+#'\dontrun{eval_design_mc(design = designcoffee, nsim = 10000,
+#'                        glmfamily = "gaussian", parallel = TRUE)}
 #'
 #'#We can also evaluate split-plot designs. First, let us generate the split-plot design:
 #'
@@ -172,11 +172,11 @@
 #'#Each block has an additional noise term associated with it in addition to the normal error
 #'#term in the model. This is specified by a vector specifying the additional variance for
 #'#each split-plot level. This is equivalent to specifying a variance ratio of one between
-#'#the whole plots and the sub-plots for gaussian models.
+#'#the whole plots and the run-to-run variance for gaussian models.
 #'
 #'#Evaluate the design. Note the decreased power for the blocking factors.
-#'\dontrun{eval_design_mc(splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05,
-#'               blocking = TRUE, nsim = 100, glmfamily = "gaussian", varianceratios = c(1, 1))}
+#'\dontrun{eval_design_mc(splitplotdesign, blocking = TRUE, nsim = 100,
+#'                        glmfamily = "gaussian", varianceratios = c(1, 1, 1))}
 #'
 #'#We can also use this method to evaluate designs that cannot be easily
 #'#evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
@@ -205,7 +205,7 @@
 #'#when all inputs = 0 -- to 0.2 (from the intercept), and say that each factor
 #'#changes this count by a factor of 4 (multiplied by 2 when x= +1, and divided by 2 when x = -1).
 #'#Note the use of log() in the anticipated coefficients.
-eval_design_mc = function(design, model, alpha,
+eval_design_mc = function(design, model = NULL, alpha = 0.05,
                           blocking = NULL, nsim = 1000, glmfamily = "gaussian", calceffect = TRUE,
                           varianceratios = NULL, rfunction = NULL, anticoef = NULL,
                           effectsize = 2, contrasts = contr.sum, parallel = FALSE,
@@ -221,15 +221,10 @@ eval_design_mc = function(design, model, alpha,
       stop("No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
-      message("Using model used to generate design: ",
-              paste(as.character(model),collapse=""))
     }
   }
-  if(missing(alpha)) {
-    stop("No alpha detected in arguments.")
-  }
   if(is.null(varianceratios)) {
-    if(is.null(attr(design, "varianceratios"))) {
+    if(!is.null(attr(design, "varianceratios"))) {
       varianceratios = attr(design, "varianceratios")
     } else {
       varianceratios = 1
@@ -241,15 +236,12 @@ eval_design_mc = function(design, model, alpha,
   }
 
   if(is.null(blocking)) {
-    if(is.null(attr(design,"blocking")) && is.null(attr(design,"splitplot"))) {
-      blocking = FALSE
-    } else {
-      if(!is.null(attr(design,"blocking"))) {
-        blocking = attr(design, "blocking")
-      }
-      if(!is.null(attr(design,"splitplot"))) {
-        blocking = attr(design, "splitplot")
-      }
+    blocking = FALSE
+    if(!is.null(attr(design,"blocking"))) {
+      blocking = attr(design,"blocking")
+    }
+    if(!is.null(attr(design,"splitplot"))) {
+      blocking = blocking || attr(design,"splitplot")
     }
   }
 
@@ -329,14 +321,8 @@ eval_design_mc = function(design, model, alpha,
   #covert tibbles
   run_matrix_processed = as.data.frame(design)
   #Detect externally generated blocking columns and convert to rownames
-  if(is.null(varianceratios)) {
-    if(!is.null(attr(design, "varianceratios"))) {
-      varianceratios = attr(design, "varianceratios")[-1]
-    } else {
-      varianceratios = 1
-    }
-  }
   run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking, varianceratios)
+  zlist = attr(run_matrix_processed, "z.matrix.list")
 
   #Remove skpr-generated REML blocking indicators if present
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
@@ -432,15 +418,12 @@ eval_design_mc = function(design, model, alpha,
       blockMatrixSize = nrow(run_matrix_processed)
       V = diag(blockMatrixSize)
 
-      if (!is.null(varianceratios) && max(unlist(lapply(blocklist, length))) - 1 != length(varianceratios) && length(varianceratios) != 1) {
+      if (max(unlist(lapply(blocklist, length))) != length(varianceratios)) {
         warning("varianceratios length does not match number of split plots. Defaulting to variance ratio of 1 for all strata. ")
-        varianceratios = rep(1, max(unlist(lapply(blocklist, length))) - 1)
+        varianceratios = rep(1, max(unlist(lapply(blocklist, length))))
       }
-      if (length(varianceratios) == 1 && max(unlist(lapply(blocklist, length))) - 1 != length(varianceratios)) {
-        varianceratios = rep(varianceratios, max(unlist(lapply(blocklist, length))) - 1)
-      }
-      if (is.null(varianceratios)) {
-        varianceratios = rep(1, max(unlist(lapply(blocklist, length))) - 1)
+      if (length(blockgroups) != length(varianceratios)) {
+        stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")
       }
 
       blockcounter = 1
@@ -727,6 +710,7 @@ eval_design_mc = function(design, model, alpha,
   }
   attr(retval, "modelmatrix") = ModelMatrix
   attr(retval, "anticoef") = anticoef
+  attr(retval, "z.matrix.list") = zlist
 
   levelvector = sapply(lapply(RunMatrixReduced, unique), length)
   classvector = sapply(lapply(RunMatrixReduced, unique), class) == "factor"
@@ -814,10 +798,18 @@ eval_design_mc = function(design, model, alpha,
   attr(retval, "effect_pvals") = attr(power_values, "effect_pvals")
   attr(retval, "stderrors") = attr(power_values, "stderrors")
   attr(retval, "fisheriterations") = attr(power_values, "fisheriterations")
+  attr(retval, "alpha") = alpha
+  attr(retval, "blocking") = blocking
+  attr(retval, "varianceratios") = varianceratios
+
+
+
   if(advancedoptions$save_simulated_responses) {
     attr(retval, "simulated_responses") = responses
   }
-
+  if(!inherits(retval,"skpr_eval_output")) {
+    class(retval) = c("skpr_eval_output", class(retval))
+  }
   return(retval)
 }
 globalVariables("i")

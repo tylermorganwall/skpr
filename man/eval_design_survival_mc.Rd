@@ -6,8 +6,8 @@
 \usage{
 eval_design_survival_mc(
   design,
-  model,
-  alpha,
+  model = NULL,
+  alpha = 0.05,
   nsim = 1000,
   distribution = "gaussian",
   censorpoint = NA,
@@ -30,7 +30,7 @@ was generated with skpr, the generating model will be used. It can be a subset o
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{The type-I error.}
+\item{alpha}{Default `0.05`. The type-I error. p-values less than this will be counted as significant.}
 
 \item{nsim}{The number of simulations. Default 1000.}
 

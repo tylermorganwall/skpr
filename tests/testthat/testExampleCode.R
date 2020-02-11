@@ -122,15 +122,15 @@ test_that("gen_design example code runs without errors", {
   expect_warning(eval_design_mc(externaldesign,  ~., 0.2, nsim = 10), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design_mc(externaldesign2, ~., 0.2, nsim = 10), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design_mc(externaldesign3, ~., 0.2, nsim = 10), "ignoring blocking structure and removing blocking columns.")
-  expect_message(eval_design_mc(externaldesign, ~., 0.2, blocking = TRUE, nsim = 10), "attempting to interpret blocking structure.")
-  expect_message(eval_design_mc(externaldesign2, ~., 0.2, blocking = TRUE, nsim = 10), "attempting to interpret blocking structure.")
-  expect_message(eval_design_mc(externaldesign3, ~., 0.2, blocking = TRUE, nsim = 10), "attempting to interpret blocking structure.")
+  expect_warning(eval_design_mc(externaldesign, ~., 0.2, blocking = TRUE, nsim = 10),"Defaulting to variance ratio of 1 for all strata.")
+  expect_warning(eval_design_mc(externaldesign2, ~., 0.2, blocking = TRUE, nsim = 10),"Defaulting to variance ratio of 1 for all strata.")
+  expect_warning(eval_design_mc(externaldesign3, ~., 0.2, blocking = TRUE, nsim = 10),"Defaulting to variance ratio of 1 for all strata.")
   expect_warning(eval_design(externaldesign,  ~., 0.2), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign2, ~., 0.2), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign3, ~., 0.2), "ignoring blocking structure and removing blocking columns.")
-  expect_warning(eval_design(externaldesign, ~., 0.2, blocking = TRUE), "Automatically setting varianceratios to: c(1, 1)",fixed=TRUE)
-  expect_warning(eval_design(externaldesign2, ~., 0.2, blocking = TRUE), "Automatically setting varianceratios to: c(1, 1, 1)",fixed=TRUE)
-  expect_warning(eval_design(externaldesign3, ~., 0.2, blocking = TRUE), "Automatically setting varianceratios to: c(1, 1, 1)",fixed=TRUE)
+  expect_silent(eval_design(externaldesign, ~., 0.2, blocking = TRUE))
+  expect_silent(eval_design(externaldesign2, ~., 0.2, blocking = TRUE))
+  expect_silent(eval_design(externaldesign3, ~., 0.2, blocking = TRUE))
 
   #test timer
   expect_output(gen_design(candlist3, ~Location, trials = 6, timer = TRUE) -> temp)
@@ -234,7 +234,7 @@ test_that("eval_design example code runs without errors", {
   #'
   #'#We can also evaluate the design with a custom ratio between the whole plot error to
   #'#the run-to-run error.
-  expect_warning(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE,
+  expect_silent(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE,
               varianceratio = 2))
 
   expect_silent(eval_design(coffeefinaldesign,  model = ~cost + size + type + caffeine, alpha = 0.2, blocking = TRUE,
@@ -281,7 +281,7 @@ test_that("eval_design_mc example code runs without errors", {
     splitplotdesign = gen_design(candidateset = factorialcoffee, model = ~Store + Temp + cost + type + size, trials = 96,
                                splitplotdesign = htcdesign, blocksizes = 4)
   })
-  expect_warning(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
+  expect_silent(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
                                 nsim = 1, glmfamily = "gaussian", varianceratios = c(5, 4, 2)))
   factorialbinom = expand.grid(a = c(-1, 1), b = c(-1, 1))
   expect_silent({

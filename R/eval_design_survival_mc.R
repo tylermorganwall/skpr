@@ -9,7 +9,7 @@
 #'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include
 #'factors that are not present in the experimental design.
-#'@param alpha The type-I error.
+#'@param alpha Default `0.05`. The type-I error. p-values less than this will be counted as significant.
 #'@param nsim The number of simulations. Default 1000.
 #'@param distribution Distribution of survival function to use when fitting the data. Valid choices are described
 #'in the documentation for \code{survreg}. \emph{Supported} options are
@@ -112,7 +112,7 @@
 #'eval_design_survival_mc(design = design, model = ~a, alpha = 0.2, nsim = 100,
 #'                         distribution = "lognormal", rfunctionsurv = rlognorm,
 #'                         anticoef = c(0.184, 0.101), scale = 0.4)
-eval_design_survival_mc = function(design, model, alpha,
+eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
                                    nsim = 1000, distribution = "gaussian", censorpoint = NA, censortype = "right",
                                    rfunctionsurv = NULL, anticoef = NULL, effectsize = 2, contrasts = contr.sum,
                                    parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL, ...) {
@@ -127,12 +127,7 @@ eval_design_survival_mc = function(design, model, alpha,
       stop("No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
-      message("Using model used to generate design: ",
-              paste(as.character(model),collapse=""))
     }
-  }
-  if(missing(alpha)) {
-    stop("No alpha detected in arguments.")
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
@@ -344,6 +339,9 @@ eval_design_survival_mc = function(design, model, alpha,
   attr(retval, "modelmatrix") = ModelMatrix
   attr(retval, "anticoef") = anticoef
   attr(retval, "pvals") = pvals
+  attr(retval, "alpha") = alpha
+  attr(retval, "runmatrix") = RunMatrixReduced
+
 
   if (detailedoutput) {
     retval$anticoef = anticoef
@@ -352,7 +350,9 @@ eval_design_survival_mc = function(design, model, alpha,
     retval$trials = nrow(run_matrix_processed)
     retval$nsim = nsim
   }
-  retval
-
+  if(!inherits(retval,"skpr_eval_output")) {
+    class(retval) = c("skpr_eval_output", class(retval))
+  }
+  return(retval)
 }
 globalVariables("i")

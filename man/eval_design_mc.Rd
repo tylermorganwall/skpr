@@ -6,8 +6,8 @@
 \usage{
 eval_design_mc(
   design,
-  model,
-  alpha,
+  model = NULL,
+  alpha = 0.05,
   blocking = NULL,
   nsim = 1000,
   glmfamily = "gaussian",
@@ -32,7 +32,7 @@ was generated with skpr, the generating model will be used. It can be a subset o
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{The type-I error. p-values less than this will be counted as significant.}
+\item{alpha}{Default `0.05`. The type-I error. p-values less than this will be counted as significant.}
 
 \item{blocking}{Default `NULL`. If `TRUE`, \code{eval_design_mc} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
 
@@ -167,17 +167,17 @@ eval_design(design = designcoffee, model = ~cost + type + size, 0.05)
 #family used in fitting for the glm "glmfamily". For gaussian, binomial, exponential, and poisson
 #families, a default random generating function (rfunction) will be supplied. If another glm
 #family is used or the default random generating function is not adequate, a custom generating
-#function can be supplied by the user.
+#function can be supplied by the user. Like in `eval_design()`, if the model isn't entered, the
+#model used in generating the design will be used.
 
-\dontrun{eval_design_mc(designcoffee, model = ~cost + type + size, alpha = 0.05, nsim = 100,
-                       glmfamily = "gaussian")}
+\dontrun{eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian")}
 
 #We see here we generate approximately the same parameter powers as we do
 #using the normal approximation in eval_design. Like eval_design, we can also change
 #effectsize to produce a different signal-to-noise ratio:
 
-\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size, alpha = 0.05,
-              nsim = 100, glmfamily = "gaussian", effectsize = 1)}
+\dontrun{eval_design_mc(design = designcoffee, nsim = 100,
+                       glmfamily = "gaussian", effectsize = 1)}
 
 #Like eval_design, we can also evaluate the design with a different model than
 #the one that generated the design.
@@ -185,14 +185,14 @@ eval_design(design = designcoffee, model = ~cost + type + size, 0.05)
               nsim = 100, glmfamily = "gaussian")}
 
 
-#And here it is evaluated with interactions included:
+#And here it is evaluated with additional interactions included:
 \dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size + cost * type, 0.05,
               nsim = 100, glmfamily = "gaussian")}
 
 #We can also set "parallel = TRUE" to use all the cores available to speed up
 #computation.
-\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size, 0.05,
-              nsim = 10000, glmfamily = "gaussian", parallel = TRUE)}
+\dontrun{eval_design_mc(design = designcoffee, nsim = 10000,
+                       glmfamily = "gaussian", parallel = TRUE)}
 
 #We can also evaluate split-plot designs. First, let us generate the split-plot design:
 
@@ -214,11 +214,11 @@ splitplotdesign = gen_design(factorialcoffee2,
 #Each block has an additional noise term associated with it in addition to the normal error
 #term in the model. This is specified by a vector specifying the additional variance for
 #each split-plot level. This is equivalent to specifying a variance ratio of one between
-#the whole plots and the sub-plots for gaussian models.
+#the whole plots and the run-to-run variance for gaussian models.
 
 #Evaluate the design. Note the decreased power for the blocking factors.
-\dontrun{eval_design_mc(splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05,
-              blocking = TRUE, nsim = 100, glmfamily = "gaussian", varianceratios = c(1, 1))}
+\dontrun{eval_design_mc(splitplotdesign, blocking = TRUE, nsim = 100,
+                       glmfamily = "gaussian", varianceratios = c(1, 1, 1))}
 
 #We can also use this method to evaluate designs that cannot be easily
 #evaluated using normal approximations. Here, we evaluate a design with a binomial response and see

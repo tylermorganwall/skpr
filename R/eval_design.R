@@ -178,11 +178,21 @@ eval_design = function(design, model = NULL, alpha = 0.05,
       model = attr(design,"generating.model")
     }
   }
+  user_specified_varianceratio = TRUE
   if(is.null(varianceratios)) {
+    user_specified_varianceratio = FALSE
     if(!is.null(attr(design, "varianceratios"))) {
       varianceratios = attr(design, "varianceratios")
     } else {
       varianceratios = 1
+    }
+  }
+  if(!is.null(attr(design,"splitcolumns"))) {
+    if(varianceratios[length(varianceratios)] != 1 && !user_specified_varianceratio) {
+      warning("Lowest level of varianceratios cannot be set to anything other than 1 (value of ",
+               varianceratios[length(varianceratios)],
+              " was set during design generation). Setting run-to-run variance to 1.")
+      varianceratios[length(varianceratios)] = 1
     }
   }
   input_design = design
@@ -238,7 +248,10 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   run_matrix_processed = as.data.frame(design)
 
   #Detect externally generated blocking columns and convert to rownames
-  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking, varianceratios)
+  run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking,
+                                                      varianceratios, user_specified_varianceratio)
+  varianceratios = attr(run_matrix_processed,"tempvar")
+  attr(run_matrix_processed,"tempvar") = NULL
   zlist = attr(run_matrix_processed, "z.matrix.list")
 
   #Remove skpr-generated REML blocking columns if present
@@ -294,11 +307,12 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     stop("Wrong number of anticipated coefficients")
   }
 
-
   #-----Generate V inverse matrix-----X
   #Variables used later: V, vinv, degrees_of_freedom, parameter_names
   if (blocking) {
-    V = convert_rownames_to_covariance(run_matrix_processed, varianceratios)
+    V = convert_rownames_to_covariance(run_matrix_processed, varianceratios, user_specified_varianceratio)
+    varianceratios = attr(V,"tempvar")
+    attr(run_matrix_processed,"tempvar") = NULL
     vinv = solve(V)
     #Below code detects the split-plot columns, and calculates the adjusted degrees of freedom for each term
     degrees_of_freedom = calculate_degrees_of_freedom(run_matrix_processed, nointercept, model, contrasts)

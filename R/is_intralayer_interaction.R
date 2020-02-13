@@ -17,12 +17,19 @@ is_intralayer_interaction = function(design, model, split_layers) {
   if (max(split_layers) > 0) {
     for (i in 1:max(split_layers, na.rm = TRUE)) {
       wholeplotterms = colnames(design)[split_layers == i]
+      higherplotterms = colnames(design)[split_layers > i]
       wholeorwholeinteraction = rep(FALSE, length(splitterms))
+      higherplotinteraction = rep(FALSE, length(splitterms))
+
       for (term in wholeplotterms) {
         regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)")
         wholeorwholeinteraction = wholeorwholeinteraction | grepl(regex, splitterms, perl = TRUE)
       }
-      interactions[[i]] = wholeorwholeinteraction & !ismaineffect
+      for (term in higherplotterms) {
+        regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)")
+        higherplotinteraction = higherplotinteraction | grepl(regex, splitterms, perl = TRUE)
+      }
+      interactions[[i]] = wholeorwholeinteraction & !ismaineffect & !higherplotinteraction
     }
   } else {
     for(i in seq_along(1:max(split_layers, na.rm=TRUE))) {

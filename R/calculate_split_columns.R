@@ -7,6 +7,7 @@
 calculate_split_columns = function(run_matrix_processed, blockgroups) {
   lowest_level = length(lapply(blockgroups, length)) + 1
   splitlayer = rep(lowest_level,ncol(run_matrix_processed))
+  allsplit = TRUE
   for (i in 1:length(blockgroups)) {
     currentrow = 1
     isblockcol = rep(TRUE,ncol(run_matrix_processed))
@@ -19,7 +20,10 @@ calculate_split_columns = function(run_matrix_processed, blockgroups) {
       }
       currentrow = currentrow + temp_block_str[j]
     }
+    if(length(splitlayer[isblockcol & splitlayer == lowest_level]) < 1) {
+      allsplit = FALSE
+    }
     splitlayer[isblockcol & splitlayer == lowest_level] = i
   }
-  return(splitlayer)
+  return(list(splitlayer=splitlayer, allsplit=allsplit))
 }

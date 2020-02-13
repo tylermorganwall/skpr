@@ -8,6 +8,7 @@ convert_blockcolumn_rownames(
   RunMatrix,
   blocking,
   varianceratios,
+  user_specified_varianceratio,
   verbose = FALSE
 )
 }

@@ -122,9 +122,6 @@ test_that("gen_design example code runs without errors", {
   expect_warning(eval_design_mc(externaldesign,  ~., 0.2, nsim = 10), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design_mc(externaldesign2, ~., 0.2, nsim = 10), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design_mc(externaldesign3, ~., 0.2, nsim = 10), "ignoring blocking structure and removing blocking columns.")
-  expect_warning(eval_design_mc(externaldesign, ~., 0.2, blocking = TRUE, nsim = 10),"Defaulting to variance ratio of 1 for all strata.")
-  expect_warning(eval_design_mc(externaldesign2, ~., 0.2, blocking = TRUE, nsim = 10),"Defaulting to variance ratio of 1 for all strata.")
-  expect_warning(eval_design_mc(externaldesign3, ~., 0.2, blocking = TRUE, nsim = 10),"Defaulting to variance ratio of 1 for all strata.")
   expect_warning(eval_design(externaldesign,  ~., 0.2), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign2, ~., 0.2), "ignoring blocking structure and removing blocking columns.")
   expect_warning(eval_design(externaldesign3, ~., 0.2), "ignoring blocking structure and removing blocking columns.")
@@ -275,14 +272,23 @@ test_that("eval_design_mc example code runs without errors", {
                                 type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
                                 size = as.factor(c("Short", "Grande", "Venti")))
 
-  vhtcdesign = gen_design(candidateset = factorialcoffee, model = ~Store, trials = 8)
+  vhtcdesign = gen_design(candidateset = factorialcoffee, model = ~Store, trials = 8,varianceratio = 3)
   htcdesign = gen_design(candidateset = factorialcoffee, model = ~Store + Temp, trials = 24, splitplotdesign = vhtcdesign, blocksizes = 3)
   expect_silent({
     splitplotdesign = gen_design(candidateset = factorialcoffee, model = ~Store + Temp + cost + type + size, trials = 96,
-                               splitplotdesign = htcdesign, blocksizes = 4)
+                               splitplotdesign = htcdesign, blocksizes = 4, varianceratio = 3)
   })
   expect_silent(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
+                                nsim = 1, glmfamily = "gaussian", varianceratios = c(5, 4)))
+  expect_silent(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
+                               nsim = 1, glmfamily = "gaussian", varianceratios = c(5, 4)))
+  expect_error(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
+                                nsim = 1, glmfamily = "gaussian", varianceratios = c(5, 4, 2, 2)),"Wrong number of variance ratios specified.")
+  expect_silent(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
                                 nsim = 1, glmfamily = "gaussian", varianceratios = c(5, 4, 2)))
+  expect_silent(eval_design_mc(design = splitplotdesign, model = ~Store + Temp + cost + type + size, alpha = 0.05, blocking = TRUE,
+                                nsim = 1, glmfamily = "gaussian", varianceratios = c(5, 4)))
+
   factorialbinom = expand.grid(a = c(-1, 1), b = c(-1, 1))
   expect_silent({
     designbinom = gen_design(factorialbinom, model = ~a + b, trials = 90, optimality = "D", repeats = 100)

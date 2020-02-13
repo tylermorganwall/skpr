@@ -104,7 +104,7 @@
 #'
 #'
 #'@export
-#'@import foreach doParallel nlme stats
+#'@import foreach doParallel stats
 #'@examples #We first generate a full factorial design using expand.grid:
 #'factorialcoffee = expand.grid(cost = c(-1, 1),
 #'                               type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
@@ -223,11 +223,21 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       model = attr(design,"generating.model")
     }
   }
+  user_specified_varianceratio = TRUE
   if(is.null(varianceratios)) {
+    user_specified_varianceratio = FALSE
     if(!is.null(attr(design, "varianceratios"))) {
       varianceratios = attr(design, "varianceratios")
     } else {
       varianceratios = 1
+    }
+  }
+  if(!is.null(attr(design,"splitcolumns"))) {
+    if(varianceratios[length(varianceratios)] != 1 && !user_specified_varianceratio) {
+      warning("Lowest level of varianceratios cannot be set to anything other than 1 (value of ",
+              varianceratios[length(varianceratios)],
+              " was set during design generation). Setting run-to-run variance to 1.")
+      varianceratios[length(varianceratios)] = 1
     }
   }
   args = list(...)
@@ -417,13 +427,19 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
 
       blockMatrixSize = nrow(run_matrix_processed)
       V = diag(blockMatrixSize)
-
-      if (max(unlist(lapply(blocklist, length))) != length(varianceratios)) {
-        warning("varianceratios length does not match number of split plots. Defaulting to variance ratio of 1 for all strata. ")
-        varianceratios = rep(1, max(unlist(lapply(blocklist, length))))
+      if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
+        stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
+      }
+      if (length(blockgroups) != length(varianceratios) && length(varianceratios) == 1) {
+        warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
+        varianceratios = c(rep(varianceratios,length(blockgroups)-1),1)
+      }
+      if (length(blockgroups) - 1 == length(varianceratios)) {
+        varianceratios = c(varianceratios,1)
       }
       if (length(blockgroups) != length(varianceratios)) {
-        stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")
+        stop("Wrong number of variance ratios specified. ", length(varianceratios),
+             " variance ratios given c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups), " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
       }
 
       blockcounter = 1

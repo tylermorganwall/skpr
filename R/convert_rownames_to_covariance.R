@@ -4,7 +4,7 @@
 #'@param run_matrix_processed The design
 #'@return Variance-covariance matrix V
 #'@keywords internal
-convert_rownames_to_covariance = function(run_matrix_processed,varianceratios) {
+convert_rownames_to_covariance = function(run_matrix_processed,varianceratios, user_specified_varianceratio) {
   blocklist = strsplit(rownames(run_matrix_processed), ".", fixed = TRUE)
 
   existingBlockStructure = do.call(rbind, blocklist)
@@ -16,11 +16,18 @@ convert_rownames_to_covariance = function(run_matrix_processed,varianceratios) {
   if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
     stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
   }
-  if (length(blockgroups) > 1 && length(varianceratios) == 1) {
-    varianceratios = c(rep(varianceratios, length(blockgroups)-1),1)
+  if (length(blockgroups) - 1 != length(varianceratios)  && length(varianceratios) == 1) {
+    if(user_specified_varianceratio) {
+      warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
+    }
+    varianceratios = c(rep(varianceratios,length(blockgroups)-1),1)
   }
-  if (length(blockgroups) != length(varianceratios)) {
-    stop("Wrong number of variance ratio specified. Either specify value for all blocking levels or one value for all blocks.")
+  if (length(blockgroups) - 1 == length(varianceratios)) {
+    varianceratios = c(varianceratios,1)
+  }
+  if (length(blockgroups) != length(varianceratios) ) {
+    stop("Wrong number of variance ratios specified. ", length(varianceratios),
+" variance ratios given c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups), " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
   }
   blockgroups = blockgroups[-length(blockgroups)]
   for (block in blockgroups) {
@@ -33,5 +40,6 @@ convert_rownames_to_covariance = function(run_matrix_processed,varianceratios) {
     }
     blockcounter = blockcounter + 1
   }
+  attr(V,"tempvar") = varianceratios
   return(V)
 }

@@ -4,7 +4,15 @@
 \alias{calc_interaction_degrees}
 \title{Calculate Interaction Degrees of Freedom}
 \usage{
-calc_interaction_degrees(design, model, contrast, split_layers, split_degrees)
+calc_interaction_degrees(
+  design,
+  model,
+  contrast,
+  nointercept,
+  split_layers,
+  split_degrees,
+  split_plot_structure
+)
 }
 \arguments{
 \item{design}{The design matrix}

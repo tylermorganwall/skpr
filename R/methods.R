@@ -30,6 +30,7 @@ print.skpr_eval_output = function(x, ...) {
   }
   x2 = rbind(as.matrix(x),colnames(x))
   row_width_char = max(nchar(rownames(x)))
+  x2[is.na(x2)] = "NA"
   total_width = sum(apply(x2,2,(function(x) max(nchar(x))))) + row_width_char + length(colnames(x))
   blocktext = paste(c(bold("\u2022 Blocked = "), as.character(blocking)), collapse = "")
   totalline = paste0(alphatext,trialtext,blocktext)
@@ -56,7 +57,7 @@ print.skpr_eval_output = function(x, ...) {
   cat("\n")
   cat(paste(c(bold("\u2022 Evaluating Model = "), as.character(attr(x,"generating.model")),"\n"), collapse = ""))
   cat(paste(c(bold("\u2022 Anticipated Coefficients = "), "c(",
-              paste0(as.character(attr(x,"anticoef")),collapse=", "),")\n"), collapse = ""))
+              paste0(unlist(lapply("%1.3f",sprintf, attr(x,"anticoef"))),collapse=", "),")\n"), collapse = ""))
   if (!is.null(attr(x,"z.matrix.list")) && blocking) {
     number_blocks = unlist(lapply(attr(x,"z.matrix.list"),ncol))
     cat(paste(c(bold("\u2022 Number of Blocks = "),
@@ -66,6 +67,7 @@ print.skpr_eval_output = function(x, ...) {
   }
   if (!is.null(attr(x,"varianceratios")) && blocking) {
     vr = attr(x,"varianceratios")
+    vr = vr[-length(vr)]
     cat(paste(c(bold("\u2022 Variance Ratios  = "),
                 paste(paste("Level ", 1:length(vr), ": ",as.character(vr), sep="", collapse=", ")),"\n"),
               collapse = ""))

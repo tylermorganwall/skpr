@@ -8,7 +8,8 @@
 #'@param continuouslength Default `31`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.
 #'@param plot Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.
 #'@param yaxis_max Default `NULL`. Manually set the maximum value of the prediction variance.
-#'@param description Default `Fraction of Design Space`. The description to add to the plot.
+#'@param description Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
+#'passed to genoutput, it will be the description for each plot.
 #'@return Plots design diagnostics, and invisibly returns the vector of values representing the fraction of design space plot. If multiple
 #'designs are passed, this will return a list of all FDS vectors.
 #'@import graphics grDevices
@@ -43,11 +44,14 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 31, plot=TRUE,
       }
       yaxis_max = max(unlist(fds_values)) + max(unlist(fds_values)) / 20
     }
+    if(length(description) == 1) {
+      description = rep(description, length(genoutput))
+    }
     if(plot) {
       for(i in 1:length(genoutput)) {
         fds_values[[i]] = plot_fds(genoutput[[i]], model=model, continuouslength = continuouslength,
                                    plot=plot, yaxis_max=yaxis_max,
-                                   description = paste0(c(description, "\nDesign ",i),collapse=""))
+                                   description = description[i])
       }
     }
     return(invisible(fds_values))

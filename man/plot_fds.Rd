@@ -25,7 +25,8 @@ of several designs, which will result in all of them being plotted in a row (for
 
 \item{yaxis_max}{Default `NULL`. Manually set the maximum value of the prediction variance.}
 
-\item{description}{Default `Fraction of Design Space`. The description to add to the plot.}
+\item{description}{Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
+passed to genoutput, it will be the description for each plot.}
 }
 \value{
 Plots design diagnostics, and invisibly returns the vector of values representing the fraction of design space plot. If multiple

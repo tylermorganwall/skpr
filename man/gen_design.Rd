@@ -67,9 +67,8 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 \item{custom_v}{Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.}
 
 \item{varianceratio}{Default `1`. The ratio between the block and run-to-run variance for a given stratum in
-a split plot/blocked design. If the user specified a custom run-to-run variance (by providing a value to
-`varianceratio` to the final layer of a splitplot design), this value will still be measured against a
-hypothetical run-to-run variance of `1`, not the user-specified value.}
+a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
+if no split plot design is entered.}
 
 \item{contrast}{Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.}
 
@@ -84,7 +83,8 @@ hypothetical run-to-run variance of `1`, not the user-specified value.}
 \item{add_blocking_columns}{Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
 
-\item{randomized}{Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.}
+\item{randomized}{Default `TRUE`, due to the intrisic randomization of the design search algorithm. If `FALSE`,
+the randomized design will be re-ordered from left to right.}
 
 \item{advancedoptions}{Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing

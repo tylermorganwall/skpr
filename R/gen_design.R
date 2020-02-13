@@ -36,9 +36,8 @@
 #'@param repeats Default `20`. The number of times to repeat the search for the best optimal design.
 #'@param custom_v Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.
 #'@param varianceratio Default `1`. The ratio between the block and run-to-run variance for a given stratum in
-#'a split plot/blocked design. If the user specified a custom run-to-run variance (by providing a value to
-#'`varianceratio` to the final layer of a splitplot design), this value will still be measured against a
-#'hypothetical run-to-run variance of `1`, not the user-specified value.
+#'a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
+#'if no split plot design is entered.
 #'@param contrast Function used to generate the encoding for categorical variables. Default "contr.simplex", an orthonormal sum contrast.
 #'@param aliaspower Default 2. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
 #'@param minDopt Default 0.8. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
@@ -46,7 +45,8 @@
 #'@param timer Default FALSE. If TRUE, will print an estimate of the optimal design search time.
 #'@param add_blocking_columns Default FALSE. The blocking structure of the design will be indicated in the row names of the returned
 #'design. If TRUE, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.
-#'@param randomized Default TRUE. If FALSE, the resulting design will be ordered from the left-most parameter.
+#'@param randomized Default `TRUE`, due to the intrisic randomization of the design search algorithm. If `FALSE`,
+#'the randomized design will be re-ordered from left to right.
 #'@param advancedoptions Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 #'are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing
 #'matrix when calculating optimality tie-breakers), `alias_tie_tolerance` (the smallest absolute difference in the optimality criterion where designs are
@@ -351,6 +351,13 @@ gen_design = function(candidateset, model, trials,
     advancedoptions$GUI = FALSE
     advancedoptions$g_efficiency_method = "none"
     progressBarUpdater = NULL
+  }
+
+  if(is.null(splitplotdesign)) {
+    if(varianceratio != 1) {
+      warning("varianceratio cannot be set when split-plot design is not null.")
+      varianceratio = 1
+    }
   }
 
   #covert tibbles
@@ -1479,6 +1486,26 @@ gen_design = function(candidateset, model, trials,
     }
   }
   #Add block cols for augmented designs
+  if (!randomized) {
+    if(is.null(augmentdesign)) {
+      allattr = attributes(design)
+      design_order = do.call(order, design)
+      design = design[design_order, , drop = FALSE]
+      allattr$model.matrix = allattr$model.matrix[design_order,]
+      attributes(design) = allattr
+    } else {
+      allattr = attributes(design)
+      noaugmentdesign = design[-(1:nrow(augmentdesign)), , drop = FALSE]
+      design_order_augment = do.call(order, noaugmentdesign)
+      noaugmentdesign = noaugmentdesign[design_order_augment, , drop = FALSE]
+      noaugmentmm = allattr$model.matrix[-(1:nrow(augmentdesign)), , drop = FALSE]
+      noaugmentmm = noaugmentmm[design_order_augment, , drop = FALSE]
+      rownames(noaugmentmm) = (nrow(augmentdesign)+1):nrow(design)
+      allattr$model.matrix = rbind(augmentdesignmm,noaugmentmm)
+      design = rbind(augmentdesign, noaugmentdesign)
+      attributes(design) = allattr
+    }
+  }
   if(!is.null(augmentdesign)) {
     designnames = colnames(design)
     allattr = attributes(design)
@@ -1487,19 +1514,6 @@ gen_design = function(candidateset, model, trials,
     design = cbind(augment_block_col, design)
     attributes(design) = allattr
     colnames(design) = c("Block1",designnames)
-  }
-  if (!randomized) {
-    if(is.null(augmentdesign)) {
-      allattr = attributes(design)
-      design = design[do.call(order, design), , drop = FALSE]
-      attributes(design) = allattr
-    } else {
-      allattr = attributes(design)
-      noaugmentdesign = design[-(1:nrow(augmentdesign)), , drop = FALSE]
-      noaugmentdesign = noaugmentdesign[do.call(order, noaugmentdesign), , drop = FALSE]
-      design = rbind(augmentdesign, noaugmentdesign)
-      attributes(design) = allattr
-    }
   }
   return(design)
 }

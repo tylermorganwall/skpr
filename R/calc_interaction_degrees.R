@@ -9,7 +9,8 @@
 #'@param split_degrees The number of degrees of freedom for each main effect term
 #'@return Degrees of freedom vector
 #'@keywords internal
-calc_interaction_degrees = function(design, model, contrast, split_layers, split_degrees) {
+calc_interaction_degrees = function(design, model, contrast, nointercept,
+                                    split_layers, split_degrees, split_plot_structure) {
   contrastslistspd = list()
   for (x in names(design[lapply(design, class) %in% c("factor", "character")])) {
     contrastslistspd[[x]] = contrast
@@ -21,13 +22,13 @@ calc_interaction_degrees = function(design, model, contrast, split_layers, split
     contrastslistspd = NULL
   }
 
-  if (attr(terms.formula(model), "intercept") == 0) {
-    nointercept = TRUE
-  } else {
-    nointercept = FALSE
-  }
   model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
-  splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
+  if(!nointercept) {
+    character_model = as.character(model)[-1]
+  } else {
+    character_model = paste(c(as.character(model)[-1]," + -1"), collapse="")
+  }
+  splitterms = unlist(strsplit(character_model, split = " + ", fixed = TRUE))
   ismaineffect = rep(FALSE, length(splitterms))
   ismaineffect[1:length(split_layers)] = TRUE
   interactions = list()

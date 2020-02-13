@@ -4,7 +4,11 @@
 \alias{convert_rownames_to_covariance}
 \title{Converts dot operator to terms}
 \usage{
-convert_rownames_to_covariance(run_matrix_processed, varianceratios)
+convert_rownames_to_covariance(
+  run_matrix_processed,
+  varianceratios,
+  user_specified_varianceratio
+)
 }
 \arguments{
 \item{run_matrix_processed}{The design}

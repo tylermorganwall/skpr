@@ -27,7 +27,11 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept, model
     for (i in 2:(max(splitlayer) + 1)) {
       interaction_cols_layer = interactions[[currentlayer]]
       layercols = which(currentlayer == splitlayer)
+      #Total number of potential degrees of freedom for this layer is the number of blocks
+      #minus the number of blocks from the previous layer.
       mtemp = numberblocks[i] - numberblocks[i - 1]
+
+      #Subtract out degrees of freedom for terms nested within this split-plot layer
       if(split_plot_structure) {
         if (length(layercols) > 0) {
           for (j in 1:length(layercols)) {
@@ -39,6 +43,12 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept, model
             }
           }
         }
+        #Now we have to deal with interaction terms. These can either be interactions between
+        #terms fully contained within a layer (and thus will account for degrees of freedom
+        #subtracted within that layer) or they will be an interaction with a term nested in a
+        #higher layer (for which they will also count) or with a deeper layer (for which they
+        #will not count--those degrees of freedom will be accounted for when we calculate the
+        #df for that layer).
         for (j in seq_len(length(interaction_cols_layer))) {
           if (interaction_cols_layer[j]) {
             interaction_cols = unlist(strsplit(splitterms[j], ":"))
@@ -51,37 +61,32 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept, model
                 }
               }
             }
+            #Numeric factors get 1 df automatcally, otherwise count number of levels of
+            #categorical factors minus 1 for the df. Multiply these numbers together
+            #e.g. two 3 level factors interacting = 1*(3-1)*(3-1) = 4 df total.
             temp_degrees = 1
             for (col_name in interaction_cols) {
               if (!is.numeric(run_matrix_processed[, col_name ])) {
                 temp_degrees = temp_degrees * (length(unique(run_matrix_processed[, col_name ])) - 1)
               }
             }
+            #Subtract from mtemp for this layer.
             mtemp = mtemp - temp_degrees
           }
         }
       }
+      #Record current degrees of freedom and move to the next layer
       m = c(m, mtemp)
       currentlayer = currentlayer + 1
     }
   } else {
+    #Subtract out degrees of freedom for terms nested within the first layer,
+    #Which is slightly different in the no intercept case.
+
     currentlayer = 1
     layercols = which(currentlayer == splitlayer)
     mtemp = numberblocks[1]
-    if (length(layercols) > 0) {
-      for (j in 1:length(layercols)) {
-        if (is.numeric(run_matrix_processed[, layercols[j]])) {
-          mtemp = mtemp - 1
-        } else {
-          cat_degrees = length(unique(run_matrix_processed[, layercols[j] ])) - 1
-          mtemp = mtemp - cat_degrees
-        }
-      }
-    }
-    m = mtemp
-    for (i in 2:(max(splitlayer))) {
-      layercols = which(currentlayer == splitlayer)
-      mtemp = numberblocks[i] - numberblocks[i - 1]
+    if(split_plot_structure) {
       if (length(layercols) > 0) {
         for (j in 1:length(layercols)) {
           if (is.numeric(run_matrix_processed[, layercols[j]])) {
@@ -90,6 +95,60 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept, model
             cat_degrees = length(unique(run_matrix_processed[, layercols[j] ])) - 1
             mtemp = mtemp - cat_degrees
           }
+        }
+      }
+    }
+    m = mtemp
+    for (i in 2:(max(splitlayer))) {
+      interaction_cols_layer = interactions[[currentlayer]]
+
+      layercols = which(currentlayer == splitlayer)
+      #Total number of potential degrees of freedom for this layer is the number of blocks
+      #minus the number of blocks from the previous layer.
+
+      mtemp = numberblocks[i] - numberblocks[i - 1]
+      #Subtract out degrees of freedom for terms nested within split-plot layers
+      if(split_plot_structure) {
+        if (length(layercols) > 0) {
+          for (j in 1:length(layercols)) {
+            if (is.numeric(run_matrix_processed[, layercols[j]])) {
+              mtemp = mtemp - 1
+            } else {
+              cat_degrees = length(unique(run_matrix_processed[, layercols[j] ])) - 1
+              mtemp = mtemp - cat_degrees
+            }
+          }
+        }
+      }
+      #Now we have to deal with interaction terms. These can either be interactions between
+      #terms fully contained within a layer (and thus will account for degrees of freedom
+      #subtracted within that layer) or they will be an interaction with a term nested in a
+      #higher layer (for which they will also count) or with a deeper layer (for which they
+      #will not count--those degrees of freedom will be accounted for when we calculate the
+      #df for that layer).
+      for (j in seq_len(length(interaction_cols_layer))) {
+        if (interaction_cols_layer[j]) {
+          interaction_cols = unlist(strsplit(splitterms[j], ":"))
+          higherorder_terms = unlist(grepl("I\\((.+)\\^.+\\)", interaction_cols, perl = TRUE))
+          if(any(higherorder_terms)) {
+            for(term in 1:length(higherorder_terms)) {
+              if(higherorder_terms[term]) {
+                interaction_cols[term] = gsub("I\\(","",interaction_cols[term],perl=TRUE)
+                interaction_cols[term] = gsub("\\^.+\\)","",interaction_cols[term],perl=TRUE)
+              }
+            }
+          }
+          #Numeric factors get 1 df automatcally, otherwise count number of levels of
+          #categorical factors minus 1 for the df. Multiply these numbers together
+          #e.g. two 3 level factors interacting = 1*(3-1)*(3-1) = 4 df total.
+          temp_degrees = 1
+          for (col_name in interaction_cols) {
+            if (!is.numeric(run_matrix_processed[, col_name ])) {
+              temp_degrees = temp_degrees * (length(unique(run_matrix_processed[, col_name ])) - 1)
+            }
+          }
+          #Subtract from mtemp for this layer.
+          mtemp = mtemp - temp_degrees
         }
       }
       m = c(m, mtemp)

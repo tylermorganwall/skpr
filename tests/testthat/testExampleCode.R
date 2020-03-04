@@ -240,6 +240,7 @@ test_that("eval_design example code runs without errors", {
 
 
 test_that("eval_design_mc example code runs without errors", {
+  set.seed(123)
   #'@examples #We first generate a full factorial design using expand.grid:
   factorialcoffee = expand.grid(cost = c(-1, 1),
                                 type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
@@ -272,7 +273,7 @@ test_that("eval_design_mc example code runs without errors", {
                                 type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
                                 size = as.factor(c("Short", "Grande", "Venti")))
 
-  vhtcdesign = gen_design(candidateset = factorialcoffee, model = ~Store, trials = 8,varianceratio = 3)
+  vhtcdesign = gen_design(candidateset = factorialcoffee, model = ~Store, trials = 8)
   htcdesign = gen_design(candidateset = factorialcoffee, model = ~Store + Temp, trials = 24, splitplotdesign = vhtcdesign, blocksizes = 3)
   expect_silent({
     splitplotdesign = gen_design(candidateset = factorialcoffee, model = ~Store + Temp + cost + type + size, trials = 96,

@@ -16,7 +16,6 @@ knitr::opts_chunk$set(
 
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
 [![CRAN_Status_Badge]( http://www.r-pkg.org/badges/version-ago/skpr)](http://cran.r-project.org/package=skpr)
-[![codecov](https://codecov.io/gh/tylermorganwall/skpr/branch/master/graph/badge.svg)](https://codecov.io/gh/tylermorganwall/skpr)
 
 <img src="man/figures/vidguigif.gif" ></img>
 
@@ -76,44 +75,30 @@ library(skpr)
 candidate_set = expand.grid(temp = c(80,90,100), 
                             type = c("Kona","Java"),
                             beansize = c("Large","Medium","Small"))
-
 candidate_set
 
 #Generate the design (default D-optimal)
 design = gen_design(candidateset = candidate_set, 
                     model = ~temp + type + beansize,
                     trials=12)
-
 design
 
-#Evaluate power for the design with an allowable type-I error of 5%
-eval_design(design = design,
-            model = ~temp + type + beansize,
-            alpha=0.05)
+#Evaluate power for the design with an allowable type-I error of 5% (default)
+eval_design(design)
 
 #Evaluate power for the design using a Monte Carlo simulation. 
 #Here, we set the effect size (here, the signal-to-noise ratio) to 1.5.
-eval_design_mc(design = design,
-               model = ~temp + type + beansize,
-               alpha=0.05,
-               effectsize=1.5)
+eval_design_mc(design, effectsize=1.5)
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
-eval_design_mc(design = design,
-               model = ~temp + type + beansize,
-               nsim=5000,
-               glmfamily = "poisson",
-               alpha=0.05,
-               effectsize=c(2,6))
+eval_design_mc(design, nsim=5000, glmfamily = "poisson", effectsize=c(2,6))
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
 
-library(dplyr)
-
 expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","Medium","Small")) %>%
   gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") %>%
-  eval_design_mc(model = ~temp + type + beansize + beansize:type + I(temp^2), alpha=0.05)
+  eval_design_mc()
 
 ```

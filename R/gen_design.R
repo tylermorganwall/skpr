@@ -1030,7 +1030,14 @@ gen_design = function(candidateset, model, trials,
     }
     disallowedcombdf = disallowed_combinations(fullcandidatesetnorm)
     if (nrow(disallowedcombdf) > 0) {
+      for(i in 1:ncol(disallowedcombdf)) {
+        column_name = names(disallowedcombdf)[i]
+        if(is.factor(disallowedcombdf[,i]) & !is.null(splitPlotReplicateDesign[[column_name]])) {
+          disallowedcombdf[,i] = factor(disallowedcombdf[,i], levels = levels(splitPlotReplicateDesign[[column_name]]))
+        }
+      }
       anydisallowed = TRUE
+      attr(disallowedcombdf, "contrasts") = attr(blockedmodelmatrix,"contrast")
       disallowedcomb = suppressWarnings(model.matrix(model, disallowedcombdf, contrasts.arg = fullcontrastlist))
       if ("(Intercept)" %in% colnames(disallowedcomb)) {
         disallowedcomb = disallowedcomb[, c(colnames(blockedmodelmatrix), colnames(candidatesetmm)[-1])]

@@ -3,7 +3,7 @@
 
 using namespace Rcpp;
 
-//`@title genOptimalDesign
+//`@title genBlockedOptimalDesign
 //`@param initialdesign The initial randomly generated design.
 //`@param candidatelist The full candidate set in model matrix form.
 //`@param condition Optimality criterion.
@@ -16,22 +16,23 @@ using namespace Rcpp;
 //`@param augmentedrows The rows that are fixed during the design search.
 //`@return List of design information.
 // [[Rcpp::export]]
-List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
-                      const std::string condition,
-                      const Eigen::MatrixXd& momentsmatrix, Eigen::VectorXd initialRows,
-                      Eigen::MatrixXd aliasdesign,
-                      const Eigen::MatrixXd& aliascandidatelist,
-                      double minDopt, double tolerance, int augmentedrows) {
+List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
+                             const std::string condition, Eigen::MatrixXd V,
+                             const Eigen::MatrixXd& momentsmatrix,  Eigen::MatrixXd& initialRows,
+                             Eigen::MatrixXd aliasdesign,
+                             const Eigen::MatrixXd& aliascandidatelist,
+                             double minDopt, double tolerance, int augmentedrows) {
   RNGScope rngScope;
   int nTrials = initialdesign.rows();
-  double numberrows = initialdesign.rows();
   double numbercols = initialdesign.cols();
+
   int maxSingularityChecks = nTrials*100;
   int totalPoints = candidatelist.rows();
-  Eigen::VectorXd candidateRow(nTrials);
-  candidateRow.setZero();
+  Eigen::MatrixXd candidateRow = initialRows;
   Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
   test.setZero();
+  const Eigen::MatrixXd vInv = V.colPivHouseholderQr().inverse();
+
   if(nTrials < candidatelist.cols()) {
     throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
@@ -44,7 +45,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::VectorXi shuffledindices;
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   for (int check = 0; check < maxSingularityChecks; check++) {
-    if(!isSingular(initialdesign)) {
+    if(!isSingularBlocked(initialdesign,vInv)) {
       break; //design is nonsingular
     }
     if(nTrials <= totalPoints) {
@@ -64,7 +65,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   }
   //If initialdesign is still singular, use the Gram-Schmidt orthogonalization procedure, which
   //should return a non-singular matrix if one can be constructed from the candidate set
-  if (isSingular(initialdesign)) {
+  if (isSingularBlocked(initialdesign,vInv)) {
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
     //If all elements are equal here, nullification algorithm was unable to find a design--return NA
     if(initrows.minCoeff() == initrows.maxCoeff()) {
@@ -87,7 +88,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
     }
   }
   //If still no non-singular design, returns NA.
-  if (isSingular(initialdesign)) {
+  if (isSingularBlocked(initialdesign,vInv)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
 
@@ -99,7 +100,6 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   double priorOptimum = 0;
   double minDelta = tolerance;
   double newdel;
-  double xVx;
 
   //Initialize matrices for rank-2 updates.
   Eigen::MatrixXd identitymat(2,2);
@@ -111,247 +111,65 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   //Transpose matrices for faster element access
   Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
   Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
-  Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
+  // Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
 
   //Generate a D-optimal design
-  if(condition == "D" || condition == "G") {
-    newOptimum = calculateDOptimality(initialdesign);
+  if(condition == "D") {
+    Eigen::MatrixXd temp;
+    newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
     if(std::isinf(newOptimum)) {
-      newOptimum = exp(calculateDOptimalityLog(initialdesign));
+      newOptimum = calculateBlockedDOptimalityLog(initialdesign, vInv);
     }
-
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      del = calculateBlockedDOptimality(initialdesign,vInv);
+      if(std::isinf(del)) {
+        del = calculateBlockedDOptimalityLog(initialdesign, vInv);
+      }
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-
         found = false;
+        entryx = 0;
         entryy = 0;
-        del=0;
-        xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-        //Search through all candidate set points to find best switch (if one exists).
-
-        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
-
+        temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
+        for (int j = 0; j < totalPoints; j++) {
+          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+          //Check if optimality condition improved and can perform exchange
+          newdel = calculateBlockedDOptimality(temp, vInv);
+          if(std::isinf(newdel)) {
+            newdel = calculateBlockedDOptimalityLog(temp, vInv);
+          }
+          if(newdel > del) {
+            found = true;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
         if (found) {
-          //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-
-          //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
-          newOptimum = newOptimum * (1 + del);
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow(i) = initialRows(i);
         }
       }
-    }
-    initialdesign = initialdesign_trans.transpose();
-    newOptimum = calculateDEff(initialdesign,numbercols,numberrows);
-    if(std::isinf(newOptimum)) {
-      newOptimum = calculateDEffLog(initialdesign,numbercols,numberrows);
+      newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
+      if(std::isinf(newOptimum)) {
+        newOptimum = calculateBlockedDOptimalityLog(initialdesign, vInv);
+      }
     }
   }
   //Generate an I-optimal design
   if(condition == "I") {
-    del = calculateIOptimality(V,momentsmatrix);
-    newOptimum = del;
-    priorOptimum = del*2;
-    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
-      priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
-        Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          newdel = calculateIOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),momentsmatrix);
-          if(newdel < del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          //Exchange points
-          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
-        } else {
-          candidateRow[i] = initialRows[i];
-        }
-      }
-      //Re-calculate current criterion value
-      initialdesign = initialdesign_trans.transpose();
-      newOptimum = calculateIOptimality(V,momentsmatrix);
-    }
-  }
-  //Generate an A-optimal design
-  if(condition == "A") {
-    del = calculateAOptimality(V);
-    newOptimum = del;
-    priorOptimum = del*2;
-    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
-      priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
-        Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          newdel = calculateAOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv));
-          if(newdel < del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          //Exchange points
-          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
-        } else {
-          candidateRow[i] = initialRows[i];
-        }
-      }
-      //Re-calculate current criterion value.
-      initialdesign = initialdesign_trans.transpose();
-      newOptimum = calculateAOptimality(V);
-    }
-  }
-  //Generate an Alias optimal design
-  if(condition == "ALIAS") {
-    //First, calculate a D-optimal design (only do one iteration--may be only locally optimal) to start the search.
     Eigen::MatrixXd temp;
-    Eigen::MatrixXd tempalias;
-    del = calculateDOptimality(initialdesign);
-    newOptimum = del;
-    priorOptimum = newOptimum/2;
-
-    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
-      priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
-        Rcpp::checkUserInterrupt();
-        found = false;
-        entryy = 0;
-        del=0;
-        xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-        //Search through candidate set for potential exchanges for row i
-        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
-        if (found) {
-          //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-
-          //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
-          aliasdesign.row(i) = aliascandidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
-          newOptimum = newOptimum * (1 + del);
-        } else {
-          candidateRow[i] = initialRows[i];
-        }
-      }
-    }
-    initialdesign = initialdesign_trans.transpose();
-
-    double firstA = calculateAliasTraceSlow(initialdesign,aliasdesign);
-    double initialD = calculateDEffNN(initialdesign,numbercols);
-    double currentA = firstA;
-    double currentD = initialD;
-    double wdelta = 0.05;
-    double aliasweight = 1;
-    double bestA = firstA;
-    double optimum;
-    double first = 1;
-
-    Eigen::VectorXd candidateRowTemp = candidateRow;
-    Eigen::VectorXd initialRowsTemp = initialRows;
-    Eigen::MatrixXd initialdesignTemp = initialdesign;
-
-    Eigen::VectorXd bestcandidaterow = candidateRowTemp;
-    Eigen::MatrixXd bestaliasdesign = aliasdesign;
-    Eigen::MatrixXd bestinitialdesign = initialdesign;
-
-    //Perform weighted search, slowly increasing weight of Alias trace as compared to D-optimality.
-    //Stops when the increase in the Alias-criterion is small enough. Does not make exchanges that
-    //lower the D-optimal criterion below minDopt.
-    while(firstA != 0 && currentA != 0 && aliasweight > wdelta) {
-
-      //Set weight of Alias trace to D-optimality. Weight of Alias trace increases with each
-      //iteration.
-      aliasweight = aliasweight - wdelta;
-      optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
-      first = 1;
-
-      while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
-        first++;
-        priorOptimum = optimum;
-        for (int i = augmentedrows; i < nTrials; i++) {
-          Rcpp::checkUserInterrupt();
-          found = false;
-          entryx = 0;
-          entryy = 0;
-          temp = initialdesignTemp;
-          tempalias = aliasdesign;
-          //Search through candidate set for potential exchanges for row i
-          for (int j = 0; j < totalPoints; j++) {
-            temp.row(i) = candidatelist.row(j);
-            tempalias.row(i) = aliascandidatelist.row(j);
-            currentA = calculateAliasTrace(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp,tempalias);
-            currentD = calculateDEffNN(temp,numbercols);
-            newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
-            if(newdel > optimum && calculateDEff(temp,numbercols,numberrows) > minDopt) {
-              found = true;
-              entryx = i; entryy = j;
-              optimum = newdel;
-            }
-          }
-          if (found) {
-            //Exchange points
-            rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-            initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-            initialdesignTemp.row(entryx) = candidatelist.row(entryy);
-            aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
-            candidateRowTemp[i] = entryy+1;
-            initialRowsTemp[i] = entryy+1;
-          } else {
-            candidateRowTemp[i] = initialRowsTemp[i];
-          }
-        }
-        //Re-calculate current criterion value.
-        currentD = calculateDEffNN(initialdesignTemp,numbercols);
-        currentA = calculateAliasTraceSlow(initialdesignTemp,aliasdesign);
-        optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
-      }
-      //If the search improved the Alias trace, set that as the new value.
-      if(currentA < bestA) {
-        bestA = currentA;
-        bestaliasdesign = aliasdesign;
-        bestinitialdesign = initialdesignTemp;
-        bestcandidaterow = candidateRowTemp;
-      }
-    }
-    initialdesign = bestinitialdesign;
-    candidateRow = bestcandidaterow;
-    aliasdesign = bestaliasdesign;
-    newOptimum = bestA;
-  }
-  if(condition == "G") {
-    Eigen::MatrixXd temp;
-    del = calculateGOptimality(V,initialdesign);
+    del = calculateBlockedIOptimality(initialdesign, momentsmatrix, vInv);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -361,42 +179,42 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         for (int j = 0; j < totalPoints; j++) {
           //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
-            temp.row(i) = candidatelist.row(j);
-            newdel = calculateGOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp);
+            temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+            //Check if optimality condition improved and can perform exchange
+            newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
             if(newdel < del) {
-              if(!isSingular(temp)) {
-                found = true;
-                entryx = i; entryy = j;
-                del = newdel;
-              }
+              found = true;
+              entryx = i; entryy = j;
+              del = newdel;
             }
           } catch (std::runtime_error& e) {
             continue;
           }
         }
         if (found) {
-          //Exchange points
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow(i) = initialRows(i);
         }
       }
-      //Re-calculate current criterion value.
-      newOptimum = calculateGOptimality(V,initialdesign);
+      try {
+        newOptimum = calculateBlockedIOptimality(initialdesign, momentsmatrix, vInv);
+      } catch (std::runtime_error& e) {
+        continue;
+      }
     }
   }
-  if(condition == "T") {
+  //Generate an A-optimal design
+  if(condition == "A") {
     Eigen::MatrixXd temp;
-    del = calculateTOptimality(initialdesign);
+    del = calculateBlockedAOptimality(initialdesign,vInv);
     newOptimum = del;
-    priorOptimum = newOptimum/2;
-    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+    priorOptimum = del*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -404,10 +222,175 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         temp = initialdesign;
         //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateTOptimality(temp);
+          //Checks for singularity; If singular, moves to next candidate in the candidate set
+          try {
+            temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+            //Check if optimality condition improved and can perform exchange
+            newdel = calculateBlockedAOptimality(temp,vInv);
+            if(newdel < del) {
+              found = true;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
+          } catch (std::runtime_error& e) {
+            continue;
+          }
+        }
+        if (found) {
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
+        } else {
+          candidateRow(i) = initialRows(i);
+        }
+      }
+      newOptimum = calculateBlockedAOptimality(initialdesign,vInv);
+    }
+  }
+  //Generate an Alias optimal design
+  if(condition == "ALIAS") {
+    Eigen::MatrixXd temp;
+    Eigen::MatrixXd tempalias;
+    del = calculateBlockedDOptimality(initialdesign,vInv);
+    newOptimum = del;
+    priorOptimum = newOptimum/2;
+
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedDOptimality(initialdesign,vInv);
+      for (int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = false;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
+        for (int j = 0; j < totalPoints; j++) {
+          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+          //Calculate interaction terms for sub-whole plot interactions
+          //Check if optimality condition improved and can perform exchange
+          newdel = calculateBlockedDOptimality(temp, vInv);
           if(newdel > del) {
-            if(!isSingular(temp)) {
+            found = true;
+            entryx = i; entryy = j;
+            del = newdel;
+          }
+        }
+        if (found) {
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          aliasdesign.block(entryx, 0, 1, aliascandidatelist.cols()) = aliascandidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
+        } else {
+          candidateRow(i) = initialRows(i);
+        }
+      }
+      newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
+    }
+
+    double firstA = calculateBlockedAliasTracePseudoInv(initialdesign, aliasdesign,vInv);
+    double initialD = calculateBlockedDEffNN(initialdesign,vInv);
+    double currentA = firstA;
+    double currentD = initialD;
+    double wdelta = 0.05;
+    double aliasweight = 1;
+    double bestA = firstA;
+    double optimum;
+    double first = 1;
+
+    Eigen::MatrixXd candidateRowTemp = candidateRow;
+    Eigen::MatrixXd initialRowsTemp = initialRows;
+    Eigen::MatrixXd combinedDesignTemp = initialdesign;
+
+    Eigen::MatrixXd bestcandidaterow = candidateRowTemp;
+    Eigen::MatrixXd bestaliasdesign = aliasdesign;
+    Eigen::MatrixXd bestcombinedDesign = initialdesign;
+
+    while(firstA != 0 && currentA != 0 && aliasweight > wdelta) {
+
+      aliasweight = aliasweight - wdelta;
+      optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+      first = 1;
+
+      while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
+        first++;
+        priorOptimum = optimum;
+        for (int i = 0; i < nTrials; i++) {
+          Rcpp::checkUserInterrupt();
+          found = false;
+          entryx = 0;
+          entryy = 0;
+          temp = combinedDesignTemp;
+          tempalias = aliasdesign;
+          //Search through candidate set for potential exchanges for row i
+          for (int j = 0; j < totalPoints; j++) {
+            try {
+              temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+              tempalias.block(i, 0, 1, aliascandidatelist.cols()) = aliascandidatelist.row(j);
+              //Check if optimality condition improved and can perform exchange
+              currentA = calculateBlockedAliasTrace(temp,tempalias,vInv);
+              currentD = calculateBlockedDEffNN(temp,vInv);
+              newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+
+              if(newdel > optimum && calculateBlockedDEff(temp,vInv) > minDopt) {
+                found = true;
+                entryx = i; entryy = j;
+                optimum = newdel;
+              }
+            } catch (std::runtime_error& e) {
+              continue;
+            }
+          }
+          if (found) {
+            combinedDesignTemp.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+            aliasdesign.block(entryx, 0, 1, aliascandidatelist.cols()) = aliascandidatelist.row(entryy);
+            candidateRowTemp(i) = entryy+1;
+            initialRowsTemp(i) = entryy+1;
+          } else {
+            candidateRowTemp(i) = initialRowsTemp(i);
+          }
+        }
+        currentD = calculateBlockedDEffNN(combinedDesignTemp,vInv);
+        currentA = calculateBlockedAliasTrace(combinedDesignTemp, aliasdesign,vInv);
+        optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+      }
+
+      if(currentA < bestA) {
+        bestA = currentA;
+        bestaliasdesign = aliasdesign;
+        bestcombinedDesign = combinedDesignTemp;
+        bestcandidaterow = candidateRowTemp;
+      }
+    }
+    initialdesign = bestcombinedDesign;
+    candidateRow = bestcandidaterow;
+    aliasdesign = bestaliasdesign;
+    newOptimum = bestA;
+  }
+  if(condition == "G") {
+    Eigen::MatrixXd temp;
+    newOptimum = calculateBlockedGOptimality(initialdesign, vInv);
+    priorOptimum = newOptimum*2;
+    while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
+      del = newOptimum;
+      priorOptimum = newOptimum;
+      for (int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = false;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
+        for (int j = 0; j < totalPoints; j++) {
+          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+          //Check if optimality condition improved and can perform exchange
+          try {
+            newdel = calculateBlockedGOptimality(temp, vInv);
+          } catch (std::runtime_error& e) {
+            continue;
+          }
+          if(newdel < del) {
+            if(!isSingularBlocked(temp,vInv)) {
               found = true;
               entryx = i; entryy = j;
               del = newdel;
@@ -415,26 +398,62 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           }
         }
         if (found) {
-          //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow(i) = initialRows(i);
         }
       }
-      //Re-calculate current criterion value.
-      newOptimum = calculateTOptimality(initialdesign);
+      newOptimum = calculateBlockedGOptimality(initialdesign, vInv);
+    }
+  }
+
+  if(condition == "T") {
+    Eigen::MatrixXd temp;
+    newOptimum = calculateBlockedTOptimality(initialdesign, vInv);
+    priorOptimum = newOptimum/2;
+    while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
+      priorOptimum = newOptimum;
+      del = calculateBlockedTOptimality(initialdesign,vInv);
+      for (int i = 0; i < nTrials; i++) {
+        Rcpp::checkUserInterrupt();
+        found = false;
+        entryx = 0;
+        entryy = 0;
+        temp = initialdesign;
+        //Search through candidate set for potential exchanges for row i
+        for (int j = 0; j < totalPoints; j++) {
+          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+          //Check if optimality condition improved and can perform exchange
+          newdel = calculateBlockedTOptimality(temp, vInv);
+          if(newdel > del) {
+            if(!isSingularBlocked(temp,vInv)) {
+              found = true;
+              entryx = i; entryy = j;
+              del = newdel;
+            }
+          }
+        }
+        if (found) {
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
+        } else {
+          candidateRow(i) = initialRows(i);
+        }
+      }
+      newOptimum = calculateBlockedTOptimality(initialdesign, vInv);
     }
   }
   if(condition == "E") {
     Eigen::MatrixXd temp;
-    del = calculateEOptimality(initialdesign);
-    newOptimum = del;
+    newOptimum = calculateBlockedEOptimality(initialdesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      del = calculateBlockedEOptimality(initialdesign,vInv);
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
@@ -442,10 +461,15 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
         temp = initialdesign;
         //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateEOptimality(temp);
+          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+          //Check if optimality condition improved and can perform exchange
+          try {
+            newdel = calculateBlockedEOptimality(temp, vInv);
+          } catch (std::runtime_error& e) {
+            continue;
+          }
           if(newdel > del) {
-            if(!isSingular(temp)) {
+            if(!isSingularBlocked(temp,vInv)) {
               found = true;
               entryx = i; entryy = j;
               del = newdel;
@@ -453,39 +477,42 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           }
         }
         if (found) {
-          //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow(i) = initialRows(i);
         }
       }
-      //Re-calculate current criterion value.
-      newOptimum = calculateEOptimality(initialdesign);
+      newOptimum = calculateBlockedEOptimality(initialdesign, vInv);
     }
   }
   if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
-    Function customOpt = myEnv["customOpt"];
+    Function customBlockedOpt = myEnv["customBlockedOpt"];
     Eigen::MatrixXd temp;
-    del = calculateCustomOptimality(initialdesign,customOpt);
-    newOptimum = del;
+    newOptimum = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt,vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      del = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);
+      //Search through candidate set for potential exchanges for row i
+      for (int i = 0; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
         found = false;
         entryx = 0;
         entryy = 0;
         temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateCustomOptimality(temp,customOpt);
+          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
+          //Check if optimality condition improved and can perform exchange
+          try {
+            newdel = calculateBlockedCustomOptimality(temp, customBlockedOpt, vInv);
+          } catch (std::runtime_error& e) {
+            continue;
+          }
           if(newdel > del) {
-            if(!isSingular(temp)) {
+            if(!isSingularBlocked(temp,vInv)) {
               found = true;
               entryx = i; entryy = j;
               del = newdel;
@@ -493,19 +520,16 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
           }
         }
         if (found) {
-          //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
+          candidateRow(i) = entryy+1;
+          initialRows(i) = entryy+1;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow(i) = initialRows(i);
         }
       }
-      //Re-calculate current criterion value.
-      newOptimum = calculateCustomOptimality(initialdesign,customOpt);
+      newOptimum = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = newOptimum));
 }
-

@@ -1,9 +1,13 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^\man\figures\$
 ^README\.Rmd$
 ^NEWS\.md$ 
 ^cran-comments\.md$
 ^\.travis\.yml$
 ^LICENSE$
 ^docs$
+^[.].*$
+^.*/[.].*$
+^skprGUIcomp\.png$
+^skprlogo\.png$
+^vidguigif\.gif$

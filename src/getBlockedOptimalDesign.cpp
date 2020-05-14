@@ -18,7 +18,7 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
                              const std::string condition, Eigen::MatrixXd V,
-                             const Eigen::MatrixXd& momentsmatrix,  Eigen::MatrixXd& initialRows,
+                             const Eigen::MatrixXd& momentsmatrix,  Eigen::VectorXi& initialRows,
                              Eigen::MatrixXd aliasdesign,
                              const Eigen::MatrixXd& aliascandidatelist,
                              double minDopt, double tolerance, int augmentedrows) {
@@ -28,7 +28,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
 
   int maxSingularityChecks = nTrials*100;
   int totalPoints = candidatelist.rows();
-  Eigen::MatrixXd candidateRow = initialRows;
+  Eigen::VectorXi candidateRow = initialRows;
   Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
   test.setZero();
   const Eigen::MatrixXd vInv = V.colPivHouseholderQr().inverse();
@@ -298,11 +298,11 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     double optimum;
     double first = 1;
 
-    Eigen::MatrixXd candidateRowTemp = candidateRow;
-    Eigen::MatrixXd initialRowsTemp = initialRows;
+    Eigen::VectorXi candidateRowTemp = candidateRow;
+    Eigen::VectorXi initialRowsTemp = initialRows;
     Eigen::MatrixXd combinedDesignTemp = initialdesign;
 
-    Eigen::MatrixXd bestcandidaterow = candidateRowTemp;
+    Eigen::VectorXi bestcandidaterow = candidateRowTemp;
     Eigen::MatrixXd bestaliasdesign = aliasdesign;
     Eigen::MatrixXd bestcombinedDesign = initialdesign;
 

@@ -4,6 +4,8 @@
 [![Travis-CI Build
 Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
 [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version-ago/skpr)](https://cran.r-project.org/package=skpr)
+[![R build
+status](https://github.com/tylermorganwall/skpr/workflows/R-CMD-check/badge.svg)](https://github.com/tylermorganwall/skpr/actions)
 
 <img src="man/figures/vidguigif.gif" ></img>
 

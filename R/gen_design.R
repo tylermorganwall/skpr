@@ -524,11 +524,19 @@ gen_design = function(candidateset, model, trials,
       stop(paste("Column", colnames(candidateset)[colno], "of the candidateset contains only a single value."))
     }
   }
-
   #----Check for augmented design and normalize/equalize factor levels if present----#
   if (!is.null(augmentdesign)) {
+    prev_augmented = attr(augmentdesign,"augmented")
+    if(prev_augmented) {
+      augmented_cols_prev = augmentdesign$Block1
+    } else {
+      augmented_cols_prev = rep(1,nrow(augmentdesign))
+    }
     if (!is.null(splitplotdesign)) {
       stop("Design augmentation not available with split-plot designs.")
+    }
+    if(prev_augmented) {
+      augmentdesign$Block1 = NULL
     }
     if (any(colnames(augmentdesign)[order(colnames(augmentdesign))] != colnames(candidateset)[order(colnames(candidateset))])) {
       stop("Column names for augmented design and candidate set must be equal.")
@@ -822,7 +830,6 @@ gen_design = function(candidateset, model, trials,
     stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
                   aliaspower, ". Try setting aliaspower = ", aliaspower + 1), collapse = ""))
   }
-
   if (length(contrastslist) == 0) {
     aliasmm = model.matrix(amodel, candidatesetnormalized)
   } else {
@@ -1514,13 +1521,17 @@ gen_design = function(candidateset, model, trials,
     }
   }
   if(!is.null(augmentdesign)) {
+    attr(design,"augmented") = TRUE
     designnames = colnames(design)
     allattr = attributes(design)
-    augment_block_col = data.frame(Block1 = rep(2,nrow(design)))
-    augment_block_col[1:nrow(augmentdesign),] = 1
+    augment_block_col = data.frame(Block1 = rep(max(augmented_cols_prev) + 1,nrow(design)))
+    augment_block_col[1:nrow(augmentdesign),] = augmented_cols_prev
     design = cbind(augment_block_col, design)
     attributes(design) = allattr
     colnames(design) = c("Block1",designnames)
+    attr(design,"varianceratios") = varianceratio
+  } else {
+    attr(design,"augmented") = FALSE
   }
   return(design)
 }

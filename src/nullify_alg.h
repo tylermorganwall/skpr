@@ -1,5 +1,3 @@
-#include <RcppEigen.h>
-
 Eigen::VectorXi sample_replace(int max_value, int size);
 
 Eigen::VectorXi sample_noreplace(int max_value, int size);

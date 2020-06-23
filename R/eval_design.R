@@ -311,7 +311,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   #Variables used later: V, vinv, degrees_of_freedom, parameter_names
   if (blocking) {
     V = convert_rownames_to_covariance(run_matrix_processed, varianceratios, user_specified_varianceratio)
-    varianceratios = attr(V,"tempvar")
+    # varianceratios = attr(V,"tempvar")
     attr(run_matrix_processed,"tempvar") = NULL
     vinv = solve(V)
     #Below code detects the split-plot columns, and calculates the adjusted degrees of freedom for each term

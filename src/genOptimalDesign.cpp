@@ -1,3 +1,7 @@
+#include <RcppEigen.h>
+// [[Rcpp::depends(RcppEigen)]]
+
+
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
 

@@ -1,6 +1,8 @@
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
 
+#include <RcppEigen.h>
+
 using namespace Rcpp;
 
 //`@title genBlockedOptimalDesign

@@ -67,7 +67,7 @@ print.skpr_eval_output = function(x, ...) {
   }
   if (!is.null(attr(x,"varianceratios")) && blocking) {
     vr = attr(x,"varianceratios")
-    vr = vr[-length(vr)]
+    # vr = vr[-length(vr)]
     cat(paste(c(bold("\u2022 Variance Ratios  = "),
                 paste(paste("Level ", 1:length(vr), ": ",as.character(vr), sep="", collapse=", ")),"\n"),
               collapse = ""))

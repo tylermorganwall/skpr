@@ -20,7 +20,7 @@ using namespace Rcpp;
 //`@param tolerance Stopping tolerance for fractional increase in optimality criteria.
 //`@return List of design information.
 // [[Rcpp::export]]
-List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd candidatelist, const Eigen::MatrixXd& blockeddesign,
+List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd candidatelist, const Eigen::MatrixXd& blockeddesign,
                                const std::string condition, const Eigen::MatrixXd& momentsmatrix, Eigen::VectorXi& initialRows,
                                const Eigen::MatrixXd& blockedVar,
                                Eigen::MatrixXd aliasdesign, Eigen::MatrixXd aliascandidatelist, double minDopt, List interactions,
@@ -115,7 +115,6 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::Matri
       }
     }
   }
-
   // If still no non-singular design, returns NA.
   if (isSingularBlocked(combinedDesign,vInv)) {
     return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
@@ -130,7 +129,6 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::Matri
       }
     }
   }
-
   double del = 0;
   bool found = false;
   int entryx = 0;

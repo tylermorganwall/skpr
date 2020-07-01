@@ -31,6 +31,7 @@ calc_interaction_degrees = function(design, model, contrast, nointercept,
   splitterms = unlist(strsplit(character_model, split = " + ", fixed = TRUE))
   ismaineffect = rep(FALSE, length(splitterms))
   ismaineffect[1:length(split_layers)] = TRUE
+  names(ismaineffect) = splitterms
   interactions = list()
   if(max(split_layers) > 0) {
     for(i in 1:max(split_layers, na.rm = TRUE)) {
@@ -47,7 +48,6 @@ calc_interaction_degrees = function(design, model, contrast, nointercept,
       interactions[[i]] = FALSE
     }
   }
-
   if(!nointercept) {
     degrees_of_freedom = rep(min(split_degrees), length(splitterms)+1)
     for(i in 1:length(split_layers)) {
@@ -72,6 +72,7 @@ calc_interaction_degrees = function(design, model, contrast, nointercept,
   for(i in seq_along(1:max(split_layers, na.rm = TRUE))) {
     subplotterms = colnames(design)
     subplotterms = subplotterms[!(subplotterms %in% colnames(design)[split_layers >= i])]
+    wholeplotterms = colnames(design)[split_layers < i]
 
     regularmodel = rep(FALSE, length(splitterms))
     for (term in subplotterms) {
@@ -84,7 +85,9 @@ calc_interaction_degrees = function(design, model, contrast, nointercept,
       subterms = unlist(strsplit(term, split = ":", fixed = TRUE))
       maxdegree = c()
       for(subterm in subterms) {
-        maxdegree = max(c(maxdegree, degrees_of_freedom[subterm]))
+        if(!subterm %in% wholeplotterms) {
+          maxdegree = max(c(maxdegree, degrees_of_freedom[subterm]))
+        }
       }
       degrees_of_freedom[term] = maxdegree
     }
@@ -94,7 +97,9 @@ calc_interaction_degrees = function(design, model, contrast, nointercept,
       subterms = unlist(strsplit(term, split = ":", fixed = TRUE))
       maxdegree = c()
       for(subterm in subterms) {
-        maxdegree = max(c(maxdegree, degrees_of_freedom[subterm]))
+        if(!subterm %in% wholeplotterms) {
+          maxdegree = max(c(maxdegree, degrees_of_freedom[subterm]))
+        }
       }
       degrees_of_freedom[term] = maxdegree
     }

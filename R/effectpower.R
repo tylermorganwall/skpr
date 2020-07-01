@@ -28,10 +28,14 @@ effectpower = function(RunMatrix, levelvector, anticoef, alpha, vinv = NULL, deg
   }
   power = c(length(L))
   for (j in 1:length(L)) {
-    power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), L[[j]],
-                              calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
-                                                  L[[j]], anticoef, vinv = vinv),
-                              alpha, degrees[j])
+    if(degrees[j] != 0) {
+      power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), L[[j]],
+                                calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
+                                                    L[[j]], anticoef, vinv = vinv),
+                                alpha, degrees[j])
+    } else {
+      power[j] = NA
+    }
   }
   return(power)
 }

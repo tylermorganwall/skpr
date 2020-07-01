@@ -335,7 +335,6 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     degrees_of_freedom = NULL
     parameter_names = NULL
   }
-
   factornames = attr(terms(model), "term.labels")
   levelvector = calculate_level_vector(run_matrix_processed, model, nointercept)
   effectresults = effectpower(run_matrix_processed, levelvector, anticoef,
@@ -460,7 +459,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
       results$reordered_factors = NA
     }
     results_temp = results
-    sum_effect_power = sum(with(results_temp, power[type == "effect.power"]))
+    sum_effect_power = sum(with(results_temp, power[type == "effect.power"]), na.rm = TRUE)
     for(i in seq_len(ncol(design))) {
       if(is.factor(design[,i])) {
         number_factors = length(levels(design[,i]))
@@ -494,6 +493,9 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   }
   if(!inherits(results,"skpr_eval_output")) {
     class(results) = c("skpr_eval_output", class(results))
+  }
+  if(any(is.na(results$power))) {
+    warning("NA indicates not enough degrees of freedom to estimate power for those terms.")
   }
   return(results)
 }

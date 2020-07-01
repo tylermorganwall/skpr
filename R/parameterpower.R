@@ -33,10 +33,14 @@ parameterpower = function(RunMatrix, levelvector=NULL, anticoef, alpha, vinv = N
 
   power = c(length(q))
   for (j in 1:length(q)) {
-    power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), q[[j]],
-                              calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
-                                                  q[[j]], anticoef, vinv = vinv),
-                              alpha, degrees[j])
+    if(degrees[j] != 0) {
+      power[j] = calculatepower(attr(RunMatrix, "modelmatrix"), q[[j]],
+                                calcnoncentralparam(attr(RunMatrix, "modelmatrix"),
+                                                    q[[j]], anticoef, vinv = vinv),
+                                alpha, degrees[j])
+    } else {
+      power[j] = NA
+    }
   }
   return(power)
 }

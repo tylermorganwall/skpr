@@ -20,12 +20,15 @@ calculate_degrees_of_freedom = function(run_matrix_processed, nointercept, model
   splitlayer = splitlayerlist$splitlayer
   split_plot_structure = splitlayerlist$allsplit
   splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
+  splitterms = gsub("\\n","",splitterms,perl=TRUE) #Remove newlines inserted when model character string too long
+  splitterms = trimws(splitterms)
   interactions = is_intralayer_interaction(run_matrix_processed, model, splitlayer)
   if (!nointercept) {
     m = c(1)
     currentlayer = 1
     for (i in 2:(max(splitlayer) + 1)) {
       interaction_cols_layer = interactions[[currentlayer]]
+      names(interaction_cols_layer) = splitterms
       layercols = which(currentlayer == splitlayer)
       #Total number of potential degrees of freedom for this layer is the number of blocks
       #minus the number of blocks from the previous layer.

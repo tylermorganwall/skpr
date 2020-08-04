@@ -5,7 +5,7 @@
 #'@param genoutput The design, or the output of the power evaluation functions. This can also be a list
 #'of several designs, which will result in all of them being plotted in a row (for easy comparison).
 #'@param model Default `NULL`. The model, if `NULL` it defaults to the model used in `eval_design` or `gen_design`.
-#'@param continuouslength Default `31`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.
+#'@param continuouslength Default `11`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.
 #'@param plot Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.
 #'@param yaxis_max Default `NULL`. Manually set the maximum value of the prediction variance.
 #'@param description Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
@@ -26,7 +26,7 @@
 #'design = gen_design(candidatelist, ~(X1 + X2), 15)
 #'
 #'plot_fds(design)
-plot_fds = function(genoutput, model = NULL, continuouslength = 31, plot=TRUE,
+plot_fds = function(genoutput, model = NULL, continuouslength = 11, plot=TRUE,
                     yaxis_max = NULL, description="Fraction of Design Space") {
   if(inherits(genoutput,"list") && length(genoutput) > 1) {
     old.par = par(no.readonly = TRUE)
@@ -104,7 +104,7 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 31, plot=TRUE,
       if (ncol(genoutput) == 1) {
         continuouslength = 51
       }
-      factorrange[[colnames(genoutput)[col]]] = seq(-1, 1, length.out = continuouslength)
+      factorrange[[colnames(genoutput)[col] ]] = seq(-1, 1, length.out = continuouslength)
     }
   }
   fullgrid = expand.grid(factorrange)
@@ -114,7 +114,6 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 31, plot=TRUE,
     samples = data.frame(fullgrid[sample(1:nrow(fullgrid), 10000, replace = TRUE), ])
     colnames(samples) = colnames(fullgrid)
   }
-
   mm = model.matrix(model, genoutput, contrasts.arg = contrastlist)
   samplemm = model.matrix(model, samples, contrasts.arg = contrastlist)
 

@@ -529,6 +529,10 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     effectpvallist = list()
     stderrlist = list()
     iterlist = list()
+    if(interactive()) {
+      pb = progress::progress_bar$new(format = "  Calculating Power [:bar] :percent ETA: :eta",
+                                      total = nsim, clear = TRUE, width= 60)
+    }
     power_values = rep(0, ncol(ModelMatrix))
     effect_power_values = c()
     for (j in 1:nsim) {
@@ -611,6 +615,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         }
         power_values[pvals < alpha_parameter] = power_values[pvals < alpha_parameter] + 1
       }
+      if(interactive()) {
+        pb$tick()
+      }
     }
     #We are going to output a tidy data.frame with the results.
     attr(power_values, "pvals") = do.call(rbind, pvallist)
@@ -631,7 +638,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       numbercores = options("cores")[[1]]
     }
     cl = parallel::makeCluster(numbercores)
-    doParallel::registerDoParallel(cl, cores = numbercores)
+    doParallel::registerDoParallel(cl)
     tryCatch({
       power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4", "lmerTest")) %dopar% {
         #simulate the data.

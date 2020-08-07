@@ -301,7 +301,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       numbercores = options("cores")[[1]]
     }
     cl = parallel::makeCluster(numbercores)
-    doParallel::registerDoParallel(cl, cores = numbercores)
+    doParallel::registerDoParallel(cl)
 
     tryCatch({
       power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .export = ("extractPvalues"), .packages = c("survival")) %dopar% {

@@ -276,7 +276,7 @@ gen_design = function(candidateset, model, trials,
                       augmentdesign = NULL, repeats = 20,
                       custom_v = NULL, varianceratio = 1, contrast = contr.simplex,
                       aliaspower = 2, minDopt = 0.8,
-                      parallel = FALSE, timer = FALSE, add_blocking_columns = FALSE, randomized = TRUE,
+                      parallel = FALSE, timer = TRUE, add_blocking_columns = FALSE, randomized = TRUE,
                       advancedoptions = NULL) {
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
@@ -352,6 +352,8 @@ gen_design = function(candidateset, model, trials,
     advancedoptions$g_efficiency_method = "none"
     progressBarUpdater = NULL
   }
+  #turn off progress bar for non-interactive sessions
+  timer = timer && interactive()
 
   if(is.null(splitplotdesign)) {
     if(varianceratio != 1) {
@@ -845,13 +847,17 @@ gen_design = function(candidateset, model, trials,
 
     mm = gen_momentsmatrix(factors, levelvector, classvector)
     if (!parallel) {
-      pb = progress::progress_bar$new(format = "  Searching [:bar] :percent ETA: :eta",
-                                      total = repeats, clear = TRUE, width= 60)
+      if(timer) {
+        pb = progress::progress_bar$new(format = "  Searching [:bar] :percent ETA: :eta",
+                                        total = repeats, clear = TRUE, width= 60)
+      }
       for (i in 1:repeats) {
         if (!is.null(progressBarUpdater)) {
           progressBarUpdater(1 / repeats)
         }
-        pb$tick()
+        if(timer) {
+          pb$tick()
+        }
         randomindices = sample(nrow(candidatesetmm), trials, replace = initialreplace)
         initialdesign = candidatesetmm[randomindices, ]
         if (!is.null(augmentdesign)) {
@@ -877,11 +883,13 @@ gen_design = function(candidateset, model, trials,
       } else {
         numbercores = options("cores")[[1]]
       }
-      pb = progress::progress_bar$new(format = sprintf("  Searching (%d cores) [:bar] :percent ETA: :eta", numbercores),
-                                      total = repeats, clear = TRUE, width= 60)
+      if(timer) {
+        pb = progress::progress_bar$new(format = sprintf("  Searching (%d cores) [:bar] :percent ETA: :eta", numbercores),
+                                        total = repeats, clear = TRUE, width= 60)
+      }
       cl = parallel::makeCluster(numbercores)
       tryCatch({
-        doParallel::registerDoParallel(cl, cores = numbercores)
+        doParallel::registerDoParallel(cl)
         number_updates = max(c(min(c(repeats/(2*numbercores),100)),1))
         parallel_output = list()
         single_batch_number = repeats/number_updates
@@ -913,7 +921,12 @@ gen_design = function(candidateset, model, trials,
           }
           total_remaining = total_remaining - single_batch_number
           counter = counter + 1
-          pb$tick(single_batch_number)
+          if(timer) {
+            pb$tick(single_batch_number)
+          }
+          if (!is.null(progressBarUpdater)) {
+            progressBarUpdater(single_batch_number / repeats)
+          }
         }
       }, finally = {
         tryCatch({
@@ -972,9 +985,16 @@ gen_design = function(candidateset, model, trials,
 
     #Finished setting up split-plot inputs
     if (!parallel) {
+      if(timer) {
+        pb = progress::progress_bar$new(format = "  Searching [:bar] :percent ETA: :eta",
+                                        total = repeats, clear = TRUE, width= 60)
+      }
       for (i in 1:repeats) {
         if (!is.null(progressBarUpdater)) {
           progressBarUpdater(1 / repeats)
+        }
+        if(timer) {
+          pb$tick()
         }
         randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
         genOutput[[i]] = genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
@@ -990,9 +1010,13 @@ gen_design = function(candidateset, model, trials,
       } else {
         numbercores = options("cores")[[1]]
       }
+      if(timer) {
+        pb = progress::progress_bar$new(format = "  Searching [:bar] :percent ETA: :eta",
+                                        total = repeats, clear = TRUE, width= 60)
+      }
       cl = parallel::makeCluster(numbercores)
       tryCatch({
-        doParallel::registerDoParallel(cl, cores = numbercores)
+        doParallel::registerDoParallel(cl)
         number_updates = max(c(min(c(repeats/(2*numbercores),100)),1))
         parallel_output = list()
         single_batch_number = repeats/number_updates
@@ -1013,7 +1037,12 @@ gen_design = function(candidateset, model, trials,
           }
           total_remaining = total_remaining - single_batch_number
           counter = counter + 1
-          pb$tick(single_batch_number)
+          if(timer) {
+            pb$tick(single_batch_number)
+          }
+          if (!is.null(progressBarUpdater)) {
+            progressBarUpdater(single_batch_number / repeats)
+          }
         }
       }, finally = {
         tryCatch({

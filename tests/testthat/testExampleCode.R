@@ -129,9 +129,6 @@ test_that("gen_design example code runs without errors", {
   expect_silent(eval_design(externaldesign2, ~., 0.2, blocking = TRUE))
   expect_silent(eval_design(externaldesign3, ~., 0.2, blocking = TRUE))
 
-  #test timer
-  expect_output(gen_design(candlist3, ~Location, trials = 6, timer = TRUE) -> temp)
-
   #test interaction between whole and subplots
 
   expect_silent(gen_design(candlist3, ~Location, trials = 6) -> temp)
@@ -144,12 +141,8 @@ test_that("gen_design example code runs without errors", {
 
   expect_silent(gen_design(candlist3, ~Location, trials = 6, parallel = TRUE) -> temp)
   expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE) -> temp)
-  expect_output({gen_design(candlist3, ~Location, trials = 6, parallel = TRUE, timer = TRUE) -> temp}, "Estimated time to completion")
-  expect_output({gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE, timer = TRUE) -> temp}, "Estimated time to completion")
   expect_silent(gen_design(candlist3, ~Location, trials = 6, parallel = TRUE) -> temp)
   expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE) -> temp2)
-  expect_output({gen_design(candlist3, ~Location, trials = 18, parallel = TRUE, timer = TRUE) -> temp}, "Estimated time to completion")
-  expect_output({gen_design(candlist3, ~Location + Climate, trials = 54, splitplotdesign = temp, blocksizes = rep(3, 18), parallel = TRUE, timer = TRUE) -> temp2}, "Estimated time to completion")
   expect_silent(eval_design_mc(temp, ~., 0.2, nsim = 10, parallel = TRUE))
   expect_silent(eval_design_mc(temp2, ~., 0.2, nsim = 10, parallel = TRUE))
   expect_silent(eval_design_mc(temp, ~., 0.2, nsim = 10, glmfamily = "poisson", effectsize = c(1, 10), parallel = TRUE))

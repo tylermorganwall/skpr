@@ -784,12 +784,9 @@ function(input, output, session) {
     if (isolate(input$setseed)) {
       set.seed(isolate(input$seed))
     }
-    if (isolate(input$parallel)) {
-      showNotification("Searching (no progress bar with multicore on):", type = "message")
-    }
     tryCatch({
       if (!isblocking()) {
-        if (isolate(as.logical(input$parallel))) {
+        withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = {
           design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                               model = isolate(as.formula(input$model)),
                               trials = isolate(input$trials),
@@ -797,37 +794,31 @@ function(input, output, session) {
                               repeats = isolate(input$repeats),
                               aliaspower = isolate(input$aliaspower),
                               minDopt = isolate(input$mindopt),
-                              parallel = isolate(as.logical(input$parallel)))
-        } else {
-          design = withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = {
-            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                       model = isolate(as.formula(input$model)),
-                       trials = isolate(input$trials),
-                       optimality = isolate(optimality()),
-                       repeats = isolate(input$repeats),
-                       aliaspower = isolate(input$aliaspower),
-                       minDopt = isolate(input$mindopt),
-                       parallel = isolate(as.logical(input$parallel)),
-                       advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))})
-        }
+                              parallel = isolate(as.logical(input$parallel)),
+                              advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+        })
       } else {
-        spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                         model = isolate(as.formula(blockmodel())),
-                         trials = isolate(input$numberblocks),
-                         optimality = ifelse(toupper(isolate(optimality())) == "ALIAS" && length(isolate(inputlist_htc())) == 1, "D", isolate(optimality())),
-                         repeats = isolate(input$repeats),
-                         varianceratio = isolate(input$varianceratio),
-                         aliaspower = isolate(input$aliaspower),
-                         minDopt = isolate(input$mindopt),
-                         parallel = isolate(as.logical(input$parallel)))
-        if (isolate(input$trials) %% isolate(input$numberblocks) == 0) {
-          sizevector = isolate(input$trials) / isolate(input$numberblocks)
-        } else {
-          sizevector = c(rep(ceiling(isolate(input$trials) / isolate(input$numberblocks)), isolate(input$numberblocks)))
-          unbalancedruns = ceiling(isolate(input$trials) / isolate(input$numberblocks)) * isolate(input$numberblocks) - isolate(input$trials)
-          sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
-        }
-        if (isolate(as.logical(input$parallel))) {
+        withProgress(message = "Generating whole-plots:", value = 0, min = 0, max = 1, expr = {
+          spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                           model = isolate(as.formula(blockmodel())),
+                           trials = isolate(input$numberblocks),
+                           optimality = ifelse(toupper(isolate(optimality())) == "ALIAS" &&
+                                                 length(isolate(inputlist_htc())) == 1, "D", isolate(optimality())),
+                           repeats = isolate(input$repeats),
+                           varianceratio = isolate(input$varianceratio),
+                           aliaspower = isolate(input$aliaspower),
+                           minDopt = isolate(input$mindopt),
+                           parallel = isolate(as.logical(input$parallel)),
+                           advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+          if (isolate(input$trials) %% isolate(input$numberblocks) == 0) {
+            sizevector = isolate(input$trials) / isolate(input$numberblocks)
+          } else {
+            sizevector = c(rep(ceiling(isolate(input$trials) / isolate(input$numberblocks)), isolate(input$numberblocks)))
+            unbalancedruns = ceiling(isolate(input$trials) / isolate(input$numberblocks)) * isolate(input$numberblocks) - isolate(input$trials)
+            sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
+          }
+        })
+        withProgress(message = "Generating full design:", value = 0, min = 0, max = 1, expr = {
           design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
                               model = isolate(as.formula(input$model)),
                               trials = isolate(input$trials),
@@ -839,23 +830,9 @@ function(input, output, session) {
                               aliaspower = isolate(input$aliaspower),
                               minDopt = isolate(input$mindopt),
                               parallel = isolate(as.logical(input$parallel)),
-                              add_blocking_columns = isolate(input$splitanalyzable))
-        } else {
-          design = withProgress(message = "Generating design", value = 0, min = 0, max = 1, expr = {
-            gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                       model = isolate(as.formula(input$model)),
-                       trials = isolate(input$trials),
-                       splitplotdesign = spd,
-                       blocksizes = sizevector,
-                       optimality = isolate(optimality()),
-                       repeats = isolate(input$repeats),
-                       varianceratio = isolate(input$varianceratio),
-                       aliaspower = isolate(input$aliaspower),
-                       minDopt = isolate(input$mindopt),
-                       parallel = isolate(as.logical(input$parallel)),
-                       add_blocking_columns = isolate(input$splitanalyzable),
-                       advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))})
-        }
+                              add_blocking_columns = isolate(input$splitanalyzable),
+                              advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+        })
       }
     }, finally = {
       shinyjs::enable("evalbutton")
@@ -916,8 +893,7 @@ function(input, output, session) {
       if (isolate(input$setseed)) {
         set.seed(isolate(input$seed))
       }
-      if (isolate(input$parallel_eval_glm)) {
-        showNotification("Simulating (no progress bar with multicore on):", type = "message")
+      withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
         powerval = eval_design_mc(design = isolate(runmatrix()),
                                   model = isolate(as.formula(input$model)),
                                   alpha = isolate(input$alpha),
@@ -928,37 +904,16 @@ function(input, output, session) {
                                   effectsize = isolate(effectsize()),
                                   parallel = isolate(input$parallel_eval_glm),
                                   detailedoutput = isolate(input$detailedoutput),
-                                  advancedoptions = list(GUI = TRUE))
+                                  advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+      })
 
-        powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
-        powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
-        prelimhtml = kable_styling(knitr::kable(powerval, "html",
-                                                row.names = TRUE, escape = FALSE, align = "r"), "striped",
-                                   full_width = FALSE, position = "left")
-        list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-                  x = prelimhtml, perl = TRUE),powerval)
-      } else {
-        withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
-          powerval = eval_design_mc(design = isolate(runmatrix()),
-                                    model = isolate(as.formula(input$model)),
-                                    alpha = isolate(input$alpha),
-                                    blocking = isolate(isblocking()),
-                                    nsim = isolate(input$nsim),
-                                    varianceratios = isolate(input$varianceratio),
-                                    glmfamily = isolate(input$glmfamily),
-                                    effectsize = isolate(effectsize()),
-                                    parallel = isolate(input$parallel_eval_glm),
-                                    detailedoutput = isolate(input$detailedoutput),
-                                    advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))})
-
-        powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
-        powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
-        prelimhtml = kable_styling(knitr::kable(powerval, "html",
-                                                row.names = TRUE, escape = FALSE, align = "r"), "striped",
-                                   full_width = FALSE, position = "left")
-        list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-                  x = prelimhtml, perl = TRUE),powerval)
-      }
+      powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
+      powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
+      prelimhtml = kable_styling(knitr::kable(powerval, "html",
+                                              row.names = TRUE, escape = FALSE, align = "r"), "striped",
+                                 full_width = FALSE, position = "left")
+      list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
+                x = prelimhtml, perl = TRUE),powerval)
     }
   })
   powerresultssurv = reactive({
@@ -1348,55 +1303,55 @@ function(input, output, session) {
                                       "showBullets" = "false"),
                        events = list(
                          "onchange" = I("
-                                        if (this._currentStep==0) {
-                                        $('a[data-value=\"Advanced\"]').removeClass('active');
-                                        $('a[data-value=\"Power\"]').removeClass('active');
-                                        $('a[data-value=\"Basic\"]').addClass('active');
-                                        $('a[data-value=\"Basic\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==5) {
-                                        $('a[data-value=\"Power\"]').removeClass('active');
-                                        $('a[data-value=\"Basic\"]').removeClass('active');
-                                        $('a[data-value=\"Advanced\"]').addClass('active');
-                                        $('a[data-value=\"Advanced\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==13) {
-                                        $('a[data-value=\"Advanced\"]').removeClass('active');
-                                        $('a[data-value=\"Power\"]').addClass('active');
-                                        $('a[data-value=\"Power\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==17) {
-                                        $('input[value=\"glm\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==21) {
-                                        $('input[value=\"surv\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==24) {
-                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
-                                        $('a[data-value=\"Generating Code\"]').removeClass('active');
-                                        $('a[data-value=\"Design\"]').addClass('active');
-                                        $('a[data-value=\"Design\"]').trigger('click');
-                                        $('#evaltype').val('glm');
-                                        Shiny.onInputChange('evaltype', 'glm');
-                                        $('#numberfactors').val('3');
-                                        Shiny.onInputChange('numberfactors', 3);
-                                        $('#trials').val('12');
-                                        Shiny.onInputChange('trials', 12);
-                                        $('#submitbutton').trigger('click');
-                                        $('#evalbutton').trigger('click');
-                                        }
-                                        if (this._currentStep==25) {
-                                        $('#evalbutton').trigger('click');
-                                        $('a[data-value=\"Design\"]').removeClass('active');
-                                        $('a[data-value=\"Design Evaluation\"]').addClass('active');
-                                        $('a[data-value=\"Design Evaluation\"]').trigger('click');
-                                        }
-                                        if (this._currentStep==31) {
-                                        $('a[data-value=\"Design Evaluation\"]').removeClass('active');
-                                        $('a[data-value=\"Generating Code\"]').addClass('active');
-                                        $('a[data-value=\"Generating Code\"]').trigger('click');
-                                        }"
-                           ))
+                                          if (this._currentStep==0) {
+                                          $('a[data-value=\"Advanced\"]').removeClass('active');
+                                          $('a[data-value=\"Power\"]').removeClass('active');
+                                          $('a[data-value=\"Basic\"]').addClass('active');
+                                          $('a[data-value=\"Basic\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==5) {
+                                          $('a[data-value=\"Power\"]').removeClass('active');
+                                          $('a[data-value=\"Basic\"]').removeClass('active');
+                                          $('a[data-value=\"Advanced\"]').addClass('active');
+                                          $('a[data-value=\"Advanced\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==13) {
+                                          $('a[data-value=\"Advanced\"]').removeClass('active');
+                                          $('a[data-value=\"Power\"]').addClass('active');
+                                          $('a[data-value=\"Power\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==17) {
+                                          $('input[value=\"glm\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==21) {
+                                          $('input[value=\"surv\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==24) {
+                                          $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                          $('a[data-value=\"Generating Code\"]').removeClass('active');
+                                          $('a[data-value=\"Design\"]').addClass('active');
+                                          $('a[data-value=\"Design\"]').trigger('click');
+                                          $('#evaltype').val('glm');
+                                          Shiny.onInputChange('evaltype', 'glm');
+                                          $('#numberfactors').val('3');
+                                          Shiny.onInputChange('numberfactors', 3);
+                                          $('#trials').val('12');
+                                          Shiny.onInputChange('trials', 12);
+                                          $('#submitbutton').trigger('click');
+                                          $('#evalbutton').trigger('click');
+                                          }
+                                          if (this._currentStep==25) {
+                                          $('#evalbutton').trigger('click');
+                                          $('a[data-value=\"Design\"]').removeClass('active');
+                                          $('a[data-value=\"Design Evaluation\"]').addClass('active');
+                                          $('a[data-value=\"Design Evaluation\"]').trigger('click');
+                                          }
+                                          if (this._currentStep==31) {
+                                          $('a[data-value=\"Design Evaluation\"]').removeClass('active');
+                                          $('a[data-value=\"Generating Code\"]').addClass('active');
+                                          $('a[data-value=\"Generating Code\"]').trigger('click');
+                                          }"
                          ))
+               ))
   outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
 }

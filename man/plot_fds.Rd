@@ -7,7 +7,7 @@
 plot_fds(
   genoutput,
   model = NULL,
-  continuouslength = 31,
+  continuouslength = 11,
   plot = TRUE,
   yaxis_max = NULL,
   description = "Fraction of Design Space"
@@ -19,7 +19,7 @@ of several designs, which will result in all of them being plotted in a row (for
 
 \item{model}{Default `NULL`. The model, if `NULL` it defaults to the model used in `eval_design` or `gen_design`.}
 
-\item{continuouslength}{Default `31`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.}
+\item{continuouslength}{Default `11`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.}
 
 \item{plot}{Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.}
 

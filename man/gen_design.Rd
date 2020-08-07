@@ -19,7 +19,7 @@ gen_design(
   aliaspower = 2,
   minDopt = 0.8,
   parallel = FALSE,
-  timer = FALSE,
+  timer = TRUE,
   add_blocking_columns = FALSE,
   randomized = TRUE,
   advancedoptions = NULL

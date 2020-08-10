@@ -926,7 +926,7 @@ gen_design = function(candidateset, model, trials,
       }
       if (!timer) {
         cl = parallel::makeCluster(numbercores)
-        doParallel::registerDoParallel(cl, cores = numbercores)
+        doParallel::registerDoParallel(cl)
 
         genOutput = tryCatch({
           foreach(i = 1:repeats, .export = c("genOptimalDesign","genBlockedOptimalDesign")) %dorng% {
@@ -956,7 +956,7 @@ gen_design = function(candidateset, model, trials,
         })
       } else {
         cl = parallel::makeCluster(numbercores)
-        doParallel::registerDoParallel(cl, cores = numbercores)
+        doParallel::registerDoParallel(cl)
 
         cat("Estimated time to completion ... ")
         ptm = proc.time()
@@ -1107,7 +1107,7 @@ gen_design = function(candidateset, model, trials,
       }
       if (!timer) {
         cl = parallel::makeCluster(numbercores)
-        doParallel::registerDoParallel(cl, cores = numbercores)
+        doParallel::registerDoParallel(cl)
         genOutput = tryCatch({
           foreach(i = 1:repeats, .export = c("genSplitPlotOptimalDesign")) %dorng% {
             randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
@@ -1125,7 +1125,7 @@ gen_design = function(candidateset, model, trials,
         })
       } else {
         cl = parallel::makeCluster(numbercores)
-        doParallel::registerDoParallel(cl, cores = numbercores)
+        doParallel::registerDoParallel(cl)
 
         cat("Estimated time to completion ... ")
         ptm = proc.time()

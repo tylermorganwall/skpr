@@ -878,8 +878,8 @@ skprGUIserver = function(inputValue1, inputValue2) {
         if (number < 0) {
           number = 0
         }
-        file.remove(tempfilename2)
-      } else {
+        close( file( tempfilename2, open="w" ) )
+        } else {
         number = 0
       }
       stringtowrite = as.character(paste0(rep(0, number + 1), collapse = ""))
@@ -924,14 +924,18 @@ skprGUIserver = function(inputValue1, inputValue2) {
       if (runmatresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "gen") {
         shinyjs::enable("submitbutton")
         shinyjs::enable("evalbutton")
-        file.remove(tempfilename)
+        if(file.exists(tempfilename)) {
+          file.remove(tempfilename)
+        }
         progress$close()
         rm(progress, envir = prog_env)
       }
       if (powerresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "pow") {
         shinyjs::enable("submitbutton")
         shinyjs::enable("evalbutton")
-        file.remove(tempfilename)
+        if(file.exists(tempfilename)) {
+          file.remove(tempfilename)
+        }
         progress$close()
         rm(progress, envir = prog_env)
       }

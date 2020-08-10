@@ -631,7 +631,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       numbercores = options("cores")[[1]]
     }
     cl = parallel::makeCluster(numbercores)
-    doParallel::registerDoParallel(cl, cores = numbercores)
+    doParallel::registerDoParallel(cl)
     tryCatch({
       power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4", "lmerTest")) %dopar% {
         #simulate the data.

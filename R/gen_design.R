@@ -900,6 +900,7 @@ gen_design = function(candidateset, model, trials,
             single_batch_number = total_remaining
           }
           parallel_output[[counter]] = foreach(i = 1:single_batch_number, .export = c("genOptimalDesign","genBlockedOptimalDesign")) %dorng% {
+
             randomindices = sample(nrow(candidatesetmm), trials, replace = initialreplace)
             initialdesign = candidatesetmm[randomindices, ]
             if (!is.null(augmentdesign)) {
@@ -1027,6 +1028,7 @@ gen_design = function(candidateset, model, trials,
             single_batch_number = total_remaining
           }
           parallel_output[[counter]] = foreach(i = 1:repeats, .export = c("genSplitPlotOptimalDesign")) %dorng% {
+
             randomindices = sample(nrow(candidateset), trials, replace = initialreplace)
             genSplitPlotOptimalDesign(initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
                                     candidatelist = candidatesetmm[, -1, drop = FALSE], blockeddesign = blockedmodelmatrix,

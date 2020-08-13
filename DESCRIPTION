@@ -35,7 +35,8 @@ Imports:
     methods,
     lazyeval,
     crayon,
-    progress
+    progress,
+    gt
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat
 Encoding: UTF-8

@@ -5,7 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
-#'@import shiny rintrojs shinythemes knitr kableExtra gt
+#'@import shiny rintrojs shinythemes gt
 #'@export
 #'@examples
 #'#Type `skprGUI()` to begin
@@ -716,7 +716,7 @@ skprGUI = function(inputValue1, inputValue2) {
                   column(width = 2),
                   column(width = 2, introBox(bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."), class = "bookmark", data.step = 33, data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results.")),
                   column(width = 2, actionButton(inputId = "tutorial", "Tutorial", icon = icon("question-circle"))),
-                  column(width = 2, HTML(paste0("<div style='float:right; margin-top: 25px;'><img src=",b64,"\"></img></div>"))),
+                  column(width = 2, HTML(paste0("<div style='float:right; margin-top: 25px;'><img src=",b64,"></img></div>"))),
                   tags$style(type = "text/css", "#tutorial {margin-top: 25px;} .bookmark {margin-top: 25px;}")
                 ),
                 tabsetPanel(
@@ -727,7 +727,7 @@ skprGUI = function(inputValue1, inputValue2) {
                   ),
                   tabPanel("Design Evaluation",
                            introBox(fluidRow(
-                             column(width = 6,
+                             column(width = 12,
                                     h2("Power Results"),
                                     conditionalPanel(
                                       condition = "input.evaltype == \'lm\'",
@@ -1889,15 +1889,15 @@ skprGUI = function(inputValue1, inputValue2) {
 
     output$powerresults = gt::render_gt( {
       powerresults()
-    })
+    }, align = "left")
 
     output$powerresultsglm = gt::render_gt( {
       powerresultsglm()
-    })
+    }, align = "left")
 
     output$powerresultssurv = gt::render_gt({
       powerresultssurv()
-    })
+    }, align = "left")
 
     output$aliasplot = renderPlot({
       input$submitbutton

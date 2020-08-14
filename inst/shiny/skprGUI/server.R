@@ -1,6 +1,6 @@
 library(skpr)
 library(rintrojs)
-library(kableExtra)
+library(gt)
 
 function(input, output, session) {
 
@@ -846,19 +846,48 @@ function(input, output, session) {
     isolate(input$evaltype)
   })
 
+  format_table = function(powerval, display_table, alpha, nsim) {
+    display_table = display_table %>%
+      data_color(columns = "power",
+                 colors = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
+                                              domain =c(0,1)),
+                 alpha = 0.3,
+                 autocolor_text = FALSE)
+    if(any(powerval$power <= alpha + 1/sqrt(nsim) &
+           powerval$power >= alpha - 1/sqrt(nsim))) {
+      display_table = display_table %>%
+        tab_style(
+          style = list(
+            cell_fill(color = "yellow",alpha=0.3)
+          ),
+          locations = cells_body(
+            columns = "power",
+            rows = power <= alpha + 1/sqrt(nsim))
+        ) %>%
+        tab_source_note(
+          source_note = "Note: Power values marked in yellow are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)"
+        )
+    }
+    if(any(powerval$power < alpha - 1/sqrt(nsim))) {
+      display_table = display_table %>%
+        tab_style(
+          style = list(
+            cell_fill(color = "red",alpha=0.3)
+          ),
+          locations = cells_body(
+            columns = "power",
+            rows = (power < alpha - 1/sqrt(nsim)))
+        ) %>%
+        tab_source_note(
+          source_note = sprintf("Note: Power values marked in red fall below the user-specified Type-I error (%0.2f)",
+                                alpha)
+        )
+    }
+    return(display_table)
+  }
+
   powerresults = reactive({
     input$evalbutton
-    power_color = function(powercol, alphaval = 0.2) {
-      colorvalues = cut(c(0,1,powercol), 10, labels = FALSE)[-(1:2)]
-      powercol = unlist(lapply(powercol,sprintf,fmt = "%.3f"))
-      colorvals = paste0("rgba(",
-                         apply(t(col2rgb(hcl(h = 250, c = seq(10,50,length.out = 10), l = seq(100,20,length.out = 10)))), 1,  paste0, collapse = ", ")
-                         ,", 0.4)")
-      cell_spec(powercol, "html", background =  colorvals[colorvalues], background_as_tile = FALSE)
-    }
-    white_color = function(othercol, alphaval = 0.2) {
-      cell_spec(othercol, "html", background = "rgba(255, 255, 255, 1)", background_as_tile = FALSE)
-    }
     if (evaluationtype() == "lm") {
       powerval = eval_design(design = isolate(runmatrix()),
                              model = as.formula(isolate(input$model)),
@@ -867,68 +896,35 @@ function(input, output, session) {
                              effectsize = isolate(effectsize()),
                              conservative = isolate(input$conservative),
                              detailedoutput = isolate(input$detailedoutput))
-      powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
-      powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
-      prelimhtml = kable_styling(knitr::kable(powerval, "html",
-                                              row.names = TRUE, escape = FALSE, align = "r"), "striped",
-                                 full_width = FALSE, position = "left")
-      gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-           x = prelimhtml, perl = TRUE)
+      display_table = gt(powerval)
+      format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim))
     }
   })
   powerresultsglm = reactive({
     input$evalbutton
-    power_color = function(powercol, alphaval = 0.2) {
-      colorvalues = cut(c(0,1,powercol), 10, labels = FALSE)[-(1:2)]
-      powercol = unlist(lapply(powercol,sprintf,fmt = "%.3f"))
-      colorvals = paste0("rgba(",
-                         apply(t(col2rgb(hcl(h = 250, c = seq(10,50,length.out = 10), l = seq(100,20,length.out = 10)))), 1,  paste0, collapse = ", ")
-                         ,", 0.4)")
-      cell_spec(powercol, "html", background =  colorvals[colorvalues], background_as_tile = FALSE)
-    }
-    white_color = function(othercol, alphaval = 0.2) {
-      cell_spec(othercol, "html", background = "rgba(255, 255, 255, 1)", background_as_tile = FALSE)
-    }
     if (isolate(evaluationtype()) == "glm") {
       if (isolate(input$setseed)) {
         set.seed(isolate(input$seed))
       }
       withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
-        powerval = eval_design_mc(design = isolate(runmatrix()),
-                                  model = isolate(as.formula(input$model)),
-                                  alpha = isolate(input$alpha),
-                                  blocking = isolate(isblocking()),
-                                  nsim = isolate(input$nsim),
-                                  varianceratios = isolate(input$varianceratio),
-                                  glmfamily = isolate(input$glmfamily),
-                                  effectsize = isolate(effectsize()),
-                                  parallel = isolate(input$parallel_eval_glm),
-                                  detailedoutput = isolate(input$detailedoutput),
-                                  advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
+        powerval = suppressWarnings(eval_design_mc(design = isolate(runmatrix()),
+                                                   model = isolate(as.formula(input$model)),
+                                                   alpha = isolate(input$alpha),
+                                                   blocking = isolate(isblocking()),
+                                                   nsim = isolate(input$nsim),
+                                                   varianceratios = isolate(input$varianceratio),
+                                                   glmfamily = isolate(input$glmfamily),
+                                                   effectsize = isolate(effectsize()),
+                                                   parallel = isolate(input$parallel_eval_glm),
+                                                   detailedoutput = isolate(input$detailedoutput),
+                                                   advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
       })
-
-      powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
-      powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
-      prelimhtml = kable_styling(knitr::kable(powerval, "html",
-                                              row.names = TRUE, escape = FALSE, align = "r"), "striped",
-                                 full_width = FALSE, position = "left")
-      list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-                x = prelimhtml, perl = TRUE),powerval)
+      display_table = gt(powerval)
+      format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim))
     }
   })
   powerresultssurv = reactive({
     input$evalbutton
-    power_color = function(powercol, alphaval = 0.2) {
-      colorvalues = cut(c(0,1,powercol), 10, labels = FALSE)[-(1:2)]
-      powercol = unlist(lapply(powercol,sprintf,fmt = "%.3f"))
-      colorvals = paste0("rgba(",
-                         apply(t(col2rgb(hcl(h = 250, c = seq(10,50,length.out = 10), l = seq(100,20,length.out = 10)))), 1,  paste0, collapse = ", ")
-                         ,", 0.4)")
-      cell_spec(powercol, "html", background =  colorvals[colorvalues], background_as_tile = FALSE)
-    }
-    white_color = function(othercol, alphaval = 0.2) {
-      cell_spec(othercol, "html", background = "rgba(255, 255, 255, 1)", background_as_tile = FALSE)
-    }
     if (isolate(evaluationtype()) == "surv") {
       if (isolate(input$setseed)) {
         set.seed(isolate(input$seed))
@@ -936,111 +932,173 @@ function(input, output, session) {
       if (isolate(isblocking())) {
         print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
       }
-      if (isolate(input$parallel_eval_surv)) {
-        showNotification("Simulating (no progress bar with multicore on):", type = "message")
-        powerval = eval_design_survival_mc(design = isolate(runmatrix()),
-                                           model = isolate(as.formula(input$model)),
-                                           alpha = isolate(input$alpha),
-                                           nsim = isolate(input$nsim),
-                                           censorpoint = isolate(input$censorpoint),
-                                           censortype = isolate(input$censortype),
-                                           distribution = isolate(input$distribution),
-                                           effectsize = isolate(effectsize()),
-                                           detailedoutput = isolate(input$detailedoutput),
-                                           parallel = isolate(input$parallel_eval_surv))
-        powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
-        powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
-        prelimhtml = kable_styling(knitr::kable(powerval, "html",
-                                                row.names = TRUE, escape = FALSE, align = "r"), "striped",
-                                   full_width = FALSE, position = "left")
-        list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-                  x = prelimhtml, perl = TRUE),powerval)
-      } else {
-        withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
-          powerval = eval_design_survival_mc(design = isolate(runmatrix()),
-                                             model = isolate(as.formula(input$model)),
-                                             alpha = isolate(input$alpha),
-                                             nsim = isolate(input$nsim),
-                                             censorpoint = isolate(input$censorpoint),
-                                             censortype = isolate(input$censortype),
-                                             distribution = isolate(input$distribution),
-                                             effectsize = isolate(effectsize()),
-                                             detailedoutput = isolate(input$detailedoutput),
-                                             advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
-          powerval[,!(colnames(powerval) %in% "power")] = lapply(powerval[,!(colnames(powerval) %in% "power")], white_color)
-          powerval[,colnames(powerval) == "power"] = power_color(powerval[,colnames(powerval) == "power"])
-          prelimhtml = kable_styling(knitr::kable(powerval, "html",
-                                                  row.names = TRUE, escape = FALSE, align = "r"), "striped",
-                                     full_width = FALSE, position = "left")
-          list(gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2",
-                    x = prelimhtml, perl = TRUE),powerval)
-        })
-      }
+      withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
+        powerval = suppressWarnings(eval_design_survival_mc(design = isolate(runmatrix()),
+                                                            model = isolate(as.formula(input$model)),
+                                                            alpha = isolate(input$alpha),
+                                                            nsim = isolate(input$nsim),
+                                                            censorpoint = isolate(input$censorpoint),
+                                                            censortype = isolate(input$censortype),
+                                                            distribution = isolate(input$distribution),
+                                                            effectsize = isolate(effectsize()),
+                                                            detailedoutput = isolate(input$detailedoutput),
+                                                            advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
+        display_table = gt(powerval)
+        format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim))
+      })
     }
   })
 
-
-  output$runmatrix = function() {
-
-    spec_color_if = function(dfcol, alphaval = 0.2) {
-      if (is.numeric(dfcol)) {
-        colorvalues = cut(dfcol, 11, labels = FALSE)
-        cell_spec(dfcol, "html", background = spec_color(1:11, alpha = alphaval, option = input$colorchoice)[colorvalues], background_as_tile = FALSE)
-      } else {
-        dfcolfact = as.factor(dfcol)
-        cell_spec(dfcol, "html", background = spec_color(1:length(unique(dfcol)), alpha = alphaval, option = input$colorchoice)[as.numeric(dfcolfact)], background_as_tile = FALSE)
-      }
-    }
-
-    if (input$colorchoice != "none") {
-      if (input$orderdesign) {
-        if (ncol(runmatrix()) > 1) {
-          runmatrixprocessed = lapply(runmatrix(), spec_color_if)
-          prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order, runmatrix()), ], "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
-        } else {
-          rownumbers = order(runmatrix()[, 1])
-          runreturn = list(runmatrix()[order(runmatrix()[, 1]), ])
-          names(runreturn) = input$factorname1
-          runmatrixprocessed = data.frame(runreturn)
-          runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed, spec_color_if))
-          rownames(runmatrixprocessed) = rownumbers
-          prelimhtml = kable_styling(knitr::kable(runmatrixprocessed, "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-          gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
-        }
-      } else {
-        runmatrixprocessed = lapply(runmatrix(), spec_color_if)
-        prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed), "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-        gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
-      }
+  pal_option = function(n) {
+    if(input$colorchoice == "A") {
+      viridis::magma(n)
+    } else if(input$colorchoice == "B") {
+      viridis::inferno(n)
+    } else if(input$colorchoice == "C") {
+      viridis::plasma(n)
+    } else if(input$colorchoice == "D") {
+      viridis::viridis(n)
     } else {
-      if (input$orderdesign) {
-        if (ncol(runmatrix()) > 1) {
-          kable_styling(knitr::kable(as.data.frame(runmatrix())[do.call(order, runmatrix()), ], "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-        } else {
-          rownumbers = order(runmatrix()[, 1])
-          runreturn = list(runmatrix()[order(runmatrix()[, 1]), ])
-          names(runreturn) = input$factorname1
-          runmatrixprocessed = data.frame(runreturn)
-          rownames(runmatrixprocessed) = rownumbers
-          kable_styling(knitr::kable(runmatrixprocessed, "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-        }
-      } else {
-        kable_styling(knitr::kable(runmatrix(), "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-      }
+      "white"
     }
   }
 
-  output$powerresults = function() {
-    powerresults()
-  }
-  output$powerresultsglm = function() {
-    powerresultsglm()[[1]]
+  pal_option = function(n) {
+    if(input$colorchoice == "A") {
+      viridis::magma(n)
+    } else if(input$colorchoice == "B") {
+      viridis::inferno(n)
+    } else if(input$colorchoice == "C") {
+      viridis::plasma(n)
+    } else if(input$colorchoice == "D") {
+      viridis::viridis(n)
+    } else {
+      "white"
+    }
   }
 
-  output$powerresultssurv = function() {
-    powerresultssurv()[[1]]
+  style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
+    if(order_vals) {
+      new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
+      rownames(new_runmat) = 1:nrow(new_runmat)
+
+      display_rm = gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
+                      rownames_to_stub = TRUE) %>%
+        tab_stubhead("Run") %>%
+        tab_options(data_row.padding = px(10))  %>%
+        tab_spanner(
+          label = "Factors",
+          columns = colnames(.)
+        ) %>% tab_header(
+          title = "Design",
+          subtitle = sprintf("%d-run %s-optimal design",
+                             trials,
+                             optimality)
+        )
+    } else {
+      display_rm = gt(runmat,rownames_to_stub = TRUE) %>%
+        tab_stubhead("Run") %>%
+        tab_options(data_row.padding = px(10)) %>%
+        tab_spanner(
+          label = "Factors",
+          columns = colnames(.)
+        ) %>% tab_header(
+          title = "Design",
+          subtitle = sprintf("%d-run %s-optimal design",
+                             trials,
+                             optimality)
+        )
+    }
+    cols_rm = colnames(runmat)
+    for(i in seq_len(length(cols_rm))) {
+      if(is.numeric(runmat[,i])) {
+        display_rm = display_rm %>%
+          data_color(
+            columns = cols_rm[i],
+            colors = pal_option(100),
+            alpha = alpha,
+            autocolor_text = FALSE)
+      } else {
+        display_rm = display_rm %>%
+          data_color(
+            columns = cols_rm[i],
+            colors = pal_option(length(unique(runmat[,i]))),
+            alpha = alpha,
+            autocolor_text = FALSE)
+      }
+    }
+    display_rm
   }
+
+
+  style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
+    if(order_vals) {
+      new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
+      rownames(new_runmat) = 1:nrow(new_runmat)
+
+      display_rm = gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
+                      rownames_to_stub = TRUE) %>%
+        tab_stubhead("Run") %>%
+        tab_options(data_row.padding = px(10))  %>%
+        tab_spanner(
+          label = "Factors",
+          columns = colnames(.)
+        ) %>% tab_header(
+          title = "Design",
+          subtitle = sprintf("%d-run %s-optimal design",
+                             trials,
+                             optimality)
+        )
+    } else {
+      display_rm = gt(runmat,rownames_to_stub = TRUE) %>%
+        tab_stubhead("Run") %>%
+        tab_options(data_row.padding = px(10)) %>%
+        tab_spanner(
+          label = "Factors",
+          columns = colnames(.)
+        ) %>% tab_header(
+          title = "Design",
+          subtitle = sprintf("%d-run %s-optimal design",
+                             trials,
+                             optimality)
+        )
+    }
+    cols_rm = colnames(runmat)
+    for(i in seq_len(length(cols_rm))) {
+      if(is.numeric(runmat[,i])) {
+        display_rm = display_rm %>%
+          data_color(
+            columns = cols_rm[i],
+            colors = pal_option(100),
+            alpha = alpha,
+            autocolor_text = FALSE)
+      } else {
+        display_rm = display_rm %>%
+          data_color(
+            columns = cols_rm[i],
+            colors = pal_option(length(unique(runmat[,i]))),
+            alpha = alpha,
+            autocolor_text = FALSE)
+      }
+    }
+    display_rm
+  }
+
+  output$runmatrix = gt::render_gt({
+    style_matrix(runmatrix(), order_vals = input$orderdesign,  trials = isolate(input$trials), optimality = isolate(input$optimality))
+  }, align = "left")
+
+  output$powerresults = gt::render_gt( {
+    powerresults()
+  }, align = "left")
+
+  output$powerresultsglm = gt::render_gt( {
+    powerresultsglm()
+  }, align = "left")
+
+  output$powerresultssurv = gt::render_gt({
+    powerresultssurv()
+  }, align = "left")
 
   output$aliasplot = renderPlot({
     input$submitbutton

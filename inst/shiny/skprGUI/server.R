@@ -1030,60 +1030,6 @@ function(input, output, session) {
     display_rm
   }
 
-
-  style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
-    if(order_vals) {
-      new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
-      rownames(new_runmat) = 1:nrow(new_runmat)
-
-      display_rm = gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
-                      rownames_to_stub = TRUE) %>%
-        tab_stubhead("Run") %>%
-        tab_options(data_row.padding = px(10))  %>%
-        tab_spanner(
-          label = "Factors",
-          columns = colnames(.)
-        ) %>% tab_header(
-          title = "Design",
-          subtitle = sprintf("%d-run %s-optimal design",
-                             trials,
-                             optimality)
-        )
-    } else {
-      display_rm = gt(runmat,rownames_to_stub = TRUE) %>%
-        tab_stubhead("Run") %>%
-        tab_options(data_row.padding = px(10)) %>%
-        tab_spanner(
-          label = "Factors",
-          columns = colnames(.)
-        ) %>% tab_header(
-          title = "Design",
-          subtitle = sprintf("%d-run %s-optimal design",
-                             trials,
-                             optimality)
-        )
-    }
-    cols_rm = colnames(runmat)
-    for(i in seq_len(length(cols_rm))) {
-      if(is.numeric(runmat[,i])) {
-        display_rm = display_rm %>%
-          data_color(
-            columns = cols_rm[i],
-            colors = pal_option(100),
-            alpha = alpha,
-            autocolor_text = FALSE)
-      } else {
-        display_rm = display_rm %>%
-          data_color(
-            columns = cols_rm[i],
-            colors = pal_option(length(unique(runmat[,i]))),
-            alpha = alpha,
-            autocolor_text = FALSE)
-      }
-    }
-    display_rm
-  }
-
   output$runmatrix = gt::render_gt({
     style_matrix(runmatrix(), order_vals = input$orderdesign,  trials = isolate(input$trials), optimality = isolate(input$optimality))
   }, align = "left")

@@ -5,7 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
-#'@import future promises shiny rintrojs shinythemes knitr kableExtra
+#'@import future promises shiny rintrojs shinythemes knitr kableExtra gt
 #'@export
 #'@examples
 #'#Type `skprGUIserver()` to begin
@@ -1821,58 +1821,76 @@ skprGUIserver = function(inputValue1, inputValue2) {
       isolate(input$evaltype)
     })
 
-    output$runmatrix = function() {
-      spec_color_if = function(dfcol, alphaval = 0.2) {
-        if (is.numeric(dfcol)) {
-          colorvalues = cut(dfcol, 11, labels = FALSE)
-          cell_spec(dfcol, "html", background = spec_color(1:11, alpha = alphaval, option = input$colorchoice)[colorvalues], background_as_tile = FALSE)
-        } else {
-          dfcolfact = as.factor(dfcol)
-          cell_spec(dfcol, "html", background = spec_color(1:length(unique(dfcol)), alpha = alphaval, option = input$colorchoice)[as.numeric(dfcolfact)], background_as_tile = FALSE)
-        }
+    pal_option = function(n) {
+      if(input$colorchoice == "A") {
+        viridis::magma(n)
+      } else if(input$colorchoice == "B") {
+        viridis::inferno(n)
+      } else if(input$colorchoice == "C") {
+        viridis::plasma(n)
+      } else if(input$colorchoice == "D") {
+        viridis::viridis(n)
+      } else {
+        "white"
       }
-
-      process_and_display = function(runmat) {
-        if (input$colorchoice != "none") {
-          if (input$orderdesign) {
-            if (ncol(runmat) > 1) {
-              runmatrixprocessed = lapply(runmat, spec_color_if)
-              prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed)[do.call(order, runmat), ], "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
-            } else {
-              rownumbers = order(runmat[, 1])
-              runreturn = list(runmat[order(runmat[, 1]), ])
-              names(runreturn) = input$factorname1
-              runmatrixprocessed = data.frame(runreturn)
-              runmatrixprocessed = as.data.frame(lapply(runmatrixprocessed, spec_color_if))
-              rownames(runmatrixprocessed) = rownumbers
-              prelimhtml = kable_styling(knitr::kable(runmatrixprocessed, "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-              gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
-            }
-          } else {
-            runmatrixprocessed = lapply(runmat, spec_color_if)
-            prelimhtml = kable_styling(knitr::kable(as.data.frame(runmatrixprocessed), "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-            gsub("(text-align:right;)(.+)(background-color: rgba\\(.+\\) \\!important;)", replacement = "\\1 \\3 \\2", x = prelimhtml, perl = TRUE)
-          }
-        } else {
-          if (input$orderdesign) {
-            if (ncol(runmat) > 1) {
-              kable_styling(knitr::kable(as.data.frame(runmat)[do.call(order, runmat), ], "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-            } else {
-              rownumbers = order(runmat[, 1])
-              runreturn = list(runmat[order(runmat[, 1]), ])
-              names(runreturn) = input$factorname1
-              runmatrixprocessed = data.frame(runreturn)
-              rownames(runmatrixprocessed) = rownumbers
-              kable_styling(knitr::kable(runmatrixprocessed, "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-            }
-          } else {
-            kable_styling(knitr::kable(runmat, "html", row.names = TRUE, escape = FALSE, align = "r"), "striped", full_width = FALSE, position = "left")
-          }
-        }
-      }
-      process_and_display(runmatvalues$runmatrix)
     }
+
+    style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
+      if(order_vals) {
+        new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
+        rownames(new_runmat) = 1:nrow(new_runmat)
+
+        display_rm = gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
+                        rownames_to_stub = TRUE) %>%
+          tab_stubhead("Run") %>%
+          tab_options(data_row.padding = px(10))  %>%
+          tab_spanner(
+            label = "Factors",
+            columns = colnames(.)
+          ) %>% tab_header(
+            title = "Design",
+            subtitle = sprintf("%d-run %s-optimal design",
+                               trials,
+                               optimality)
+          )
+      } else {
+        display_rm = gt(runmat,rownames_to_stub = TRUE) %>%
+          tab_stubhead("Run") %>%
+          tab_options(data_row.padding = px(10)) %>%
+          tab_spanner(
+            label = "Factors",
+            columns = colnames(.)
+          ) %>% tab_header(
+            title = "Design",
+            subtitle = sprintf("%d-run %s-optimal design",
+                               trials,
+                               optimality)
+          )
+      }
+      cols_rm = colnames(runmat)
+      for(i in seq_len(length(cols_rm))) {
+        if(is.numeric(runmat[,i])) {
+          display_rm = display_rm %>%
+            data_color(
+              columns = cols_rm[i],
+              colors = pal_option(100),
+              alpha = alpha,
+              autocolor_text = FALSE)
+        } else {
+          display_rm = display_rm %>%
+            data_color(
+              columns = cols_rm[i],
+              colors = pal_option(length(unique(runmat[,i]))),
+              alpha = alpha,
+              autocolor_text = FALSE)
+        }
+      }
+      display_rm
+    }
+
+    output$runmatrix = gt::render_gt({
+      style_matrix(runmatvalues$runmatrix, order_vals = input$orderdesign,  trials = isolate(input$trials), optimality = isolate(input$optimality))
+    }, align = "left")
 
     powerresults = eventReactive({
       input$evalbutton

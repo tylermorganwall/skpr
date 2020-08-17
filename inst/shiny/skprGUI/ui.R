@@ -697,7 +697,10 @@ function(request) {
                                       checkboxInput(inputId = "parallel_eval_surv",
                                                     label = "Parallel Evaluation",
                                                     value = FALSE)
-                                    )
+                                    ),
+                                    checkboxInput(inputId = "colorblind",
+                                                  label = "Colorblind Palette",
+                                                  value = FALSE)
                            )
             )
               ),

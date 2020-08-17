@@ -846,41 +846,49 @@ function(input, output, session) {
     isolate(input$evaltype)
   })
 
-  format_table = function(powerval, display_table, alpha, nsim) {
+  format_table = function(powerval, display_table, alpha, nsim, colorblind) {
+    color_bad = "red"
+    color_maybe = "yellow"
+    if(colorblind) {
+      color_bad = "purple"
+      color_maybe = "orange"
+    }
     display_table = display_table %>%
       data_color(columns = "power",
                  colors = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
                                               domain =c(0,1)),
                  alpha = 0.3,
-                 autocolor_text = FALSE)
+                 autocolor_text = FALSE) %>%
+      tab_options(table.width = pct(100))
     if(any(powerval$power <= alpha + 1/sqrt(nsim) &
            powerval$power >= alpha - 1/sqrt(nsim))) {
       display_table = display_table %>%
         tab_style(
           style = list(
-            cell_fill(color = "yellow",alpha=0.3)
+            cell_fill(color = color_maybe,alpha=0.3)
           ),
           locations = cells_body(
             columns = "power",
             rows = power <= alpha + 1/sqrt(nsim))
         ) %>%
         tab_source_note(
-          source_note = "Note: Power values marked in yellow are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)"
+          source_note = sprintf("Note: Power values marked in %s are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)",
+                                color_maybe)
         )
     }
     if(any(powerval$power < alpha - 1/sqrt(nsim))) {
       display_table = display_table %>%
         tab_style(
           style = list(
-            cell_fill(color = "red",alpha=0.3)
+            cell_fill(color = color_bad,alpha=0.3)
           ),
           locations = cells_body(
             columns = "power",
             rows = (power < alpha - 1/sqrt(nsim)))
         ) %>%
         tab_source_note(
-          source_note = sprintf("Note: Power values marked in red fall below the user-specified Type-I error (%0.2f)",
-                                alpha)
+          source_note = sprintf("Note: Power values marked in %s fall below the user-specified Type-I error (%0.2f)",
+                                color_bad, alpha)
         )
     }
     return(display_table)
@@ -897,7 +905,7 @@ function(input, output, session) {
                              conservative = isolate(input$conservative),
                              detailedoutput = isolate(input$detailedoutput))
       display_table = gt(powerval)
-      format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim))
+      format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
     }
   })
   powerresultsglm = reactive({
@@ -920,7 +928,7 @@ function(input, output, session) {
                                                    advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
       })
       display_table = gt(powerval)
-      format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim))
+      format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
     }
   })
   powerresultssurv = reactive({
@@ -944,7 +952,7 @@ function(input, output, session) {
                                                             detailedoutput = isolate(input$detailedoutput),
                                                             advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
         display_table = gt(powerval)
-        format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim))
+        format_table(powerval,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
       })
     }
   })
@@ -978,6 +986,7 @@ function(input, output, session) {
   }
 
   style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
+    . = NULL
     if(order_vals) {
       new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
       rownames(new_runmat) = 1:nrow(new_runmat)

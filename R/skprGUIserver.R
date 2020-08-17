@@ -705,7 +705,10 @@ skprGUIserver = function(inputValue1, inputValue2) {
                                              checkboxInput(inputId = "parallel_eval_surv",
                                                            label = "Parallel (disabled on server)",
                                                            value = FALSE)
-                                           )
+                                           ),
+                                           checkboxInput(inputId = "colorblind",
+                                                         label = "Colorblind Palette",
+                                                         value = FALSE)
                                   )
                                 )
                    ),
@@ -719,22 +722,21 @@ skprGUIserver = function(inputValue1, inputValue2) {
                    ),
                    tabsetPanel(
                      tabPanel("Design",
-                              h2("Design"),
                               checkboxInput(inputId = "orderdesign", label = "Order Design", value = FALSE),
                               introBox(tableOutput(outputId = "runmatrix"), data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
                               hr()
                      ),
                      tabPanel("Design Evaluation",
                               introBox(fluidRow(
-                                column(width = 6,
+                                column(width = 12,
                                        h2("Power Results"),
                                        conditionalPanel(
                                          condition = "input.evaltype == \'lm\'",
-                                         tableOutput(outputId = "powerresults")
+                                         gt_output(outputId = "powerresults")
                                        ),
                                        introBox(conditionalPanel(
                                          condition = "input.evaltype != \'lm\'",
-                                         tableOutput(outputId = "powerresultsglm")
+                                         gt_output(outputId = "powerresultsglm")
                                        ), data.step = 27, data.intro = "The power of the design. Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation.")
                                 )
                               ), data.step = 26, data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"),
@@ -950,11 +952,12 @@ skprGUIserver = function(inputValue1, inputValue2) {
           }, error = function(e) "", warning = function(w) "")
         }
       }
-      if (file.exists(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds"))) && resolved(isolate(powerresultsglm_future()))) {
-        tempvalpower = tryCatch({
-          readRDS(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds")))
+      if (file.exists(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds"))) && isolate(input$evaltype) != "lm" && powerresolved && !file.exists(tempfilename)) {
+        tryCatch({
+          tempvalpower = readRDS(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds")))
+          powerresolved = FALSE
         }, error = function(e) "", warning = function(w) "")
-        if (class(tempvalpower) == "data.frame") {
+        if (inherits(tempvalpower,"data.frame")) {
           runmatvalues$power = tempvalpower
           tryCatch({
             file.remove(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds")))
@@ -1836,6 +1839,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
     }
 
     style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
+      . = NULL
       if(order_vals) {
         new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
         rownames(new_runmat) = 1:nrow(new_runmat)
@@ -1886,6 +1890,55 @@ skprGUIserver = function(inputValue1, inputValue2) {
         }
       }
       display_rm
+    }
+
+
+    format_table = function(powerval, display_table, alpha, nsim, colorblind) {
+      color_bad = "red"
+      color_maybe = "yellow"
+      if(colorblind) {
+        color_bad = "purple"
+        color_maybe = "orange"
+      }
+      display_table = display_table %>%
+        data_color(columns = "power",
+                   colors = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
+                                                domain =c(0,1)),
+                   alpha = 0.3,
+                   autocolor_text = FALSE) %>%
+        tab_options(table.width = pct(100))
+      if(any(powerval$power <= alpha + 1/sqrt(nsim) &
+             powerval$power >= alpha - 1/sqrt(nsim))) {
+        display_table = display_table %>%
+          tab_style(
+            style = list(
+              cell_fill(color = color_maybe,alpha=0.3)
+            ),
+            locations = cells_body(
+              columns = "power",
+              rows = power <= alpha + 1/sqrt(nsim))
+          ) %>%
+          tab_source_note(
+            source_note = sprintf("Note: Power values marked in %s are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)",
+                                  color_maybe)
+          )
+      }
+      if(any(powerval$power < alpha - 1/sqrt(nsim))) {
+        display_table = display_table %>%
+          tab_style(
+            style = list(
+              cell_fill(color = color_bad,alpha=0.3)
+            ),
+            locations = cells_body(
+              columns = "power",
+              rows = (power < alpha - 1/sqrt(nsim)))
+          ) %>%
+          tab_source_note(
+            source_note = sprintf("Note: Power values marked in %s fall below the user-specified Type-I error (%0.2f)",
+                                  color_bad, alpha)
+          )
+      }
+      return(display_table)
     }
 
     output$runmatrix = gt::render_gt({
@@ -1990,13 +2043,15 @@ skprGUIserver = function(inputValue1, inputValue2) {
     })
 
 
-    output$powerresults = renderTable({
-      powerresults()
-    }, digits = 4, hover = TRUE, align = "c")
+    output$powerresults = gt::render_gt({
+      display_table = gt(powerresults())
+      format_table(powerresults(),display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+    }, align = "left")
 
-    output$powerresultsglm = renderTable({
-      runmatvalues$power
-    }, digits = 4, hover = TRUE, align = "c")
+    output$powerresultsglm = gt::render_gt({
+      display_table = gt(runmatvalues$power)
+      format_table(runmatvalues$power,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+    }, align = "left")
 
     output$aliasplot = renderPlot({
       tryCatch({

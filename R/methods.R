@@ -4,7 +4,7 @@
 #'
 #'@param x The x of the evaluation functions in skpr
 #'@param ... Additional arguments.
-#'@import graphics grDevices crayon
+#'@import graphics grDevices
 #'@export
 #'@examples
 #'#Generate/evaluate a design and print it's information
@@ -19,8 +19,8 @@
 print.skpr_eval_output = function(x, ...) {
   class(x) = "data.frame"
   print(x)
-  alphatext = paste(c(bold("\u2022 Alpha = "), as.character(attr(x,"alpha")), " "), collapse = "")
-  trialtext = paste(c(bold("\u2022 Trials = "), nrow(attr(x,"runmatrix")), " "), collapse = "")
+  alphatext = paste(c("\u001b[1m\u2022 Alpha = \u001b[0m", as.character(attr(x,"alpha")), " "), collapse = "")
+  trialtext = paste(c("\u001b[1m\u2022 Trials = \u001b[0m", nrow(attr(x,"runmatrix")), " "), collapse = "")
   blocking = FALSE
   if(!is.null(attr(x,"blocking"))) {
     blocking = attr(x,"blocking")
@@ -32,7 +32,7 @@ print.skpr_eval_output = function(x, ...) {
   row_width_char = max(nchar(rownames(x)))
   x2[is.na(x2)] = "NA"
   total_width = sum(apply(x2,2,(function(x) max(nchar(x))))) + row_width_char + length(colnames(x))
-  blocktext = paste(c(bold("\u2022 Blocked = "), as.character(blocking)), collapse = "")
+  blocktext = paste(c("\u001b[1m\u2022 Blocked = \u001b[0m", as.character(blocking)), collapse = "")
   totalline = paste0(alphatext,trialtext,blocktext)
   designinfo = "Evaluation Info"
   linewidth = total_width
@@ -55,12 +55,12 @@ print.skpr_eval_output = function(x, ...) {
   }
   cat(paste0(totalline, collapse=""))
   cat("\n")
-  cat(paste(c(bold("\u2022 Evaluating Model = "), as.character(attr(x,"generating.model")),"\n"), collapse = ""))
-  cat(paste(c(bold("\u2022 Anticipated Coefficients = "), "c(",
+  cat(paste(c("\u001b[1m \u2022 Evaluating Model = \u001b[0m", as.character(attr(x,"generating.model")),"\n"), collapse = ""))
+  cat(paste(c("\u001b[1m \u2022 Anticipated Coefficients = \u001b[0m", "c(",
               paste0(unlist(lapply("%1.3f",sprintf, attr(x,"anticoef"))),collapse=", "),")\n"), collapse = ""))
   if (!is.null(attr(x,"z.matrix.list")) && blocking) {
     number_blocks = unlist(lapply(attr(x,"z.matrix.list"),ncol))
-    cat(paste(c(bold("\u2022 Number of Blocks = "),
+    cat(paste(c("\u001b[1m \u2022 Number of Blocks = \u001b[0m",
                 paste(paste("Level ", 1:length(number_blocks), ": ", number_blocks, sep = ""),
                       collapse=", "),"\n"),
                 collapse = ""))
@@ -68,7 +68,7 @@ print.skpr_eval_output = function(x, ...) {
   if (!is.null(attr(x,"varianceratios")) && blocking) {
     vr = attr(x,"varianceratios")
     # vr = vr[-length(vr)]
-    cat(paste(c(bold("\u2022 Variance Ratios  = "),
+    cat(paste(c("\u001b[1m \u2022 Variance Ratios  = \u001b[0m",
                 paste(paste("Level ", 1:length(vr), ": ",as.character(vr), sep="", collapse=", ")),"\n"),
               collapse = ""))
   }

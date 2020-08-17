@@ -5,7 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
-#'@import future promises shiny rintrojs shinythemes knitr kableExtra gt
+#'@import future promises shiny rintrojs shinythemes gt
 #'@export
 #'@examples
 #'#Type `skprGUIserver()` to begin

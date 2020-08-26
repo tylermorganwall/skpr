@@ -1,5 +1,6 @@
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
+#include <queue>
 
 using namespace Rcpp;
 
@@ -24,7 +25,7 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
                                const std::string condition, const Eigen::MatrixXd& momentsmatrix, Eigen::VectorXi& initialRows,
                                const Eigen::MatrixXd& blockedVar,
                                Eigen::MatrixXd aliasdesign, Eigen::MatrixXd aliascandidatelist, double minDopt, List interactions,
-                               const Eigen::MatrixXd disallowed, const bool anydisallowed, double tolerance) {
+                               const Eigen::MatrixXd disallowed, const bool anydisallowed, double tolerance, int kexchange) {
   //Load the R RNG
   RNGScope rngScope;
   //check and log whether there are inter-strata interactions
@@ -154,8 +155,29 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
       if(std::isinf(del)) {
         del = calculateBlockedDOptimalityLog(combinedDesign, vInv);
       }
-      for (int i = 0; i < nTrials; i++) {
+      std::priority_queue<std::pair<double, int>> q;
+      float min_val = -INFINITY;
+      int k = kexchange;
+      if(kexchange != nTrials) {
+        for (int i = 0; i < nTrials; i++) {
+          float temp_val = -initialdesign.row(i) * vInv * initialdesign.row(i).transpose();
+          if(temp_val == min_val) {
+            k++;
+          } else if(temp_val > min_val) {
+            min_val = temp_val;
+            k = kexchange;
+          }
+          q.push(std::pair<double, int>(temp_val, i));
+        }
+      } else {
+        for (int i = 0; i < nTrials; i++) {
+          q.push(std::pair<double, int>(-i, i));
+        }
+      }
+      for (int j = 0; j < k; j++) {
         Rcpp::checkUserInterrupt();
+        int i = q.top().second;
+        q.pop();
         found = false;
         entryx = 0;
         entryy = 0;

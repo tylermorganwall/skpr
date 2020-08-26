@@ -1,11 +1,12 @@
 #include <RcppEigen.h>
 // [[Rcpp::depends(RcppEigen)]]
-
+#include <queue>
 
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
 
 using namespace Rcpp;
+
 
 //`@title genOptimalDesign
 //`@param initialdesign The initial randomly generated design.
@@ -25,7 +26,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
                       const Eigen::MatrixXd& momentsmatrix, Eigen::VectorXd initialRows,
                       Eigen::MatrixXd aliasdesign,
                       const Eigen::MatrixXd& aliascandidatelist,
-                      double minDopt, double tolerance, int augmentedrows) {
+                      double minDopt, double tolerance, int augmentedrows, int kexchange) {
   RNGScope rngScope;
   int nTrials = initialdesign.rows();
   double numberrows = initialdesign.rows();
@@ -116,20 +117,41 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
   Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
   Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
-
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
     newOptimum = calculateDOptimality(initialdesign);
     if(std::isinf(newOptimum)) {
       newOptimum = exp(calculateDOptimalityLog(initialdesign));
     }
-
     priorOptimum = newOptimum/2;
+
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
-        Rcpp::checkUserInterrupt();
+      //Calculate k-exchange coordinates
+      std::priority_queue<std::pair<double, int>> q;
+      float min_val = -INFINITY;
+      int k = kexchange - augmentedrows;
+      if(kexchange != nTrials) {
+        for (int i = augmentedrows; i < nTrials; i++) {
+          float temp_val = -initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
+          if(temp_val == min_val) {
+            k++;
+          } else if(temp_val > min_val) {
+            min_val = temp_val;
+            k = kexchange - augmentedrows;
+          }
+          q.push(std::pair<double, int>(temp_val, i));
+        }
+      } else {
+        for (int i = augmentedrows; i < nTrials; i++) {
+          q.push(std::pair<double, int>(-i, i));
+        }
+      }
 
+      for (int j = 0; j < k; j++) {
+        Rcpp::checkUserInterrupt();
+        int i = q.top().second;
+        q.pop();
         found = false;
         entryy = 0;
         del=0;

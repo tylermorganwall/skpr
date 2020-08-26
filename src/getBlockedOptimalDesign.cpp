@@ -2,6 +2,7 @@
 #include "nullify_alg.h"
 
 #include <RcppEigen.h>
+#include <queue>
 
 using namespace Rcpp;
 
@@ -23,7 +24,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
                              const Eigen::MatrixXd& momentsmatrix,  Eigen::VectorXi& initialRows,
                              Eigen::MatrixXd aliasdesign,
                              const Eigen::MatrixXd& aliascandidatelist,
-                             double minDopt, double tolerance, int augmentedrows) {
+                             double minDopt, double tolerance, int augmentedrows, int kexchange) {
   RNGScope rngScope;
   int nTrials = initialdesign.rows();
   double numbercols = initialdesign.cols();
@@ -129,8 +130,30 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
       if(std::isinf(del)) {
         del = calculateBlockedDOptimalityLog(initialdesign, vInv);
       }
-      for (int i = 0; i < nTrials; i++) {
+      std::priority_queue<std::pair<double, int>> q;
+      float min_val = -INFINITY;
+      int k = kexchange - augmentedrows;
+      if(kexchange != nTrials) {
+        for (int i = augmentedrows; i < nTrials; i++) {
+          float temp_val = -initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
+          if(temp_val == min_val) {
+            k++;
+          } else if(temp_val > min_val) {
+            min_val = temp_val;
+            k = kexchange - augmentedrows;
+          }
+          q.push(std::pair<double, int>(temp_val, i));
+        }
+      } else {
+        for (int i = augmentedrows; i < nTrials; i++) {
+          q.push(std::pair<double, int>(-i, i));
+        }
+      }
+
+      for (int j = 0; j < k; j++) {
         Rcpp::checkUserInterrupt();
+        int i = q.top().second;
+        q.pop();
         found = false;
         entryx = 0;
         entryy = 0;

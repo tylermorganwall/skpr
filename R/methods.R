@@ -1,13 +1,16 @@
 #'@title Print evaluation information
 #'
-#'@description Prints design evaluation information below the dataframe of power values
+#'@description Prints design evaluation information below the data.frame of power values
+#'
+#'Note: If options("skpr.ANSI") is `NULL` or `TRUE`, ANSI codes will be used during printing
+#'to prettify the output. If this is `FALSE`, only ASCII will be used.
 #'
 #'@param x The x of the evaluation functions in skpr
 #'@param ... Additional arguments.
 #'@import graphics grDevices
 #'@export
 #'@examples
-#'#Generate/evaluate a design and print it's information
+#'#Generate/evaluate a design and print its information
 #'factorialcoffee = expand.grid(cost = c(1, 2),
 #'                               type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
 #'                               size = as.factor(c("Short", "Grande", "Venti")))
@@ -19,8 +22,15 @@
 print.skpr_eval_output = function(x, ...) {
   class(x) = "data.frame"
   print(x)
-  alphatext = paste(c("\u001b[1m\u2022 Alpha = \u001b[0m", as.character(attr(x,"alpha")), " "), collapse = "")
-  trialtext = paste(c("\u001b[1m\u2022 Trials = \u001b[0m", nrow(attr(x,"runmatrix")), " "), collapse = "")
+  if(is.null(getOption("skpr.ANSI")) || getOption("skpr.ANSI")) {
+    boldstart = "\u001b[1m"
+    formatend = "\u001b[0m"
+  } else {
+    boldstart = ""
+    formatend = ""
+  }
+  alphatext = paste(c(boldstart, "\u2022 Alpha = ",formatend, as.character(attr(x,"alpha")), " "), collapse = "")
+  trialtext = paste(c(boldstart, "\u2022 Trials = ",formatend, nrow(attr(x,"runmatrix")), " "), collapse = "")
   blocking = FALSE
   if(!is.null(attr(x,"blocking"))) {
     blocking = attr(x,"blocking")
@@ -32,7 +42,7 @@ print.skpr_eval_output = function(x, ...) {
   row_width_char = max(nchar(rownames(x)))
   x2[is.na(x2)] = "NA"
   total_width = sum(apply(x2,2,(function(x) max(nchar(x))))) + row_width_char + length(colnames(x))
-  blocktext = paste(c("\u001b[1m\u2022 Blocked = \u001b[0m", as.character(blocking)), collapse = "")
+  blocktext = paste(c(boldstart, "\u2022 Blocked = ",formatend, as.character(blocking)), collapse = "")
   totalline = paste0(alphatext,trialtext,blocktext)
   designinfo = "Evaluation Info"
   linewidth = total_width
@@ -55,12 +65,17 @@ print.skpr_eval_output = function(x, ...) {
   }
   cat(paste0(totalline, collapse=""))
   cat("\n")
-  cat(paste(c("\u001b[1m \u2022 Evaluating Model = \u001b[0m", as.character(attr(x,"generating.model")),"\n"), collapse = ""))
-  cat(paste(c("\u001b[1m \u2022 Anticipated Coefficients = \u001b[0m", "c(",
-              paste0(unlist(lapply("%1.3f",sprintf, attr(x,"anticoef"))),collapse=", "),")\n"), collapse = ""))
+  cat(paste(c(boldstart, "\u2022 Evaluating Model = ",formatend, as.character(attr(x,"generating.model")),"\n"), collapse = ""))
+  if(all(abs(attr(x,"anticoef")) %in% c(0,1))) {
+    cat(paste(c(boldstart, "\u2022 Anticipated Coefficients = ",formatend, "c(",
+                paste0(unlist(lapply("%1.0f",sprintf, attr(x,"anticoef"))),collapse=", "),")\n"), collapse = ""))
+  } else {
+    cat(paste(c(boldstart, "\u2022 Anticipated Coefficients = ",formatend, "c(",
+                paste0(unlist(lapply("%1.3f",sprintf, attr(x,"anticoef"))),collapse=", "),")\n"), collapse = ""))
+  }
   if (!is.null(attr(x,"z.matrix.list")) && blocking) {
     number_blocks = unlist(lapply(attr(x,"z.matrix.list"),ncol))
-    cat(paste(c("\u001b[1m \u2022 Number of Blocks = \u001b[0m",
+    cat(paste(c(boldstart, "\u2022 Number of Blocks = ",formatend,
                 paste(paste("Level ", 1:length(number_blocks), ": ", number_blocks, sep = ""),
                       collapse=", "),"\n"),
                 collapse = ""))
@@ -68,7 +83,7 @@ print.skpr_eval_output = function(x, ...) {
   if (!is.null(attr(x,"varianceratios")) && blocking) {
     vr = attr(x,"varianceratios")
     # vr = vr[-length(vr)]
-    cat(paste(c("\u001b[1m \u2022 Variance Ratios  = \u001b[0m",
+    cat(paste(c(boldstart, "\u2022 Variance Ratios  = ",formatend,
                 paste(paste("Level ", 1:length(vr), ": ",as.character(vr), sep="", collapse=", ")),"\n"),
               collapse = ""))
   }

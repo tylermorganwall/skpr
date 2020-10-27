@@ -154,6 +154,10 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
   ModelMatrix = model.matrix(model, RunMatrixReduced, contrasts.arg = contrastslist)
   #We'll need the parameter and effect names for output
+
+  #saving model for return attribute
+  generatingmodel = model
+
   if (is.null(parameternames)) {
     parameter_names = colnames(ModelMatrix)
   } else {
@@ -235,6 +239,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   retval = data.frame(parameter = parameter_names,
                       type = "custom.power.mc",
                       power = power_values)
+  attr(retval, "generating.model") = generatingmodel
   attr(retval, "estimatesnames") = parameter_names
   attr(retval, "estimates") = estimates
   attr(retval, "alpha") = alpha

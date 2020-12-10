@@ -1237,11 +1237,11 @@ gen_design = function(candidateset, model, trials,
   }
   deffic = DOptimality(designmm)
   if(!is.infinite(deffic)) {
-    attr(design, "D-Efficiency") =  100 * DOptimality(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
+    attr(design, "D") =  100 * DOptimality(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
   } else {
-    attr(design, "D-Efficiency") =  100 * DOptimalityLog(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
+    attr(design, "D") =  100 * DOptimalityLog(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
   }
-  attr(design, "A-Efficiency") = tryCatch({AOptimality(designmm)}, error = function(e) {})
+  attr(design, "A") = tryCatch({AOptimality(designmm)}, error = function(e) {})
   attr(design, "model.matrix") = designmm
   attr(design, "generating.model") = model
   attr(design, "generating.criterion") = optimality

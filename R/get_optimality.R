@@ -29,19 +29,19 @@
 #'power_output = eval_design(designcoffee, model = ~cost + size + type,
 #'                           alpha = 0.05, detailedoutput = TRUE)
 #'
-#'get_optimality(power_output,"I")
+#'get_optimality(power_output)
 get_optimality = function(output, optimality = NULL) {
-  if(is.null(attr(output, "D-Efficiency"))) attr(output, "D-Efficiency") = NA
-  if(is.null(attr(output, "A-Efficiency"))) attr(output, "A-Efficiency") = NA
+  if(is.null(attr(output, "D"))) attr(output, "D") = NA
+  if(is.null(attr(output, "A"))) attr(output, "A") = NA
   if(is.null(attr(output, "G"))) attr(output, "G") = NA
   if(is.null(attr(output, "T"))) attr(output, "T") = NA
   if(is.null(attr(output, "E"))) attr(output, "E") = NA
   if(is.null(attr(output, "variance.matrix"))) attr(output, "variance.matrix") = NA
   if(is.null(attr(output, "I"))) attr(output, "I") = NA
   if(is.null(attr(output, "trA"))) attr(output, "trA") = NA
-  optimality_df = data.frame(D=attr(output, "D-Efficiency"),
+  optimality_df = data.frame(D=attr(output, "D"),
                              I=attr(output, "I"),
-                             A=attr(output, "A-Efficiency"),
+                             A=attr(output, "A"),
                              G=attr(output, "G"),
                              T=attr(output, "T"),
                              E=attr(output, "E"),

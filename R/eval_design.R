@@ -381,11 +381,9 @@ eval_design = function(design, model = NULL, alpha = 0.05,
         amodel = aliasmodel(model, aliaspower)
         if (amodel != model) {
           aliasmatrix = suppressWarnings({
-            model.matrix(aliasmodel(model, aliaspower), design, contrasts.arg = contrastslist)[, -1]
+            model.matrix(aliasmodel(model, aliaspower), design, contrasts.arg = contrastslist_cormat)[, -1]
           })
-          A = solve(t(attr(run_matrix_processed, "modelmatrix")) %*%
-                      attr(run_matrix_processed, "modelmatrix")) %*%
-                    t(attr(run_matrix_processed, "modelmatrix")) %*% aliasmatrix
+          A = solve(t(modelmatrix_cor) %*% modelmatrix_cor) %*% t(modelmatrix_cor) %*% aliasmatrix
           attr(results, "alias.matrix") = A
           attr(results, "trA") = sum(diag(t(A) %*% A))
         } else {
@@ -407,7 +405,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
 
   attr(results, "moment.matrix") = mm
-  attr(results, "A") = AOptimality(attr(run_matrix_processed, "modelmatrix"))
+  attr(results, "A") = AOptimality(modelmatrix_cor)
 
   if (!blocking) {
     attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor)) * varianceratios

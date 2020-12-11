@@ -414,7 +414,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     if(!is.infinite(deffic)) {
       attr(results, "D") =  100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     } else {
-      attr(results, "D") =  100 * DOptimalityLog(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
+      attr(results, "D") =  100 * exp(DOptimalityLog(modelmatrix_cor) / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
     }
   } else {
     attr(results, "z.matrix.list") = zlist

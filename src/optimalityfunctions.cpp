@@ -54,7 +54,7 @@ double calculateDEff(const Eigen::MatrixXd& currentDesign, double numbercols, do
 }
 
 double calculateDEffLog(const Eigen::MatrixXd& currentDesign, double numbercols, double numberrows) {
-  return(pow(exp(calculateDOptimalityLog(currentDesign)), 1/numbercols) / numberrows);
+  return(exp(calculateDOptimalityLog(currentDesign)/numbercols) / numberrows);
 }
 
 double calculateDEffNN(const Eigen::MatrixXd& currentDesign, double numbercols) {

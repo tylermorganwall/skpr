@@ -119,10 +119,7 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
   //Generate a D-optimal design
   if(condition == "D" || condition == "G") {
-    newOptimum = calculateDOptimality(initialdesign);
-    if(std::isinf(newOptimum)) {
-      newOptimum = exp(calculateDOptimalityLog(initialdesign));
-    }
+    newOptimum = 1.0;
     priorOptimum = newOptimum/2;
 
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {

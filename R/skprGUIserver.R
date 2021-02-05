@@ -969,8 +969,8 @@ skprGUIserver = function(inputValue1, inputValue2) {
     runmatvalues = reactiveValues()
 
     #initialize
-    runmatvalues$runmatrix = gen_design(data.frame(X1 = c(1, -1)), ~X1, 12)
-    runmatvalues$power = eval_design(gen_design(data.frame(X1 = c(1, -1)), ~X1, 12), ~., 0.05)
+    # runmatvalues$runmatrix = gen_design(data.frame(X1 = c(1, -1)), ~X1, 12)
+    # runmatvalues$power = eval_design(gen_design(data.frame(X1 = c(1, -1)), ~X1, 12), ~., 0.05)
 
     inputlist_htc = reactive({
       input$submitbutton
@@ -1942,6 +1942,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
     }
 
     output$runmatrix = gt::render_gt({
+      req(runmatvalues$runmatrix)
       style_matrix(runmatvalues$runmatrix, order_vals = input$orderdesign,  trials = isolate(input$trials), optimality = isolate(input$optimality))
     }, align = "left")
 
@@ -2049,6 +2050,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
     }, align = "left")
 
     output$powerresultsglm = gt::render_gt({
+      req(runmatvalues$power)
       display_table = gt(runmatvalues$power)
       format_table(runmatvalues$power,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
     }, align = "left")
@@ -2061,6 +2063,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
     })
 
     output$fdsplot = renderPlot({
+      req(runmatvalues$runmatrix)
       format_fdsplot = function(runmat) {
         plot_fds(runmat, model = as.formula(isolate(input$model)))
       }
@@ -2072,24 +2075,31 @@ skprGUIserver = function(inputValue1, inputValue2) {
     })
 
     output$dopt = renderText({
+      req(runmatvalues$runmatrix)
       attr(runmatvalues$runmatrix, "D")
     })
     output$aopt = renderText({
+      req(runmatvalues$runmatrix)
       attr(runmatvalues$runmatrix, "A")
     })
     output$iopt = renderText({
+      req(runmatvalues$runmatrix)
       attr(runmatvalues$runmatrix, "I")
     })
     output$eopt = renderText({
+      req(runmatvalues$runmatrix)
       attr(runmatvalues$runmatrix, "E")
     })
     output$gopt = renderText({
+      req(runmatvalues$runmatrix)
       attr(runmatvalues$runmatrix, "G")
     })
     output$topt = renderText({
+      req(runmatvalues$runmatrix)
       attr(runmatvalues$runmatrix, "T")
     })
     output$optimalsearch = renderPlot({
+      req(runmatvalues$runmatrix)
       format_search = function(runmat) {
         if (isolate(optimality()) %in% c("D", "G", "A")) {
           if(attr(runmat, "blocking") || attr(runmat, "splitplot")) {
@@ -2115,6 +2125,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       format_search(runmatvalues$runmatrix)
     })
     output$simulatedpvalues = renderPlot({
+      req(runmatvalues$power)
       input$evalbutton
       pvalrows = isolate(floor(ncol(attr(runmatvalues$power, "pvals")) / 3) + 1)
       if (!is.null(attr(runmatvalues$power, "pvals"))) {
@@ -2125,6 +2136,8 @@ skprGUIserver = function(inputValue1, inputValue2) {
       }
     })
     output$parameterestimates = renderPlot({
+      req(runmatvalues$power)
+
       if(isolate(evaluationtype()) == "glm") {
         if (!is.null(attr(runmatvalues$power, "estimates"))) {
           ests = apply(attr(runmatvalues$power, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
@@ -2186,6 +2199,8 @@ skprGUIserver = function(inputValue1, inputValue2) {
     })
 
     output$responsehistogram = renderPlot({
+      req(runmatvalues$power)
+
       updatevector = c(runmatvalues$power)
       if(isolate(evaluationtype()) == "glm") {
         if (!is.null(attr(runmatvalues$power, "estimates"))) {
@@ -2276,6 +2291,8 @@ skprGUIserver = function(inputValue1, inputValue2) {
     })
 
     output$separationwarning = renderText({
+      req(runmatvalues$power)
+
       input$evalbutton
       likelyseparation = FALSE
       if (isolate(input$evaltype) == "glm" && isolate(input$glmfamily) == "binomial") {

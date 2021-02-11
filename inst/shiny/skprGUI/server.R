@@ -1255,6 +1255,15 @@ function(input, output, session) {
     if (!is.null(attr(powerresultssurv(), "estimates"))) {
       responses = as.vector(attr(powerresultssurv(), "estimates") %*% t(attr(powerresultssurv(), "modelmatrix")))
       trueresponses = as.vector(attr(powerresultssurv(), "anticoef") %*% t(attr(powerresultssurv(), "modelmatrix")))
+      filtered_string = ""
+      if(isolate(input$distribution) == "exponential") {
+        #Filter out extreme values
+        mad_trueresp = 10*max(exp(trueresponses))
+        num_filtered = sum(exp(responses) > mad_trueresp)
+        responses = responses[exp(responses) < mad_trueresp]
+        trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
+        filtered_string = sprintf(" (%g extreme outliers removed)",num_filtered)
+      }
       widths = hist(trueresponses, plot = FALSE)$counts
       widths = widths[widths != 0]
       widths = sqrt(widths)
@@ -1264,7 +1273,7 @@ function(input, output, session) {
         responses = exp(responses)
         trueresponses = exp(trueresponses)
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-        hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
+        hist(responses, breaks = breakvalues, xlab = "Response", main = sprintf("Distribution of Simulated Response Estimates%s", filtered_string), xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
         legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
         grid(nx = NA, ny = NULL)

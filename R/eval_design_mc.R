@@ -588,12 +588,18 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
           }
 
         } else {
-          fit = glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+          fit = tryCatch({
+            glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+          }, error = function() {
+              NULL
+          })
           if (calceffect) {
             effect_pvals = effectpowermc(fit, type = anovatype, test = pvalstring, test.statistic = anovatest)
           }
         }
-        estimates[j, ] = coef(fit)
+        if(!is.null(fit)) {
+          estimates[j, ] = coef(fit)
+        }
       }
       if(!fiterror) {
         #determine whether beta[i] is significant. If so, increment nsignificant

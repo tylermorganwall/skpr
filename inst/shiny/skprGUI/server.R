@@ -942,7 +942,7 @@ function(input, output, session) {
         powerval = suppressWarnings(eval_design_survival_mc(design = isolate(runmatrix()),
                                                             model = isolate(as.formula(input$model)),
                                                             alpha = isolate(input$alpha),
-                                                            nsim = isolate(input$nsim),
+                                                            nsim = isolate(input$nsim_surv),
                                                             censorpoint = isolate(input$censorpoint),
                                                             censortype = isolate(input$censortype),
                                                             distribution = isolate(input$distribution),
@@ -1040,7 +1040,7 @@ function(input, output, session) {
   output$powerresultssurv = gt::render_gt({
     req(powerresultssurv())
 
-    format_table(powerresultssurv(),gt(powerresultssurv()), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+    format_table(powerresultssurv(),gt(powerresultssurv()), isolate(input$alpha),isolate(input$nsim_surv),isolate(input$colorblind))
   }, align = "left")
 
   output$aliasplot = renderPlot({
@@ -1268,7 +1268,7 @@ function(input, output, session) {
       widths = widths[widths != 0]
       widths = sqrt(widths)
       uniquevalues = length(table(responses))
-      breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
+      breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
       if (isolate(input$distribution) == "exponential") {
         responses = exp(responses)
         trueresponses = exp(trueresponses)

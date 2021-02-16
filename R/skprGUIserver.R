@@ -913,10 +913,18 @@ skprGUIserver = function(inputValue1, inputValue2) {
           assign("prog_first", FALSE, envir = prog_env)
           prog_env$progress$set(message = "Calculating...", value = 0)
         }
-        if (isolate(input$nsim) > 50) {
-          sims = 50
+        if(evaluationtype() != "surv") {
+          if (isolate(input$nsim) > 50) {
+            sims = 50
+          } else {
+            sims = isolate(input$nsim)
+          }
         } else {
-          sims = isolate(input$nsim)
+          if (isolate(input$nsim_surv) > 50) {
+            sims = 50
+          } else {
+            sims = isolate(input$nsim_surv)
+          }
         }
 
         assign("percentdone", (file.info(tempfilename)$size - 1) / sims, envir = prog_env)
@@ -2019,7 +2027,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
         runmat_async = runmatvalues$runmatrix
         model_async = as.formula(input$model)
         alpha_async = input$alpha
-        nsim_async = input$nsim
+        nsim_async = input$nsim_surv
         censorpoint_async = input$censorpoint
         censortype_async = input$censortype
         distribution_async = input$distribution
@@ -2052,7 +2060,11 @@ skprGUIserver = function(inputValue1, inputValue2) {
     output$powerresultsglm = gt::render_gt({
       req(runmatvalues$power)
       display_table = gt(runmatvalues$power)
-      format_table(runmatvalues$power,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+      if(evaluationtype() != "surv") {
+        return(format_table(runmatvalues$power,display_table, isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind)))
+      } else {
+        return(format_table(runmatvalues$power,display_table, isolate(input$alpha),isolate(input$nsim_surv),isolate(input$colorblind)))
+      }
     }, align = "left")
 
     output$aliasplot = renderPlot({
@@ -2215,7 +2227,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
             responses = exp(responses) / (1 + exp(responses))
             trueresponses = exp(trueresponses) / (1 + exp(trueresponses))
             par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response (Probability)", main = "Distribution of Simulated Response Estimates", xlim = c(0, 1))
+            hist(responses, breaks = breakvalues, xlab = "Response (Probability)", main = "Distribution of Simulated Response Estimatese", xlim = c(0, 1))
             legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
             par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
             grid(nx = NA, ny = NULL)

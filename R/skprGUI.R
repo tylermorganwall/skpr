@@ -1812,7 +1812,7 @@ skprGUI = function(inputValue1, inputValue2) {
           powerval = suppressWarnings(eval_design_survival_mc(design = isolate(runmatrix()),
                                   model = isolate(as.formula(input$model)),
                                   alpha = isolate(input$alpha),
-                                  nsim = isolate(input$nsim),
+                                  nsim = isolate(input$nsim_surv),
                                   censorpoint = isolate(input$censorpoint),
                                   censortype = isolate(input$censortype),
                                   distribution = isolate(input$distribution),
@@ -1910,7 +1910,7 @@ skprGUI = function(inputValue1, inputValue2) {
     output$powerresultssurv = gt::render_gt({
       req(powerresultssurv())
 
-      format_table(powerresultssurv(),gt(powerresultssurv()), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+      format_table(powerresultssurv(),gt(powerresultssurv()), isolate(input$alpha),isolate(input$nsim_surv),isolate(input$colorblind))
     }, align = "left")
 
     output$aliasplot = renderPlot({
@@ -2130,7 +2130,7 @@ skprGUI = function(inputValue1, inputValue2) {
         filtered_string = ""
         if(isolate(input$distribution) == "exponential") {
           #Filter out extreme values
-          mad_trueresp = 10*max(exp(trueresponses))
+          mad_trueresp = 20*max(exp(trueresponses))
           num_filtered = sum(exp(responses) > mad_trueresp)
           responses = responses[exp(responses) < mad_trueresp]
           trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
@@ -2140,7 +2140,7 @@ skprGUI = function(inputValue1, inputValue2) {
         widths = widths[widths != 0]
         widths = sqrt(widths)
         uniquevalues = length(table(responses))
-        breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
+        breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
         if (isolate(input$distribution) == "exponential") {
           responses = exp(responses)
           trueresponses = exp(trueresponses)

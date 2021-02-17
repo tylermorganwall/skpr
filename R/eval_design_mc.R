@@ -579,6 +579,8 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
               coef(summary(fit))[, 1]
             )
           )
+        } else {
+          estimates[j, ] = NA
         }
       } else {
         if (glmfamilyname == "gaussian") {
@@ -588,17 +590,23 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
           }
 
         } else {
-          fit = tryCatch({
-            glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
-          }, error = function() {
-              NULL
+          tryCatch({
+            fit = suppressWarnings(suppressMessages({
+              glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+            }))
+          }, error = function(e) {
+            fiterror = TRUE
           })
-          if (calceffect) {
+          if (calceffect && !fiterror) {
             effect_pvals = effectpowermc(fit, type = anovatype, test = pvalstring, test.statistic = anovatest)
           }
         }
-        if(!is.null(fit)) {
-          estimates[j, ] = coef(fit)
+        if(!fiterror) {
+          estimates[j, ] = suppressWarnings(
+            suppressMessages(coef(fit)
+                             ))
+        } else {
+          estimates[j, ] = NA
         }
       }
       if(!fiterror) {
@@ -645,6 +653,8 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     }
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl)
+    modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
+
     tryCatch({
       power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4", "lmerTest")) %dopar% {
         #simulate the data.
@@ -684,12 +694,26 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
               effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>F)")
             }
           } else {
-            fit = glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
-            if (calceffect) {
+            tryCatch({
+              fit = suppressWarnings(
+                suppressMessages(
+                  glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+                )
+              )
+            }, error = function(e) {
+              fiterror = TRUE
+            })
+            if (calceffect && !fiterror) {
               effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>Chisq)", test.statistic = "Wald")
             }
           }
-          estimates = coef(fit)
+          if(!fiterror) {
+            estimates = suppressWarnings(
+              suppressMessages(coef(fit)
+              ))
+          } else {
+            estimates = rep(NA,ncol(modelmat))
+          }
         }
         if(!fiterror) {
           #determine whether beta[i] is significant. If so, increment nsignificant

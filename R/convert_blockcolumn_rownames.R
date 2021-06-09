@@ -6,7 +6,7 @@
 #'@param varianceratios A vector of variance ratios for each level of restricted randomization
 #'@return Row-name encoded blocked run matrix
 #'@keywords internal
-convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios, user_specified_varianceratio,
+convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios,
                                         verbose = FALSE) {
   if (is.null(attr(RunMatrix, "splitanalyzable")) &&
       any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
@@ -57,9 +57,9 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios, use
       blockgroups = lapply(blockmatrix, table)
       names(blockgroups) = NULL
       if (length(blockgroups) != length(varianceratios) && length(varianceratios) == 1) {
-        if(user_specified_varianceratio) {
-          warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
-        }
+        # if(user_specified_varianceratio) {
+        #   warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
+        # }
         varianceratios = c(rep(varianceratios,length(blockgroups)-1),1)
       }
       if (length(blockgroups) - 1 == length(varianceratios)) {

@@ -40,5 +40,5 @@ get_optimality(designcoffee,"D")
 power_output = eval_design(designcoffee, model = ~cost + size + type,
                           alpha = 0.05, detailedoutput = TRUE)
 
-get_optimality(power_output,"I")
+get_optimality(power_output)
 }

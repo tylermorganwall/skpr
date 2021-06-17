@@ -246,10 +246,9 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   nointercept = attr(stats::terms.formula(model, data = design), "intercept") == 0
   #covert tibbles
   run_matrix_processed = as.data.frame(design)
-
   #Detect externally generated blocking columns and convert to rownames
   run_matrix_processed = convert_blockcolumn_rownames(run_matrix_processed, blocking,
-                                                      varianceratios, user_specified_varianceratio)
+                                                      varianceratios)
   varianceratios = attr(run_matrix_processed,"tempvar")
   attr(run_matrix_processed,"tempvar") = NULL
   zlist = attr(run_matrix_processed, "z.matrix.list")

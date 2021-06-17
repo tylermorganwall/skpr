@@ -431,7 +431,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
       }
       if (length(blockgroups) != length(varianceratios) && length(varianceratios) == 1) {
-        warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
+        # warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
         varianceratios = c(rep(varianceratios,length(blockgroups)-1),1)
       }
       if (length(blockgroups) - 1 == length(varianceratios)) {

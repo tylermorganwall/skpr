@@ -1,0 +1,16 @@
+bibentry(bibtype = "Article",
+  title        = "Optimal Design Generation and Power Evaluation in {R}: The {skpr} Package",
+  author       = c(person(given = "Tyler",
+                          family = "Morgan-Wall",
+                          email = "tmorganw@ida.org"),
+                   person(given = "George",
+                          family = "Khoury")),
+  journal      = "Journal of Statistical Software",
+  year         = "2021",
+  volume       = "99",
+  number       = "1",
+  pages        = "1--36",
+  doi          = "10.18637/jss.v099.i01",
+  header       = "To cite skpr in publications use:"
+)
+

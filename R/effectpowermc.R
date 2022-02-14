@@ -9,6 +9,7 @@
 #'@return p-values
 #'@keywords internal
 effectpowermc = function(fit, type="III", test = "Pr(>Chisq)", ...) {
+  effectnames = NA
   if (class(fit)[1] == "lmerModLmerTest") {
     test = "Pr(>F)"
     anovafit = suppressMessages(anova(fit, type = type, ... ))
@@ -27,6 +28,9 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)", ...) {
       effectnames = rownames(coef(summary(fit)))
       effect_pvals = rep(NA,length(effectnames))
     })
+  }
+  if (all(is.na(effectnames))) {
+    stop("Effect power not supported for fit type: ", class(fit))
   }
   if ("Residuals" %in% effectnames) {
     effect_pvals = effect_pvals[-length(effect_pvals)]

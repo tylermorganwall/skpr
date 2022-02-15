@@ -28,6 +28,7 @@
 #'You only need to specify this if you do not like the default behavior described below.
 #'@param anticoef Default `NULL`.The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.
+#'@param firth Default `FALSE`. Whether to apply the firth correction (via the `mbest` package) to a logistic regression.
 #'@param effectsize Helper argument to generate anticipated coefficients. See details for more info.
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
@@ -207,9 +208,17 @@
 #'#Note the use of log() in the anticipated coefficients.
 eval_design_mc = function(design, model = NULL, alpha = 0.05,
                           blocking = NULL, nsim = 1000, glmfamily = "gaussian", calceffect = TRUE,
-                          varianceratios = NULL, rfunction = NULL, anticoef = NULL,
+                          varianceratios = NULL, rfunction = NULL, anticoef = NULL, firth = FALSE,
                           effectsize = 2, contrasts = contr.sum, parallel = FALSE,
                           detailedoutput = FALSE, advancedoptions = NULL, ...) {
+  if(!firth) {
+    method = "glm.fit"
+  } else {
+    if(!(length(find.package("mbest", quiet = TRUE)) > 0)) {
+      stop("Firth correction requires installation of the `mbest` package.")
+    }
+    method = "firthglm.fit"
+  }
   if(missing(design)) {
     stop("No design detected in arguments.")
   }
@@ -292,7 +301,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     }
     nullresults = eval_design_mc(design = design, model = model, alpha = alpha,
                    blocking = blocking, nsim = nsim, glmfamily = glmfamily, calceffect = calceffect,
-                   varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef,
+                   varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef, firth = firth,
                    effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
                    detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
     if (attr(terms.formula(model, data = design), "intercept") == 1) {
@@ -592,7 +601,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         } else {
           tryCatch({
             fit = suppressWarnings(suppressMessages({
-              glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+              glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist, method = method)
             }))
           }, error = function(e) {
             fiterror = TRUE
@@ -654,9 +663,12 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     cl = parallel::makeCluster(numbercores)
     doParallel::registerDoParallel(cl)
     modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
-
+    packagelist = c("lme4", "lmerTest")
+    if(firth) {
+      packagelist = c("lme4", "lmerTest", "mbest")
+    }
     tryCatch({
-      power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = c("lme4", "lmerTest")) %dopar% {
+      power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = packagelist) %dopar% {
         #simulate the data.
         fiterror = FALSE
         RunMatrixReduced$Y = responses[, j]
@@ -697,7 +709,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
             tryCatch({
               fit = suppressWarnings(
                 suppressMessages(
-                  glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist)
+                  glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist, method = method)
                 )
               )
             }, error = function(e) {

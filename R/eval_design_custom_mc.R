@@ -23,7 +23,6 @@
 #'@param calceffect  Default `FALSE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 #'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata. To work, the
 #'fit returned by `fitfunction` must have a method compatable with the car package.
-#'@param varianceratios Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
 #'@param parameternames Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 #'(e.g. coefficients from an MLE fit).
 #'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),

@@ -15,6 +15,7 @@ eval_design_mc(
   varianceratios = NULL,
   rfunction = NULL,
   anticoef = NULL,
+  firth = FALSE,
   effectsize = 2,
   contrasts = contr.sum,
   parallel = FALSE,
@@ -55,6 +56,8 @@ You only need to specify this if you do not like the default behavior described 
 
 \item{anticoef}{Default `NULL`.The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}
+
+\item{firth}{Default `FALSE`. Whether to apply the firth correction (via the `mbest` package) to a logistic regression.}
 
 \item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}

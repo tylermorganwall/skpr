@@ -10,7 +10,7 @@ Depends:
   R (>= 3.0.2),
   shiny
 License: GPL-3
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Imports: 
     utils,
     iterators,

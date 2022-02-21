@@ -217,7 +217,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     if(!(length(find.package("mbest", quiet = TRUE)) > 0)) {
       stop("Firth correction requires installation of the `mbest` package.")
     }
-    method = "firthglm.fit"
+    method = mbest::firthglm.fit
   }
   if(missing(design)) {
     stop("No design detected in arguments.")

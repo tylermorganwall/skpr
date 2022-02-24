@@ -20,8 +20,15 @@
 #'library, that argument can be ignored.
 #'@param pvalfunction Function that returns a vector of p-values from the object returned from the fitfunction.
 #'@param coef_function Function that, when applied to a fitfunction return object, returns the estimated coefficients.
+#'@param calceffect  Default `FALSE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
+#'this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata. To work, the
+#'fit returned by `fitfunction` must have a method compatable with the car package.
 #'@param parameternames Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 #'(e.g. coefficients from an MLE fit).
+#'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
+#'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
+#'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
+#'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated based on \code{effectsize}.
 #'@param effectsize The signal-to-noise ratio. Default 2. For a gaussian model, and for
@@ -76,7 +83,6 @@
 #'
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
-#'
 #'d = eval_design_custom_mc(design = design, model = ~a,
 #'                          alpha = 0.05, nsim = 100,
 #'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
@@ -86,10 +92,41 @@
 eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
                                  nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, effectsize = 2, contrasts = contr.sum,
-                                 coef_function = coef,
-                                 parameternames = NULL,
+                                 coef_function = coef, calceffect = FALSE,
+                                 parameternames = NULL, advancedoptions = NULL,
                                  parallel = FALSE, parallelpackages = NULL, ...) {
+  if (!is.null(advancedoptions)) {
+    if(is.null(advancedoptions$save_simulated_responses)) {
+      advancedoptions$save_simulated_responses = FALSE
+    }
+    if (is.null(advancedoptions$GUI)) {
+      advancedoptions$GUI = FALSE
+    }
+    if (!is.null(advancedoptions$progressBarUpdater)) {
+      progressBarUpdater = advancedoptions$progressBarUpdater
+    } else {
+      progressBarUpdater = NULL
+    }
+    if(is.null(advancedoptions$alphacorrection)) {
+      advancedoptions$alphacorrection = TRUE
+    } else {
+      if(!advancedoptions$alphacorrection) {
+        advancedoptions$alphacorrection = FALSE
+      }
+    }
+  } else {
+    advancedoptions = list()
+    advancedoptions$GUI = FALSE
+    advancedoptions$alphacorrection = TRUE
+    progressBarUpdater = NULL
+    advancedoptions$save_simulated_responses = FALSE
+  }
 
+  if (!is.null(advancedoptions$anovatype)) {
+    anovatype = advancedoptions$anovatype
+  } else {
+    anovatype = "III"
+  }
   if(missing(design)) {
     stop("No design detected in arguments.")
   }
@@ -185,6 +222,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
   if (!parallel) {
     power_values = rep(0, length(parameter_names))
+    effect_pvals_list = list()
+    effect_power_values = list()
+
     estimates = list()
     for (j in 1:nsim) {
 
@@ -197,7 +237,18 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
+      if (calceffect) {
+        effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
+        effect_pvals_list[[j]] = effect_pvals
+      }
       estimates[[j]] = coef_function(fit)
+    }
+    if (calceffect) {
+      effect_results= do.call(rbind,effect_pvals_list)
+      effect_power_names = colnames(effect_results)
+      effect_power_matrix = matrix(0,nrow(effect_results),ncol(effect_results))
+      effect_power_matrix[effect_results < alpha] = 1
+      effect_power_results = apply(effect_power_matrix,2,sum)/nsim
     }
     power_values = power_values / nsim
 
@@ -211,7 +262,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     doParallel::registerDoParallel(cl)
 
     tryCatch({
-      power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages = parallelpackages) %dopar% {
+      power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages = parallelpackages, .export = "effectpowermc") %dopar% {
         power_values = rep(0, ncol(ModelMatrix))
         #simulate the data.
         RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
@@ -221,34 +272,56 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = pvalfunction(fit)
+        if (calceffect) {
+          effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
+        }
+
         power_values[pvals < alpha] = 1
         estimates = coef_function(fit)
 
         #We are going to output a tidy data.frame with the results, so just append the effect powers
-        #to the parameter powers. We'll use another column of that dataframe to label wether it is parameter
+        #to the parameter powers. We'll use another column of that dataframe to label whether it is parameter
         #or effect power.
-        c(power_values, estimates)
+        if(!calceffect) {
+          list(power_values=power_values, estimates=estimates)
+        } else {
+          list(power_values=power_values, estimates=estimates, effect_power = effect_pvals)
+        }
       }
     }, finally = {
       parallel::stopCluster(cl)
     })
-    power_values = apply(power_estimates[, 1:nparam], 2, sum) / nsim
-    estimates = power_estimates[, (nparam + 1):ncol(power_estimates)]
+    power_values = apply(do.call(rbind,power_estimates[,1]), 2, sum) / nsim
+    estimates = do.call(rbind,power_estimates[,2])
+    if(calceffect) {
+      effect_results = do.call(rbind,power_estimates[,3])
+      effect_power_names = colnames(effect_results)
+      effect_power_matrix = matrix(0,nrow(effect_results),ncol(effect_results))
+      effect_power_matrix[effect_results < alpha] = 1
+      effect_power_results = apply(effect_power_matrix,2,sum)/nsim
+    }
   }
   #output the results (tidy data format)
-  retval = data.frame(parameter = parameter_names,
-                      type = "custom.power.mc",
+  power_final = data.frame(parameter = parameter_names,
+                      type = "custom.parameter.power.mc",
                       power = power_values)
-  attr(retval, "generating.model") = generatingmodel
-  attr(retval, "estimatesnames") = parameter_names
-  attr(retval, "estimates") = estimates
-  attr(retval, "alpha") = alpha
-  attr(retval, "runmatrix") = RunMatrixReduced
-  attr(retval, "anticoef") = anticoef
-
-  if(!inherits(retval,"skpr_eval_output")) {
-    class(retval) = c("skpr_eval_output", class(retval))
+  if(calceffect) {
+    effect_power_final = data.frame(parameter = effect_power_names,
+                        type = "custom.effect.power.mc",
+                        power = effect_power_results)
+    power_final = rbind(effect_power_final, power_final)
   }
-  return(retval)
+  attr(power_final, "generating.model") = generatingmodel
+  attr(power_final, "estimatesnames") = parameter_names
+  attr(power_final, "estimates") = estimates
+
+  attr(power_final, "alpha") = alpha
+  attr(power_final, "runmatrix") = RunMatrixReduced
+  attr(power_final, "anticoef") = anticoef
+
+  if(!inherits(power_final,"skpr_eval_output")) {
+    class(power_final) = c("skpr_eval_output", class(power_final))
+  }
+  return(power_final)
 }
 globalVariables("i")

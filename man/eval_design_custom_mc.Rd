@@ -16,7 +16,9 @@ eval_design_custom_mc(
   effectsize = 2,
   contrasts = contr.sum,
   coef_function = coef,
+  calceffect = FALSE,
   parameternames = NULL,
+  advancedoptions = NULL,
   parallel = FALSE,
   parallelpackages = NULL,
   ...
@@ -58,8 +60,17 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 \item{coef_function}{Function that, when applied to a fitfunction return object, returns the estimated coefficients.}
 
+\item{calceffect}{Default `FALSE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
+this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata. To work, the
+fit returned by `fitfunction` must have a method compatable with the car package.}
+
 \item{parameternames}{Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 (e.g. coefficients from an MLE fit).}
+
+\item{advancedoptions}{Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
+user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
+`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
+If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.}
 
 \item{parallel}{If TRUE, uses all cores available to speed up computation of power. Default FALSE.}
 
@@ -116,7 +127,6 @@ pvalsurv = function(fit) {
 
 #And now we evaluate the design, passing the fitting function and p-value extracting function
 #in along with the standard inputs for eval_design_mc.
-
 d = eval_design_custom_mc(design = design, model = ~a,
                          alpha = 0.05, nsim = 100,
                          fitfunction = fitsurv, pvalfunction = pvalsurv,

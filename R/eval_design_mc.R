@@ -835,12 +835,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   if (!blocking) {
     attr(retval, "variance.matrix") = diag(nrow(modelmatrix_cor))
     attr(retval, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
-    deffic = DOptimality(modelmatrix_cor)
-    if(!is.infinite(deffic)) {
-      attr(retval, "D") =  100 * DOptimality(modelmatrix_cor) ^ (1 / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
-    } else {
-      attr(retval, "D") =  100 * exp(DOptimalityLog(modelmatrix_cor) / ncol(modelmatrix_cor)) / nrow(modelmatrix_cor)
-    }
+    attr(retval, "D") = 100 * DOptimalityLog(modelmatrix_cor)
   } else {
     attr(retval, "variance.matrix") = V
     attr(retval, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = V)

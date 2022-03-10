@@ -12,7 +12,7 @@ double DOptimality(const Eigen::MatrixXd& currentDesign) {
 // [[Rcpp::export]]
 double DOptimalityLog(const Eigen::MatrixXd& currentDesign) {
   Eigen::MatrixXd XtX = currentDesign.transpose()*currentDesign;
-  return(XtX.llt().matrixL().toDenseMatrix().diagonal().array().log().sum());
+  return(exp(XtX.completeOrthogonalDecomposition().logAbsDeterminant()/currentDesign.cols())/currentDesign.rows());
 }
 
 // [[Rcpp::export]]

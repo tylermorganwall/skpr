@@ -1235,12 +1235,7 @@ gen_design = function(candidateset, model, trials,
   } else {
     attr(design, "blocking") = FALSE
   }
-  deffic = DOptimality(designmm)
-  if(!is.infinite(deffic)) {
-    attr(design, "D") =  100 * DOptimality(designmm) ^ (1 / ncol(designmm)) / nrow(designmm)
-  } else {
-    attr(design, "D") =  100 * exp(DOptimalityLog(designmm) / ncol(designmm)) / nrow(designmm)
-  }
+  attr(design, "D") = 100 * DOptimalityLog(designmm)
   attr(design, "A") = tryCatch({AOptimality(designmm)}, error = function(e) {})
   attr(design, "model.matrix") = designmm
   attr(design, "generating.model") = model

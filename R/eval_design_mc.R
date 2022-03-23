@@ -661,6 +661,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       numbercores = options("cores")[[1]]
     }
     cl = parallel::makeCluster(numbercores)
+    numbercores = length(cl)
     doParallel::registerDoParallel(cl)
     modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
     packagelist = c("lme4", "lmerTest")

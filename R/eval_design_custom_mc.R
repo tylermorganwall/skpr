@@ -259,6 +259,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
       numbercores = options("cores")[[1]]
     }
     cl = parallel::makeCluster(numbercores)
+    numbercores = length(cl)
     doParallel::registerDoParallel(cl)
 
     tryCatch({

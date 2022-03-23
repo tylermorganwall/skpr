@@ -421,7 +421,7 @@ test_that("eval_design_custom_mc example code runs without errors", {
 
   #testing parallel
 
-  options(cores = 2)
+  options(cores = c("localhost", "localhost"))
   basicdesign = expand.grid(a = c(-1, 1))
   design = gen_design(candidateset = basicdesign, model = ~a, trials = 100,
                       optimality = "D", repeats = 100)

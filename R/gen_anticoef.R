@@ -27,7 +27,7 @@ gen_anticoef = function(RunMatrix, model, nointercept) {
     highertype = "numeric"
     factors = gsub("`", "", strsplit(term, ":")[[1]], fixed = TRUE)
     for (i in factors) {
-      if (class(RunMatrix[[i]]) %in% c("character", "factor")) {
+      if (inherits(RunMatrix[[i]], c("character", "factor"))) {
         higherlevel = levels[i] * higherlevel
         highertype = "factor"
       }

@@ -97,7 +97,7 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11, plot=TRUE,
   }
   factorrange = list()
   for (col in 1:ncol(genoutput)) {
-    if (class(genoutput[, col]) %in% c("factor", "character")) {
+    if (inherits(genoutput[, col], c("factor", "character"))) {
       factorrange[[colnames(genoutput)[col]]] = unique(genoutput[, col])
     }
     if (is.numeric(genoutput[, col])) {

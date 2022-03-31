@@ -953,7 +953,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
         tempval = tryCatch({
           readRDS(file.path(tempdir_runmatrix, paste0(unique_file_name2, ".Rds")))
         }, error = function(e) "", warning = function(w) "")
-        if (class(tempval) == "data.frame") {
+        if (inherits(tempval, "data.frame")) {
           runmatvalues$runmatrix = tempval
           tryCatch({
             file.remove(file.path(tempdir_runmatrix, paste0(unique_file_name2, ".Rds")))

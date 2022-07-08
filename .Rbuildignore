@@ -1,7 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
-^NEWS\.md$ 
+^NEWS\.md$
 ^cran-comments\.md$
 ^\.travis\.yml$
 ^LICENSE$
@@ -12,3 +12,5 @@
 ^skprlogo\.png$
 ^vidguigif\.gif$
 ^\.github$
+^tests$
+^tests/testthat$

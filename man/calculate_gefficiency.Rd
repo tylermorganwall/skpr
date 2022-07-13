@@ -2,11 +2,7 @@
 % Please edit documentation in R/calculate_gefficiency.R
 \name{calculate_gefficiency}
 \alias{calculate_gefficiency}
-\title{Calculate G Efficiency
-
-Either calculates G-Efficiency by Monte Carlo sampling from the design space (ignoring constraints),
-searching for the maximum point (slower but higher quality), or by using a user-specified candidate
-set for the design space (fastest).}
+\title{Calculate G Efficiency}
 \usage{
 calculate_gefficiency(
   design,
@@ -22,6 +18,6 @@ calculate_gefficiency(
 Normalized run matrix
 }
 \description{
-Normalizes the numeric columns in the runmatrix
+Either calculates G-Efficiency by Monte Carlo sampling from the design space (ignoring constraints), searching for the maximum point (slower but higher quality), or by using a user-specified candidate set for the design space (fastest).
 }
 \keyword{internal}

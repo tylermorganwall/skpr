@@ -1,10 +1,6 @@
 #'@title Calculate G Efficiency
 #'
-#'Either calculates G-Efficiency by Monte Carlo sampling from the design space (ignoring constraints),
-#'searching for the maximum point (slower but higher quality), or by using a user-specified candidate
-#'set for the design space (fastest).
-#'
-#'@description Normalizes the numeric columns in the runmatrix
+#'@description Either calculates G-Efficiency by Monte Carlo sampling from the design space (ignoring constraints), searching for the maximum point (slower but higher quality), or by using a user-specified candidate set for the design space (fastest).
 #'@param RunMatrix The run matrix
 #'@return Normalized run matrix
 #'@keywords internal

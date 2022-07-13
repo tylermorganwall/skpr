@@ -2,12 +2,15 @@
 #'
 #'@description Generates orthonormal (orthogonal and normalized) contrasts. Each row is the vertex of an N-dimensional simplex. The only exception are contrasts for the 2-level case, which return 1 and -1.
 #'
-#'@param n The number of levels in the catagorical variable.
+#'@param n The number of levels in the catagorical variable. If this is a factor or character vector, `n` will be `length(n)`
 #'@param size Default `1`. The length of the simplex vector.
 #'@return A matrix of Orthonormal contrasts.
 #'@export
 #'@examples contr.simplex(4)
 contr.simplex = function(n, size=NULL) {
+  if(is.factor(n) || is.character(n)) {
+    n = length(n)
+  }
   results = matrix(nrow = n - 1, ncol = n)
   if (n == 1) {
     stop("Too few dimensions for contrast generation")

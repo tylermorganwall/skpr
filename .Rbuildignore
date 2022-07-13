@@ -12,5 +12,3 @@
 ^skprlogo\.png$
 ^vidguigif\.gif$
 ^\.github$
-^tests$
-^tests/testthat$

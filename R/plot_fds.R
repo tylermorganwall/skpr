@@ -114,6 +114,13 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11, plot=TRUE,
     samples = data.frame(fullgrid[sample(1:nrow(fullgrid), 10000, replace = TRUE), ])
     colnames(samples) = colnames(fullgrid)
   }
+  #------Normalize/Center numeric columns ------#
+  for (column in 1:ncol(genoutput)) {
+    if (is.numeric(genoutput[, column])) {
+      midvalue = mean(c(max(genoutput[, column]), min(genoutput[, column])))
+      genoutput[, column] = (genoutput[, column] - midvalue) / (max(genoutput[, column]) - midvalue)
+    }
+  }
   mm = model.matrix(model, genoutput, contrasts.arg = contrastlist)
   samplemm = model.matrix(model, samples, contrasts.arg = contrastlist)
 

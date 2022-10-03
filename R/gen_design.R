@@ -546,7 +546,7 @@ gen_design = function(candidateset, model, trials,
   }
   #----Check for augmented design and normalize/equalize factor levels if present----#
   if (!is.null(augmentdesign)) {
-    prev_augmented = attr(augmentdesign,"augmented")
+    prev_augmented = ifelse(!is.null(attr(augmentdesign,"augmented")), attr(augmentdesign,"augmented"), FALSE)
     if(prev_augmented) {
       augmented_cols_prev = augmentdesign$Block1
     } else {

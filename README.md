@@ -1,11 +1,13 @@
 
 # skpr <img src="man/figures/skprlogo.png" align="right" />
 
+<!-- badges: start -->
+
 [![Travis-CI Build
 Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
-[![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version-ago/skpr)](https://cran.r-project.org/package=skpr)
-[![R build
-status](https://github.com/tylermorganwall/skpr/workflows/R-CMD-check/badge.svg)](https://github.com/tylermorganwall/skpr/actions)
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version-ago/skpr)](https://cran.r-project.org/package=skpr)
+[![R-CMD-check](https://github.com/tylermorganwall/skpr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tylermorganwall/skpr/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
 
 <img src="man/figures/vidguigif.gif" ></img>
 
@@ -15,15 +17,15 @@ status](https://github.com/tylermorganwall/skpr/workflows/R-CMD-check/badge.svg)
 and evaluating optimal designs in R. Here is a sampling of what skpr
 offers:
 
-  - Generates and evaluates D, I, A, Alias, E, T, and G optimal designs,
+-   Generates and evaluates D, I, A, Alias, E, T, and G optimal designs,
     as well as user-defined custom optimality criteria.
-  - Supports generation and evaluation of split/split-split/…/N-split
+-   Supports generation and evaluation of split/split-split/…/N-split
     plot designs.
-  - Includes parametric and Monte Carlo power evaluation functions, and
+-   Includes parametric and Monte Carlo power evaluation functions, and
     supports calculating power for censored responses.
-  - Provides an extensible framework for the user to evaluate Monte
+-   Provides an extensible framework for the user to evaluate Monte
     Carlo power using their own libraries.
-  - Includes a Shiny graphical user interface, skprGUI, that
+-   Includes a Shiny graphical user interface, skprGUI, that
     auto-generates the R code used to create and evaluate the design to
     improve ease-of-use and enhance reproducibility.
 
@@ -40,31 +42,31 @@ devtools::install_github("tylermorganwall/skpr")
 
 ## Functions
 
-  - `gen_design()` generates optimal designs from a candidate set, given
+-   `gen_design()` generates optimal designs from a candidate set, given
     a model and the desired number of runs.
-  - `eval_design()` evaluates power parametrically for linear models,
+-   `eval_design()` evaluates power parametrically for linear models,
     for normal and split-plot designs.
-  - `eval_design_mc()` evaluates power with a Monte Carlo simulation,
+-   `eval_design_mc()` evaluates power with a Monte Carlo simulation,
     for linear and generalized linear models. This function also
     supports calculating power for split-plot designs using REML.
-  - `eval_design_survival_mc()` evaluates power with a Monte Carlo
+-   `eval_design_survival_mc()` evaluates power with a Monte Carlo
     simulation, allowing the user to specify a point at which the data
     is censored.
-  - `eval_design_custom_mc()` allows the user to import their own
+-   `eval_design_custom_mc()` allows the user to import their own
     libraries and use the Monte Carlo framework provided by skpr to
     calculate power.
-  - `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R
+-   `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R
     Studio or an external browser.
 
 If addition, the package offers two functions to generate common plots
 related to designs:
 
-  - `plot_correlations()` generates a color map of correlations between
+-   `plot_correlations()` generates a color map of correlations between
     variables.
-  - `plot_fds()` generates the fraction of design space plot for a given
+-   `plot_fds()` generates the fraction of design space plot for a given
     design.
 
-\#\#skprGUI
+\##skprGUI
 
 skprGUI provides an graphical user interface to access all of the main
 features of skpr. An interactive tutorial is provided to familiarize the
@@ -136,9 +138,9 @@ eval_design(design)
 #> 8   beansize1 parameter.power 0.5593966
 #> 9   beansize2 parameter.power 0.5593966
 #> ============Evaluation Info============
-#> • Alpha = 0.05 • Trials = 12 • Blocked = FALSE
-#> • Evaluating Model = ~temp + type + beansize
-#> • Anticipated Coefficients = c(1.000, 1.000, 1.000, 1.000, -1.000)
+#> [1m• Alpha = [0m0.05 [1m• Trials = [0m12 [1m• Blocked = [0mFALSE
+#> [1m• Evaluating Model = [0m~temp + type + beansize
+#> [1m• Anticipated Coefficients = [0mc(1, 1, 1, 1, -1)
 
 #Evaluate power for the design using a Monte Carlo simulation. 
 #Here, we set the effect size (here, the signal-to-noise ratio) to 1.5.
@@ -154,9 +156,9 @@ eval_design_mc(design, effectsize=1.5)
 #> 8   beansize1 parameter.power.mc 0.359
 #> 9   beansize2 parameter.power.mc 0.354
 #> ===========Evaluation Info============
-#> • Alpha = 0.05 • Trials = 12 • Blocked = FALSE
-#> • Evaluating Model = ~temp + type + beansize
-#> • Anticipated Coefficients = c(0.750, 0.750, 0.750, 0.750, -0.750)
+#> [1m• Alpha = [0m0.05 [1m• Trials = [0m12 [1m• Blocked = [0mFALSE
+#> [1m• Evaluating Model = [0m~temp + type + beansize
+#> [1m• Anticipated Coefficients = [0mc(0.750, 0.750, 0.750, 0.750, -0.750)
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
 #Here, we also increase the number of simululations to improve the precision of the results.
@@ -172,9 +174,9 @@ eval_design_mc(design, nsim=5000, glmfamily = "poisson", effectsize=c(2,6))
 #> 8   beansize1 parameter.power.mc 0.8842
 #> 9   beansize2 parameter.power.mc 0.7052
 #> ============Evaluation Info============
-#> • Alpha = 0.05 • Trials = 12 • Blocked = FALSE
-#> • Evaluating Model = ~temp + type + beansize
-#> • Anticipated Coefficients = c(1.242, 0.549, 0.549, 0.549, -0.549)
+#> [1m• Alpha = [0m0.05 [1m• Trials = [0m12 [1m• Blocked = [0mFALSE
+#> [1m• Evaluating Model = [0m~temp + type + beansize
+#> [1m• Anticipated Coefficients = [0mc(1.242, 0.549, 0.549, 0.549, -0.549)
 
 #skpr was designed to operate with the pipe (%>%) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
@@ -198,7 +200,7 @@ expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","
 #> 13 type1:beansize1 parameter.power.mc 0.899
 #> 14 type1:beansize2 parameter.power.mc 0.902
 #> ==============Evaluation Info==============
-#> • Alpha = 0.05 • Trials = 24 • Blocked = FALSE
-#> • Evaluating Model = ~temp + type + beansize + type:beansize + I(temp^2)
-#> • Anticipated Coefficients = c(1.000, 1.000, 1.000, 1.000, -1.000, 1.000, 1.000, -1.000)
+#> [1m• Alpha = [0m0.05 [1m• Trials = [0m24 [1m• Blocked = [0mFALSE
+#> [1m• Evaluating Model = [0m~temp + type + beansize + type:beansize + I(temp^2)
+#> [1m• Anticipated Coefficients = [0mc(1, 1, 1, 1, -1, 1, 1, -1)
 ```

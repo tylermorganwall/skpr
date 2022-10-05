@@ -14,10 +14,13 @@ knitr::opts_chunk$set(
 
 # skpr <img src="man/figures/skprlogo.png" align="right" />
 
+
+<!-- badges: start -->
 [![Travis-CI Build Status](https://travis-ci.org/tylermorganwall/skpr.svg?branch=master)](https://travis-ci.org/tylermorganwall/skpr)
 [![CRAN_Status_Badge]( http://www.r-pkg.org/badges/version-ago/skpr)](https://cran.r-project.org/package=skpr)
-[![R build status](https://github.com/tylermorganwall/skpr/workflows/R-CMD-check/badge.svg)](https://github.com/tylermorganwall/skpr/actions)
-
+[![R-CMD-check](https://github.com/tylermorganwall/skpr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tylermorganwall/skpr/actions/workflows/R-CMD-check.yaml)
+  <!-- badges: end -->
+  
 <img src="man/figures/vidguigif.gif" ></img>
 
 ## Overview

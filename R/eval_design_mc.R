@@ -289,6 +289,15 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     advancedoptions$alphacorrection = TRUE
     progressBarUpdater = NULL
     advancedoptions$save_simulated_responses = FALSE
+    advancedoptions$aliaspower = 2
+  }
+  if(is.null(advancedoptions$aliaspower)) {
+    aliaspower = 2
+  } else {
+    if(!is.numeric(advancedoptions$aliaspower)) {
+      stop("advancedoptions$aliaspower must be a positive integer")
+    }
+    aliaspower = advancedoptions$aliaspower
   }
   alpha_adjust = FALSE
   if (advancedoptions$alphacorrection && glmfamily != "gaussian" && blocking) {
@@ -807,6 +816,22 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         rownames(correlation.matrix) = colnames(modelmatrix_cor)
       }
       attr(retval, "correlation.matrix") = round(correlation.matrix, 8)
+    }, error = function(e) {})
+    tryCatch({
+      if (ncol(attr(run_matrix_processed, "modelmatrix")) > 2) {
+        amodel = aliasmodel(model, aliaspower)
+        if (amodel != model) {
+          aliasmatrix = suppressWarnings({
+            model.matrix(aliasmodel(model, aliaspower), design, contrasts.arg = contrastslist_cormat)[, -1]
+          })
+          A = solve(t(modelmatrix_cor) %*% modelmatrix_cor) %*% t(modelmatrix_cor) %*% aliasmatrix
+          attr(results, "alias.matrix") = A
+          attr(results, "trA") = sum(diag(t(A) %*% A))
+        } else {
+          attr(results, "alias.matrix") = "No alias matrix calculated: full model specified"
+          attr(results, "trA") = "No alias trace calculated: full model specified"
+        }
+      }
     }, error = function(e) {})
   }
 

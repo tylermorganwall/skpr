@@ -1216,6 +1216,7 @@ gen_design = function(candidateset, model, trials,
           block_col_df = data.frame(Block1=block_col_indicator)
           allattr = attributes(design)
           design = cbind(block_col_df, design)
+          attributes(design) = allattr
           colnames(design) = c(paste0("Block", j),colnames(design)[-1])
         }
         if(!add_blocking_columns) {

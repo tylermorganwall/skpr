@@ -5,9 +5,14 @@
 #'@return Normalized run matrix
 #'@keywords internal
 calculate_gefficiency = function(design, calculation_type = "random", randsearches = 1000,  design_space_mm = NULL) {
+  if(!is.null(attr(design, "runmatrix"))) {
+    run_matrix = attr(design, "runmatrix")
+  } else {
+    run_matrix = design
+  }
   variables = all.vars(get_attribute(design,"model"))
   designmm = get_attribute(design,"model.matrix")
-  modelentries = names(calculate_level_vector(design,get_attribute(design,"model"), FALSE))
+  modelentries = names(calculate_level_vector(run_matrix,get_attribute(design,"model"), FALSE))
   model_entries_mul = gsub(":", "*", modelentries)
   model_entries_mul[1] = 1
   fulllist = list()
@@ -23,7 +28,7 @@ calculate_gefficiency = function(design, calculation_type = "random", randsearch
     }
     names(fulllist) = variables
     for(i in seq_len(length(names(factorvars)))) {
-      numberlevels = length(levels(design[[names(factorvars)[i] ]]))
+      numberlevels = length(levels(run_matrix[[names(factorvars)[i] ]]))
       fulllist[[names(factorvars)[i] ]] = factorvars[[names(factorvars)[i] ]](numberlevels)[sample(seq_len(numberlevels),1),,drop=TRUE]
     }
     mc_mm = rand_vector(fulllist, model_entries_mul)
@@ -36,7 +41,7 @@ calculate_gefficiency = function(design, calculation_type = "random", randsearch
     }
     100 * (ncol(designmm)) / (nrow(designmm) * max(diag(mc_mm %*% solve(t(designmm) %*% designmm) %*% t(mc_mm))))
   }
-  modelentries = names(calculate_level_vector(design,get_attribute(design,"model"), FALSE))
+  modelentries = names(calculate_level_vector(run_matrix,get_attribute(design,"model"), FALSE))
   factorvars = attr(design,"contrastslist")
   variables = all.vars(get_attribute(design,"model"))
   variables = variables[!variables %in% names(factorvars)]

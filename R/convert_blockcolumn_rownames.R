@@ -10,8 +10,8 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios,
                                         verbose = FALSE) {
   if (is.null(attr(RunMatrix, "splitanalyzable")) &&
       any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
-      any(grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
-    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) | grepl("(Whole Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
+      any(grepl("(Whole Plots|Whole\\.Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
+    blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) | grepl("(Whole Plots|Whole\\.Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
     if (blocking) {
       if(verbose) {
         message("Detected externally generated blocking columns: attempting to interpret blocking structure.")

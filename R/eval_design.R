@@ -398,6 +398,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   attr(results, "blocking") = blocking
   attr(results, "varianceratios") = varianceratios
   attr(results, "alpha") = alpha
+  attr(results, "contrastslist") = contrastslist
 
   levelvector = sapply(lapply(run_matrix_processed, unique), length)
   classvector = sapply(lapply(run_matrix_processed, unique), class) == "factor"
@@ -410,6 +411,8 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor)) * varianceratios
     attr(results, "I") = IOptimality(modelmatrix_cor, momentsMatrix = mm, blockedVar = diag(nrow(modelmatrix_cor)))
     attr(results, "D") = 100 * DOptimalityLog(modelmatrix_cor)
+    attr(results, "T") = sum(diag(t(modelmatrix_cor) %*% modelmatrix_cor))
+    attr(results, "E") = min(unlist(eigen(t(modelmatrix_cor) %*% modelmatrix_cor)["values"]))
   } else {
     attr(results, "z.matrix.list") = zlist
     attr(results, "variance.matrix") = V

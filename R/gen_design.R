@@ -1128,11 +1128,11 @@ gen_design = function(candidateset, model, trials,
             amodel2 = aliasmodel(model, advancedoptions$alias_tie_power)
           }
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign, constructRunMatrix(rowindextemp, candidateset)), contrasts.arg = fullcontrastlist)[, -1, drop = FALSE]
+            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign, constructRunMatrix(rowindextemp, candidatesetnormalized)), contrasts.arg = fullcontrastlist)[, -1, drop = FALSE]
           })
         } else {
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset, augmentdesign), contrasts.arg = contrastslist)[, -1, drop = FALSE]
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidatesetnormalized, augmentdesign), contrasts.arg = contrastslist)[, -1, drop = FALSE]
           })
         }
         aliasvalues[[i]] = calcAliasTrace(designs[[i]], aliasmatrix)
@@ -1171,11 +1171,11 @@ gen_design = function(candidateset, model, trials,
             amodel2 = aliasmodel(model, advancedoptions$alias_tie_power)
           }
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign, constructRunMatrix(rowindextemp, candidateset)), contrasts.arg = fullcontrastlist)[, -1, drop = FALSE]
+            aliasmatrix = model.matrix(amodel2, cbind(splitPlotReplicateDesign, constructRunMatrix(rowindextemp, candidatesetnormalized)), contrasts.arg = fullcontrastlist)[, -1, drop = FALSE]
           })
         } else {
           suppressWarnings({
-            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidateset, augmentdesign), contrasts.arg = contrastslist)[, -1, drop = FALSE]
+            aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidatesetnormalized, augmentdesign), contrasts.arg = contrastslist)[, -1, drop = FALSE]
           })
         }
         aliasvalues[[i]] = calcAliasTrace(designs[[i]], aliasmatrix)
@@ -1200,6 +1200,7 @@ gen_design = function(candidateset, model, trials,
   }
 
   design = constructRunMatrix(rowIndices = rowindex, candidateList = candidateset, augment = augmentdesign)
+  design_normalized = constructRunMatrix(rowIndices = rowindex, candidateList = candidatesetnormalized, augment = augmentdesign)
 
   if (splitplot) {
     design = cbind(splitPlotReplicateDesign, design)
@@ -1293,7 +1294,7 @@ gen_design = function(candidateset, model, trials,
       attr(design, "correlation.matrix") = round(correlation.matrix, 8)
       if (amodel != model) {
         aliasmatrix = suppressWarnings({
-          model.matrix(aliasmodel(model, aliaspower), design, contrasts.arg = contrastslist)[, -1]
+          model.matrix(aliasmodel(model, aliaspower), design_normalized, contrasts.arg = contrastslist)[, -1]
         })
         A = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
         attr(design, "alias.matrix") = A

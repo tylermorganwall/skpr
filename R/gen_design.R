@@ -831,11 +831,31 @@ gen_design = function(candidateset, model, trials,
 
   if (!splitplot) {
     if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
-      stop(paste("The candidateset does not support the specified model - its rank is too low.",
-                 "This usually happens if disallowed combinations",
-                 "have introduced a perfect correlation between some variables in the candidate set.",
-                 "It can also happen if you have specified a quadratic model term but have only two levels",
-                 "of that factor in the candidate set."))
+      is_singular = function() {
+        tryCatch({
+          test_solve = solve(t(candidatesetmm) %*% candidatesetmm)
+          return(FALSE)
+        }, error = (function(e) (return(TRUE))))
+      }
+      if(is_singular()) {
+        stop(paste("The candidate set does not support the specified model - its rank is too low.",
+                   "This usually happens if disallowed combinations",
+                   "have introduced a perfect correlation between some variables in the candidate set.",
+                   "It can also happen if you have specified a quadratic model term but have only two levels",
+                   "of that factor in the candidate set, or (more generally) if two of your terms can be ",
+                   "expressed as a linear combination of another term. To solve this, you either need to",
+                   "choose a different model or add more factor combinations to your candidate set."))
+      }
+      eigenvals =  eigen(t(candidatesetmm) %*% candidatesetmm, symmetric = TRUE)$values
+      condition_val = max(eigenvals)/min(eigenvals)
+      if(min(eigenvals) > 0 && condition_val > 100) {
+        warning(paste("This candidate set is highly correlated. \n\nYou can calculate a degree of correlation",
+                     "by calculating the condition index (k), the ratio of the maximum eigenvalue of the information",
+                     "matrix over the minimum eigenvalue. Generally: k < 100 indicates minimal to no multicollinearity,",
+                     "100 < k < 1,000 indicates moderate to strong multicollinearity, and k > 1000 indiates severe",
+                     "multicollinearity (Montgomery, \"Introduction to linear regression analysis\", 2001). \n\nThe",
+                     sprintf(" condition index calculated for your candidate set and model is %0.1f", condition_val)))
+      }
     }
   }
 

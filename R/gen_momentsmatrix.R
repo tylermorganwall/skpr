@@ -22,7 +22,7 @@ gen_momentsmatrix = function(modelfactors, levelvector, classvector) {
   linearterms = modelfactors[islinear]
 
   if (!all(islinear) && all(isinteraction[-1])) {
-    stop("No main effects in model. skpR only supports interactions between terms when their main effects are present.")
+    stop("skpr: No main effects in model. skpR only supports interactions between terms when their main effects are present.")
   }
 
   ordermatrix = matrix(0, nrow = length(linearterms), ncol = length(modelfactors))

@@ -14,7 +14,7 @@
 #'@keywords internal
 gen_exponential_anticoef = function(anticoef, mean_low, mean_high) {
   if (mean_low <= 0 || mean_high <= 0) {
-    stop("Exponential anticipated coefficients generation error: mean values must be positive.")
+    stop("skpr: Exponential anticipated coefficients generation error: mean values must be positive.")
   }
   b0 = 1 / 2 * (log(mean_high) + log(mean_low))
   b  = 1 / 2 * (log(mean_high) - log(mean_low))

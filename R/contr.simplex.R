@@ -13,7 +13,7 @@ contr.simplex = function(n, size=NULL) {
   }
   results = matrix(nrow = n - 1, ncol = n)
   if (n == 1) {
-    stop("Too few dimensions for contrast generation")
+    stop("skpr: Too few dimensions for contrast generation")
   }
   if (n == 2) {
     results[, 1] = 1

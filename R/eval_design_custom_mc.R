@@ -128,21 +128,21 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     anovatype = "III"
   }
   if(missing(design)) {
-    stop("No design detected in arguments.")
+    stop("skpr: No design detected in arguments.")
   }
   if(missing(model) || (is.numeric(model) && missing(alpha))) {
     if(is.numeric(model) && missing(alpha)) {
       alpha = model
     }
     if(is.null(attr(design,"generating.model"))) {
-      stop("No model detected in arguments or in design attributes.")
+      stop("skpr: No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
     }
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
-    stop("RunMatrix argument deprecated. Use `design` instead.")
+    stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
   #detect pre-set contrasts
   presetcontrasts = list()
@@ -164,7 +164,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model)
+  model = rearrange_formula_by_order(model, data = run_matrix_processed)
 
   #------Normalize/Center numeric columns ------#
   run_matrix_processed = normalize_numeric_runmatrix(run_matrix_processed)
@@ -212,7 +212,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     }
   }
   if (length(anticoef) != dim(ModelMatrix)[2]) {
-    stop("Wrong number of anticipated coefficients")
+    stop("skpr: Wrong number of anticipated coefficients")
   }
 
 

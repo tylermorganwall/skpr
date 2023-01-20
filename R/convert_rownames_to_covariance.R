@@ -14,7 +14,7 @@ convert_rownames_to_covariance = function(run_matrix_processed,varianceratios, u
   V = diag(blockMatrixSize)
   blockcounter = 1
   if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
-    stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
+    stop("skpr: No blocking detected. Specify block structure in row names or set blocking = FALSE")
   }
   if (length(blockgroups) - 1 != length(varianceratios)  && length(varianceratios) == 1) {
     if(user_specified_varianceratio) {
@@ -26,7 +26,7 @@ convert_rownames_to_covariance = function(run_matrix_processed,varianceratios, u
     varianceratios = c(varianceratios,1)
   }
   if (length(blockgroups) != length(varianceratios) ) {
-    stop("Wrong number of variance ratios specified. ", length(varianceratios),
+    stop("skpr: Wrong number of variance ratios specified. ", length(varianceratios),
 " variance ratios given c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups), " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
   }
   blockgroups = blockgroups[-length(blockgroups)]

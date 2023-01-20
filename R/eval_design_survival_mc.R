@@ -117,21 +117,21 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
                                    rfunctionsurv = NULL, anticoef = NULL, effectsize = 2, contrasts = contr.sum,
                                    parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL, ...) {
   if(missing(design)) {
-    stop("No design detected in arguments.")
+    stop("skpr: No design detected in arguments.")
   }
   if(missing(model) || (is.numeric(model) && missing(alpha))) {
     if(is.numeric(model) && missing(alpha)) {
       alpha = model
     }
     if(is.null(attr(design,"generating.model"))) {
-      stop("No model detected in arguments or in design attributes.")
+      stop("skpr: No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
     }
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
-    stop("RunMatrix argument deprecated. Use `design` instead.")
+    stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
   #detect pre-set contrasts
   presetcontrasts = list()
@@ -171,7 +171,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model)
+  model = rearrange_formula_by_order(model, data = run_matrix_processed)
 
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if (is.na(censorpoint)) {
@@ -247,7 +247,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     }
   }
   if (length(anticoef) != dim(ModelMatrix)[2]) {
-    stop("Wrong number of anticipated coefficients")
+    stop("skpr: Wrong number of anticipated coefficients")
   }
 
 

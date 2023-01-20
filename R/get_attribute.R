@@ -50,7 +50,7 @@ get_attribute = function(output, attr = NULL, round = TRUE) {
 
   if(!is.null(attr) && !is.null(attr_list[[attr]])) {
     if(!attr %in% c("model.matrix","moments.matrix","variance.matrix","alias.matrix","correlation.matrix","model")) {
-      stop("attribute `",attr,"` not in ",
+      stop("skpr: attribute `",attr,"` not in ",
            paste0(c("model.matrix","moments.matrix","variance.matrix","alias.matrix","correlation.matrix","model"),collapse=", "))
     }
     return(attr_list[[attr]])

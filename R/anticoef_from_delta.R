@@ -11,10 +11,10 @@
 anticoef_from_delta = function(default_coef, delta, glmfamily) {
   #check that delta is proper
   if (!is.numeric(delta)) {
-    stop("delta parameter must be a numeric vector of length 1 or 2")
+    stop("skpr: delta parameter must be a numeric vector of length 1 or 2")
   }
   if (length(delta) > 2 || length(delta) < 1) {
-    stop("delta parameter must be a numeric vector of length 1 or 2")
+    stop("skpr: delta parameter must be a numeric vector of length 1 or 2")
   }
   #generate anticipated coefficients
   if (glmfamily == "gaussian") {

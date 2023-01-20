@@ -215,19 +215,19 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     method = "glm.fit"
   } else {
     if(!(length(find.package("mbest", quiet = TRUE)) > 0)) {
-      stop("Firth correction requires installation of the `mbest` package.")
+      stop("skpr: Firth correction requires installation of the `mbest` package.")
     }
     method = mbest::firthglm.fit
   }
   if(missing(design)) {
-    stop("No design detected in arguments.")
+    stop("skpr: No design detected in arguments.")
   }
   if(missing(model) || (is.numeric(model) && missing(alpha))) {
     if(is.numeric(model) && missing(alpha)) {
       alpha = model
     }
     if(is.null(attr(design,"generating.model"))) {
-      stop("No model detected in arguments or in design attributes.")
+      stop("skpr: No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
     }
@@ -251,7 +251,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
-    stop("RunMatrix argument deprecated. Use `design` instead.")
+    stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
 
   if(is.null(blocking)) {
@@ -295,7 +295,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     aliaspower = 2
   } else {
     if(!is.numeric(advancedoptions$aliaspower)) {
-      stop("advancedoptions$aliaspower must be a positive integer")
+      stop("skpr: advancedoptions$aliaspower must be a positive integer")
     }
     aliaspower = advancedoptions$aliaspower
   }
@@ -329,7 +329,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       }
     }
   } else {
-    alpha_effect = alpha
+    alpha_effect = NULL
     alpha_parameter = alpha
   }
   if (attr(terms.formula(model, data = design), "intercept") == 1) {
@@ -359,7 +359,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model)
+  model = rearrange_formula_by_order(model, data = run_matrix_processed)
   if(nointercept) {
     model = update.formula(model, ~-1 + .)
   }
@@ -429,7 +429,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     }
   }
   if (length(anticoef) != dim(ModelMatrix)[2]) {
-    stop("Wrong number of anticipated coefficients")
+    stop("skpr: Wrong number of anticipated coefficients")
   }
 
   #-------------- Blocking errors --------------#
@@ -446,7 +446,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       blockMatrixSize = nrow(run_matrix_processed)
       V = diag(blockMatrixSize)
       if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
-        stop("No blocking detected. Specify block structure in row names or set blocking = FALSE")
+        stop("skpr: No blocking detected. Specify block structure in row names or set blocking = FALSE")
       }
       if (length(blockgroups) != length(varianceratios) && length(varianceratios) == 1) {
         # warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
@@ -456,7 +456,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         varianceratios = c(varianceratios,1)
       }
       if (length(blockgroups) != length(varianceratios)) {
-        stop("Wrong number of variance ratios specified. ", length(varianceratios),
+        stop("skpr: Wrong number of variance ratios specified. ", length(varianceratios),
              " variance ratios given c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups), " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
       }
 
@@ -834,7 +834,6 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       }
     }, error = function(e) {})
   }
-
   if (detailedoutput) {
     if (nrow(retval) != length(anticoef)){
       retval$anticoef = c(rep(NA, nrow(retval) - length(anticoef)), anticoef)
@@ -850,7 +849,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     retval$trials = nrow(run_matrix_processed)
     retval$nsim = nsim
     retval$blocking = blocking
-    if(calceffect) {
+    if(calceffect && alpha_adjust) {
       retval$error_adjusted_alpha = c(alpha_effect, alpha_parameter)
     } else {
       retval$error_adjusted_alpha = alpha_parameter

@@ -289,7 +289,7 @@ gen_design = function(candidateset, model, trials,
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
   if (!(optimality_uc %in% c("D", "I", "A", "E", "T", "G", "ALIAS", "CUSTOM"))) {
-    stop(paste0(optimality, " not recognized as a supported optimality criterion."))
+    stop(sprintf("skpr: %s not recognized as a supported optimality criterion.",optimality))
   } else {
     optimality = optimality_uc
   }
@@ -391,30 +391,21 @@ gen_design = function(candidateset, model, trials,
 
   #Throw error if backticks detected
   if (grepl("`", as.character(model)[2], fixed = TRUE)) {
-    stop("skpr does not support backticks in gen_design. Use variable names without backticks and try again.")
+    stop("skpr: skpr does not support backticks in gen_design. Use variable names without backticks and try again.")
   }
 
-  #----- Convert dots in formula to terms, taking split-plot design into account -----#
-  if (any(unlist(strsplit(as.character(model[2]), "\\s\\+\\s|\\s\\*\\s|\\:|\\^")) == ".")) {
-    if (is.null(splitplotdesign)) {
-      dotreplace = paste0("(", paste0(attr(candidateset, "names"), collapse = " + "), ")")
-      additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
-      multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
-      interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-      powerterms = unlist(lapply(lapply(strsplit(interactionterms, split = "\\^"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = "^"))
-      model = as.formula(paste0("~", paste(powerterms, collapse = " + "), sep = ""))
-    } else {
-      dotreplace = paste0("(", paste(c(colnames(splitplotdesign), colnames(candidateset)), collapse = " + "), ")")
-      additionterms = unlist(strsplit(as.character(model[2]), "\\s\\+\\s"))
-      multiplyterms = unlist(lapply(lapply(strsplit(additionterms, split = "\\s\\*\\s"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = " * "))
-      interactionterms = unlist(lapply(lapply(strsplit(multiplyterms, split = "\\:"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = ":"))
-      powerterms = unlist(lapply(lapply(strsplit(interactionterms, split = "\\^"), gsub, pattern = "^\\.$", replacement = dotreplace), paste0, collapse = "^"))
-      model = as.formula(paste0("~", paste(powerterms, collapse = " + "), sep = ""))
+  model = convert_model_dots(candidateset, model, splitplotdesign)
+
+  #---- Convert all character vectors to factors in candidate set ----#
+
+  for(i in seq_len(ncol(candidateset))) {
+    if(is.character(candidateset[,i])) {
+      candidateset[,i] = as.factor(candidateset[,i])
     }
   }
 
   #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model)
+  model = rearrange_formula_by_order(model, data = candidateset)
 
   if (is.null(contrast)) {
     contrast = function(n) contr.simplex(n, size = sqrt(n - 1))
@@ -527,21 +518,21 @@ gen_design = function(candidateset, model, trials,
   fullcandidateset = unique(reduceRunMatrix(candidateset, model))
 
   if (is.null(splitplotdesign)) {
-    candidateset = unique(reduceRunMatrix(candidateset, model))
+    candidateset = unique(reduceRunMatrix(candidateset, model, FALSE))
   } else {
-    candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula))
+    candidateset = unique(reduceRunMatrix(candidateset, modelnowholeformula, FALSE))
   }
 
   #------Ensure the candidate set has no single-valued columns------#
   if (nrow(candidateset) == 0) {
-    stop("The candidate set has zero rows.")
+    stop("skpr:The candidate set has zero rows.")
   }
   if (ncol(candidateset) == 0) {
-    stop("The candidate set has zero columns.")
+    stop("skpr:The candidate set has zero columns.")
   }
   for (colno in 1:ncol(candidateset)) {
     if (length(unique(candidateset[[colno]])) == 1) {
-      stop(paste("Column", colnames(candidateset)[colno], "of the candidateset contains only a single value."))
+      stop(paste("skpr: Column", colnames(candidateset)[colno], "of the candidateset contains only a single value."))
     }
   }
   #----Check for augmented design and normalize/equalize factor levels if present----#
@@ -553,13 +544,13 @@ gen_design = function(candidateset, model, trials,
       augmented_cols_prev = rep(1,nrow(augmentdesign))
     }
     if (!is.null(splitplotdesign)) {
-      stop("Design augmentation not available with split-plot designs.")
+      stop("skpr: Design augmentation not available with split-plot designs.")
     }
     if(prev_augmented) {
       augmentdesign$Block1 = NULL
     }
     if (any(colnames(augmentdesign)[order(colnames(augmentdesign))] != colnames(candidateset)[order(colnames(candidateset))])) {
-      stop("Column names for augmented design and candidate set must be equal.")
+      stop("skpr: Column names for augmented design and candidate set must be equal.")
     }
     if (ncol(augmentdesign) != ncol(candidateset)) {
       stop("Number of columns in the augmented design must equal number of columns in the candidate set.")
@@ -576,7 +567,7 @@ gen_design = function(candidateset, model, trials,
       }
     }
     if (nrow(augmentdesign) >= trials) {
-      stop("Total number of trials must exceed the number of runs in augmented design.")
+      stop("skpr: Total number of trials must exceed the number of runs in augmented design.")
     }
     augmentdesign = augmentdesign[, colnames(candidateset)]
     #Check and make sure factor levels are equal
@@ -634,10 +625,10 @@ gen_design = function(candidateset, model, trials,
       blocksizes = rep(blocksizes, nrow(splitplotdesign))
     }
     if (trials != sum(blocksizes)) {
-      stop("Blocked replicates does not equal the number of trials input")
+      stop("skpr: Blocked replicates does not equal the number of trials input")
     }
     if (nrow(splitplotdesign) != length(blocksizes)) {
-      stop("Need to specify a size for each row in the given split plot design")
+      stop("skpr: Need to specify a size for each row in the given split plot design")
     }
     alreadyBlocking = FALSE
     initialrownames = rownames(splitplotdesign)
@@ -715,7 +706,7 @@ gen_design = function(candidateset, model, trials,
     } else {
       if(is.list(blocksizes)) {
         if(length(varianceratio) < length(blocksizes) + 1) {
-          stop("Number of blocking layers (specified in the list passed to `blocksizes` argument) does not equal number of entries in argument `varianceratio`. Set a ratio for each layer or one value for all layers.` ")
+          stop("skpr: Number of blocking layers (specified in the list passed to `blocksizes` argument) does not equal number of entries in argument `varianceratio`. Set a ratio for each layer or one value for all layers.` ")
         }
       }
     }
@@ -735,7 +726,7 @@ gen_design = function(candidateset, model, trials,
           blocksizes[[i]] = sizevector
         } else {
           if(sum(blocksizes[[i]]) != trials) {
-            stop("sum(blocksize[[",i,"]]) layer not equal to number of trials: ", trials)
+            stop("skpr: sum(blocksize[[",i,"]]) layer not equal to number of trials: ", trials)
           }
         }
       }
@@ -838,7 +829,7 @@ gen_design = function(candidateset, model, trials,
         }, error = (function(e) (return(TRUE))))
       }
       if(is_singular()) {
-        stop(paste("The candidate set does not support the specified model - its rank is too low.",
+        stop(paste("skpr: The candidate set does not support the specified model - its rank is too low.",
                    "This usually happens if disallowed combinations",
                    "have introduced a perfect correlation between some variables in the candidate set.",
                    "It can also happen if you have specified a quadratic model term but have only two levels",
@@ -867,7 +858,7 @@ gen_design = function(candidateset, model, trials,
    }
   }
   if (model == amodel && optimality == "ALIAS") {
-    stop(paste0(c("Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
+    stop(paste0(c("skpr: Alias optimal selected, but full model specified with no aliasing at current aliaspower: ",
                   aliaspower, ". Try setting aliaspower = ", aliaspower + 1), collapse = ""))
   }
   if (length(contrastslist) == 0) {
@@ -881,7 +872,7 @@ gen_design = function(candidateset, model, trials,
   if (!splitplot) {
     factors = colnames(candidatesetmm)
     levelvector = sapply(lapply(candidateset, unique), length)
-    classvector = sapply(lapply(candidateset, unique), class) == "factor"
+    classvector = sapply(candidateset, inherits, c("factor", "character"))
 
     mm = gen_momentsmatrix(factors, levelvector, classvector)
     if (!parallel) {
@@ -1111,7 +1102,7 @@ gen_design = function(candidateset, model, trials,
   }
 
   if (length(designs) == 0) {
-    stop(paste0("For a design with ", trials, " trials and ",
+    stop(paste0("skpr: For a design with ", trials, " trials and ",
                 ncol(candidatesetmm) + ifelse(splitplot, ncol(blockedmodelmatrix) - 1 + length(interactionlist), 0),
                 " parameters, skpr was not able to find non-singular design within given number of repeats. ",
                 "Increase repeats argument and try again. If still no designs are found, reduce the number ",
@@ -1155,9 +1146,18 @@ gen_design = function(candidateset, model, trials,
             aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidatesetnormalized, augmentdesign), contrasts.arg = contrastslist)[, -1, drop = FALSE]
           })
         }
-        aliasvalues[[i]] = calcAliasTrace(designs[[i]], aliasmatrix)
+        #Must test for NaN (can't solve some alias matrices for certain models)
+        alias_val = calcAliasTrace(designs[[i]], aliasmatrix)
+        if(!is.na(alias_val)) {
+          aliasvalues[[i]] = alias_val
+        }
       }
-      best = bestvec[which.min(unlist(aliasvalues))]
+      #If no best values found, just return first design
+      if(length(aliasvalues) > 0) {
+        best = bestvec[which.min(unlist(aliasvalues))]
+      } else {
+        best = bestvec[1]
+      }
     } else {
       best = which.max(criteria)
     }
@@ -1168,7 +1168,7 @@ gen_design = function(candidateset, model, trials,
   if (optimality == "A" || optimality == "I" || optimality == "ALIAS" || optimality == "G") {
     criteria = criteria[criteria > 0]
     if (length(criteria) == 0) {
-      stop("No non-singular designs found--increase number of repeats.")
+      stop("skpr: No non-singular designs found--increase number of repeats.")
     }
     mincriteria = min(unlist(criteria), na.rm = TRUE)
     if (is.null(advancedoptions$alias_tie_tolerance) || advancedoptions$alias_tie_tolerance == 0) {
@@ -1198,9 +1198,18 @@ gen_design = function(candidateset, model, trials,
             aliasmatrix = model.matrix(amodel, constructRunMatrix(rowindextemp, candidatesetnormalized, augmentdesign), contrasts.arg = contrastslist)[, -1, drop = FALSE]
           })
         }
-        aliasvalues[[i]] = calcAliasTrace(designs[[i]], aliasmatrix)
+        #Must test for NaN (can't solve some alias matrices for certain models)
+        alias_val = calcAliasTrace(designs[[i]], aliasmatrix)
+        if(!is.na(alias_val)) {
+          aliasvalues[[i]] = alias_val
+        }
       }
-      best = bestvec[which.min(unlist(aliasvalues))]
+      #If no best values found, just return first design
+      if(length(aliasvalues) > 0) {
+        best = bestvec[which.min(unlist(aliasvalues))]
+      } else {
+        best = bestvec[1]
+      }
     } else {
       best = which.min(criteria)
     }
@@ -1308,7 +1317,15 @@ gen_design = function(candidateset, model, trials,
 
   tryCatch({
     if (ncol(designmm) > 2) {
-      correlation.matrix = abs(cov2cor(t(designmm) %*% designmm)[-1, -1])
+      row_is_zero = apply(t(designmm) %*% designmm,1,(function(x) all(x == 0)))
+      if(any(row_is_zero)) {
+        terms_zero = paste0(sprintf("`%s`",names(row_is_zero)[row_is_zero]),collapse = " ")
+        warning(sprintf("Covariance matrix has singularities due to term(s) %s: adding small offset (1e-10) along diagonal of information matrix to compute correlation matrix",
+                        terms_zero))
+        correlation.matrix = abs(cov2cor((t(designmm) %*% designmm) + diag(dim(designmm)[2])*1e-10)[-1, -1])
+      } else {
+        correlation.matrix = abs(cov2cor(t(designmm) %*% designmm)[-1, -1])
+      }
       colnames(correlation.matrix) = colnames(designmm)[-1]
       rownames(correlation.matrix) = colnames(designmm)[-1]
       attr(design, "correlation.matrix") = round(correlation.matrix, 8)
@@ -1367,7 +1384,11 @@ gen_design = function(candidateset, model, trials,
   #Re-order factors so levels with the lowest number of factors come first
   for (i in 1:ncol(design)) {
     if (!is.numeric(design[[i]])) {
-      design[i] = factor(design[[i]], levels = levels(design[[i]])[order(table(design[[i]]))])
+      if(inherits(design[[i]],"factor")) {
+        design[i] = factor(design[[i]], levels = levels(design[[i]])[order(table(design[[i]]))])
+      } else {
+        design[i] = factor(design[[i]], levels = unique(design[[i]])[order(table(design[[i]]))])
+      }
     }
   }
 

@@ -75,7 +75,7 @@ get_optimality = function(output, optimality = NULL) {
       optimality = "A"
     }
     if(!optimality %in% c("D","A","I","G","E","T","Alias")) {
-      stop("Optimality `",optimality,"` not in ", paste0(c("D","A","I","G","E","T","Alias"),collapse=", "))
+      stop("skpr: Optimality `",optimality,"` not in ", paste0(c("D","A","I","G","E","T","Alias"),collapse=", "))
     }
     return(optimality_df[optimality])
   }

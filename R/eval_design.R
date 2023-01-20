@@ -166,14 +166,14 @@ eval_design = function(design, model = NULL, alpha = 0.05,
                        contrasts = contr.sum, conservative = FALSE, reorder_factors = FALSE,
                        detailedoutput = FALSE, advancedoptions = NULL, ...) {
   if(missing(design)) {
-    stop("No design detected in arguments.")
+    stop("skpr: No design detected in arguments.")
   }
   if(missing(model) || (is.numeric(model) && missing(alpha))) {
     if(is.numeric(model) && missing(alpha)) {
       alpha = model
     }
     if(is.null(attr(design,"generating.model"))) {
-      stop("No model detected in arguments or in design attributes.")
+      stop("skpr: No model detected in arguments or in design attributes.")
     } else {
       model = attr(design,"generating.model")
     }
@@ -198,7 +198,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   input_design = design
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
-    stop("RunMatrix argument deprecated. Use `design` instead.")
+    stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
 
   if(is.null(blocking)) {
@@ -239,7 +239,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     aliaspower = 2
   } else {
     if(!is.numeric(advancedoptions$aliaspower)) {
-      stop("advancedoptions$aliaspower must be a positive integer")
+      stop("skpr: advancedoptions$aliaspower must be a positive integer")
     }
     aliaspower = advancedoptions$aliaspower
   }
@@ -260,7 +260,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   model = convert_model_dots(run_matrix_processed, model)
 
   #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model)
+  model = rearrange_formula_by_order(model, data = run_matrix_processed)
   if (nointercept) {
     model = update.formula(model, ~-1 + . )
   }
@@ -303,7 +303,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     }
   }
   if (length(anticoef) != dim(attr(run_matrix_processed, "modelmatrix"))[2]) {
-    stop("Wrong number of anticipated coefficients")
+    stop("skpr: Wrong number of anticipated coefficients")
   }
 
   #-----Generate V inverse matrix-----X

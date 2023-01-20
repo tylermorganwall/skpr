@@ -30,7 +30,7 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)", ...) {
     })
   }
   if (all(is.na(effectnames))) {
-    stop("Effect power not supported for fit type: ", class(fit))
+    stop("skpr: Effect power not supported for fit type: ", class(fit))
   }
   if ("Residuals" %in% effectnames) {
     effect_pvals = effect_pvals[-length(effect_pvals)]

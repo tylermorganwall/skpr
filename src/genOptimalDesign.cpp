@@ -38,12 +38,12 @@ List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& cand
   Eigen::MatrixXd test(initialdesign.cols(), initialdesign.cols());
   test.setZero();
   if(nTrials < candidatelist.cols()) {
-    throw std::runtime_error("Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
+    throw std::runtime_error("skpr: Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   //Check for singularity from a column perfectly correlating with the intercept.
   for(int j = 1; j < candidatelist.cols(); j++) {
     if(candidatelist.col(0).cwiseEqual(candidatelist.col(j)).all()) {
-      throw std::runtime_error("Singular model matrix from factor aliased into intercept, revise model");
+      throw std::runtime_error("skpr: Singular model matrix from factor aliased into intercept, revise model");
     }
   }
   Eigen::VectorXi shuffledindices;

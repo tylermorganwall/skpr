@@ -11,7 +11,7 @@ aliasmodel = function(formula, power) {
   variables = paste0("`", all.vars(formula), "`")
 
   if (power < 2) {
-    stop("Aliased terms must be greater than linear")
+    stop("skpr: Aliased terms must be greater than linear")
   }
 
   aliasterms = c()

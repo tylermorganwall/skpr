@@ -4,12 +4,12 @@
 #'@param model Base model
 #'@return Rearranged model
 #'@keywords internal
-rearrange_formula_by_order = function(model) {
-  interceptterm = attr(terms.formula(model), "intercept") == 1
-  model_terms = attr(terms.formula(model), "term.labels")
-  modelorder = attr(terms.formula(model), "order")
+rearrange_formula_by_order = function(model, data) {
+  interceptterm = attr(terms.formula(model, data = data), "intercept") == 1
+  model_terms = attr(terms.formula(model, data = data), "term.labels")
+  modelorder = attr(terms.formula(model, data = data), "order")
   higherorderterms = grepl("^I\\(.+\\)$",
-                           x = attr(terms.formula(model), "term.labels"),
+                           x = attr(terms.formula(model, data = data), "term.labels"),
                            perl = TRUE)
   entries_move_end = (modelorder == 1 & higherorderterms)
   rearranged_model = formula(paste0(c("~", paste0(c(model_terms[!entries_move_end],

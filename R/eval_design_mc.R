@@ -329,7 +329,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       }
     }
   } else {
-    alpha_effect = NULL
+    alpha_effect = alpha
     alpha_parameter = alpha
   }
   if (attr(terms.formula(model, data = design), "intercept") == 1) {

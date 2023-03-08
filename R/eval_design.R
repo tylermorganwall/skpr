@@ -490,7 +490,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     class(results) = c("skpr_eval_output", class(results))
   }
   if(any(is.na(results$power))) {
-    warning("NA indicates not enough degrees of freedom to estimate power for those terms.")
+    warning("skpr: NA indicates not enough degrees of freedom to estimate power for those terms.")
   }
   return(results)
 }

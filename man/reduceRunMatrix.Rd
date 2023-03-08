@@ -4,7 +4,7 @@
 \alias{reduceRunMatrix}
 \title{Remove columns not in model}
 \usage{
-reduceRunMatrix(RunMatrix, model)
+reduceRunMatrix(RunMatrix, model, first_run = TRUE)
 }
 \arguments{
 \item{model}{The formula}

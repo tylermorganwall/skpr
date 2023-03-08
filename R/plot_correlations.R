@@ -47,6 +47,14 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
     allattr$names = allattr$names[!allattr$names %in% attr(genoutput, "splitcolumns")]
     attributes(genoutput) = allattr
   }
+  if (!is.null(attr(genoutput, "augmented"))) {
+    if (attr(genoutput, "augmented")) {
+      allattr = attributes(genoutput)
+      genoutput = genoutput[, !(colnames(genoutput) %in% "Block1"), drop = FALSE]
+      allattr$names = allattr$names[!allattr$names %in% "Block1"]
+      attributes(genoutput) = allattr
+    }
+  }
   if (is.null(attr(genoutput, "variance.matrix") )) {
     genoutput = eval_design(genoutput, model, 0.2)
   }

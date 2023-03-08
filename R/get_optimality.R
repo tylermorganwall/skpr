@@ -7,6 +7,7 @@
 #'
 #'@param output The output of either gen_design or eval_design/eval_design_mc.
 #'@param optimality Default `NULL`. Return just the specific optimality requested.
+#'@param calc_g Default `FALSE`. Whether to calculate the g-efficiency.
 #'@return A dataframe of optimality conditions. `D`, `A`, and `G` are efficiencies (value is out of 100).
 #'`T` is the trace of the information matrix, `E` is the minimum eigenvalue of the information matrix,
 #'`I` is the average prediction variance, and `Alias` is the trace of the alias matrix.
@@ -33,11 +34,11 @@
 #'                           alpha = 0.05, detailedoutput = TRUE)
 #'
 #'get_optimality(power_output)
-get_optimality = function(output, optimality = NULL) {
+get_optimality = function(output, optimality = NULL, calc_g = FALSE) {
   if(is.null(attr(output, "D"))) attr(output, "D") = NA
   if(is.null(attr(output, "A"))) attr(output, "A") = NA
   if(!is.null(attr(output, "augmented"))) {
-    if(!attr(output, "augmented") && !attr(output, "splitplot") ) {
+    if(!attr(output, "augmented") && !attr(output, "splitplot") && calc_g) {
       attr(output, "G") = calculate_gefficiency(output, calculation_type = "random",
                                                 randsearches = 1000)
     } else {

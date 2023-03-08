@@ -25,4 +25,5 @@ register_s3_method <- function(pkg, generic, class, fun = NULL) {
 
 .onLoad <- function(...) {
   register_s3_method("skpr", "print", "skpr_eval_output")
+  register_s3_method("skpr", "print", "skpr_power_curve_output")
 }

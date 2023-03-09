@@ -372,7 +372,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     model = update.formula(model, ~-1 + .)
   }
 
-  glmfamilyname = glmfamily
+  glmfamilyname = tolower(glmfamily)
 
   #------Auto-set random generating function----#
   if (is.null(rfunction)) {
@@ -653,7 +653,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       }
       if(!fiterror) {
         #determine whether beta[i] is significant. If so, increment nsignificant
-        pvals = suppressWarnings(extractPvalues(fit))
+        pvals = suppressWarnings(extractPvalues(fit, glmfamily = glmfamilyname))
         pvallist[[j]] = pvals
         if (length(effect_power_values) == 0 && calceffect && !fiterror) {
           effect_power_values = c(effect_power_values, rep(0, length(effect_pvals)))
@@ -778,7 +778,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         }
         if(!fiterror) {
           #determine whether beta[i] is significant. If so, increment nsignificant
-          pvals = extractPvalues(fit)
+          pvals = extractPvalues(fit, glmfamily = glmfamilyname)
           power_values = rep(0, length(pvals))
           if (calceffect) {
             effect_power_values = rep(0, length(effect_pvals))

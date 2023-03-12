@@ -213,7 +213,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
 
   #------Normalize/Center numeric columns ------#
-  run_matrix_processed = normalize_numeric_runmatrix(run_matrix_processed)
+  run_matrix_processed = normalize_design(run_matrix_processed)
 
   #---------- Generating model matrix ----------#
   #remove columns from variables not used in the model

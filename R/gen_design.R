@@ -350,10 +350,10 @@ gen_design = function(candidateset, model, trials,
         }
         if (length(contrastslisttemp) == 0) {
           advancedoptions$g_efficiency_samples = model.matrix(model,
-                                        normalize_numeric_runmatrix(advancedoptions$g_efficiency_samples))
+                                        normalize_design(advancedoptions$g_efficiency_samples))
         } else {
           advancedoptions$g_efficiency_samples = suppressWarnings(model.matrix(model,
-                                                         normalize_numeric_runmatrix(advancedoptions$g_efficiency_samples),
+                                                         normalize_design(advancedoptions$g_efficiency_samples),
                                                          contrasts.arg = contrastslisttemp))
         }
       } else {
@@ -578,7 +578,7 @@ gen_design = function(candidateset, model, trials,
       }
     }
     #Normalize
-    augmentnormalized = normalize_numeric_runmatrix(augmentdesign, candidateset)
+    augmentnormalized = normalize_design(augmentdesign, candidateset)
     augmentedrows = nrow(augmentdesign)
   } else {
     augmentedrows = 0
@@ -587,11 +587,11 @@ gen_design = function(candidateset, model, trials,
   #------Normalize/Center numeric columns ------#
   candidatesetnormalized = candidateset
 
-  candidatesetnormalized = normalize_numeric_runmatrix(candidateset, augmentdesign)
-  fullcandidatesetnorm = normalize_numeric_runmatrix(fullcandidateset, augmentdesign)
+  candidatesetnormalized = normalize_design(candidateset, augmentdesign)
+  fullcandidatesetnorm = normalize_design(fullcandidateset, augmentdesign)
 
   if (!is.null(splitplotdesign)) {
-    spdnormalized = normalize_numeric_runmatrix(splitplotdesign)
+    spdnormalized = normalize_design(splitplotdesign)
   }
 
   splitplot = FALSE

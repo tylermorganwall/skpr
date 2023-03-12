@@ -167,7 +167,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   model = rearrange_formula_by_order(model, data = run_matrix_processed)
 
   #------Normalize/Center numeric columns ------#
-  run_matrix_processed = normalize_numeric_runmatrix(run_matrix_processed)
+  run_matrix_processed = normalize_design(run_matrix_processed)
 
   #Remove skpr-generated REML blocking indicators if present
   run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)

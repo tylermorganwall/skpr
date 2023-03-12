@@ -286,7 +286,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   }
 
   #------Normalize/Center numeric columns ------#
-  run_matrix_processed = normalize_numeric_runmatrix(run_matrix_processed)
+  run_matrix_processed = normalize_design(run_matrix_processed)
 
   #-Generate Model Matrix & Anticipated Coefficients-#
   #Variables used later: anticoef

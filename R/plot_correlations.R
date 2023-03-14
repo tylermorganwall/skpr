@@ -9,6 +9,8 @@
 #'@param customcolors A vector of colors for customizing the appearance of the colormap
 #'@param pow Default 2. The interaction level that the correlation map is showing.
 #'@param custompar Default NULL. Custom parameters to pass to the `par` function for base R plotting.
+#'@param standardize Default `TRUE`. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
+#'standardizing the numeric columns can increase multi-collinearity (predictors that are correlated with other predictors in the model).
 #'@return Silently returns the correlation matrix with the proper row and column names.
 #'@import graphics grDevices
 #'@export
@@ -31,7 +33,8 @@
 #'#You can also pass in a custom color map.
 #'plot_correlations(cardesign, customcolors = c("blue", "grey", "red"))
 #'plot_correlations(cardesign, customcolors = c("blue", "green", "yellow", "orange", "red"))
-plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow = 2, custompar = NULL) {
+plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow = 2, custompar = NULL,
+                             standardize = TRUE) {
   #Remove skpr-generated REML blocking indicators if present
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
@@ -92,10 +95,12 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
     contrastlist = NULL
   }
   #------Normalize/Center numeric columns ------#
-  for (column in 1:ncol(genoutput)) {
-    if (is.numeric(genoutput[, column])) {
-      midvalue = mean(c(max(genoutput[, column]), min(genoutput[, column])))
-      genoutput[, column] = (genoutput[, column] - midvalue) / (max(genoutput[, column]) - midvalue)
+  if(standardize) {
+    for (column in 1:ncol(genoutput)) {
+      if (is.numeric(genoutput[, column])) {
+        midvalue = mean(c(max(genoutput[, column]), min(genoutput[, column])))
+        genoutput[, column] = (genoutput[, column] - midvalue) / (max(genoutput[, column]) - midvalue)
+      }
     }
   }
 

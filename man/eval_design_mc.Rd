@@ -20,6 +20,7 @@ eval_design_mc(
   effectsize = 2,
   contrasts = contr.sum,
   parallel = FALSE,
+  adjust_alpha_inflation = FALSE,
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
@@ -74,6 +75,11 @@ If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{parallel}{Default `FALSE`. If `TRUE`, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
+
+\item{adjust_alpha_inflation}{Default `FALSE`. If `TRUE`, this will run the simulation twice:
+first to calculate the empirical distribution of p-values under the null hypothesis and find
+the true Type-I error cutoff that corresponds to the desired Type-I error rate,
+and then again given effect size to calculate power values.}
 
 \item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
 

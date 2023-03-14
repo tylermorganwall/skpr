@@ -39,6 +39,10 @@
 #'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 #'@param parallel Default `FALSE`. If `TRUE`, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
+#'@param adjust_alpha_inflation Default `FALSE`. If `TRUE`, this will run the simulation twice:
+#'first to calculate the empirical distribution of p-values under the null hypothesis and find
+#'the true Type-I error cutoff that corresponds to the desired Type-I error rate,
+#'and then again given effect size to calculate power values.
 #'@param detailedoutput Default `FALSE`. If `TRUE`, return additional information about evaluation in results.
 #'@param progress Default `TRUE`. Whether to include a progress bar.
 #'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
@@ -217,6 +221,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                           calceffect = TRUE, effect_anova = TRUE,
                           varianceratios = NULL, rfunction = NULL, anticoef = NULL, firth = FALSE,
                           effectsize = 2, contrasts = contr.sum, parallel = FALSE,
+                          adjust_alpha_inflation = FALSE,
                           detailedoutput = FALSE, progress = TRUE, advancedoptions = NULL, ...) {
   if(!firth) {
     method = "glm.fit"
@@ -283,17 +288,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     } else {
       progressBarUpdater = NULL
     }
-    if(is.null(advancedoptions$alphacorrection)) {
-      advancedoptions$alphacorrection = TRUE
-    } else {
-      if(!advancedoptions$alphacorrection) {
-        advancedoptions$alphacorrection = FALSE
-      }
-    }
   } else {
     advancedoptions = list()
     advancedoptions$GUI = FALSE
-    advancedoptions$alphacorrection = TRUE
     progressBarUpdater = NULL
     advancedoptions$save_simulated_responses = FALSE
     advancedoptions$aliaspower = 2
@@ -307,9 +304,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     aliaspower = advancedoptions$aliaspower
   }
   alpha_adjust = FALSE
-  if (advancedoptions$alphacorrection && glmfamily != "gaussian" && blocking) {
+  if (adjust_alpha_inflation) {
     alpha_adjust = TRUE
-    advancedoptions$alphacorrection = FALSE
+    adjust_alpha_inflation = FALSE
     if (is.null(advancedoptions$alphanull)) {
       effectsizetemp = c(effectsize[1], effectsize[1])
     } else {
@@ -320,12 +317,17 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                    calceffect = calceffect, effect_anova = effect_anova,
                    varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef, firth = firth,
                    effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
+                   progress = FALSE,
                    detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
     if (attr(terms.formula(model, data = design), "intercept") == 1) {
       alpha_parameter = c(alpha, apply(attr(nullresults, "pvals"), 2, quantile, probs = alpha)[-1])
       alpha_parameter[alpha_parameter > alpha] = alpha
       if (calceffect) {
-        alpha_effect = c(alpha, apply(attr(nullresults, "effect_pvals"), 2, quantile, probs = alpha)[-1])
+        if(nullresults$parameter[1] == "(Intercept)") {
+          alpha_effect = c(alpha, apply(attr(nullresults, "effect_pvals"), 2, quantile, probs = alpha)[-1])
+        } else {
+          alpha_effect = apply(attr(nullresults, "effect_pvals"), 2, quantile, probs = alpha)
+        }
         alpha_effect[alpha_effect > alpha] = alpha
       }
     } else {

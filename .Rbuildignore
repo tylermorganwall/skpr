@@ -12,3 +12,5 @@
 ^skprlogo\.png$
 ^vidguigif\.gif$
 ^\.github$
+^.+final_test_results\.Rds$
+

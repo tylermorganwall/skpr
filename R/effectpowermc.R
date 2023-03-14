@@ -12,15 +12,16 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)",
                          model_formula = NULL, firth = FALSE, glmfamily = "gaussian", effect_terms = NULL,
                          RunMatrixReduced = NULL, method = NULL, contrastslist = contrastslist,
                          effect_anova = FALSE, ...) {
-  effectnames = NA
+  output = new.env(parent = emptyenv())
+  output$effectnames = NA
   if(glmfamily != "binomial") {
     firth = FALSE
   }
   if (class(fit)[1] == "lmerModLmerTest") {
     test = "Pr(>F)"
     anovafit = suppressMessages(anova(fit, type = type, ... ))
-    effectnames = rownames(anovafit)
-    effect_pvals = as.vector(as.matrix(anovafit[test]))
+    output$effectnames = rownames(anovafit)
+    output$effect_pvals = as.vector(as.matrix(anovafit[test]))
   } else if (!effect_anova || (firth && glmfamily == "binomial")) {
     if(!(length(find.package("lmtest", quiet = TRUE)) > 0)) {
       stop("{lmtest} package required when specifying `effect_anova = FALSE` ",
@@ -52,8 +53,8 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)",
     }
     term_order_list = split(factor_terms, term_order)
     hierarchy_terms = lapply(term_order_list, paste, collapse = " + ")
-    effect_pvals = rep(1,length(factor_terms))
-    effectnames = factor_terms
+    output$effect_pvals = rep(1,length(factor_terms))
+    output$effectnames = factor_terms
     higher_order_terms = term_order_list
     model_hierarchy = vector("list", length = length(hierarchy_terms))
     model_hierarchy[[1]] = sprintf("Y ~ %s", hierarchy_terms[[1]])
@@ -80,9 +81,9 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)",
       }
       lr_results = lmtest::lrtest(fit, fit_reduced)
       if(lr_results$`#Df`[1] != lr_results$`#Df`[2]) {
-        effect_pvals[k] = lr_results$`Pr(>Chisq)`[2]
+        output$effect_pvals[k] = lr_results$`Pr(>Chisq)`[2]
       } else {
-        effect_pvals[k] = 1.0
+        output$effect_pvals[k] = 1.0
       }
     }
   } else {
@@ -92,25 +93,38 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)",
           car::Anova(fit, type = type, ... )
         )
       )
-      effectnames = rownames(anovafit)
-      effect_pvals = as.vector(as.matrix(anovafit[test]))
+      output$effectnames = rownames(anovafit)
+      output$effect_pvals = as.vector(as.matrix(anovafit[test]))
     }, error = function(e) {
-      effectnames = rownames(coef(summary(fit)))
-      effect_pvals = rep(NA,length(effectnames))
+      if(any(grepl("residual sum of squares", as.character(e)))) {
+        fit2 = fit
+        fit2$residuals = fit2$residuals + 1
+        anovafit2 = suppressWarnings(
+          suppressMessages(
+            car::Anova(fit2, type = type, ... )
+          )
+        )
+        output$effectnames = rownames(anovafit2)
+        output$effect_pvals = rep(1,length(output$effectnames))
+      } else {
+        output$effectnames = rownames(coef(summary(fit)))
+        output$effect_pvals = rep(NA,length(output$effectnames))
+      }
+      return(e)
     })
   }
-  if (all(is.na(effectnames))) {
+  if (all(is.na(output$effectnames))) {
     if(df.residual(fit) == 0) {
       stop("skpr: Model saturated--no residual degrees of freedom to fit the model and estimate power.")
     } else {
       stop("skpr: Effect power not supported for fit type: ", class(fit))
     }
   }
-  if ("Residuals" %in% effectnames) {
-    effect_pvals = effect_pvals[effectnames != "Residuals"]
-    names(effect_pvals) = effectnames[effectnames != "Residuals"]
+  if ("Residuals" %in% output$effectnames) {
+    output$effect_pvals = output$effect_pvals[output$effectnames != "Residuals"]
+    names(output$effect_pvals) = output$effectnames[output$effectnames != "Residuals"]
   } else {
-    names(effect_pvals) = effectnames
+    names(output$effect_pvals) = output$effectnames
   }
-  effect_pvals
+  output$effect_pvals
 }

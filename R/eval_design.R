@@ -26,7 +26,7 @@
 #'this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
 #'Otherwise, it will use a single value for all strata.
 #'@param contrasts Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
-#'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
+#'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use `contr.sum`.
 #'@param detailedoutput If `TRUE``, return additional information about evaluation in results. Default FALSE.
 #'@param conservative Specifies whether default method for generating
 #'anticipated coefficents should be conservative or not. `TRUE` will give the most conservative
@@ -491,6 +491,19 @@ eval_design = function(design, model = NULL, alpha = 0.05,
   }
   if(any(is.na(results$power))) {
     warning("skpr: NA indicates not enough degrees of freedom to estimate power for those terms.")
+  }
+  recommend_analysis_method = function(blocking) {
+
+  }
+  #Add recommended analysis method
+  contrast_string = deparse(substitute(contrasts))
+  attr(results, "contrast_string") = sprintf("`%s`",contrast_string)
+  if(!blocking) {
+    attr(results, "parameter_analysis_method_string") = "`lm(...)`"
+    attr(results, "effect_analysis_method_string") = r"{`car::Anova(fit, type = "III")`}"
+  } else {
+    attr(results, "parameter_analysis_method_string") = "`lme4::lmer(...)`"
+    attr(results, "effect_analysis_method_string") = r"{`car::Anova(fit, type = "III")`}"
   }
   return(results)
 }

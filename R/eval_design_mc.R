@@ -936,6 +936,67 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   if(!inherits(retval,"skpr_eval_output")) {
     class(retval) = c("skpr_eval_output", class(retval))
   }
+  #Add recommended analysis method
+  contrast_string = deparse(substitute(contrasts))
+  attr(retval, "contrast_string") = sprintf("`%s`",contrast_string)
+  if(calceffect) {
+    if(effect_anova) {
+      effect_string = sprintf(r"{`car::Anova(fit, type = "III")`}")
+    } else {
+      effect_string = r"{`lmtest::lrtest(fit, fit_without_effect)`}"
+    }
+  } else {
+    effect_string = ""
+  }
+  if(glmfamilyname == "gaussian") {
+    if(!blocking) {
+      attr(retval, "parameter_analysis_method_string") = "`lm(...)`"
+      attr(retval, "effect_analysis_method_string") = effect_string
+    } else {
+      attr(retval, "parameter_analysis_method_string") = "`lme4::lmer(...)`"
+      attr(retval, "effect_analysis_method_string") = effect_string
+    }
+  } else if (glmfamilyname == "binomial") {
+    if(!blocking) {
+      if(!firth) {
+        attr(retval, "parameter_analysis_method_string") = r"{glm(..., family = "binomial")`}"
+        attr(retval, "effect_analysis_method_string") = effect_string
+      } else {
+        attr(retval, "parameter_analysis_method_string") = r"{glm(..., family = "binomial", method = mbest::firthglm.fit)`}" #"
+        if(calceffect) {
+          attr(retval, "effect_analysis_method_string") = r"{lmtest::lrtest(fit, fit_without_effect)`}"
+        } else {
+          attr(retval, "effect_analysis_method_string") = ""
+        }
+      }
+    } else {
+      attr(retval, "parameter_analysis_method_string") = r"{`lme4::glmer(..., family = "binomial")`}"
+      if(calceffect) {
+        attr(retval, "effect_analysis_method_string") = effect_string
+      } else {
+        attr(retval, "effect_analysis_method_string") = ""
+      }
+    }
+  } else if (glmfamilyname == "poisson") {
+    if(!blocking) {
+      attr(retval, "parameter_analysis_method_string") = r"{`glm(..., family = "poisson")`}"
+      attr(retval, "effect_analysis_method_string") = effect_string
+    } else {
+      attr(retval, "parameter_analysis_method_string") = r"{`lme4::glmer(..., family = "poisson")`}"
+      attr(retval, "effect_analysis_method_string") = effect_string
+    }
+  } else if (glmfamilyname == "exponential") {
+    if(!blocking) {
+      attr(retval, "parameter_analysis_method_string") = r"{`glm(..., family = Gamma(link = "log")); summary(fit, dispersion = 1)`}"
+      attr(retval, "effect_analysis_method_string") = effect_string
+    } else {
+      attr(retval, "parameter_analysis_method_string") = r"{`lme4::glmer(..., family = Gamma(link = "log")); summary(fit, dispersion = 1)`}"
+      attr(retval, "effect_analysis_method_string") = effect_string
+    }
+  } else {
+    attr(retval, "parameter_analysis_method_string") = ""
+    attr(retval, "effect_analysis_method_string")    = ""
+  }
   return(retval)
 }
 globalVariables("i")

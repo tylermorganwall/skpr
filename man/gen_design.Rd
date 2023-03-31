@@ -270,7 +270,7 @@ customOpt = function(currentDesign) {
  return(det(t(currentDesign) \%*\% currentDesign))
 }
 
-#Generate the whole plots for our split-plot designl, using the custom criterion.
+#Generate the whole plots for our split-plot design, using the custom criterion.
 
 candlistcustom = expand.grid(Altitude = c(10000, 20000),
                             Range = as.factor(c("Close", "Medium", "Far")),

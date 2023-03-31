@@ -4,7 +4,7 @@
 \alias{rearrange_formula_by_order}
 \title{Rearrange formula by order}
 \usage{
-rearrange_formula_by_order(model)
+rearrange_formula_by_order(model, data)
 }
 \arguments{
 \item{model}{Base model}

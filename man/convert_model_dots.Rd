@@ -4,12 +4,14 @@
 \alias{convert_model_dots}
 \title{Converts dot operator to terms}
 \usage{
-convert_model_dots(RunMatrix, model)
+convert_model_dots(design, model, splitplotdesign = NULL)
 }
 \arguments{
-\item{RunMatrix}{The Run Matrix}
+\item{design}{The design}
 
 \item{model}{Base model}
+
+\item{splitplotdesign}{split plot design data.frame}
 }
 \value{
 New model with dot operator replaced

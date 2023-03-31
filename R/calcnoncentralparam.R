@@ -12,5 +12,10 @@ calcnoncentralparam = function(X, L, b, vinv=NULL) {
   if (is.null(vinv)) {
     vinv = diag(nrow(X))
   }
-  return(t(L %*% b) %*% solve(L %*% solve(t(X) %*% vinv %*% X) %*% t(L)) %*% L %*% b)
+  matrix_solve = tryCatch({solve(t(X) %*% vinv %*% X)}, error = function(e) e)
+  if(inherits(matrix_solve,"error")) {
+    stop(sprintf("skpr: Can't calculate non-centrality parameter with given design matrix (X) and variance-covariance (Vinv) matrix due to `t(X) %*% Vinv %*% X` being singular. `solve()` error message: '%s'",
+                 as.character(matrix_solve)))
+  }
+  return(t(L %*% b) %*% solve(L %*% matrix_solve %*% t(L)) %*% L %*% b)
 }

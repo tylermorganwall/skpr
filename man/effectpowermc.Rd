@@ -4,7 +4,20 @@
 \alias{effectpowermc}
 \title{Fit Anova for Effect Power Calculation in Monte Carlo}
 \usage{
-effectpowermc(fit, type = "III", test = "Pr(>Chisq)", ...)
+effectpowermc(
+  fit,
+  type = "III",
+  test = "Pr(>Chisq)",
+  model_formula = NULL,
+  firth = FALSE,
+  glmfamily = "gaussian",
+  effect_terms = NULL,
+  RunMatrixReduced = NULL,
+  method = NULL,
+  contrastslist = contrastslist,
+  effect_anova = FALSE,
+  ...
+)
 }
 \arguments{
 \item{fit}{Fit from regression}

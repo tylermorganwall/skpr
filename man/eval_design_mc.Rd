@@ -12,6 +12,7 @@ eval_design_mc(
   nsim = 1000,
   glmfamily = "gaussian",
   calceffect = TRUE,
+  effect_anova = TRUE,
   varianceratios = NULL,
   rfunction = NULL,
   anticoef = NULL,
@@ -19,7 +20,9 @@ eval_design_mc(
   effectsize = 2,
   contrasts = contr.sum,
   parallel = FALSE,
+  adjust_alpha_inflation = FALSE,
   detailedoutput = FALSE,
+  progress = TRUE,
   advancedoptions = NULL,
   ...
 )
@@ -42,8 +45,13 @@ factors that are not present in the experimental design.}
 \item{glmfamily}{Default `gaussian`. String indicating the family of distribution for the `glm` function
 ("gaussian", "binomial", "poisson", or "exponential").}
 
-\item{calceffect}{Default `TRUE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
-this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata.}
+\item{calceffect}{Default `TRUE`. Whether to calculate effect power. This calculation is more expensive than parameter power,
+so turned off (if not needed) can greatly speed up calculation time.}
+
+\item{effect_anova}{Default `TRUE`, whether to a Type-III Anova or a likelihood ratio test to calculate effect power.
+If `TRUE`, effect power will be calculated using a Type-III Anova (using the car package) and a Wald test. If `FALSE`,
+a likelihood ratio test (using a reduced model for each effect) will performed using the `lmtest` package. If `firth = TRUE`,
+this will be set to `FALSE` automatically.}
 
 \item{varianceratios}{Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
 If not specified during design generation, this will default to 1. For designs with more than one subplot
@@ -57,7 +65,8 @@ You only need to specify this if you do not like the default behavior described 
 \item{anticoef}{Default `NULL`.The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}
 
-\item{firth}{Default `FALSE`. Whether to apply the firth correction (via the `mbest` package) to a logistic regression.}
+\item{firth}{Default `FALSE`. Whether to apply the firth correction (via the `mbest` package) to a logistic regression. This
+setting also automatically sets `effect_lr = TRUE`.}
 
 \item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
@@ -67,7 +76,14 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 \item{parallel}{Default `FALSE`. If `TRUE`, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.}
 
+\item{adjust_alpha_inflation}{Default `FALSE`. If `TRUE`, this will run the simulation twice:
+first to calculate the empirical distribution of p-values under the null hypothesis and find
+the true Type-I error cutoff that corresponds to the desired Type-I error rate,
+and then again given effect size to calculate power values.}
+
 \item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
+
+\item{progress}{Default `TRUE`. Whether to include a progress bar.}
 
 \item{advancedoptions}{Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.

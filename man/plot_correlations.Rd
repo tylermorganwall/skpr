@@ -9,7 +9,8 @@ plot_correlations(
   model = NULL,
   customcolors = NULL,
   pow = 2,
-  custompar = NULL
+  custompar = NULL,
+  standardize = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,9 @@ model used to generate/evaluate the design.}
 \item{pow}{Default 2. The interaction level that the correlation map is showing.}
 
 \item{custompar}{Default NULL. Custom parameters to pass to the `par` function for base R plotting.}
+
+\item{standardize}{Default `TRUE`. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
+standardizing the numeric columns can increase multi-collinearity (predictors that are correlated with other predictors in the model).}
 }
 \value{
 Silently returns the correlation matrix with the proper row and column names.

@@ -4,7 +4,7 @@
 \alias{extractPvalues}
 \title{Extract p-values from a model object}
 \usage{
-extractPvalues(model_fit)
+extractPvalues(model_fit, glmfamily = "gaussian")
 }
 \arguments{
 \item{model_fit}{The model object from which to extract.}

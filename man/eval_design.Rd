@@ -47,7 +47,7 @@ this ratio can be a vector specifying the variance ratio for each subplot (compa
 Otherwise, it will use a single value for all strata.}
 
 \item{contrasts}{Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use `contr.sum`.}
 
 \item{conservative}{Specifies whether default method for generating
 anticipated coefficents should be conservative or not. `TRUE` will give the most conservative

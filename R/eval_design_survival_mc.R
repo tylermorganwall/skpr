@@ -287,6 +287,8 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
+      pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+      stopifnot(all(names(pvals) == parameter_names))
       pvallist[[j]] = pvals
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
       estimates[j, ] = coef(fit)
@@ -320,6 +322,8 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
+        pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+        stopifnot(all(names(pvals) == parameter_names))
         power_values[pvals < alpha] = 1
         estimates = coef(fit)
         list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals)

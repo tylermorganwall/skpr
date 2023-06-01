@@ -286,6 +286,7 @@ gen_design = function(candidateset, model, trials,
                       aliaspower = 2, minDopt = 0.8, k = NA,
                       parallel = FALSE, timer = TRUE, add_blocking_columns = FALSE, randomized = TRUE,
                       advancedoptions = NULL) {
+  check_model_validity(model)
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
   if (!(optimality_uc %in% c("D", "I", "A", "E", "T", "G", "ALIAS", "CUSTOM"))) {
@@ -388,7 +389,6 @@ gen_design = function(candidateset, model, trials,
 
   #Remove skpr-generated REML blocking indicators if present
   splitplotdesign = remove_skpr_blockcols(splitplotdesign)
-
   #Throw error if backticks detected
   if (grepl("`", as.character(model)[2], fixed = TRUE)) {
     stop("skpr: skpr does not support backticks in gen_design. Use variable names without backticks and try again.")
@@ -446,13 +446,14 @@ gen_design = function(candidateset, model, trials,
       } else {
         nointercept = FALSE
       }
+
       model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
 
       wholeplotterms = colnames(splitplotdesign)
       subplotterms = colnames(candidateset)
       subplotterms = subplotterms[!(subplotterms %in% wholeplotterms)]
 
-      splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
+      splitterms = unlist(strsplit(as.character(model[2]), split = " + ", fixed = TRUE))
 
       wholeorwholeinteraction = rep(FALSE, length(splitterms))
       for (term in wholeplotterms) {

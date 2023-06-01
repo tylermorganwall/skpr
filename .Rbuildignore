@@ -1,6 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
+^README\.md$
 ^NEWS\.md$
 ^cran-comments\.md$
 ^\.travis\.yml$
@@ -8,9 +9,9 @@
 ^docs$
 ^[.].*$
 ^.*/[.].*$
-^skprGUIcomp\.png$
+^.+skprGUIcomp\.png$
 ^skprlogo\.png$
-^vidguigif\.gif$
+^.+vidguigif\.gif$
 ^\.github$
 ^.+final_test_results\.Rds$
 

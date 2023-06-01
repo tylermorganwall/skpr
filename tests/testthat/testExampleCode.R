@@ -40,14 +40,14 @@ test_that("gen_design example code runs without errors", {
   #'
   expect_silent({designquad = expand.grid(a = c(1, 0, -1), b = c(-1, 0, 1), c = c("A", "B", "C"))})
   #'
-  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20,timer =F)})
+  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20,timer =FALSE)})
   #'
   #'#The optimality criterion can also be changed:
-  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "I",timer =F)})
-  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "A",timer =F)})
-  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "D",timer =F)})
-  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "E",timer =F)})
-  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "T",timer =F)})
+  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "I",timer =FALSE)})
+  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "A",timer =FALSE)})
+  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "D",timer =FALSE)})
+  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "E",timer =FALSE)})
+  expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2) + a * b * c, 20, optimality = "T",timer =FALSE)})
   expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2), 20, optimality = "G",timer =F)})
   expect_silent({design = gen_design(designquad, ~a + b + I(a ^ 2) + I(b ^ 2), 20, optimality = "Alias",timer =F)})
   #'
@@ -69,22 +69,22 @@ test_that("gen_design example code runs without errors", {
   #'#Putting this all together:
   expect_silent({
     designsplitplot = gen_design(candlist1, ~Altitude + Range + Power, trials = 33, splitplotdesign = hardtochangedesign,
-                                 blocksizes = 3)})
+                                 blocksizes = 3, timer = FALSE)})
 
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "I")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "I", timer = FALSE)})
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "A")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "A", timer = FALSE)})
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "D")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "D", timer = FALSE)})
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "E")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "E", timer = FALSE)})
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "T")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "T", timer = FALSE)})
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "Alias")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "Alias", timer = FALSE)})
   expect_silent({design = gen_design(candlist1, ~Altitude + Range + Power, trials = 33,
-                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "G")})
+                                     splitplotdesign = hardtochangedesign, blocksizes = 3, optimality = "G", timer = FALSE)})
   #testing custom
   # customOpt = function(currentDesign) {
   #   return(det(t(currentDesign) %*% currentDesign))
@@ -111,9 +111,9 @@ test_that("gen_design example code runs without errors", {
                           Age = c(1, -1))
   #'
   expect_silent(gen_design(candlist3, ~Location, trials = 6) -> temp)
-  expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6)) -> temp)
-  expect_silent(gen_design(candlist3, ~Location + Climate + Vineyard, 48, splitplotdesign = temp, blocksizes = rep(4, 12)) -> temp)
-  expect_silent(gen_design(candlist3, ~Location + Climate + Vineyard + Age, 192, splitplotdesign = temp, blocksizes = rep(4, 48)) -> splitsplitsplitplotdesign)
+  expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), timer = FALSE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location + Climate + Vineyard, 48, splitplotdesign = temp, blocksizes = rep(4, 12), timer = FALSE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location + Climate + Vineyard + Age, 192, splitplotdesign = temp, blocksizes = rep(4, 48), timer = FALSE) -> splitsplitsplitplotdesign)
   #'
   #'test user-supplied block detection
   externaldesign  = data.frame(Block1 = c(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8), var1 = c(-1, 1))
@@ -132,17 +132,17 @@ test_that("gen_design example code runs without errors", {
   #test interaction between whole and subplots
 
   expect_silent(gen_design(candlist3, ~Location, trials = 6) -> temp)
-  expect_silent(gen_design(candlist3, ~Location + Climate + Location:Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6)) -> temp2)
-  expect_silent(gen_design(candlist3, ~Location + Climate + Location * Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6)) -> temp2)
+  expect_silent(gen_design(candlist3, ~Location + Climate + Location:Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), timer = FALSE) -> temp2)
+  expect_silent(gen_design(candlist3, ~Location + Climate + Location * Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), timer = FALSE) -> temp2)
 
   #test parallel features
 
   options(cores = 2)
 
   expect_silent(gen_design(candlist3, ~Location, trials = 6, parallel = TRUE) -> temp)
-  expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE) -> temp)
+  expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE, timer = FALSE) -> temp)
   expect_silent(gen_design(candlist3, ~Location, trials = 6, parallel = TRUE) -> temp)
-  expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE) -> temp2)
+  expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE, timer = FALSE) -> temp2)
   expect_silent(eval_design_mc(temp, ~., 0.2, nsim = 10, parallel = TRUE))
   expect_silent(eval_design_mc(temp2, ~., 0.2, nsim = 10, parallel = TRUE))
   expect_silent(eval_design_mc(temp, ~., 0.2, nsim = 10, glmfamily = "poisson", effectsize = c(1, 10), parallel = TRUE))

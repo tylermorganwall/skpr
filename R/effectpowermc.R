@@ -27,10 +27,6 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)",
       stop("{lmtest} package required when specifying `effect_anova = FALSE` ",
            "to use a likelihood ratio test for effect power")
     }
-    if(effect_anova) {
-      warning(r"(skpr uses a likelihood ratio test (instead of a type-III ANOVA) for",
-      "effect power when `firth = TRUE` and `glmfamily = "binomial"`: setting `effect_lr = TRUE`.)")
-    }
     if(df.residual(fit) == 0) {
       stop("skpr: Model saturated--no degrees of freedom to estimate power.")
     }

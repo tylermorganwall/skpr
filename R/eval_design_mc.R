@@ -546,6 +546,11 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   } else {
     anovatype = "III"
   }
+  #-------------- -------------#
+  if(effect_anova && firth && glmfamily == "binomial" && !alpha_adjust) {
+    warning(r"(skpr uses a likelihood ratio test (instead of a type-III ANOVA) for",
+      "effect power when `firth = TRUE` and `glmfamily = "binomial"`: setting `effect_lr = TRUE`.)")
+  }
 
   #---------------- Run Simulations ---------------#
 
@@ -656,6 +661,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       if(!fiterror) {
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = suppressWarnings(extractPvalues(fit, glmfamily = glmfamilyname))
+        #reorder since firth correction can change the ordering
+        pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+        stopifnot(all(names(pvals) == parameter_names))
         pvallist[[j]] = pvals
         if (length(effect_power_values) == 0 && calceffect && !fiterror) {
           effect_power_values = c(effect_power_values, rep(0, length(effect_pvals)))
@@ -781,6 +789,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         if(!fiterror) {
           #determine whether beta[i] is significant. If so, increment nsignificant
           pvals = extractPvalues(fit, glmfamily = glmfamilyname)
+          #reorder since firth correction can change the ordering
+          pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+          stopifnot(all(names(pvals) == parameter_names))
           power_values = rep(0, length(pvals))
           if (calceffect) {
             effect_power_values = rep(0, length(effect_pvals))

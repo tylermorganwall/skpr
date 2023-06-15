@@ -28,15 +28,17 @@ as these terms can introduce multi-collinearity and standardizing the numeric co
 }
 \examples{
 #Normalize a design
-\dontrun{
+if(skpr:::run_documentation()) {
 cand_set = expand.grid(temp = c(100,300,500),
                       altitude = c(10000,20000),
                       offset = seq(-10,-5,by=1),
                       type = c("A","B", "C"))
 design = gen_design(cand_set, ~., 24)
+
 #Un-normalized design
 design
-
+}
+if(skpr:::run_documentation()) {
 #Normalized design
 normalize_design(design)
 }

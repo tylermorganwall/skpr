@@ -146,7 +146,7 @@ design2 = gen_design(candidateset = categorical_candidates,
 #We can perform a k-exchange algorithm instead of a full search to help speed up
 #the search process, although this can lead to less optimal designs. Here, we only
 #exchange the 10 lowest variance runs in each search iteration.
-\donttest{
+if(skpr:::run_documentation()) {
 design_k = gen_design(candidateset = categorical_candidates,
                     model = ~a + b + c, trials = 19, repeats = 100, k = 10)
 }
@@ -154,7 +154,7 @@ design_k = gen_design(candidateset = categorical_candidates,
 #To speed up the design search, you can turn on multicore support with the parallel option.
 #You can also customize the number of cores used by setting the cores option. By default,
 #all cores are used.
-\donttest{
+if(skpr:::run_documentation()) {
 options(cores = 2)
 design2 = gen_design(categorical_candidates,
                     model = ~a + b + c, trials = 19, repeats = 1000, parallel = TRUE)
@@ -248,7 +248,7 @@ temp = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard,
                   varianceratio = 1, repeats = 10)
 
 #Each Vineyard block has 4 runs with different Age:
-\donttest{
+if(skpr:::run_documentation()) {
 splitsplitsplitplotdesign = gen_design(splitplotcandidateset2, ~Location + Climate + Vineyard + Age,
                                        trials = 192, splitplotdesign = temp, blocksizes = 4,
                                        varianceratio = 1, add_blocking_columns = TRUE)
@@ -319,11 +319,14 @@ get_attribute(design)
 #A correlation color map can be produced by calling the plot_correlation command with the output
 #of gen_design()
 
-\donttest{plot_correlations(design2)}
+if(skpr:::run_documentation()) {
+plot_correlations(design2)
+}
 
 #A fraction of design space plot can be produced by calling the plot_fds command
-
-\donttest{plot_fds(design2)}
+if(skpr:::run_documentation()) {
+plot_fds(design2)
+}
 
 #Evaluating the design for power can be done with eval_design, eval_design_mc (Monte Carlo)
 #eval_design_survival_mc (Monte Carlo survival analysis), and

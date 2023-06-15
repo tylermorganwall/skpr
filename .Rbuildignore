@@ -15,3 +15,5 @@
 ^\.github$
 ^.+final_test_results\.Rds$
 
+^_pkgdown\.yml$
+^pkgdown$

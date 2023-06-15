@@ -170,17 +170,18 @@ and the other coefficients will be
 factorialcoffee = expand.grid(cost = c(-1, 1),
                               type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
                               size = as.factor(c("Short", "Grande", "Venti")))
-
+if(skpr:::run_documentation()) {
 #And then generate the 21-run D-optimal design using gen_design.
-
 designcoffee = gen_design(factorialcoffee,
                          model = ~cost + type + size, trials = 21, optimality = "D")
-
+}
+if(skpr:::run_documentation()) {
 #To evaluate this design using a normal approximation, we just use eval_design
 #(here using the default settings for contrasts, effectsize, and the anticipated coefficients):
 
 eval_design(design = designcoffee, model = ~cost + type + size, 0.05)
-
+}
+if(skpr:::run_documentation()) {
 #To evaluate this design with a Monte Carlo method, we enter the same information
 #used in eval_design, with the addition of the number of simulations "nsim" and the distribution
 #family used in fitting for the glm "glmfamily". For gaussian, binomial, exponential, and poisson
@@ -189,30 +190,34 @@ eval_design(design = designcoffee, model = ~cost + type + size, 0.05)
 #function can be supplied by the user. Like in `eval_design()`, if the model isn't entered, the
 #model used in generating the design will be used.
 
-\dontrun{eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian")}
-
+eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian")
+}
+if(skpr:::run_documentation()) {
 #We see here we generate approximately the same parameter powers as we do
 #using the normal approximation in eval_design. Like eval_design, we can also change
 #effectsize to produce a different signal-to-noise ratio:
 
-\dontrun{eval_design_mc(design = designcoffee, nsim = 100,
-                       glmfamily = "gaussian", effectsize = 1)}
-
+eval_design_mc(design = designcoffee, nsim = 100,
+                       glmfamily = "gaussian", effectsize = 1)
+}
+if(skpr:::run_documentation()) {
 #Like eval_design, we can also evaluate the design with a different model than
 #the one that generated the design.
-\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type, alpha = 0.05,
-              nsim = 100, glmfamily = "gaussian")}
-
-
+eval_design_mc(design = designcoffee, model = ~cost + type, alpha = 0.05,
+              nsim = 100, glmfamily = "gaussian")
+}
+if(skpr:::run_documentation()) {
 #And here it is evaluated with additional interactions included:
-\dontrun{eval_design_mc(design = designcoffee, model = ~cost + type + size + cost * type, 0.05,
-              nsim = 100, glmfamily = "gaussian")}
-
+eval_design_mc(design = designcoffee, model = ~cost + type + size + cost * type, 0.05,
+              nsim = 100, glmfamily = "gaussian")
+}
+if(skpr:::run_documentation()) {
 #We can also set "parallel = TRUE" to use all the cores available to speed up
 #computation.
-\dontrun{eval_design_mc(design = designcoffee, nsim = 10000,
-                       glmfamily = "gaussian", parallel = TRUE)}
-
+eval_design_mc(design = designcoffee, nsim = 10000,
+                       glmfamily = "gaussian", parallel = TRUE)
+}
+if(skpr:::run_documentation()) {
 #We can also evaluate split-plot designs. First, let us generate the split-plot design:
 
 factorialcoffee2 = expand.grid(Temp = c(1, -1),
@@ -236,9 +241,10 @@ splitplotdesign = gen_design(factorialcoffee2,
 #the whole plots and the run-to-run variance for gaussian models.
 
 #Evaluate the design. Note the decreased power for the blocking factors.
-\dontrun{eval_design_mc(splitplotdesign, blocking = TRUE, nsim = 100,
-                       glmfamily = "gaussian", varianceratios = c(1, 1, 1))}
-
+eval_design_mc(splitplotdesign, blocking = TRUE, nsim = 100,
+                       glmfamily = "gaussian", varianceratios = c(1, 1, 1))
+}
+if(skpr:::run_documentation()) {
 #We can also use this method to evaluate designs that cannot be easily
 #evaluated using normal approximations. Here, we evaluate a design with a binomial response and see
 #whether we can detect the difference between each factor changing whether an event occurs
@@ -247,9 +253,10 @@ splitplotdesign = gen_design(factorialcoffee2,
 factorialbinom = expand.grid(a = c(-1, 1), b = c(-1, 1))
 designbinom = gen_design(factorialbinom, model = ~a + b, trials = 90, optimality = "D")
 
-\dontrun{eval_design_mc(designbinom, ~a + b, alpha = 0.2, nsim = 100, effectsize = c(0.7, 0.9),
-              glmfamily = "binomial")}
-
+eval_design_mc(designbinom, ~a + b, alpha = 0.2, nsim = 100, effectsize = c(0.7, 0.9),
+              glmfamily = "binomial")
+}
+if(skpr:::run_documentation()) {
 #We can also use this method to determine power for poisson response variables.
 #Generate the design:
 
@@ -258,9 +265,9 @@ designpois = gen_design(factorialpois, ~a + b, trials = 70, optimality = "D")
 
 #Evaluate the power:
 
-\dontrun{eval_design_mc(designpois, ~a + b, 0.05, nsim = 100, glmfamily = "poisson",
-               anticoef = log(c(0.2, 2, 2)))}
-
+eval_design_mc(designpois, ~a + b, 0.05, nsim = 100, glmfamily = "poisson",
+               anticoef = log(c(0.2, 2, 2)))
+}
 
 #The coefficients above set the nominal value -- that is, the expected count
 #when all inputs = 0 -- to 0.2 (from the intercept), and say that each factor

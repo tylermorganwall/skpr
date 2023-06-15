@@ -68,7 +68,7 @@ Calculate and optionally plot power curves for different effect sizes and
 trial counts. This function takes a
 }
 \examples{
-\dontrun{
+if(skpr:::run_documentation()) {
 cand_set = expand.grid(brew_temp = c(80, 85, 90),
                       altitude = c(0, 2000, 4000),
                       bean_sun = c("low", "partial", "high"))
@@ -79,15 +79,17 @@ calculate_power_curves(trials=seq(10,60,by=1),
                       alpha = 0.05,
                       effectsize = 1,
                       eval_function = "eval_design")
-
-Add multiple effect sizes
+}
+if(skpr:::run_documentation()) {
+#Add multiple effect sizes
 calculate_power_curves(trials=seq(10,60,by=1),
                       candidateset = cand_set,
                       model = ~.*.,
                       alpha = 0.05,
                       effectsize = c(1,2),
                       eval_function = "eval_design")
-
+}
+if(skpr:::run_documentation()) {
 #Generate power curve for a binomial model
 calculate_power_curves(trials=seq(50,150,by=10),
                       candidateset = cand_set,
@@ -95,7 +97,8 @@ calculate_power_curves(trials=seq(50,150,by=10),
                       effectsize = c(0.6,0.9),
                       eval_function = "eval_design_mc",
                       eval_args = list(nsim = 100, glmfamily = "binomial"))
-
+}
+if(skpr:::run_documentation()) {
 #Generate power curve for a binomial model and multiple effect sizes
 calculate_power_curves(trials=seq(50,150,by=10),
                       candidateset = cand_set,

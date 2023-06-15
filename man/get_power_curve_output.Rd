@@ -17,7 +17,7 @@ Gets the warnings and errors from `calculate_power_curves()` output.
 }
 \examples{
 #Generate sample
-\dontrun{
+if(skpr:::run_documentation()) {
 calculate_power_curves(trials=seq(50,150,by=20),
                       candidateset = expand.grid(x=c(-1,1),y=c(-1,1)),
                       model = ~.,

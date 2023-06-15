@@ -7,17 +7,11 @@
 gen_binomial_anticoef(anticoef, lowprob, highprob)
 }
 \arguments{
-\item{anticoef}{Anticipated coefficeints}
+\item{anticoef}{Anticipated coefficients}
 
 \item{lowprob}{Default 0.50. The base probability}
 
-\item{highprob}{Default 0.80. The base probability}
-
-\item{runmatrix}{The Run Matrix}
-
-\item{model}{Base model}
-
-\item{contrastslist}{Contrasts}
+\item{highprob}{Default 0.80. The high probability}
 }
 \value{
 Anticipated coefficients.

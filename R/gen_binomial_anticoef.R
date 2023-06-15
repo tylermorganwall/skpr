@@ -7,12 +7,9 @@
 #'Equivalently, solves this set of equations for beta0 and beta1:
 #'log(lowprob / (1 - lowprob)) = beta0 - beta1
 #'log(highprob / (1 - highprob)) = beta0 + beta1
-#'@param runmatrix The Run Matrix
-#'@param model Base model
-#'@param contrastslist Contrasts
-#'@param anticoef Anticipated coefficeints
+#'@param anticoef Anticipated coefficients
 #'@param lowprob Default 0.50. The base probability
-#'@param highprob Default 0.80. The base probability
+#'@param highprob Default 0.80. The high probability
 #'@return Anticipated coefficients.
 #'@keywords internal
 gen_binomial_anticoef = function(anticoef, lowprob, highprob) {

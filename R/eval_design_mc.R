@@ -551,9 +551,14 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     warning(r"(skpr uses a likelihood ratio test (instead of a type-III ANOVA) for",
       "effect power when `firth = TRUE` and `glmfamily = "binomial"`: setting `effect_lr = TRUE`.)")
   }
+  fterms = terms.formula(model_formula)
+  term_order = attr(fterms,"order")
+  if(min(term_order) != 1) {
+    stop("skpr: No main effect terms found--this model will not produce well-formed power estimates.")
+  }
 
   #---------------- Run Simulations ---------------#
-
+  aliasing_checked = FALSE
   progressbarupdates = floor(seq(1, nsim, length.out = 50))
   progresscurrent = 1
   estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
@@ -649,7 +654,8 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                                          model_formula = model_formula, firth = firth,
                                          glmfamily = glmfamilyname, effect_terms = effect_terms,
                                          RunMatrixReduced = RunMatrixReduced, method = method,
-                                         contrastslist = contrastslist, effect_anova = effect_anova)
+                                         contrastslist = contrastslist, effect_anova = effect_anova,
+                                         model_matrix = ModelMatrix)
           }
         }
         if(!fiterror) {
@@ -659,6 +665,18 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         }
       }
       if(!fiterror) {
+        #Check for perfect aliasing in design
+        if(!aliasing_checked) {
+          aliasing_checked = TRUE
+          if(!inherits(fit, c("lmerMod","glmerMod","merMod")) && !is.null(alias(fit)$Complete)) {
+            alias_mat_fit = alias(fit)$Complete
+            if(nrow(alias_mat_fit) > 0) {
+              perfectly_aliased_terms = paste0(rownames(alias_mat_fit), collapse = ", ")
+              stop(sprintf("Perfectly aliased term(s) included in model (%s). Remove these terms to fit your model, or change your design.",
+                           perfectly_aliased_terms))
+            }
+          }
+        }
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = suppressWarnings(extractPvalues(fit, glmfamily = glmfamilyname))
         #reorder since firth correction can change the ordering
@@ -695,6 +713,11 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     power_values = power_values / nsim
     if (calceffect) {
       effect_power_values = effect_power_values / nsim
+      if(length(effectpvallist) > 1) {
+        if(!isTRUE(do.call("all.equal",lapply(effectpvallist,names)))) {
+          stop("effect p-value names shifted during computation, results are not valid: contact the developer")
+        }
+      }
       names(effect_power_values) = names(effectpvallist[[1]])
     }
   } else {
@@ -787,6 +810,18 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
           }
         }
         if(!fiterror) {
+          #Check for perfect aliasing in design
+          if(!aliasing_checked) {
+            aliasing_checked = TRUE
+            if(!inherits(fit, c("lmerMod","glmerMod","merMod")) && !is.null(alias(fit)$Complete)) {
+              alias_mat_fit = alias(fit)$Complete
+              if(nrow(alias_mat_fit) > 0) {
+                perfectly_aliased_terms = paste0(rownames(alias_mat_fit), collapse = ", ")
+                stop(sprintf("Perfectly aliased term(s) included in model (%s). Remove these terms to fit your model, or change your design.",
+                             perfectly_aliased_terms))
+              }
+            }
+          }
           #determine whether beta[i] is significant. If so, increment nsignificant
           pvals = extractPvalues(fit, glmfamily = glmfamilyname)
           #reorder since firth correction can change the ordering

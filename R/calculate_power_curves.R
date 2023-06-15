@@ -190,7 +190,7 @@ calculate_power_curves = function(trials,
     for(trial in trials) {
       pb$tick()
       if(iterate_seed) {
-        recorded_seed = random_seed + i
+        recorded_seed = random_seed + counter
       } else {
         recorded_seed = random_seed
       }

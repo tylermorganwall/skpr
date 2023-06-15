@@ -30,58 +30,39 @@ effectpowermc = function(fit, type="III", test = "Pr(>Chisq)",
     if(df.residual(fit) == 0) {
       stop("skpr: Model saturated--no degrees of freedom to estimate power.")
     }
-    fterms = terms.formula(model_formula)
-    factor_matrix       = attr(fterms,"factors")
-    factor_terms = attr(fterms,"term.labels")
-    term_order = attr(fterms,"order")
-    if(any(term_order > 1)) {
-      warning("skpr: For effect power calculated via a likelihood ratio test, power estimates ",
-              "for lower-order terms are calculated independently of higher-order interactions. ",
-              "This is because interaction effects cannot be estimated without the lower-order ",
-              "terms, and thus estimates from the reduced and full models are effectively the same. ",
-              "This means that the effect power ",
-              "values reported for lower-order terms do not account for higher-order interactions, ",
-              "and could potentially be lower ",
-              "if those higher-order terms are included during the actual analysis.")
-    }
-    if(min(term_order) != 1) {
-      stop("skpr: No main effect terms found--this model will not produce well-formed power estimates.")
-    }
-    term_order_list = split(factor_terms, term_order)
-    hierarchy_terms = lapply(term_order_list, paste, collapse = " + ")
-    output$effect_pvals = rep(1,length(factor_terms))
-    output$effectnames = factor_terms
-    higher_order_terms = term_order_list
-    model_hierarchy = vector("list", length = length(hierarchy_terms))
-    model_hierarchy[[1]] = sprintf("Y ~ %s", hierarchy_terms[[1]])
-    if(max(term_order) > 1) {
-      for(ii in seq_len(length(model_hierarchy))[[-1]]) {
-        model_hierarchy[[ii]] = as.formula(sprintf("%s + %s", model_hierarchy[[ii-1]],  hierarchy_terms[[ii]]),
-                                         env = environment(model_formula))
-
-      }
-    }
-    for(k in seq_len(length(factor_terms))) {
-      current_model = model_hierarchy[[ term_order[k] ]]
-      new_formula         = update.formula(current_model,
-                                           as.formula(sprintf("Y ~ . - %s",factor_terms[k]),
-                                                      env = environment(model_formula)))
-      if(glmfamily == "gaussian") {
-        fit_reduced = suppressWarnings(suppressMessages({
-          lm(new_formula, data = RunMatrixReduced, contrasts = contrastslist)
-        }))
+    model_matrix = model.matrix(model_formula, RunMatrixReduced, contrasts.arg = contrastslist)
+    effects_from_model = attr(model_matrix,"assign")
+    effects_labeled    = c("(Intercept)", attr(terms.formula(model_formula),"term.labels"))
+    unique_terms = unique(effects_from_model)
+    names(unique_terms) = effects_labeled
+    stopifnot(length(effects_labeled) == length(unique_terms))
+    output$effectnames = effects_labeled
+    output$effect_pvals = rep(NA,length(effects_labeled))
+    # We need to use the lower-level glm.fit interface: the regular glm() interface re-parameterizes the model
+    # when main effects aren't present, which means you can't test the significance of lower-level categorical
+    # effects when higher-level interactions exist.
+    for(i in seq_len(length(unique_terms))) {
+      cols_to_remove = which(unique_terms[i] == effects_from_model)
+      family = switch(glmfamily,
+                      "gaussian" = gaussian(),
+                      "binomial" = binomial(),
+                      "poisson"  = poisson(),
+                      "gaussian" = Gamma(link = "log"),
+                      stop(sprintf("glm family `%s` not found.", glmfamily)))
+      if(!firth) {
+        fit_raw = glm.fit(x=model_matrix[,-cols_to_remove],y=fit$data$Y, family = family)
       } else {
-        fit_reduced = suppressWarnings(suppressMessages({
-          glm(new_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist, method = method)
-        }))
+        fit_raw = mbest::firthglm.fit(x=model_matrix[,-cols_to_remove],y=fit$data$Y, family = family)
       }
+      fit_reduced = structure(fit_raw,class = c(fit$class, c("glm", "lm")))
       lr_results = lmtest::lrtest(fit, fit_reduced)
       if(lr_results$`#Df`[1] != lr_results$`#Df`[2]) {
-        output$effect_pvals[k] = lr_results$`Pr(>Chisq)`[2]
+        output$effect_pvals[i] = lr_results$`Pr(>Chisq)`[2]
       } else {
-        output$effect_pvals[k] = 1.0
+        output$effect_pvals[i] = 1.0
       }
     }
+    stopifnot(all(!is.na(output$effect_pvals)))
   } else {
     tryCatch({
       anovafit = suppressWarnings(

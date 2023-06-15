@@ -1,7 +1,7 @@
 Package: skpr
 Title: Design of Experiments Suite: Generate and Evaluate Optimal Designs
-Date: 2023-06-02
-Version: 1.3.2
+Date: 2023-06-15
+Version: 1.4.0
 Authors@R: c(person("Tyler", "Morgan-Wall", email = "tylermw@gmail.com", role = c("aut", "cre")),
              person("George", "Khoury", email = "george.m.khoury@gmail.com", role = c("aut")))
 Description: Generates and evaluates D, I, A, Alias, E, T, and G optimal designs. Supports generation and evaluation of blocked and split/split-split/.../N-split plot designs. Includes parametric and Monte Carlo power evaluation functions, and supports calculating power for censored responses. Provides a framework to evaluate power using functions provided in other packages or written by the user. Includes a Shiny graphical user interface that displays the underlying code used to create and evaluate the design to improve ease-of-use and make analyses more reproducible. For details, see Morgan-Wall et al. (2021) <doi:10.18637/jss.v099.i01>.

@@ -1467,18 +1467,6 @@ skprGUIserver = function(inputValue1, inputValue2) {
         first = paste(c(first, ", <br>", rep("&nbsp;", 20),
                         "splitplotdesign = design_htc"), collapse = "")
       }
-      if (input$trials %% input$numberblocks == 0) {
-        sizevector = input$trials / input$numberblocks
-      } else {
-        sizevector = c(rep(ceiling(input$trials / input$numberblocks), input$numberblocks))
-        unbalancedruns = ceiling(input$trials / input$numberblocks) * input$numberblocks - input$trials
-        sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
-        sizevector = paste0(c("c(", paste0(sizevector, collapse = ", "), ")"), collapse = "")
-      }
-      if (isblockingtext()) {
-        first = paste(c(first, ", <br>", rep("&nbsp;", 20),
-                        "blocksizes = ", sizevector), collapse = "")
-      }
       if (input$optimality != "D") {
         first = paste(c(first, ", <br>", rep("&nbsp;", 20),
                         "optimality = \"", input$optimality, "\""), collapse = "")
@@ -1793,13 +1781,6 @@ skprGUIserver = function(inputValue1, inputValue2) {
                          varianceratio = input$varianceratio,
                          aliaspower = input$aliaspower,
                          minDopt = input$mindopt)
-        if (input$trials %% input$numberblocks == 0) {
-          sizevector = input$trials / input$numberblocks
-        } else {
-          sizevector = c(rep(ceiling(input$trials / input$numberblocks), input$numberblocks))
-          unbalancedruns = ceiling(input$trials / input$numberblocks) * input$numberblocks - input$trials
-          sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] = sizevector[(length(sizevector) - unbalancedruns + 1):length(sizevector)] - 1
-        }
         optimality_async = optimality()
         candidatesetall_async = expand.grid(candidatesetall())
         model_async = input$model
@@ -1814,7 +1795,6 @@ skprGUIserver = function(inputValue1, inputValue2) {
                    model = as.formula(model_async),
                    trials = trials_async,
                    splitplotdesign = spd,
-                   blocksizes = sizevector,
                    optimality = optimality_async,
                    repeats = repeats_async,
                    varianceratio = varianceratio_async,
@@ -1885,14 +1865,14 @@ skprGUIserver = function(inputValue1, inputValue2) {
           display_rm = display_rm %>%
             data_color(
               columns = cols_rm[i],
-              colors = pal_option(100),
+              palette = pal_option(100),
               alpha = alpha,
               autocolor_text = FALSE)
         } else {
           display_rm = display_rm %>%
             data_color(
               columns = cols_rm[i],
-              colors = pal_option(length(unique(runmat[,i]))),
+              palette = pal_option(length(unique(runmat[,i]))),
               alpha = alpha,
               autocolor_text = FALSE)
         }
@@ -1910,7 +1890,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
       }
       display_table = display_table %>%
         data_color(columns = "power",
-                   colors = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
+                   palette = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
                                                 domain =c(0,1)),
                    alpha = 0.3,
                    autocolor_text = FALSE) %>%

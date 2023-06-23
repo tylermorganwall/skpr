@@ -15,7 +15,5 @@ Returns a vector of p-values. If model_fit is not a supported model type, return
 \description{
 Extract p-values from a model object. Currently works with lm, glm, lme4, glmer,
 and survreg model objects. If possible, uses the p-values reported in summary(model_fit).
-If those do not exist (I'm looking at you, lme4), returns the Wald p-value:
-2*pnorm(-abs(estimate / se))
 }
 \keyword{internal}

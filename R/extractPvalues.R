@@ -2,8 +2,6 @@
 #'
 #'@description Extract p-values from a model object. Currently works with lm, glm, lme4, glmer,
 #'and survreg model objects. If possible, uses the p-values reported in summary(model_fit).
-#'If those do not exist (I'm looking at you, lme4), returns the Wald p-value:
-#'2*pnorm(-abs(estimate / se))
 #'
 #'@param model_fit The model object from which to extract.
 #'@keywords internal
@@ -16,11 +14,6 @@ extractPvalues = function(model_fit, glmfamily = "gaussian") {
     } else {
       return(coef(summary(model_fit, dispersion = 1))[, 4])
     }
-  }
-  if ("lmerMod" %in% model_type) {
-    estimates = coef(summary(model_fit))[, 1]
-    se = coef(summary(model_fit))[, 2]
-    return(2 * pnorm(-abs(estimates / se)))
   }
   if ("lmerModLmerTest" %in% model_type) {
     return(coef(summary(model_fit))[, 5])

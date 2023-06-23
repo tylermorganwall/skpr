@@ -1006,7 +1006,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       attr(retval, "parameter_analysis_method_string") = "`lm(...)`"
       attr(retval, "effect_analysis_method_string") = effect_string
     } else {
-      attr(retval, "parameter_analysis_method_string") = "`lme4::lmer(...)`"
+      attr(retval, "parameter_analysis_method_string") = "`lmerTest::lmer(...)`"
       attr(retval, "effect_analysis_method_string") = effect_string
     }
   } else if (glmfamilyname == "binomial") {

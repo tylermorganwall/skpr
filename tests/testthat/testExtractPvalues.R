@@ -13,13 +13,6 @@ test_that("extractPvalues works as intended", {
   fitglm = glm(y ~ x, family = "gaussian")
   expect_equal(coef(summary(fitglm))[, 4], extractPvalues(fitglm))
 
-  #lmer
-  fm1 <- lme4::lmer(Reaction ~ Days + (Days | Subject), sleepstudy)
-  estimates = coef(summary(fm1))[, 1]
-  se = coef(summary(fm1))[, 2]
-  pvals = 2 * pnorm(-abs(estimates / se))
-  expect_equal(pvals, extractPvalues(fm1))
-
   #glmer
   gm1 <- lme4::glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
                 data = cbpp, family = binomial)

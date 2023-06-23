@@ -502,7 +502,7 @@ eval_design = function(design, model = NULL, alpha = 0.05,
     attr(results, "parameter_analysis_method_string") = "`lm(...)`"
     attr(results, "effect_analysis_method_string") = r"{`car::Anova(fit, type = "III")`}"
   } else {
-    attr(results, "parameter_analysis_method_string") = "`lme4::lmer(...)`"
+    attr(results, "parameter_analysis_method_string") = "`lmerTest::lmer(...)`"
     attr(results, "effect_analysis_method_string") = r"{`car::Anova(fit, type = "III")`}"
   }
   return(results)

@@ -6,11 +6,11 @@ function(input, output, session) {
 
   inc_progress_session = function(amount = 0.1, message = NULL, detail = NULL) incProgress(amount, message, detail, session)
 
-  inputlist_htc = reactive({
+  inputlist_htc = shiny::reactive({
     input$submitbutton
     inputlist1 = list()
     for (i in 1:6) {
-      if ( (i == 1 && input$numberfactors > 0) && isolate(input$blockdepth1) == "htc") {
+      if ( (i == 1 && input$numberfactors > 0) && shiny::isolate(input$blockdepth1) == "htc") {
         if (input$factortype1 == "numeric") {
           inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
         }
@@ -21,7 +21,7 @@ function(input, output, session) {
           inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
         }
       }
-      if ( (i == 2 && input$numberfactors > 1) && isolate(input$blockdepth2) == "htc") {
+      if ( (i == 2 && input$numberfactors > 1) && shiny::isolate(input$blockdepth2) == "htc") {
         if (input$factortype2 == "numeric") {
           inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
         }
@@ -32,7 +32,7 @@ function(input, output, session) {
           inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
         }
       }
-      if ( (i == 3 && input$numberfactors > 2) && isolate(input$blockdepth3) == "htc") {
+      if ( (i == 3 && input$numberfactors > 2) && shiny::isolate(input$blockdepth3) == "htc") {
         if (input$factortype3 == "numeric") {
           inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
         }
@@ -43,7 +43,7 @@ function(input, output, session) {
           inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
         }
       }
-      if ( (i == 4 && input$numberfactors > 3) && isolate(input$blockdepth4) == "htc") {
+      if ( (i == 4 && input$numberfactors > 3) && shiny::isolate(input$blockdepth4) == "htc") {
         if (input$factortype4 == "numeric") {
           inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
         }
@@ -54,7 +54,7 @@ function(input, output, session) {
           inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
         }
       }
-      if ( (i == 5 && input$numberfactors > 4) && isolate(input$blockdepth5) == "htc") {
+      if ( (i == 5 && input$numberfactors > 4) && shiny::isolate(input$blockdepth5) == "htc") {
         if (input$factortype5 == "numeric") {
           inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
         }
@@ -65,7 +65,7 @@ function(input, output, session) {
           inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
         }
       }
-      if ( (i == 6 && input$numberfactors > 5) && isolate(input$blockdepth6) == "htc") {
+      if ( (i == 6 && input$numberfactors > 5) && shiny::isolate(input$blockdepth6) == "htc") {
         if (input$factortype6 == "numeric") {
           inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
         }
@@ -80,7 +80,7 @@ function(input, output, session) {
     inputlist1
   })
 
-  inputlist_htctext = reactive({
+  inputlist_htctext = shiny::reactive({
     inputlist1 = list()
     for (i in 1:6) {
       if ( (i == 1 && input$numberfactors > 0) && input$blockdepth1 == "htc") {
@@ -154,7 +154,7 @@ function(input, output, session) {
   })
 
 
-  inputlist = reactive({
+  inputlist = shiny::reactive({
     inputlist1 = list()
     for (i in 1:6) {
       if (i == 1 && input$numberfactors > 0 ) {
@@ -239,7 +239,7 @@ function(input, output, session) {
     inputlist1
   })
 
-  candidatesetall = reactive({
+  candidatesetall = shiny::reactive({
     candidateset1 = list()
     for (i in 1:6) {
       if (i == 1 && input$numberfactors > 0 ) {
@@ -314,7 +314,7 @@ function(input, output, session) {
 
 
 
-  inputstring = reactive({
+  inputstring = shiny::reactive({
     updatevector = c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)
     commacount = input$numberfactors - 1
     finalstring = c()
@@ -427,7 +427,7 @@ function(input, output, session) {
     finalstring
   })
 
-  regularmodelstring = reactive({
+  regularmodelstring = shiny::reactive({
     tryCatch({
       if (any(unlist(strsplit(as.character(as.formula(input$model)[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
         dotreplace = paste0("(", paste0(names(candidatesetall()), collapse = " + "), ")")
@@ -441,7 +441,7 @@ function(input, output, session) {
     )
   })
 
-  modelwithblocks = reactive({
+  modelwithblocks = shiny::reactive({
     if (isblockingtext()) {
       basemodel = gsub(pattern = "~", replacement = "", x = regularmodelstring(), fixed = TRUE)
       blockingmodelterms = "~ (1|Block1) + "
@@ -449,7 +449,7 @@ function(input, output, session) {
     }
   })
 
-  contraststring = reactive({
+  contraststring = shiny::reactive({
     factorcat = c(input$factortype1, input$factortype2, input$factortype3, input$factortype4, input$factortype5, input$factortype6) == "cat"
     namecat = c(input$factorname1, input$factorname2, input$factorname3, input$factorname4, input$factorname5, input$factorname6)[factorcat]
     contrasttemp = "list("
@@ -463,11 +463,11 @@ function(input, output, session) {
     contrasttemp
   })
 
-  anyfactors = reactive({
+  anyfactors = shiny::reactive({
     any(c(input$factortype1, input$factortype2, input$factortype3, input$factortype4, input$factortype5, input$factortype6) == "cat")
   })
 
-  code = reactive({
+  code = shiny::reactive({
     blocking = any("htc" %in% c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)[1:input$numberfactors])
 
     first = paste0(c("<br><pre>",
@@ -690,16 +690,16 @@ function(input, output, session) {
     first
   })
 
-  isblocking = reactive({
+  isblocking = shiny::reactive({
     input$submitbutton
-    any("htc" %in% c(isolate(input$blockdepth1),
-                     isolate(input$blockdepth2),
-                     isolate(input$blockdepth3),
-                     isolate(input$blockdepth4),
-                     isolate(input$blockdepth5),
-                     isolate(input$blockdepth6))[1:isolate(input$numberfactors)])
+    any("htc" %in% c(shiny::isolate(input$blockdepth1),
+                     shiny::isolate(input$blockdepth2),
+                     shiny::isolate(input$blockdepth3),
+                     shiny::isolate(input$blockdepth4),
+                     shiny::isolate(input$blockdepth5),
+                     shiny::isolate(input$blockdepth6))[1:shiny::isolate(input$numberfactors)])
   })
-  isblockingtext = reactive({
+  isblockingtext = shiny::reactive({
     any("htc" %in% c(input$blockdepth1,
                      input$blockdepth2,
                      input$blockdepth3,
@@ -708,7 +708,7 @@ function(input, output, session) {
                      input$blockdepth6)[1:(input$numberfactors)])
   })
 
-  blockmodel = reactive({
+  blockmodel = shiny::reactive({
     if (input$model == "~.") {
       as.formula(paste0("~", paste(names(inputlist_htctext()), collapse = " + ")))
     } else {
@@ -723,18 +723,18 @@ function(input, output, session) {
     }
   })
 
-  optimality = reactive({
+  optimality = shiny::reactive({
     input$submitbutton
-    if (isolate(input$numberfactors) == 1 && isolate(input$optimality) == "Alias") {
-      showNotification("Alias-optimal design selected with only one factor: Switching to D-optimal.", type = "warning", duration = 10)
-      updateSelectInput(session, "optimality", choices = c("D", "I", "A", "Alias", "G", "E", "T"), selected = "D")
+    if (shiny::isolate(input$numberfactors) == 1 && shiny::isolate(input$optimality) == "Alias") {
+      shiny::showNotification("Alias-optimal design selected with only one factor: Switching to D-optimal.", type = "warning", duration = 10)
+      shiny::updateSelectInput(session, "optimality", choices = c("D", "I", "A", "Alias", "G", "E", "T"), selected = "D")
       "D"
     } else {
-      isolate(input$optimality)
+      shiny::isolate(input$optimality)
     }
   })
 
-  effectsize = reactive({
+  effectsize = shiny::reactive({
     if (input$evaltype == "lm") {
       return(input$snr)
     }
@@ -765,52 +765,52 @@ function(input, output, session) {
     }
   })
 
-  runmatrix = reactive({
+  runmatrix = shiny::reactive({
     input$submitbutton
     shinyjs::disable("submitbutton")
     shinyjs::disable("evalbutton")
-    if (isolate(input$setseed)) {
-      set.seed(isolate(input$seed))
+    if (shiny::isolate(input$setseed)) {
+      set.seed(shiny::isolate(input$seed))
     }
     tryCatch({
       if (!isblocking()) {
-        withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = {
-          design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                              model = isolate(as.formula(input$model)),
-                              trials = isolate(input$trials),
-                              optimality = isolate(optimality()),
-                              repeats = isolate(input$repeats),
-                              aliaspower = isolate(input$aliaspower),
-                              minDopt = isolate(input$mindopt),
-                              parallel = isolate(as.logical(input$parallel)),
+        shiny::withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = {
+          design = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
+                              model = shiny::isolate(as.formula(input$model)),
+                              trials = shiny::isolate(input$trials),
+                              optimality = shiny::isolate(optimality()),
+                              repeats = shiny::isolate(input$repeats),
+                              aliaspower = shiny::isolate(input$aliaspower),
+                              minDopt = shiny::isolate(input$mindopt),
+                              parallel = shiny::isolate(as.logical(input$parallel)),
                               advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
         })
       } else {
-        withProgress(message = "Generating whole-plots:", value = 0, min = 0, max = 1, expr = {
-          spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                           model = isolate(as.formula(blockmodel())),
-                           trials = isolate(input$numberblocks),
-                           optimality = ifelse(toupper(isolate(optimality())) == "ALIAS" &&
-                                                 length(isolate(inputlist_htc())) == 1, "D", isolate(optimality())),
-                           repeats = isolate(input$repeats),
-                           varianceratio = isolate(input$varianceratio),
-                           aliaspower = isolate(input$aliaspower),
-                           minDopt = isolate(input$mindopt),
-                           parallel = isolate(as.logical(input$parallel)),
+        shiny::withProgress(message = "Generating whole-plots:", value = 0, min = 0, max = 1, expr = {
+          spd = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
+                           model = shiny::isolate(as.formula(blockmodel())),
+                           trials = shiny::isolate(input$numberblocks),
+                           optimality = ifelse(toupper(shiny::isolate(optimality())) == "ALIAS" &&
+                                                 length(shiny::isolate(inputlist_htc())) == 1, "D", shiny::isolate(optimality())),
+                           repeats = shiny::isolate(input$repeats),
+                           varianceratio = shiny::isolate(input$varianceratio),
+                           aliaspower = shiny::isolate(input$aliaspower),
+                           minDopt = shiny::isolate(input$mindopt),
+                           parallel = shiny::isolate(as.logical(input$parallel)),
                            advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
         })
-        withProgress(message = "Generating full design:", value = 0, min = 0, max = 1, expr = {
-          design = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                              model = isolate(as.formula(input$model)),
-                              trials = isolate(input$trials),
+        shiny::withProgress(message = "Generating full design:", value = 0, min = 0, max = 1, expr = {
+          design = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
+                              model = shiny::isolate(as.formula(input$model)),
+                              trials = shiny::isolate(input$trials),
                               splitplotdesign = spd,
-                              optimality = isolate(optimality()),
-                              repeats = isolate(input$repeats),
-                              varianceratio = isolate(input$varianceratio),
-                              aliaspower = isolate(input$aliaspower),
-                              minDopt = isolate(input$mindopt),
-                              parallel = isolate(as.logical(input$parallel)),
-                              add_blocking_columns = isolate(input$splitanalyzable),
+                              optimality = shiny::isolate(optimality()),
+                              repeats = shiny::isolate(input$repeats),
+                              varianceratio = shiny::isolate(input$varianceratio),
+                              aliaspower = shiny::isolate(input$aliaspower),
+                              minDopt = shiny::isolate(input$mindopt),
+                              parallel = shiny::isolate(as.logical(input$parallel)),
+                              add_blocking_columns = shiny::isolate(input$splitanalyzable),
                               advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
         })
       }
@@ -821,9 +821,9 @@ function(input, output, session) {
     return(design)
   })
 
-  evaluationtype = reactive({
+  evaluationtype = shiny::reactive({
     input$evalbutton
-    isolate(input$evaltype)
+    shiny::isolate(input$evaltype)
   })
 
   format_table = function(powerval, display_table, alpha, nsim, colorblind) {
@@ -834,39 +834,39 @@ function(input, output, session) {
       color_maybe = "orange"
     }
     display_table = display_table %>%
-      data_color(columns = "power",
+      gt::data_color(columns = "power",
                  palette = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
                                               domain =c(0,1)),
                  alpha = 0.3,
                  autocolor_text = FALSE) %>%
-      tab_options(table.width = pct(100))
+      gt::tab_options(table.width = gt::pct(100))
     if(any(powerval$power <= alpha + 1/sqrt(nsim) &
            powerval$power >= alpha - 1/sqrt(nsim))) {
       display_table = display_table %>%
-        tab_style(
+        gt::tab_style(
           style = list(
-            cell_fill(color = color_maybe,alpha=0.3)
+            gt::cell_fill(color = color_maybe,alpha=0.3)
           ),
-          locations = cells_body(
+          locations = gt::cells_body(
             columns = "power",
             rows = power <= alpha + 1/sqrt(nsim))
         ) %>%
-        tab_source_note(
+        gt::tab_source_note(
           source_note = sprintf("Note: Power values marked in %s are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)",
                                 color_maybe)
         )
     }
     if(any(powerval$power < alpha - 1/sqrt(nsim))) {
       display_table = display_table %>%
-        tab_style(
+        gt::tab_style(
           style = list(
-            cell_fill(color = color_bad,alpha=0.3)
+            gt::cell_fill(color = color_bad,alpha=0.3)
           ),
-          locations = cells_body(
+          locations = gt::cells_body(
             columns = "power",
             rows = (power < alpha - 1/sqrt(nsim)))
         ) %>%
-        tab_source_note(
+        gt::tab_source_note(
           source_note = sprintf("Note: Power values marked in %s fall below the user-specified Type-I error (%0.2f)",
                                 color_bad, alpha)
         )
@@ -874,60 +874,60 @@ function(input, output, session) {
     return(display_table)
   }
 
-  powerresults = reactive({
+  powerresults = shiny::reactive({
     input$evalbutton
     if (evaluationtype() == "lm") {
-      powerval = eval_design(design = isolate(runmatrix()),
-                             model = as.formula(isolate(input$model)),
-                             alpha = isolate(input$alpha),
+      powerval = eval_design(design = shiny::isolate(runmatrix()),
+                             model = as.formula(shiny::isolate(input$model)),
+                             alpha = shiny::isolate(input$alpha),
                              blocking = isblocking(),
-                             effectsize = isolate(effectsize()),
-                             conservative = isolate(input$conservative),
-                             detailedoutput = isolate(input$detailedoutput))
+                             effectsize = shiny::isolate(effectsize()),
+                             conservative = shiny::isolate(input$conservative),
+                             detailedoutput = shiny::isolate(input$detailedoutput))
       powerval
     }
   })
-  powerresultsglm = reactive({
+  powerresultsglm = shiny::reactive({
     input$evalbutton
-    if (isolate(evaluationtype()) == "glm") {
-      if (isolate(input$setseed)) {
-        set.seed(isolate(input$seed))
+    if (shiny::isolate(evaluationtype()) == "glm") {
+      if (shiny::isolate(input$setseed)) {
+        set.seed(shiny::isolate(input$seed))
       }
-      withProgress(message = ifelse(isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
-        powerval = suppressWarnings(eval_design_mc(design = isolate(runmatrix()),
-                                                   model = isolate(as.formula(input$model)),
-                                                   alpha = isolate(input$alpha),
-                                                   blocking = isolate(isblocking()),
-                                                   nsim = isolate(input$nsim),
-                                                   varianceratios = isolate(input$varianceratio),
-                                                   glmfamily = isolate(input$glmfamily),
-                                                   effectsize = isolate(effectsize()),
-                                                   parallel = isolate(input$parallel_eval_glm),
-                                                   detailedoutput = isolate(input$detailedoutput),
+      shiny::withProgress(message = ifelse(shiny::isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
+        powerval = suppressWarnings(eval_design_mc(design = shiny::isolate(runmatrix()),
+                                                   model = shiny::isolate(as.formula(input$model)),
+                                                   alpha = shiny::isolate(input$alpha),
+                                                   blocking = shiny::isolate(isblocking()),
+                                                   nsim = shiny::isolate(input$nsim),
+                                                   varianceratios = shiny::isolate(input$varianceratio),
+                                                   glmfamily = shiny::isolate(input$glmfamily),
+                                                   effectsize = shiny::isolate(effectsize()),
+                                                   parallel = shiny::isolate(input$parallel_eval_glm),
+                                                   detailedoutput = shiny::isolate(input$detailedoutput),
                                                    advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
       })
       powerval
     }
   })
-  powerresultssurv = reactive({
+  powerresultssurv = shiny::reactive({
     input$evalbutton
-    if (isolate(evaluationtype()) == "surv") {
-      if (isolate(input$setseed)) {
-        set.seed(isolate(input$seed))
+    if (shiny::isolate(evaluationtype()) == "surv") {
+      if (shiny::isolate(input$setseed)) {
+        set.seed(shiny::isolate(input$seed))
       }
-      if (isolate(isblocking())) {
+      if (shiny::isolate(isblocking())) {
         print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
       }
-      withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
-        powerval = suppressWarnings(eval_design_survival_mc(design = isolate(runmatrix()),
-                                                            model = isolate(as.formula(input$model)),
-                                                            alpha = isolate(input$alpha),
-                                                            nsim = isolate(input$nsim_surv),
-                                                            censorpoint = isolate(input$censorpoint),
-                                                            censortype = isolate(input$censortype),
-                                                            distribution = isolate(input$distribution),
-                                                            effectsize = isolate(effectsize()),
-                                                            detailedoutput = isolate(input$detailedoutput),
+      shiny::withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
+        powerval = suppressWarnings(eval_design_survival_mc(design = shiny::isolate(runmatrix()),
+                                                            model = shiny::isolate(as.formula(input$model)),
+                                                            alpha = shiny::isolate(input$alpha),
+                                                            nsim = shiny::isolate(input$nsim_surv),
+                                                            censorpoint = shiny::isolate(input$censorpoint),
+                                                            censortype = shiny::isolate(input$censortype),
+                                                            distribution = shiny::isolate(input$distribution),
+                                                            effectsize = shiny::isolate(effectsize()),
+                                                            detailedoutput = shiny::isolate(input$detailedoutput),
                                                             advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
         powerval
       })
@@ -954,27 +954,27 @@ function(input, output, session) {
       new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
       rownames(new_runmat) = 1:nrow(new_runmat)
 
-      display_rm = gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
+      display_rm = gt::gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
                       rownames_to_stub = TRUE) %>%
-        tab_stubhead("Run") %>%
-        tab_options(data_row.padding = px(10))  %>%
-        tab_spanner(
+        gt::tab_stubhead("Run") %>%
+        gt::tab_options(data_row.padding = gt::px(10))  %>%
+        gt::tab_spanner(
           label = "Factors",
           columns = colnames(.)
-        ) %>% tab_header(
+        ) %>% gt::tab_header(
           title = "Design",
           subtitle = sprintf("%d-run %s-optimal design",
                              trials,
                              optimality)
         )
     } else {
-      display_rm = gt(runmat,rownames_to_stub = TRUE) %>%
-        tab_stubhead("Run") %>%
-        tab_options(data_row.padding = px(10)) %>%
-        tab_spanner(
+      display_rm = gt::gt(runmat,rownames_to_stub = TRUE) %>%
+        gt::tab_stubhead("Run") %>%
+        gt::tab_options(data_row.padding = gt::px(10)) %>%
+        gt::tab_spanner(
           label = "Factors",
           columns = colnames(.)
-        ) %>% tab_header(
+        ) %>% gt::tab_header(
           title = "Design",
           subtitle = sprintf("%d-run %s-optimal design",
                              trials,
@@ -985,14 +985,14 @@ function(input, output, session) {
     for(i in seq_len(length(cols_rm))) {
       if(is.numeric(runmat[,i])) {
         display_rm = display_rm %>%
-          data_color(
+          gt::data_color(
             columns = cols_rm[i],
             palette = pal_option(100),
             alpha = alpha,
             autocolor_text = FALSE)
       } else {
         display_rm = display_rm %>%
-          data_color(
+          gt::data_color(
             columns = cols_rm[i],
             palette = pal_option(length(unique(runmat[,i]))),
             alpha = alpha,
@@ -1003,70 +1003,70 @@ function(input, output, session) {
   }
 
   output$runmatrix = gt::render_gt({
-    style_matrix(runmatrix(), order_vals = input$orderdesign,  trials = isolate(input$trials), optimality = isolate(input$optimality))
+    style_matrix(runmatrix(), order_vals = input$orderdesign,  trials = shiny::isolate(input$trials), optimality = shiny::isolate(input$optimality))
   }, align = "left")
 
   output$powerresults = gt::render_gt( {
     req(powerresults())
-    format_table(powerresults(),gt(powerresults()), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+    format_table(powerresults(),gt::gt(powerresults()), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
   }, align = "left")
 
   output$powerresultsglm = gt::render_gt( {
     req(powerresultsglm())
 
-    format_table(powerresultsglm(),gt(powerresultsglm()), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+    format_table(powerresultsglm(),gt::gt(powerresultsglm()), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
   }, align = "left")
 
   output$powerresultssurv = gt::render_gt({
     req(powerresultssurv())
 
-    format_table(powerresultssurv(),gt(powerresultssurv()), isolate(input$alpha),isolate(input$nsim_surv),isolate(input$colorblind))
+    format_table(powerresultssurv(),gt::gt(powerresultssurv()), shiny::isolate(input$alpha),shiny::isolate(input$nsim_surv),shiny::isolate(input$colorblind))
   }, align = "left")
 
   output$aliasplot = renderPlot({
     input$submitbutton
     tryCatch({
-      plot_correlations(isolate(runmatrix()))
+      plot_correlations(shiny::isolate(runmatrix()))
     }, error = function(e) {
     })
   })
 
   output$fdsplot = renderPlot({
     input$submitbutton
-    plot_fds(isolate(runmatrix()))
+    plot_fds(shiny::isolate(runmatrix()))
   })
 
   output$code = renderUI({
-    HTML(code())
+    shiny::HTML(code())
   })
 
   output$dopt = renderText({
     input$submitbutton
-    isolate(attr(runmatrix(), "D"))
+    shiny::isolate(attr(runmatrix(), "D"))
   })
   output$aopt = renderText({
     input$submitbutton
-    isolate(attr(runmatrix(), "A"))
+    shiny::isolate(attr(runmatrix(), "A"))
   })
   output$iopt = renderText({
     input$submitbutton
-    isolate(attr(runmatrix(), "I"))
+    shiny::isolate(attr(runmatrix(), "I"))
   })
   output$eopt = renderText({
     input$submitbutton
-    isolate(attr(runmatrix(), "E"))
+    shiny::isolate(attr(runmatrix(), "E"))
   })
   output$gopt = renderText({
     input$submitbutton
-    isolate(attr(runmatrix(), "G"))
+    shiny::isolate(attr(runmatrix(), "G"))
   })
   output$topt = renderText({
     input$submitbutton
-    isolate(attr(runmatrix(), "T"))
+    shiny::isolate(attr(runmatrix(), "T"))
   })
   output$optimalsearch = renderPlot({
     input$submitbutton
-    if (isolate(optimality()) %in% c("D", "G", "A")) {
+    if (shiny::isolate(optimality()) %in% c("D", "G", "A")) {
       if(attr(runmatrix(), "blocking") || attr(runmatrix(), "splitplot")) {
         max_y_val = max(attr(runmatrix(), "optimalsearchvalues"),na.rm=TRUE)
         statement = "Optimality Value (higher is better)"
@@ -1074,38 +1074,38 @@ function(input, output, session) {
         max_y_val = 100
         statement = "Efficiency (higher is better)"
       }
-      isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
+      shiny::isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
                    type = "p", col = "red", pch = 16, ylim = c(0, max_y_val)))
-      isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")],
+      shiny::isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")],
                      type = "p", col = "green", pch = 16, cex = 2, ylim = c(0, max_y_val)))
     } else {
-      if (isolate(optimality()) == "I") {
-        isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))
+      if (shiny::isolate(optimality()) == "I") {
+        shiny::isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))
       } else {
-        isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Criteria Value (higher is better)"), type = "p", col = "red", pch = 16))
+        shiny::isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Criteria Value (higher is better)"), type = "p", col = "red", pch = 16))
       }
-      isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2))
+      shiny::isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2))
     }
   })
   output$simulatedpvalues = renderPlot({
     updateval = c(powerresultsglm(),powerresultssurv())
-    if(isolate(evaluationtype() == "glm")) {
-      pvalrows = isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
+    if(shiny::isolate(evaluationtype() == "glm")) {
+      pvalrows = shiny::isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
       if (!is.null(attr(powerresultsglm(), "pvals"))) {
         par(mfrow = c(pvalrows, 3))
-        for (col in 1:isolate(ncol(attr(powerresultsglm(), "pvals")))) {
-          isolate(hist(attr(powerresultsglm(), "pvals")[, col], breaks = seq(0, 1, 0.05),
+        for (col in 1:shiny::isolate(ncol(attr(powerresultsglm(), "pvals")))) {
+          shiny::isolate(hist(attr(powerresultsglm(), "pvals")[, col], breaks = seq(0, 1, 0.05),
                        main = colnames(attr(powerresultsglm(), "pvals"))[col],
                        xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
         }
       }
     }
-    if(isolate(evaluationtype() == "surv")) {
-      pvalrows = isolate(floor(ncol(attr(powerresultssurv(), "pvals")) / 3) + 1)
+    if(shiny::isolate(evaluationtype() == "surv")) {
+      pvalrows = shiny::isolate(floor(ncol(attr(powerresultssurv(), "pvals")) / 3) + 1)
       if (!is.null(attr(powerresultssurv(), "pvals"))) {
         par(mfrow = c(pvalrows, 3))
-        for (col in 1:isolate(ncol(attr(powerresultssurv(), "pvals")))) {
-          isolate(hist(attr(powerresultssurv(), "pvals")[, col], breaks = seq(0, 1, 0.05),
+        for (col in 1:shiny::isolate(ncol(attr(powerresultssurv(), "pvals")))) {
+          shiny::isolate(hist(attr(powerresultssurv(), "pvals")[, col], breaks = seq(0, 1, 0.05),
                        main = colnames(attr(powerresultssurv(), "pvals"))[col],
                        xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
         }
@@ -1117,15 +1117,15 @@ function(input, output, session) {
     if (!is.null(attr(powerresultsglm(), "estimates"))) {
       ests = apply(attr(powerresultsglm(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
       truth = attr(powerresultsglm(), "anticoef")
-      if (isolate(input$glmfamily) == "binomial") {
+      if (shiny::isolate(input$glmfamily) == "binomial") {
         ests = exp(ests) / (1 + exp(ests))
         truth = exp(truth) / (1 + exp(truth))
       }
-      if (isolate(input$glmfamily) == "poisson") {
+      if (shiny::isolate(input$glmfamily) == "poisson") {
         ests = exp(ests)
         truth = exp(truth)
       }
-      if (isolate(input$glmfamily) == "exponential") {
+      if (shiny::isolate(input$glmfamily) == "exponential") {
         ests = exp(ests)
         truth = exp(truth)
       }
@@ -1133,8 +1133,8 @@ function(input, output, session) {
       plot(x = 1:length(colnames(ests)), y = ests[2, ],
            xaxt = "n",
            xlab = "Parameters",
-           ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-           ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
+           ylab = ifelse(shiny::isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
+           ylim = ifelse(rep(shiny::isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
            xlim = c(0.5, length(colnames(ests)) + 0.5),
            type = "p", pch = 16, col = "red", cex = 1)
       axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
@@ -1152,7 +1152,7 @@ function(input, output, session) {
     if (!is.null(attr(powerresultssurv(), "estimates"))) {
       ests = apply(attr(powerresultssurv(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
       truth = attr(powerresultssurv(), "anticoef")
-      if (isolate(input$distibution) == "exponential") {
+      if (shiny::isolate(input$distibution) == "exponential") {
         ests = exp(ests)
         truth = exp(truth)
       }
@@ -1160,8 +1160,8 @@ function(input, output, session) {
       plot(x = 1:length(colnames(ests)), y = ests[2, ],
            xaxt = "n",
            xlab = "Parameters",
-           ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-           ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
+           ylab = ifelse(shiny::isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
+           ylim = ifelse(rep(shiny::isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
            xlim = c(0.5, length(colnames(ests)) + 0.5),
            type = "p", pch = 16, col = "red", cex = 1)
       axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
@@ -1183,8 +1183,8 @@ function(input, output, session) {
       widths = widths[widths != 0]
       widths = sqrt(widths)
       uniquevalues = length(table(responses))
-      breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
-      if (isolate(input$glmfamily) == "binomial") {
+      breakvalues = ifelse(uniquevalues < shiny::isolate(input$nsim) * shiny::isolate(input$trials) / 10, uniquevalues, shiny::isolate(input$nsim) * shiny::isolate(input$trials) / 10)
+      if (shiny::isolate(input$glmfamily) == "binomial") {
         responses = exp(responses) / (1 + exp(responses))
         trueresponses = exp(trueresponses) / (1 + exp(trueresponses))
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1195,7 +1195,7 @@ function(input, output, session) {
         hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses Estimates", xlab = "Response", ylab = "Count", col = "red", border = "red")
         abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
       }
-      if (isolate(input$glmfamily) == "poisson") {
+      if (shiny::isolate(input$glmfamily) == "poisson") {
         responses = exp(responses)
         trueresponses = exp(trueresponses)
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1206,7 +1206,7 @@ function(input, output, session) {
         hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses ", xlab = "Response", ylab = "Count", col = "red", border = "red")
         abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
       }
-      if (isolate(input$glmfamily) == "exponential") {
+      if (shiny::isolate(input$glmfamily) == "exponential") {
         responses = exp(responses)
         trueresponses = exp(trueresponses)
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1217,7 +1217,7 @@ function(input, output, session) {
         hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
         abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
       }
-      if (isolate(input$glmfamily) == "gaussian") {
+      if (shiny::isolate(input$glmfamily) == "gaussian") {
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
         hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
         legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
@@ -1236,7 +1236,7 @@ function(input, output, session) {
       responses = as.vector(attr(powerresultssurv(), "estimates") %*% t(attr(powerresultssurv(), "modelmatrix")))
       trueresponses = as.vector(attr(powerresultssurv(), "anticoef") %*% t(attr(powerresultssurv(), "modelmatrix")))
       filtered_string = ""
-      if(isolate(input$distribution) == "exponential") {
+      if(shiny::isolate(input$distribution) == "exponential") {
         #Filter out extreme values
         mad_trueresp = 10*max(exp(trueresponses))
         num_filtered = sum(exp(responses) > mad_trueresp)
@@ -1248,8 +1248,8 @@ function(input, output, session) {
       widths = widths[widths != 0]
       widths = sqrt(widths)
       uniquevalues = length(table(responses))
-      breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
-      if (isolate(input$distribution) == "exponential") {
+      breakvalues = ifelse(uniquevalues < shiny::isolate(input$nsim_surv) * shiny::isolate(input$trials) / 10, uniquevalues, shiny::isolate(input$nsim_surv) * shiny::isolate(input$trials) / 10)
+      if (shiny::isolate(input$distribution) == "exponential") {
         responses = exp(responses)
         trueresponses = exp(trueresponses)
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1260,7 +1260,7 @@ function(input, output, session) {
         hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
         abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
       }
-      if (isolate(input$distribution) %in% c("gaussian", "lognormal")) {
+      if (shiny::isolate(input$distribution) %in% c("gaussian", "lognormal")) {
         par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
         hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates (from survival analysis)", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
         legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
@@ -1274,21 +1274,21 @@ function(input, output, session) {
   output$separationwarning = renderText({
     input$evalbutton
     likelyseparation = FALSE
-    if (isolate(input$evaltype) == "glm" && isolate(input$glmfamily) == "binomial") {
+    if (shiny::isolate(input$evaltype) == "glm" && shiny::isolate(input$glmfamily) == "binomial") {
       if (!is.null(attr(powerresultsglm(), "pvals"))) {
         pvalmat = attr(powerresultsglm(), "pvals")
         for (i in 2:ncol(pvalmat)) {
           pvalcount = hist(pvalmat[, i], breaks = seq(0, 1, 0.05), plot = FALSE)
-          likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim) / 15)
+          likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > shiny::isolate(input$nsim) / 15)
         }
       }
     }
     if (likelyseparation) {
-      showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
+      shiny::showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
     }
   })
-  observeEvent(input$tutorial,
-               introjs(session,
+  shiny::observeEvent(input$tutorial,
+               rintrojs::introjs(session,
                        options = list("showProgress" = "true",
                                       "showBullets" = "false"),
                        events = list(
@@ -1343,5 +1343,5 @@ function(input, output, session) {
                                           }"
                          ))
                ))
-  outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
+  shiny::outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
 }

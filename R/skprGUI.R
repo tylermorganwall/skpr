@@ -169,427 +169,366 @@ skprGUI = function(inputValue1, inputValue2) {
                                                        12, label = "Trials"), data.step = 2, data.intro = "This is the number of runs in the experiment."),
                                  rintrojs::introBox(shiny::textInput(inputId = "model",
                                                     "~.", label = "Model"), data.step = 3, data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."),
-                                 shiny::conditionalPanel(condition = "(input.blockdepth1 == 'htc') ||
-                                                  (input.blockdepth2 == 'htc' && input.numberfactors > 1) ||
-                                                  (input.blockdepth3 == 'htc' && input.numberfactors > 2) ||
-                                                  (input.blockdepth4 == 'htc' && input.numberfactors > 3) ||
-                                                  (input.blockdepth5 == 'htc' && input.numberfactors > 4) ||
-                                                  (input.blockdepth6 == 'htc' && input.numberfactors > 5)",
-                                                  shiny::fluidRow(
-                                                    shiny::column(width = 12, shiny::numericInput(inputId = "numberblocks",
-                                                                                 4, label = "Number of blocks"))
-                                                  )
-                                 ),
-                                 shiny::conditionalPanel(condition = "input.numberfactors == 6",
-                                                  shiny::fluidRow(
-                                                    shiny::column(width = 12,
-                                                           shiny::HTML("<p style=\"color: #000;\">skprGUI only supports up to 6 factors. Alter the generated code to add more.</p>")
-                                                    )
-                                                  )
-                                 ),
+                                 # shiny::conditionalPanel(condition = "(input.blockdepth1 == 'htc') ||
+                                 #                  (input.blockdepth2 == 'htc' && input.numberfactors > 1) ||
+                                 #                  (input.blockdepth3 == 'htc' && input.numberfactors > 2) ||
+                                 #                  (input.blockdepth4 == 'htc' && input.numberfactors > 3) ||
+                                 #                  (input.blockdepth5 == 'htc' && input.numberfactors > 4) ||
+                                 #                  (input.blockdepth6 == 'htc' && input.numberfactors > 5)",
+                                 #                  shiny::fluidRow(
+                                 #                    shiny::column(width = 12, shiny::numericInput(inputId = "numberblocks",
+                                 #                                                 4, label = "Number of blocks"))
+                                 #                  )
+                                 # ),
+                                 shiny::uiOutput("block_panel"),
+                                 # shiny::conditionalPanel(condition = "input.numberfactors == 6",
+                                 #                  shiny::fluidRow(
+                                 #                    shiny::column(width = 12,
+                                 #                           shiny::HTML("<p style=\"color: #000;\">skprGUI only supports up to 6 factors. Alter the generated code to add more.</p>")
+                                 #                    )
+                                 #                  )
+                                 # ),
                                  rintrojs::introBox(shiny::numericInput(inputId = "numberfactors",
-                                                       min = 1, max = 6, 1, label = "Number of Factors"), data.step = 4, data.intro = "This is the number of factors in the experiment. skprGUI supports up to 6 factors, but the underlying code supports any number of factors by calling the code directly. If you require more factors, use the generating code as a template and add more terms to the candidate set."),
+                                                       min = 1, max = NA, 1, label = "Number of Factors"), data.step = 4, data.intro = "This is the number of factors in the experiment. "),
                                  shiny::br(),
-                                 rintrojs::introBox(shiny::wellPanel(style = panelstyle,
-                                                    shiny::h3("Factor 1"),
-                                                    shiny::fluidRow(
-                                                      shiny::column(width = 5,
-                                                             shiny::selectInput(inputId = "blockdepth1",
-                                                                         choices = list("Easy" = "etc", "Hard" = "htc"),
-                                                                         label = "Changes")
-                                                      ),
-                                                      shiny::column(width = 7,
-                                                             shiny::selectInput(inputId = "factortype1",
-                                                                         choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                                                                         label = "Type")
-                                                      )
-                                                    ),
-                                                    shiny::fluidRow(
-                                                      shiny::column(width = 12,
-                                                             shiny::textInput(inputId = "factorname1",
-                                                                       value = "X1",
-                                                                       label = "Name")
-                                                      )
-                                                    ),
-                                                    shiny::conditionalPanel(
-                                                      condition = "input.factortype1 == \'numeric\'",
-                                                      shiny::fluidRow(
-                                                        shiny::column(width = 4,
-                                                               shiny::numericInput(inputId = "numericlow1",
-                                                                            value = -1,
-                                                                            label = "Low")
-                                                        ),
-                                                        shiny::column(width = 4,
-                                                               shiny::numericInput(inputId = "numerichigh1",
-                                                                            value = 1,
-                                                                            label = "High")
-                                                        ),
-                                                        shiny::column(width = 4,
-                                                               shiny::numericInput(inputId = "numericlength1",
-                                                                            value = 3,
-                                                                            min = 2,
-                                                                            step = 1,
-                                                                            label = "Breaks")
-                                                        )
-                                                      )
-                                                    ),
-                                                    shiny::conditionalPanel(
-                                                      condition = "input.factortype1 == \'discnum\'",
-                                                      shiny::fluidRow(
-                                                        shiny::column(width = 12,
-                                                               shiny::textInput(inputId = "disclevels1",
-                                                                         value = "",
-                                                                         label = "Levels (separate with commas)")
-                                                        )
-                                                      )
-                                                    ),
-                                                    shiny::conditionalPanel(
-                                                      condition = "input.factortype1 == \'cat\'",
-                                                      shiny::fluidRow(
-                                                        shiny::column(width = 12,
-                                                               shiny::textInput(inputId = "levels1",
-                                                                         value = "",
-                                                                         label = "Levels (separate with commas)")
-                                                        )
-                                                      )
-                                                    )
-                                 ), data.step = 5, data.intro = "This pane allows you to change the factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."),
-                                 shiny::conditionalPanel(
-                                   condition = "input.numberfactors > 1",
-                                   shiny::wellPanel(style = panelstyle,
-                                             shiny::h3("Factor 2"),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 5,
-                                                      shiny::selectInput(inputId = "blockdepth2",
-                                                                  choices = list("Easy" = "etc", "Hard" = "htc"),
-                                                                  label = "Changes")
-                                               ),
-                                               shiny::column(width = 7,
-                                                      shiny::selectInput(inputId = "factortype2",
-                                                                  choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                                                                  label = "Type")
-                                               )
-                                             ),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 12,
-                                                      shiny::textInput(inputId = "factorname2",
-                                                                value = "X2",
-                                                                label = "Name")
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype2 == \'numeric\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlow2",
-                                                                     value = -1,
-                                                                     label = "Low")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numerichigh2",
-                                                                     value = 1,
-                                                                     label = "High")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlength2",
-                                                                     value = 3,
-                                                                     min = 2,
-                                                                     step = 1,
-                                                                     label = "Breaks")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype2 == \'discnum\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "disclevels2",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype2 == \'cat\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "levels2",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             )
-                                   )
-                                 ),
-                                 shiny::conditionalPanel(
-                                   condition = "input.numberfactors > 2",
-                                   shiny::wellPanel(style = panelstyle,
-                                             shiny::h3("Factor 3"),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 5,
-                                                      shiny::selectInput(inputId = "blockdepth3",
-                                                                  choices = list("Easy" = "etc", "Hard" = "htc"),
-                                                                  label = "Changes")
-                                               ),
-                                               shiny::column(width = 7,
-                                                      shiny::selectInput(inputId = "factortype3",
-                                                                  choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                                                                  label = "Type")
-                                               )
-                                             ),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 12,
-                                                      shiny::textInput(inputId = "factorname3",
-                                                                value = "X3",
-                                                                label = "Name")
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype3 == \'numeric\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlow3",
-                                                                     value = -1,
-                                                                     label = "Low")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numerichigh3",
-                                                                     value = 1,
-                                                                     label = "High")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlength3",
-                                                                     value = 3,
-                                                                     min = 2,
-                                                                     step = 1,
-                                                                     label = "Breaks")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype3 == \'discnum\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "disclevels3",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype3 == \'cat\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "levels3",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             )
-                                   )
-                                 ),
-                                 shiny::conditionalPanel(
-                                   condition = "input.numberfactors > 3",
-                                   shiny::wellPanel(style = panelstyle,
-                                             shiny::h3("Factor 4"),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 5,
-                                                      shiny::selectInput(inputId = "blockdepth4",
-                                                                  choices = list("Easy" = "etc", "Hard" = "htc"),
-                                                                  label = "Changes")
-                                               ),
-                                               shiny::column(width = 7,
-                                                      shiny::selectInput(inputId = "factortype4",
-                                                                  choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                                                                  label = "Type")
-                                               )
-                                             ),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 12,
-                                                      shiny::textInput(inputId = "factorname4",
-                                                                value = "X4",
-                                                                label = "Name")
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype4 == \'numeric\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlow4",
-                                                                     value = -1,
-                                                                     label = "Low")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numerichigh4",
-                                                                     value = 1,
-                                                                     label = "High")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlength4",
-                                                                     value = 3,
-                                                                     min = 2,
-                                                                     step = 1,
-                                                                     label = "Breaks")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype4 == \'discnum\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "disclevels4",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype4 == \'cat\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "levels4",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             )
-                                   )
-                                 ),
-                                 shiny::conditionalPanel(
-                                   condition = "input.numberfactors > 4",
-                                   shiny::wellPanel(style = panelstyle,
-                                             shiny::h3("Factor 5"),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 5,
-                                                      shiny::selectInput(inputId = "blockdepth5",
-                                                                  choices = list("Easy" = "etc", "Hard" = "htc"),
-                                                                  label = "Changes")
-                                               ),
-                                               shiny::column(width = 7,
-                                                      shiny::selectInput(inputId = "factortype5",
-                                                                  choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                                                                  label = "Type")
-                                               )
-                                             ),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 12,
-                                                      shiny::textInput(inputId = "factorname5",
-                                                                value = "X5",
-                                                                label = "Name")
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype5 == \'numeric\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlow5",
-                                                                     value = -1,
-                                                                     label = "Low")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numerichigh5",
-                                                                     value = 1,
-                                                                     label = "High")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlength5",
-                                                                     value = 3,
-                                                                     min = 2,
-                                                                     step = 1,
-                                                                     label = "Breaks")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype5 == \'discnum\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "disclevels5",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype5 == \'cat\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "levels5",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             )
-                                   )
-                                 ),
-                                 shiny::conditionalPanel(
-                                   condition = "input.numberfactors > 5",
-                                   shiny::wellPanel(style = panelstyle,
-                                             shiny::h3("Factor 6"),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 5,
-                                                      shiny::selectInput(inputId = "blockdepth6",
-                                                                  choices = list("Easy" = "etc", "Hard" = "htc"),
-                                                                  label = "Changes")
-                                               ),
-                                               shiny::column(width = 7,
-                                                      shiny::selectInput(inputId = "factortype6",
-                                                                  choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                                                                  label = "Type")
-                                               )
-                                             ),
-                                             shiny::fluidRow(
-                                               shiny::column(width = 12,
-                                                      shiny::textInput(inputId = "factorname6",
-                                                                value = "X6",
-                                                                label = "Name")
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype6 == \'numeric\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlow6",
-                                                                     value = -1,
-                                                                     label = "Low")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numerichigh6",
-                                                                     value = 1,
-                                                                     label = "High")
-                                                 ),
-                                                 shiny::column(width = 4,
-                                                        shiny::numericInput(inputId = "numericlength6",
-                                                                     value = 3,
-                                                                     min = 2,
-                                                                     step = 1,
-                                                                     label = "Breaks")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype6 == \'discnum\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "disclevels6",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             ),
-                                             shiny::conditionalPanel(
-                                               condition = "input.factortype6 == \'cat\'",
-                                               shiny::fluidRow(
-                                                 shiny::column(width = 12,
-                                                        shiny::textInput(inputId = "levels6",
-                                                                  value = "",
-                                                                  label = "Levels (separate with commas)")
-                                                 )
-                                               )
-                                             )
-                                   )
-                                 )
-                               ),
+                                 rintrojs::introBox(generate_factor_input_panel(1)), data.step = 5, data.intro = "This pane allows you to change the factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."),
+                                 shiny::uiOutput("additional_factors"),
+                               #   shiny::conditionalPanel(
+                               #     condition = "input.numberfactors > 1",
+                               #     shiny::wellPanel(style = panelstyle,
+                               #               shiny::h3("Factor 2"),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 5,
+                               #                        shiny::selectInput(inputId = "blockdepth2",
+                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
+                               #                                    label = "Changes")
+                               #                 ),
+                               #                 shiny::column(width = 7,
+                               #                        shiny::selectInput(inputId = "factortype2",
+                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
+                               #                                    label = "Type")
+                               #                 )
+                               #               ),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 12,
+                               #                        shiny::textInput(inputId = "factorname2",
+                               #                                  value = "X2",
+                               #                                  label = "Name")
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype2 == \'numeric\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlow2",
+                               #                                       value = -1,
+                               #                                       label = "Low")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numerichigh2",
+                               #                                       value = 1,
+                               #                                       label = "High")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlength2",
+                               #                                       value = 3,
+                               #                                       min = 2,
+                               #                                       step = 1,
+                               #                                       label = "Breaks")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype2 == \'discnum\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "disclevels2",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype2 == \'cat\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "levels2",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               )
+                               #     )
+                               #   ),
+                               #   shiny::conditionalPanel(
+                               #     condition = "input.numberfactors > 2",
+                               #     shiny::wellPanel(style = panelstyle,
+                               #               shiny::h3("Factor 3"),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 5,
+                               #                        shiny::selectInput(inputId = "blockdepth3",
+                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
+                               #                                    label = "Changes")
+                               #                 ),
+                               #                 shiny::column(width = 7,
+                               #                        shiny::selectInput(inputId = "factortype3",
+                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
+                               #                                    label = "Type")
+                               #                 )
+                               #               ),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 12,
+                               #                        shiny::textInput(inputId = "factorname3",
+                               #                                  value = "X3",
+                               #                                  label = "Name")
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype3 == \'numeric\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlow3",
+                               #                                       value = -1,
+                               #                                       label = "Low")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numerichigh3",
+                               #                                       value = 1,
+                               #                                       label = "High")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlength3",
+                               #                                       value = 3,
+                               #                                       min = 2,
+                               #                                       step = 1,
+                               #                                       label = "Breaks")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype3 == \'discnum\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "disclevels3",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype3 == \'cat\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "levels3",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               )
+                               #     )
+                               #   ),
+                               #   shiny::conditionalPanel(
+                               #     condition = "input.numberfactors > 3",
+                               #     shiny::wellPanel(style = panelstyle,
+                               #               shiny::h3("Factor 4"),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 5,
+                               #                        shiny::selectInput(inputId = "blockdepth4",
+                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
+                               #                                    label = "Changes")
+                               #                 ),
+                               #                 shiny::column(width = 7,
+                               #                        shiny::selectInput(inputId = "factortype4",
+                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
+                               #                                    label = "Type")
+                               #                 )
+                               #               ),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 12,
+                               #                        shiny::textInput(inputId = "factorname4",
+                               #                                  value = "X4",
+                               #                                  label = "Name")
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype4 == \'numeric\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlow4",
+                               #                                       value = -1,
+                               #                                       label = "Low")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numerichigh4",
+                               #                                       value = 1,
+                               #                                       label = "High")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlength4",
+                               #                                       value = 3,
+                               #                                       min = 2,
+                               #                                       step = 1,
+                               #                                       label = "Breaks")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype4 == \'discnum\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "disclevels4",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype4 == \'cat\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "levels4",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               )
+                               #     )
+                               #   ),
+                               #   shiny::conditionalPanel(
+                               #     condition = "input.numberfactors > 4",
+                               #     shiny::wellPanel(style = panelstyle,
+                               #               shiny::h3("Factor 5"),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 5,
+                               #                        shiny::selectInput(inputId = "blockdepth5",
+                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
+                               #                                    label = "Changes")
+                               #                 ),
+                               #                 shiny::column(width = 7,
+                               #                        shiny::selectInput(inputId = "factortype5",
+                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
+                               #                                    label = "Type")
+                               #                 )
+                               #               ),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 12,
+                               #                        shiny::textInput(inputId = "factorname5",
+                               #                                  value = "X5",
+                               #                                  label = "Name")
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype5 == \'numeric\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlow5",
+                               #                                       value = -1,
+                               #                                       label = "Low")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numerichigh5",
+                               #                                       value = 1,
+                               #                                       label = "High")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlength5",
+                               #                                       value = 3,
+                               #                                       min = 2,
+                               #                                       step = 1,
+                               #                                       label = "Breaks")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype5 == \'discnum\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "disclevels5",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype5 == \'cat\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "levels5",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               )
+                               #     )
+                               #   ),
+                               #   shiny::conditionalPanel(
+                               #     condition = "input.numberfactors > 5",
+                               #     shiny::wellPanel(style = panelstyle,
+                               #               shiny::h3("Factor 6"),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 5,
+                               #                        shiny::selectInput(inputId = "blockdepth6",
+                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
+                               #                                    label = "Changes")
+                               #                 ),
+                               #                 shiny::column(width = 7,
+                               #                        shiny::selectInput(inputId = "factortype6",
+                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
+                               #                                    label = "Type")
+                               #                 )
+                               #               ),
+                               #               shiny::fluidRow(
+                               #                 shiny::column(width = 12,
+                               #                        shiny::textInput(inputId = "factorname6",
+                               #                                  value = "X6",
+                               #                                  label = "Name")
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype6 == \'numeric\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlow6",
+                               #                                       value = -1,
+                               #                                       label = "Low")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numerichigh6",
+                               #                                       value = 1,
+                               #                                       label = "High")
+                               #                   ),
+                               #                   shiny::column(width = 4,
+                               #                          shiny::numericInput(inputId = "numericlength6",
+                               #                                       value = 3,
+                               #                                       min = 2,
+                               #                                       step = 1,
+                               #                                       label = "Breaks")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype6 == \'discnum\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "disclevels6",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               ),
+                               #               shiny::conditionalPanel(
+                               #                 condition = "input.factortype6 == \'cat\'",
+                               #                 shiny::fluidRow(
+                               #                   shiny::column(width = 12,
+                               #                          shiny::textInput(inputId = "levels6",
+                               #                                    value = "",
+                               #                                    label = "Levels (separate with commas)")
+                               #                   )
+                               #                 )
+                               #               )
+                               #     )
+                               #   )
+                               # ),
                                shiny::tabPanel("Advanced",
                                         rintrojs::introBox(shiny::selectInput(inputId = "optimality",
                                                              choices = c("D", "I", "A", "Alias", "G", "E", "T"),
@@ -825,27 +764,28 @@ skprGUI = function(inputValue1, inputValue2) {
                              condition = "input.advanceddiagnostics",
                              shiny::hr(),
                              shiny::fluidRow(align = "left",
-                                      shiny::column(width = 6,
-                                             shiny::conditionalPanel(
-                                               condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
-                                               shiny::h3("Criteria"),
-                                               shiny::h4("D"),
-                                               textOutput(outputId = "dopt"),
-                                               shiny::h4("A"),
-                                               textOutput(outputId = "aopt")
-                                             ),
-                                             shiny::h4("I (Average prediction variance)"),
-                                             textOutput(outputId = "iopt"),
-                                             shiny::conditionalPanel(
-                                               condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
-                                               shiny::h4("E"),
-                                               textOutput(outputId = "eopt"),
-                                               shiny::h4("G"),
-                                               textOutput(outputId = "gopt"),
-                                               shiny::h4("T"),
-                                               textOutput(outputId = "topt")
-                                             )
-                                      ),
+                                             shiny::uiOutput(outputId = "optimality_results"),
+                                      # shiny::column(width = 6,
+                                      #        shiny::conditionalPanel(
+                                      #          condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
+                                      #          shiny::h3("Criteria"),
+                                      #          shiny::h4("D"),
+                                      #          textOutput(outputId = "dopt"),
+                                      #          shiny::h4("A"),
+                                      #          textOutput(outputId = "aopt")
+                                      #        ),
+                                      #        shiny::h4("I (Average prediction variance)"),
+                                      #        textOutput(outputId = "iopt"),
+                                      #        shiny::conditionalPanel(
+                                      #          condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
+                                      #          shiny::h4("E"),
+                                      #          textOutput(outputId = "eopt"),
+                                      #          shiny::h4("G"),
+                                      #          textOutput(outputId = "gopt"),
+                                      #          shiny::h4("T"),
+                                      #          textOutput(outputId = "topt")
+                                      #        )
+                                      # ),
                                       shiny::column(width = 6,
                                              shiny::h3("Optimal Search Values"),
                                              shiny::plotOutput(outputId = "optimalsearch")
@@ -879,422 +819,539 @@ skprGUI = function(inputValue1, inputValue2) {
     inputlist_htc = shiny::reactive({
       input$submitbutton
       inputlist1 = list()
-      for (i in 1:6) {
-        if ( (i == 1 && input$numberfactors > 0) && shiny::isolate(input$blockdepth1) == "htc") {
-          if (input$factortype1 == "numeric") {
-            inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-          }
-          if (input$factortype1 == "discnum") {
-            inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype1 == "cat") {
-            inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-          }
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        numericlow_n = sprintf("numericlow%i",i)
+        numerichigh_n = sprintf("numerichigh%i",i)
+        numericlength_n = sprintf("numericlength%i",i)
+        disclevels_n = sprintf("disclevels%i",i)
+        levels_n = sprintf("levels%i",i)
+
+        if (input[[factortype_n]] == "numeric") {
+          inputlist1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
         }
-        if ( (i == 2 && input$numberfactors > 1) && shiny::isolate(input$blockdepth2) == "htc") {
-          if (input$factortype2 == "numeric") {
-            inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-          }
-          if (input$factortype2 == "discnum") {
-            inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype2 == "cat") {
-            inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-          }
+        if (input[[factortype_n]] == "discnum") {
+          inputlist1[[ input[[factorname_n]] ]] = as.numeric(strsplit(gsub(" ", "", input[[disclevels_n]], fixed = TRUE), split = ",")[[1]])
         }
-        if ( (i == 3 && input$numberfactors > 2) && shiny::isolate(input$blockdepth3) == "htc") {
-          if (input$factortype3 == "numeric") {
-            inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-          }
-          if (input$factortype3 == "discnum") {
-            inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype3 == "cat") {
-            inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 4 && input$numberfactors > 3) && shiny::isolate(input$blockdepth4) == "htc") {
-          if (input$factortype4 == "numeric") {
-            inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-          }
-          if (input$factortype4 == "discnum") {
-            inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype4 == "cat") {
-            inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 5 && input$numberfactors > 4) && shiny::isolate(input$blockdepth5) == "htc") {
-          if (input$factortype5 == "numeric") {
-            inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-          }
-          if (input$factortype5 == "discnum") {
-            inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype5 == "cat") {
-            inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 6 && input$numberfactors > 5) && shiny::isolate(input$blockdepth6) == "htc") {
-          if (input$factortype6 == "numeric") {
-            inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-          }
-          if (input$factortype6 == "discnum") {
-            inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype6 == "cat") {
-            inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-          }
+        if (input[[factortype_n]] == "cat") {
+          inputlist1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
         }
       }
+      # for (i in 1:6) {
+      #   if ( (i == 1 && input$numberfactors > 0) && shiny::isolate(input$blockdepth1) == "htc") {
+      #     if (input$factortype1 == "numeric") {
+      #       inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
+      #     }
+      #     if (input$factortype1 == "discnum") {
+      #       inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype1 == "cat") {
+      #       inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 2 && input$numberfactors > 1) && shiny::isolate(input$blockdepth2) == "htc") {
+      #     if (input$factortype2 == "numeric") {
+      #       inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
+      #     }
+      #     if (input$factortype2 == "discnum") {
+      #       inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype2 == "cat") {
+      #       inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 3 && input$numberfactors > 2) && shiny::isolate(input$blockdepth3) == "htc") {
+      #     if (input$factortype3 == "numeric") {
+      #       inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
+      #     }
+      #     if (input$factortype3 == "discnum") {
+      #       inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype3 == "cat") {
+      #       inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 4 && input$numberfactors > 3) && shiny::isolate(input$blockdepth4) == "htc") {
+      #     if (input$factortype4 == "numeric") {
+      #       inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
+      #     }
+      #     if (input$factortype4 == "discnum") {
+      #       inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype4 == "cat") {
+      #       inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 5 && input$numberfactors > 4) && shiny::isolate(input$blockdepth5) == "htc") {
+      #     if (input$factortype5 == "numeric") {
+      #       inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
+      #     }
+      #     if (input$factortype5 == "discnum") {
+      #       inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype5 == "cat") {
+      #       inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 6 && input$numberfactors > 5) && shiny::isolate(input$blockdepth6) == "htc") {
+      #     if (input$factortype6 == "numeric") {
+      #       inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
+      #     }
+      #     if (input$factortype6 == "discnum") {
+      #       inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype6 == "cat") {
+      #       inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      # }
       inputlist1
     })
 
     inputlist_htctext = shiny::reactive({
+      input$submitbutton
       inputlist1 = list()
-      for (i in 1:6) {
-        if ( (i == 1 && input$numberfactors > 0) && input$blockdepth1 == "htc") {
-          if (input$factortype1 == "numeric") {
-            inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        numericlow_n = sprintf("numericlow%i",i)
+        numerichigh_n = sprintf("numerichigh%i",i)
+        numericlength_n = sprintf("numericlength%i",i)
+        disclevels_n = sprintf("disclevels%i",i)
+        levels_n = sprintf("levels%i",i)
+        blockdepth_n = sprintf("blockdepth%i",i)
+
+        if(input[[blockdepth_n]] == "htc") {
+          if (input[[factortype_n]] == "numeric") {
+            inputlist1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
           }
-          if (input$factortype1 == "discnum") {
-            inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
+          if (input[[factortype_n]] == "discnum") {
+            inputlist1[[ input[[factorname_n]] ]] = as.numeric(strsplit(gsub(" ", "", input[[disclevels_n]], fixed = TRUE), split = ",")[[1]])
           }
-          if (input$factortype1 == "cat") {
-            inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 2 && input$numberfactors > 1) && input$blockdepth2 == "htc") {
-          if (input$factortype2 == "numeric") {
-            inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-          }
-          if (input$factortype2 == "discnum") {
-            inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype2 == "cat") {
-            inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 3 && input$numberfactors > 2) && input$blockdepth3 == "htc") {
-          if (input$factortype3 == "numeric") {
-            inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-          }
-          if (input$factortype3 == "discnum") {
-            inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype3 == "cat") {
-            inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 4 && input$numberfactors > 3) && input$blockdepth4 == "htc") {
-          if (input$factortype4 == "numeric") {
-            inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-          }
-          if (input$factortype4 == "discnum") {
-            inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype4 == "cat") {
-            inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 5 && input$numberfactors > 4) && input$blockdepth5 == "htc") {
-          if (input$factortype5 == "numeric") {
-            inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-          }
-          if (input$factortype5 == "discnum") {
-            inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype5 == "cat") {
-            inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if ( (i == 6 && input$numberfactors > 5) && input$blockdepth6 == "htc") {
-          if (input$factortype6 == "numeric") {
-            inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-          }
-          if (input$factortype6 == "discnum") {
-            inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype6 == "cat") {
-            inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
+          if (input[[factortype_n]] == "cat") {
+            inputlist1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
           }
         }
       }
-      inputlist1
+      # inputlist1 = list()
+      # for (i in 1:6) {
+      #   if ( (i == 1 && input$numberfactors > 0) && input$blockdepth1 == "htc") {
+      #     if (input$factortype1 == "numeric") {
+      #       inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
+      #     }
+      #     if (input$factortype1 == "discnum") {
+      #       inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype1 == "cat") {
+      #       inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 2 && input$numberfactors > 1) && input$blockdepth2 == "htc") {
+      #     if (input$factortype2 == "numeric") {
+      #       inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
+      #     }
+      #     if (input$factortype2 == "discnum") {
+      #       inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype2 == "cat") {
+      #       inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 3 && input$numberfactors > 2) && input$blockdepth3 == "htc") {
+      #     if (input$factortype3 == "numeric") {
+      #       inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
+      #     }
+      #     if (input$factortype3 == "discnum") {
+      #       inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype3 == "cat") {
+      #       inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 4 && input$numberfactors > 3) && input$blockdepth4 == "htc") {
+      #     if (input$factortype4 == "numeric") {
+      #       inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
+      #     }
+      #     if (input$factortype4 == "discnum") {
+      #       inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype4 == "cat") {
+      #       inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 5 && input$numberfactors > 4) && input$blockdepth5 == "htc") {
+      #     if (input$factortype5 == "numeric") {
+      #       inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
+      #     }
+      #     if (input$factortype5 == "discnum") {
+      #       inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype5 == "cat") {
+      #       inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if ( (i == 6 && input$numberfactors > 5) && input$blockdepth6 == "htc") {
+      #     if (input$factortype6 == "numeric") {
+      #       inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
+      #     }
+      #     if (input$factortype6 == "discnum") {
+      #       inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype6 == "cat") {
+      #       inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      # }
+      # inputlist1
     })
 
 
     inputlist = shiny::reactive({
       inputlist1 = list()
-      for (i in 1:6) {
-        if (i == 1 && input$numberfactors > 0 ) {
-          if (input$blockdepth1 == "etc") {
-            if (input$factortype1 == "numeric") {
-              inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-            }
-            if (input$factortype1 == "discnum") {
-              inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-            }
-            if (input$factortype1 == "cat") {
-              inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-            }
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        numericlow_n = sprintf("numericlow%i",i)
+        numerichigh_n = sprintf("numerichigh%i",i)
+        numericlength_n = sprintf("numericlength%i",i)
+        disclevels_n = sprintf("disclevels%i",i)
+        levels_n = sprintf("levels%i",i)
+        blockdepth_n = sprintf("blockdepth%i",i)
+
+        if (input[[blockdepth_n]] == "etc") {
+          if (input[[factortype_n]] == "numeric") {
+            inputlist1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
           }
-        }
-        if (i == 2 && input$numberfactors > 1) {
-          if (input$blockdepth2 == "etc") {
-            if (input$factortype2 == "numeric") {
-              inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-            }
-            if (input$factortype2 == "discnum") {
-              inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-            }
-            if (input$factortype2 == "cat") {
-              inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-            }
+          if (input[[factortype_n]] == "discnum") {
+            inputlist1[[ input[[factorname_n]] ]] = as.numeric(strsplit(gsub(" ", "", input[[disclevels_n]], fixed = TRUE), split = ",")[[1]])
           }
-        }
-        if (i == 3 && input$numberfactors > 2) {
-          if (input$blockdepth3 == "etc") {
-            if (input$factortype3 == "numeric") {
-              inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-            }
-            if (input$factortype3 == "discnum") {
-              inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-            }
-            if (input$factortype3 == "cat") {
-              inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-            }
-          }
-        }
-        if (i == 4 && input$numberfactors > 3) {
-          if (input$blockdepth4 == "etc") {
-            if (input$factortype4 == "numeric") {
-              inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-            }
-            if (input$factortype4 == "discnum") {
-              inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-            }
-            if (input$factortype4 == "cat") {
-              inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-            }
-          }
-        }
-        if (i == 5 && input$numberfactors > 4) {
-          if (input$blockdepth5 == "etc") {
-            if (input$factortype5 == "numeric") {
-              inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-            }
-            if (input$factortype5 == "discnum") {
-              inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-            }
-            if (input$factortype5 == "cat") {
-              inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-            }
-          }
-        }
-        if (i == 6 && input$numberfactors > 5) {
-          if (input$blockdepth6 == "etc") {
-            if (input$factortype6 == "numeric") {
-              inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-            }
-            if (input$factortype6 == "discnum") {
-              inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-            }
-            if (input$factortype6 == "cat") {
-              inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-            }
+          if (input[[factortype_n]] == "cat") {
+            inputlist1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
           }
         }
       }
-      inputlist1
+      return(inputlist1)
+      # for (i in 1:6) {
+      #   if (i == 1 && input$numberfactors > 0 ) {
+      #     if (input$blockdepth1 == "etc") {
+      #       if (input$factortype1 == "numeric") {
+      #         inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
+      #       }
+      #       if (input$factortype1 == "discnum") {
+      #         inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
+      #       }
+      #       if (input$factortype1 == "cat") {
+      #         inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
+      #       }
+      #     }
+      #   }
+      #   if (i == 2 && input$numberfactors > 1) {
+      #     if (input$blockdepth2 == "etc") {
+      #       if (input$factortype2 == "numeric") {
+      #         inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
+      #       }
+      #       if (input$factortype2 == "discnum") {
+      #         inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
+      #       }
+      #       if (input$factortype2 == "cat") {
+      #         inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
+      #       }
+      #     }
+      #   }
+      #   if (i == 3 && input$numberfactors > 2) {
+      #     if (input$blockdepth3 == "etc") {
+      #       if (input$factortype3 == "numeric") {
+      #         inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
+      #       }
+      #       if (input$factortype3 == "discnum") {
+      #         inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
+      #       }
+      #       if (input$factortype3 == "cat") {
+      #         inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
+      #       }
+      #     }
+      #   }
+      #   if (i == 4 && input$numberfactors > 3) {
+      #     if (input$blockdepth4 == "etc") {
+      #       if (input$factortype4 == "numeric") {
+      #         inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
+      #       }
+      #       if (input$factortype4 == "discnum") {
+      #         inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
+      #       }
+      #       if (input$factortype4 == "cat") {
+      #         inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
+      #       }
+      #     }
+      #   }
+      #   if (i == 5 && input$numberfactors > 4) {
+      #     if (input$blockdepth5 == "etc") {
+      #       if (input$factortype5 == "numeric") {
+      #         inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
+      #       }
+      #       if (input$factortype5 == "discnum") {
+      #         inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
+      #       }
+      #       if (input$factortype5 == "cat") {
+      #         inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
+      #       }
+      #     }
+      #   }
+      #   if (i == 6 && input$numberfactors > 5) {
+      #     if (input$blockdepth6 == "etc") {
+      #       if (input$factortype6 == "numeric") {
+      #         inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
+      #       }
+      #       if (input$factortype6 == "discnum") {
+      #         inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
+      #       }
+      #       if (input$factortype6 == "cat") {
+      #         inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
+      #       }
+      #     }
+      #   }
+      # }
+      # inputlist1
     })
 
     candidatesetall = shiny::reactive({
       candidateset1 = list()
-      for (i in 1:6) {
-        if (i == 1 && input$numberfactors > 0 ) {
-          if (input$factortype1 == "numeric") {
-            candidateset1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-          }
-          if (input$factortype1 == "discnum") {
-            candidateset1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype1 == "cat") {
-            candidateset1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-          }
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        numericlow_n = sprintf("numericlow%i",i)
+        numerichigh_n = sprintf("numerichigh%i",i)
+        numericlength_n = sprintf("numericlength%i",i)
+        disclevels_n = sprintf("disclevels%i",i)
+        levels_n = sprintf("levels%i",i)
+        blockdepth_n = sprintf("blockdepth%i",i)
+
+        if (input[[factortype_n]] == "numeric") {
+          candidateset1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
         }
-        if (i == 2 && input$numberfactors > 1) {
-          if (input$factortype2 == "numeric") {
-            candidateset1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-          }
-          if (input$factortype2 == "discnum") {
-            candidateset1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype2 == "cat") {
-            candidateset1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-          }
+        if (input[[factortype_n]] == "discnum") {
+          candidateset1[[ input[[factorname_n]] ]] = as.numeric(strsplit(gsub(" ", "", input[[disclevels_n]], fixed = TRUE), split = ",")[[1]])
         }
-        if (i == 3 && input$numberfactors > 2) {
-          if (input$factortype3 == "numeric") {
-            candidateset1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-          }
-          if (input$factortype3 == "discnum") {
-            candidateset1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype3 == "cat") {
-            candidateset1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if (i == 4 && input$numberfactors > 3) {
-          if (input$factortype4 == "numeric") {
-            candidateset1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-          }
-          if (input$factortype4 == "discnum") {
-            candidateset1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype4 == "cat") {
-            candidateset1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if (i == 5 && input$numberfactors > 4) {
-          if (input$factortype5 == "numeric") {
-            candidateset1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-          }
-          if (input$factortype5 == "discnum") {
-            candidateset1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype5 == "cat") {
-            candidateset1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-          }
-        }
-        if (i == 6 && input$numberfactors > 5) {
-          if (input$factortype6 == "numeric") {
-            candidateset1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-          }
-          if (input$factortype6 == "discnum") {
-            candidateset1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-          }
-          if (input$factortype6 == "cat") {
-            candidateset1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-          }
+        if (input[[factortype_n]] == "cat") {
+          candidateset1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
         }
       }
-      candidateset1
+      return(candidateset1)
+      # for (i in 1:6) {
+      #   if (i == 1 && input$numberfactors > 0 ) {
+      #     if (input$factortype1 == "numeric") {
+      #       candidateset1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
+      #     }
+      #     if (input$factortype1 == "discnum") {
+      #       candidateset1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype1 == "cat") {
+      #       candidateset1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if (i == 2 && input$numberfactors > 1) {
+      #     if (input$factortype2 == "numeric") {
+      #       candidateset1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
+      #     }
+      #     if (input$factortype2 == "discnum") {
+      #       candidateset1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype2 == "cat") {
+      #       candidateset1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if (i == 3 && input$numberfactors > 2) {
+      #     if (input$factortype3 == "numeric") {
+      #       candidateset1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
+      #     }
+      #     if (input$factortype3 == "discnum") {
+      #       candidateset1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype3 == "cat") {
+      #       candidateset1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if (i == 4 && input$numberfactors > 3) {
+      #     if (input$factortype4 == "numeric") {
+      #       candidateset1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
+      #     }
+      #     if (input$factortype4 == "discnum") {
+      #       candidateset1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype4 == "cat") {
+      #       candidateset1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if (i == 5 && input$numberfactors > 4) {
+      #     if (input$factortype5 == "numeric") {
+      #       candidateset1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
+      #     }
+      #     if (input$factortype5 == "discnum") {
+      #       candidateset1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype5 == "cat") {
+      #       candidateset1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      #   if (i == 6 && input$numberfactors > 5) {
+      #     if (input$factortype6 == "numeric") {
+      #       candidateset1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
+      #     }
+      #     if (input$factortype6 == "discnum") {
+      #       candidateset1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
+      #     }
+      #     if (input$factortype6 == "cat") {
+      #       candidateset1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
+      #     }
+      #   }
+      # }
+      # candidateset1
     })
 
 
 
     inputstring = shiny::reactive({
-      updatevector = c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)
-      commacount = input$numberfactors - 1
+      updatevector = list()
       finalstring = c()
-      for (i in 1:6) {
-        if (i == 1 && input$numberfactors > 0) {
-          finalstring = c(finalstring, input$factorname1, " = ")
-          if (input$factortype1 == "numeric") {
-            finalstring = c(finalstring, "seq(", input$numericlow1, ",", input$numerichigh1, ", length.out = ", input$numericlength1, ")")
-          }
-          if (input$factortype1 == "discnum") {
-            finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels1, fixed = TRUE), ")")
-          }
-          if (input$factortype1 == "cat") {
-            levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-            levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-            finalstring = c(finalstring, "c(", levelstring, ")")
-          }
-          if (commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-          }
+      commacount = input$numberfactors - 1
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        numericlow_n = sprintf("numericlow%i",i)
+        numerichigh_n = sprintf("numerichigh%i",i)
+        numericlength_n = sprintf("numericlength%i",i)
+        disclevels_n = sprintf("disclevels%i",i)
+        levels_n = sprintf("levels%i",i)
+        blockdepth_n = sprintf("blockdepth%i",i)
+        finalstring = c(finalstring, input[[factorname_n]], " = ")
+
+        if (input[[factortype_n]] == "numeric") {
+          finalstring = c(finalstring, "seq(", input[[numericlow_n]], ",", input[[numerichigh_n]], ", length.out = ", input[[numericlength_n]], ")")
         }
-        if ( (i == 2 && input$numberfactors > 1)) {
-          finalstring = c(finalstring, input$factorname2, " = ")
-          if (input$factortype2 == "numeric") {
-            finalstring = c(finalstring, "seq(", input$numericlow2, ",", input$numerichigh2, ", length.out = ", input$numericlength2, ")")
-          }
-          if (input$factortype2 == "discnum") {
-            finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels2, fixed = TRUE), ")")
-          }
-          if (input$factortype2 == "cat") {
-            levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-            levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-            finalstring = c(finalstring, "c(", levelstring, ")")
-          }
-          if (commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-          }
+        if (input[[factortype_n]] == "discnum") {
+          finalstring = c(finalstring, "c(", gsub(" ", "", input[[disclevels_n]], fixed = TRUE), ")")
         }
-        if (i == 3 && input$numberfactors > 2) {
-          finalstring = c(finalstring, input$factorname3, " = ")
-          if (input$factortype3 == "numeric") {
-            finalstring = c(finalstring, "seq(", input$numericlow3, ",", input$numerichigh3, ", length.out = ", input$numericlength3, ")")
-          }
-          if (input$factortype3 == "discnum") {
-            finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels3, fixed = TRUE), ")")
-          }
-          if (input$factortype3 == "cat") {
-            levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-            levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-            finalstring = c(finalstring, "c(", levelstring, ")")
-          }
-          if (commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-          }
+        if (input[[factortype_n]] == "cat") {
+          levelstring = paste0(c("\""), strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+          levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+          finalstring = c(finalstring, "c(", levelstring, ")")
         }
-        if (i == 4 && input$numberfactors > 3) {
-          finalstring = c(finalstring, input$factorname4, " = ")
-          if (input$factortype4 == "numeric") {
-            finalstring = c(finalstring, "seq(", input$numericlow4, ",", input$numerichigh4, ", length.out = ", input$numericlength4, ")")
-          }
-          if (input$factortype4 == "discnum") {
-            finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels4, fixed = TRUE), ")")
-          }
-          if (input$factortype4 == "cat") {
-            levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-            levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-            finalstring = c(finalstring, "c(", levelstring, ")")
-          }
-          if (commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-          }
-        }
-        if (i == 5 && input$numberfactors > 4) {
-          finalstring = c(finalstring, input$factorname5, " = ")
-          if (input$factortype5 == "numeric") {
-            finalstring = c(finalstring, "seq(", input$numericlow5, ",", input$numerichigh5, ", length.out = ", input$numericlength5, ")")
-          }
-          if (input$factortype5 == "discnum") {
-            finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels5, fixed = TRUE), ")")
-          }
-          if (input$factortype5 == "cat") {
-            levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-            levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-            finalstring = c(finalstring, "c(", levelstring, ")")
-          }
-          if (commacount > 0) {
-            commacount = commacount - 1
-            finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-          }
-        }
-        if (i == 6 && input$numberfactors > 5) {
-          finalstring = c(finalstring, input$factorname6, " = ")
-          if (input$factortype6 == "numeric") {
-            finalstring = c(finalstring, "seq(", input$numericlow6, ",", input$numerichigh6, ", length.out = ", input$numericlength6, ")")
-          }
-          if (input$factortype6 == "discnum") {
-            finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels6, fixed = TRUE), ")")
-          }
-          if (input$factortype6 == "cat") {
-            levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-            levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-            finalstring = c(finalstring, "c(", levelstring, ")")
-          }
+        if (commacount > 0) {
+          commacount = commacount - 1
+          finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
         }
       }
-      finalstring
+      return(finalstring)
+      # updatevector = c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)
+      # commacount = input$numberfactors - 1
+      # for (i in 1:6) {
+      #   if (i == 1 && input$numberfactors > 0) {
+      #     finalstring = c(finalstring, input$factorname1, " = ")
+      #     if (input$factortype1 == "numeric") {
+      #       finalstring = c(finalstring, "seq(", input$numericlow1, ",", input$numerichigh1, ", length.out = ", input$numericlength1, ")")
+      #     }
+      #     if (input$factortype1 == "discnum") {
+      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels1, fixed = TRUE), ")")
+      #     }
+      #     if (input$factortype1 == "cat") {
+      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+      #       finalstring = c(finalstring, "c(", levelstring, ")")
+      #     }
+      #     if (commacount > 0) {
+      #       commacount = commacount - 1
+      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
+      #     }
+      #   }
+      #   if ( (i == 2 && input$numberfactors > 1)) {
+      #     finalstring = c(finalstring, input$factorname2, " = ")
+      #     if (input$factortype2 == "numeric") {
+      #       finalstring = c(finalstring, "seq(", input$numericlow2, ",", input$numerichigh2, ", length.out = ", input$numericlength2, ")")
+      #     }
+      #     if (input$factortype2 == "discnum") {
+      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels2, fixed = TRUE), ")")
+      #     }
+      #     if (input$factortype2 == "cat") {
+      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+      #       finalstring = c(finalstring, "c(", levelstring, ")")
+      #     }
+      #     if (commacount > 0) {
+      #       commacount = commacount - 1
+      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
+      #     }
+      #   }
+      #   if (i == 3 && input$numberfactors > 2) {
+      #     finalstring = c(finalstring, input$factorname3, " = ")
+      #     if (input$factortype3 == "numeric") {
+      #       finalstring = c(finalstring, "seq(", input$numericlow3, ",", input$numerichigh3, ", length.out = ", input$numericlength3, ")")
+      #     }
+      #     if (input$factortype3 == "discnum") {
+      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels3, fixed = TRUE), ")")
+      #     }
+      #     if (input$factortype3 == "cat") {
+      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+      #       finalstring = c(finalstring, "c(", levelstring, ")")
+      #     }
+      #     if (commacount > 0) {
+      #       commacount = commacount - 1
+      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
+      #     }
+      #   }
+      #   if (i == 4 && input$numberfactors > 3) {
+      #     finalstring = c(finalstring, input$factorname4, " = ")
+      #     if (input$factortype4 == "numeric") {
+      #       finalstring = c(finalstring, "seq(", input$numericlow4, ",", input$numerichigh4, ", length.out = ", input$numericlength4, ")")
+      #     }
+      #     if (input$factortype4 == "discnum") {
+      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels4, fixed = TRUE), ")")
+      #     }
+      #     if (input$factortype4 == "cat") {
+      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+      #       finalstring = c(finalstring, "c(", levelstring, ")")
+      #     }
+      #     if (commacount > 0) {
+      #       commacount = commacount - 1
+      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
+      #     }
+      #   }
+      #   if (i == 5 && input$numberfactors > 4) {
+      #     finalstring = c(finalstring, input$factorname5, " = ")
+      #     if (input$factortype5 == "numeric") {
+      #       finalstring = c(finalstring, "seq(", input$numericlow5, ",", input$numerichigh5, ", length.out = ", input$numericlength5, ")")
+      #     }
+      #     if (input$factortype5 == "discnum") {
+      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels5, fixed = TRUE), ")")
+      #     }
+      #     if (input$factortype5 == "cat") {
+      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+      #       finalstring = c(finalstring, "c(", levelstring, ")")
+      #     }
+      #     if (commacount > 0) {
+      #       commacount = commacount - 1
+      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
+      #     }
+      #   }
+      #   if (i == 6 && input$numberfactors > 5) {
+      #     finalstring = c(finalstring, input$factorname6, " = ")
+      #     if (input$factortype6 == "numeric") {
+      #       finalstring = c(finalstring, "seq(", input$numericlow6, ",", input$numerichigh6, ", length.out = ", input$numericlength6, ")")
+      #     }
+      #     if (input$factortype6 == "discnum") {
+      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels6, fixed = TRUE), ")")
+      #     }
+      #     if (input$factortype6 == "cat") {
+      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
+      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
+      #       finalstring = c(finalstring, "c(", levelstring, ")")
+      #     }
+      #   }
+      # }
+      # finalstring
     })
 
     regularmodelstring = shiny::reactive({
@@ -1320,10 +1377,19 @@ skprGUI = function(inputValue1, inputValue2) {
     })
 
     contraststring = shiny::reactive({
-      factorcat = c(input$factortype1, input$factortype2, input$factortype3, input$factortype4, input$factortype5, input$factortype6) == "cat"
-      namecat = c(input$factorname1, input$factorname2, input$factorname3, input$factorname4, input$factorname5, input$factorname6)[factorcat]
+      factor_cat = list()
+      name_cat = list()
+
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        name_cat[[i]] = input[[factorname_n]]
+        factor_cat[[i]] = input[[factortype_n]]
+      }
+      factorcat = unlist(factorcat)
+      namecat = unlist(name_cat)
       contrasttemp = "list("
-      for (i in 1:length(namecat)) {
+      for (i in seq_len(length(namecat))) {
         if (i != length(namecat)) {
           contrasttemp = paste0(contrasttemp, namecat[i], " = ", "contr.sum, ")
         } else {
@@ -1334,11 +1400,19 @@ skprGUI = function(inputValue1, inputValue2) {
     })
 
     anyfactors = shiny::reactive({
-      any(c(input$factortype1, input$factortype2, input$factortype3, input$factortype4, input$factortype5, input$factortype6) == "cat")
+      for(i in seq_len(input$numberfactors)) {
+        factortype_n = sprintf("factortype%i",i)
+        if(input[[factortype_n]] == "cat") {
+          return(TRUE)
+        }
+      }
+      return(FALSE)
+      # any(c(input$factortype1, input$factortype2, input$factortype3, input$factortype4, input$factortype5, input$factortype6) == "cat")
     })
 
     code = shiny::reactive({
-      blocking = any("htc" %in% c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)[1:input$numberfactors])
+      blocking = any_htc()
+      # blocking = any("htc" %in% c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)[1:input$numberfactors])
 
       first = paste0(c("<br><pre>",
                        "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
@@ -1562,20 +1636,22 @@ skprGUI = function(inputValue1, inputValue2) {
 
     isblocking = shiny::reactive({
       input$submitbutton
-      any("htc" %in% c(shiny::isolate(input$blockdepth1),
-                       shiny::isolate(input$blockdepth2),
-                       shiny::isolate(input$blockdepth3),
-                       shiny::isolate(input$blockdepth4),
-                       shiny::isolate(input$blockdepth5),
-                       shiny::isolate(input$blockdepth6))[1:shiny::isolate(input$numberfactors)])
+      return(isolate(any_htc()))
+      # any("htc" %in% c(shiny::isolate(input$blockdepth1),
+      #                  shiny::isolate(input$blockdepth2),
+      #                  shiny::isolate(input$blockdepth3),
+      #                  shiny::isolate(input$blockdepth4),
+      #                  shiny::isolate(input$blockdepth5),
+      #                  shiny::isolate(input$blockdepth6))[1:shiny::isolate(input$numberfactors)])
     })
     isblockingtext = shiny::reactive({
-      any("htc" %in% c(input$blockdepth1,
-                       input$blockdepth2,
-                       input$blockdepth3,
-                       input$blockdepth4,
-                       input$blockdepth5,
-                       input$blockdepth6)[1:(input$numberfactors)])
+      return(any_htc())
+      # any("htc" %in% c(input$blockdepth1,
+      #                  input$blockdepth2,
+      #                  input$blockdepth3,
+      #                  input$blockdepth4,
+      #                  input$blockdepth5,
+      #                  input$blockdepth6)[1:(input$numberfactors)])
     })
 
     blockmodel = shiny::reactive({
@@ -1873,7 +1949,10 @@ skprGUI = function(inputValue1, inputValue2) {
     }
 
     output$runmatrix = gt::render_gt({
-      style_matrix(runmatrix(), order_vals = input$orderdesign,  trials = shiny::isolate(input$trials), optimality = shiny::isolate(input$optimality))
+      style_matrix(runmatrix(),
+                   order_vals = input$orderdesign,
+                   trials = shiny::isolate(input$trials),
+                   optimality = shiny::isolate(input$optimality))
     }, align = "left")
 
     output$powerresults = gt::render_gt( {
@@ -2159,6 +2238,52 @@ skprGUI = function(inputValue1, inputValue2) {
         shiny::showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
       }
     })
+    # dynamic_ui_variables = reactiveValues()
+    # any_htc() = FALSE
+    any_htc = reactive({
+      has_htc = FALSE
+      print(names(input))
+      for(i in seq_len(input$numberfactors)) {
+        if(!is.null(input[[sprintf("blockdepth%i",i)]])) {
+          if(input[[sprintf("blockdepth%i",i)]] == "htc") {
+            has_htc = TRUE
+          }
+        }
+      }
+      has_htc
+    })
+
+    ui_elements = reactive({
+      ui_elements = list()
+      if(input$numberfactors > 1) {
+        for(i in seq_len(input$numberfactors)[-1]) {
+          # factorname_n = sprintf("factorname%i",i)
+          # factortype_n = sprintf("factortype%i",i)
+          # numericlow_n = sprintf("numericlow%i",i)
+          # numerichigh_n = sprintf("numerichigh%i",i)
+          # numericlength_n = sprintf("numericlength%i",i)
+          # disclevels_n = sprintf("disclevels%i",i)
+          # levels_n = sprintf("levels%i",i)
+          # blockdepth_n = sprintf("blockdepth%i",i)
+          # finalstring = c(finalstring, input[[factorname_n]], " = ")
+          # input[[factorname_n]] =
+          # print(generate_factor_input_panel(i))
+          ui_elements[[i-1]] = generate_factor_input_panel(i)
+        }
+      }
+      ui_elements
+      }
+    )
+    output$additional_factors = shiny::renderUI({
+      ui_elements()
+    })
+    output$block_panel = shiny::renderUI({
+      generate_block_panel(any_htc())
+    })
+    output$optimality_results = shiny::renderUI({
+      generate_optimality_results(any_htc())
+    })
+
     shiny::observeEvent(input$tutorial,
                  rintrojs::introjs(session,
                          options = list("showProgress" = "true",

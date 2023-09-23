@@ -26,7 +26,7 @@
 #'design = gen_design(candidatelist, ~(X1 + X2), 15)
 #'
 #'plot_fds(design)
-plot_fds = function(genoutput, model = NULL, continuouslength = 11, plot=TRUE,
+plot_fds = function(genoutput, model = NULL, continuouslength = 51, plot=TRUE,
                     yaxis_max = NULL, description="Fraction of Design Space") {
   if(inherits(genoutput,"list") && length(genoutput) > 1) {
     old.par = par(no.readonly = TRUE)
@@ -95,25 +95,22 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 11, plot=TRUE,
   } else {
     contrastlist = NULL
   }
-  factorrange = list()
+  sample_list = list()
+
   for (col in 1:ncol(genoutput)) {
     if (inherits(genoutput[, col], c("factor", "character"))) {
-      factorrange[[colnames(genoutput)[col]]] = unique(genoutput[, col])
+      vals = unique(genoutput[, col])
     }
     if (is.numeric(genoutput[, col])) {
       if (ncol(genoutput) == 1) {
         continuouslength = 51
       }
-      factorrange[[colnames(genoutput)[col] ]] = seq(-1, 1, length.out = continuouslength)
+      vals = seq(-1, 1, length.out = continuouslength)
     }
+    sample_list[[colnames(genoutput)[col]]] = vals[sample(seq_len(length(vals)), size=10000, replace = TRUE)]
   }
-  fullgrid = expand.grid(factorrange)
-  if (ncol(fullgrid) > 1) {
-    samples = fullgrid[sample(1:nrow(fullgrid), 10000, replace = TRUE), ]
-  } else {
-    samples = data.frame(fullgrid[sample(1:nrow(fullgrid), 10000, replace = TRUE), ])
-    colnames(samples) = colnames(fullgrid)
-  }
+  samples = as.data.frame(sample_list)
+
   #------Normalize/Center numeric columns ------#
   for (column in 1:ncol(genoutput)) {
     if (is.numeric(genoutput[, column])) {

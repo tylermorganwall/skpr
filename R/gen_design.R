@@ -856,6 +856,10 @@ gen_design = function(candidateset, model, trials,
                      "100 < k < 1,000 indicates moderate to strong multicollinearity, and k > 1000 indiates severe",
                      "multicollinearity (Montgomery, \"Introduction to linear regression analysis\", 2001). \n\nThe",
                      sprintf(" condition index calculated for your candidate set and model is %0.1f", condition_val)))
+      } else if (any(eigenvals < 0)) {
+        stop(paste0("The Fisher information matrix of the candidate set's model matrix has at least one negative eigenvalue, which should ",
+                    "not happen if the matrix is well-conditioned (the matrix should be positive semi-definite). This means ",
+                    "that there is likely perfect correlation between one or more of the terms in the model."))
       }
     }
   }

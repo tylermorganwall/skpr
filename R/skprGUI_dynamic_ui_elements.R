@@ -32,7 +32,7 @@ generate_factor_input_panel = function(factor_n = 1) {
     shiny::fluidRow(
       shiny::column(width = 12,
                     shiny::textInput(inputId = sprintf("factorname%i",factor_n),
-                                     value = "X1",
+                                     value = sprintf("X%i",factor_n),
                                      label = "Name")
       )
     ),

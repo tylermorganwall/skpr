@@ -25,10 +25,12 @@ skprGUI = function(inputValue1, inputValue2) {
   border: 0px;"
 
   ui = function(request) {
-    shiny::fluidPage(theme = shinythemes::shinytheme("yeti"),
-              shinyjs::useShinyjs(),
-              rintrojs::introjsUI(),
-              shiny::HTML("<style> table {font-size: 14px;}
+    shiny::fluidPage(
+      theme = shinythemes::shinytheme("yeti"),
+      shinyjs::useShinyjs(),
+      rintrojs::introjsUI(),
+      shiny::HTML(
+        "<style> table {font-size: 14px;}
                    .btn2 {
                    color: #fff;
                    border-color: rgba(46, 109, 164, 0);
@@ -143,672 +145,584 @@ skprGUI = function(inputValue1, inputValue2) {
                    @media (min-width: 768px) and (max-width: 1150px) { #designtext {font-size: 0;} }
                    @media (min-width: 768px) { #evalbutton {float: right;} .btn2 { width: 100%; } }
                    @media (max-width: 767px) { #evalbutton {margin-top: 10px;} .btn2{ width: 100%;} }
-                   .irs-grid-text {color: rgb(0, 0, 0);}</style>"),
-              shiny::sidebarLayout(
-                shiny::sidebarPanel(shiny::tags$style(".well {background-color:#a1b0da;
+                   .irs-grid-text {color: rgb(0, 0, 0);}</style>"
+      ),
+      shiny::sidebarLayout(
+        shiny::sidebarPanel(
+          shiny::tags$style(
+            ".well {background-color:#a1b0da;
                                         border: 1px solid #a1b0da;
                                         border-radius: 13px;
                                         -webkit-box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.15);
-                                        box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.15);}"),
-                             shiny::HTML("<h1 style='margin-top: 0px;'>skpr<strong style='color: black;'>GUI</strong></h1>"),
-                             shiny::hr(),
-                             rintrojs::introBox(shiny::fluidRow(
-                               shiny::column(width = 6,
-                                      shiny::actionButton("submitbutton", shiny::HTML("<strong>Generate <br>Design</strong>"),
-                                                   class = "btn2")
-                               ),
-                               shiny::column(width = 6,
-                                      shiny::actionButton("evalbutton", shiny::HTML("<strong>Evaluate <br>Design</strong>"),
-                                                   class = "btn2")
-                               )
-                             ), data.step = 1, data.intro = "<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the console, and skpr provides the full script used to do that, based on your inputs. Additional advanced capabilities not available in the GUI can be accessed via the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."),
-                             shiny::tabsetPanel(
-                               shiny::tabPanel(
-                                 "Basic",
-                                 rintrojs::introBox(shiny::numericInput(inputId = "trials",
-                                                       12, label = "Trials"), data.step = 2, data.intro = "This is the number of runs in the experiment."),
-                                 rintrojs::introBox(shiny::textInput(inputId = "model",
-                                                    "~.", label = "Model"), data.step = 3, data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."),
-                                 # shiny::conditionalPanel(condition = "(input.blockdepth1 == 'htc') ||
-                                 #                  (input.blockdepth2 == 'htc' && input.numberfactors > 1) ||
-                                 #                  (input.blockdepth3 == 'htc' && input.numberfactors > 2) ||
-                                 #                  (input.blockdepth4 == 'htc' && input.numberfactors > 3) ||
-                                 #                  (input.blockdepth5 == 'htc' && input.numberfactors > 4) ||
-                                 #                  (input.blockdepth6 == 'htc' && input.numberfactors > 5)",
-                                 #                  shiny::fluidRow(
-                                 #                    shiny::column(width = 12, shiny::numericInput(inputId = "numberblocks",
-                                 #                                                 4, label = "Number of blocks"))
-                                 #                  )
-                                 # ),
-                                 shiny::uiOutput("block_panel"),
-                                 # shiny::conditionalPanel(condition = "input.numberfactors == 6",
-                                 #                  shiny::fluidRow(
-                                 #                    shiny::column(width = 12,
-                                 #                           shiny::HTML("<p style=\"color: #000;\">skprGUI only supports up to 6 factors. Alter the generated code to add more.</p>")
-                                 #                    )
-                                 #                  )
-                                 # ),
-                                 rintrojs::introBox(shiny::numericInput(inputId = "numberfactors",
-                                                       min = 1, max = NA, 1, label = "Number of Factors"), data.step = 4, data.intro = "This is the number of factors in the experiment. "),
-                                 shiny::br(),
-                                 rintrojs::introBox(generate_factor_input_panel(1)), data.step = 5, data.intro = "This pane allows you to change the factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."),
-                                 shiny::uiOutput("additional_factors"),
-                               #   shiny::conditionalPanel(
-                               #     condition = "input.numberfactors > 1",
-                               #     shiny::wellPanel(style = panelstyle,
-                               #               shiny::h3("Factor 2"),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 5,
-                               #                        shiny::selectInput(inputId = "blockdepth2",
-                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
-                               #                                    label = "Changes")
-                               #                 ),
-                               #                 shiny::column(width = 7,
-                               #                        shiny::selectInput(inputId = "factortype2",
-                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                               #                                    label = "Type")
-                               #                 )
-                               #               ),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 12,
-                               #                        shiny::textInput(inputId = "factorname2",
-                               #                                  value = "X2",
-                               #                                  label = "Name")
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype2 == \'numeric\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlow2",
-                               #                                       value = -1,
-                               #                                       label = "Low")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numerichigh2",
-                               #                                       value = 1,
-                               #                                       label = "High")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlength2",
-                               #                                       value = 3,
-                               #                                       min = 2,
-                               #                                       step = 1,
-                               #                                       label = "Breaks")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype2 == \'discnum\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "disclevels2",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype2 == \'cat\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "levels2",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               )
-                               #     )
-                               #   ),
-                               #   shiny::conditionalPanel(
-                               #     condition = "input.numberfactors > 2",
-                               #     shiny::wellPanel(style = panelstyle,
-                               #               shiny::h3("Factor 3"),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 5,
-                               #                        shiny::selectInput(inputId = "blockdepth3",
-                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
-                               #                                    label = "Changes")
-                               #                 ),
-                               #                 shiny::column(width = 7,
-                               #                        shiny::selectInput(inputId = "factortype3",
-                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                               #                                    label = "Type")
-                               #                 )
-                               #               ),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 12,
-                               #                        shiny::textInput(inputId = "factorname3",
-                               #                                  value = "X3",
-                               #                                  label = "Name")
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype3 == \'numeric\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlow3",
-                               #                                       value = -1,
-                               #                                       label = "Low")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numerichigh3",
-                               #                                       value = 1,
-                               #                                       label = "High")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlength3",
-                               #                                       value = 3,
-                               #                                       min = 2,
-                               #                                       step = 1,
-                               #                                       label = "Breaks")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype3 == \'discnum\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "disclevels3",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype3 == \'cat\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "levels3",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               )
-                               #     )
-                               #   ),
-                               #   shiny::conditionalPanel(
-                               #     condition = "input.numberfactors > 3",
-                               #     shiny::wellPanel(style = panelstyle,
-                               #               shiny::h3("Factor 4"),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 5,
-                               #                        shiny::selectInput(inputId = "blockdepth4",
-                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
-                               #                                    label = "Changes")
-                               #                 ),
-                               #                 shiny::column(width = 7,
-                               #                        shiny::selectInput(inputId = "factortype4",
-                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                               #                                    label = "Type")
-                               #                 )
-                               #               ),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 12,
-                               #                        shiny::textInput(inputId = "factorname4",
-                               #                                  value = "X4",
-                               #                                  label = "Name")
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype4 == \'numeric\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlow4",
-                               #                                       value = -1,
-                               #                                       label = "Low")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numerichigh4",
-                               #                                       value = 1,
-                               #                                       label = "High")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlength4",
-                               #                                       value = 3,
-                               #                                       min = 2,
-                               #                                       step = 1,
-                               #                                       label = "Breaks")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype4 == \'discnum\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "disclevels4",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype4 == \'cat\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "levels4",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               )
-                               #     )
-                               #   ),
-                               #   shiny::conditionalPanel(
-                               #     condition = "input.numberfactors > 4",
-                               #     shiny::wellPanel(style = panelstyle,
-                               #               shiny::h3("Factor 5"),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 5,
-                               #                        shiny::selectInput(inputId = "blockdepth5",
-                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
-                               #                                    label = "Changes")
-                               #                 ),
-                               #                 shiny::column(width = 7,
-                               #                        shiny::selectInput(inputId = "factortype5",
-                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                               #                                    label = "Type")
-                               #                 )
-                               #               ),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 12,
-                               #                        shiny::textInput(inputId = "factorname5",
-                               #                                  value = "X5",
-                               #                                  label = "Name")
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype5 == \'numeric\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlow5",
-                               #                                       value = -1,
-                               #                                       label = "Low")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numerichigh5",
-                               #                                       value = 1,
-                               #                                       label = "High")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlength5",
-                               #                                       value = 3,
-                               #                                       min = 2,
-                               #                                       step = 1,
-                               #                                       label = "Breaks")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype5 == \'discnum\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "disclevels5",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype5 == \'cat\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "levels5",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               )
-                               #     )
-                               #   ),
-                               #   shiny::conditionalPanel(
-                               #     condition = "input.numberfactors > 5",
-                               #     shiny::wellPanel(style = panelstyle,
-                               #               shiny::h3("Factor 6"),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 5,
-                               #                        shiny::selectInput(inputId = "blockdepth6",
-                               #                                    choices = list("Easy" = "etc", "Hard" = "htc"),
-                               #                                    label = "Changes")
-                               #                 ),
-                               #                 shiny::column(width = 7,
-                               #                        shiny::selectInput(inputId = "factortype6",
-                               #                                    choices = list("Continuous" = "numeric", "Categorical" = "cat", "Discrete Numeric" = "discnum"),
-                               #                                    label = "Type")
-                               #                 )
-                               #               ),
-                               #               shiny::fluidRow(
-                               #                 shiny::column(width = 12,
-                               #                        shiny::textInput(inputId = "factorname6",
-                               #                                  value = "X6",
-                               #                                  label = "Name")
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype6 == \'numeric\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlow6",
-                               #                                       value = -1,
-                               #                                       label = "Low")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numerichigh6",
-                               #                                       value = 1,
-                               #                                       label = "High")
-                               #                   ),
-                               #                   shiny::column(width = 4,
-                               #                          shiny::numericInput(inputId = "numericlength6",
-                               #                                       value = 3,
-                               #                                       min = 2,
-                               #                                       step = 1,
-                               #                                       label = "Breaks")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype6 == \'discnum\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "disclevels6",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               ),
-                               #               shiny::conditionalPanel(
-                               #                 condition = "input.factortype6 == \'cat\'",
-                               #                 shiny::fluidRow(
-                               #                   shiny::column(width = 12,
-                               #                          shiny::textInput(inputId = "levels6",
-                               #                                    value = "",
-                               #                                    label = "Levels (separate with commas)")
-                               #                   )
-                               #                 )
-                               #               )
-                               #     )
-                               #   )
-                               # ),
-                               shiny::tabPanel("Advanced",
-                                        rintrojs::introBox(shiny::selectInput(inputId = "optimality",
-                                                             choices = c("D", "I", "A", "Alias", "G", "E", "T"),
-                                                             label = "Optimality"), data.step = 6, data.intro = "Change the optimality criterion. If Alias-optimal selected, additional Alias-optimal specific options (minimum D-optimality and Alias-interaction level) will become available to change."),
-                                        rintrojs::introBox(shiny::numericInput(inputId = "repeats",
-                                                              20, label = "Repeats"), data.step = 7, data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."),
-                                        rintrojs::introBox(shiny::numericInput(inputId = "varianceratio",
-                                                              1, label = "Variance Ratio"), data.step = 8, data.intro = "The ratio of the variance between whole plots and subplots for split-plot designs."),
-                                        shiny::conditionalPanel(
-                                          condition = "input.optimality == \'Alias\'",
-                                          shiny::numericInput(inputId = "aliaspower",
-                                                       min = 2, value = 2, label = "Alias Optimal Interaction Level"),
-                                          sliderInput(inputId = "mindopt",
-                                                      min = 0, max = 1, value = 0.8, label = "Minimum D Optimality")
-                                        ),
-                                        rintrojs::introBox(checkboxInput(inputId = "setseed",
-                                                               label = "Set Random Number Generator Seed",
-                                                               value = FALSE), data.step = 9, data.intro = "Set the random seed for both design generation and evaluation. This allows for completely reproducible designs and Monte Carlo simulations."),
-                                        shiny::conditionalPanel(
-                                          condition = "input.setseed",
-                                          shiny::numericInput(inputId = "seed",
-                                                       1, label = "Random Seed")
-                                        ),
-                                        rintrojs::introBox(checkboxInput(inputId = "parallel",
-                                                               label = "Parallel Search",
-                                                               value = FALSE), data.step = 10, data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."),
-                                        rintrojs::introBox(checkboxInput(inputId = "splitanalyzable",
-                                                               label = "Include Blocking Columns in Run Matrix",
-                                                               value = TRUE), data.step = 11, data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."),
-                                        rintrojs::introBox(checkboxInput(inputId = "detailedoutput",
-                                                               label = "Detailed Output",
-                                                               value = FALSE), data.step = 12, data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."),
-                                        rintrojs::introBox(checkboxInput(inputId = "advanceddiagnostics",
-                                                               label = "Advanced Design Diagnostics",
-                                                               value = TRUE), data.step = 13, data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations."),
-                                        shiny::selectInput(inputId = "colorchoice", choices = c("Default" = "D", "Magma" = "A", "Inferno" = "B", "Plasma" = "C", "None" = "none"), label = "Color")
-                               ),
-                               shiny::tabPanel("Power",
-                                        rintrojs::introBox(rintrojs::introBox(rintrojs::introBox(radioButtons(inputId = "evaltype",
-                                                                                label = "Model Type",
-                                                                                choiceNames = c("Linear Model", "Generalized Linear Model", "Survival Model"),
-                                                                                choiceValues = c("lm", "glm", "surv")), data.step = 14, data.intro = "Change the type of analysis. Linear model calculates power with parametric assumptions, while the Generalized Linear Model and Survival Model both calculate power using a Monte Carlo approach."),
-                                                          data.step = 18, data.intro = "Changing the evaluation type to a GLM Monte Carlo reveals several additional controls."),
-                                                 data.step = 22, data.intro = "Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."),
-                                        rintrojs::introBox(sliderInput(inputId = "alpha",
-                                                             min = 0, max = 1, value = 0.05, label = "Alpha"), data.step = 15, data.intro = "Specify the acceptable Type-I error (false positive rate)"),
-                                        shiny::conditionalPanel(
-                                          condition = "input.evaltype == \'lm\' || (input.evaltype == \'glm\' && input.glmfamily == \'gaussian\') || (input.evaltype == \'surv\' && (input.distribution == \'gaussian\' || input.distribution == \'lognormal\'))",
-                                          rintrojs::introBox(shiny::numericInput(inputId = "snr",
-                                                                value = 2, step = 0.1, label = "SNR"), data.step = 16, data.intro = "Signal-to-noise ratio for linear models.")
-                                        ),
-                                        shiny::conditionalPanel(
-                                          condition = "input.evaltype == \'glm\' && input.glmfamily == \'poisson\'",
-                                          shiny::fluidRow(
-                                            shiny::column(width = 6,
-                                                   shiny::numericInput(inputId = "poislow", "Low # of Events:",
-                                                                min = 0, value = 1)
-                                            ),
-                                            shiny::column(width = 6,
-                                                   shiny::numericInput(inputId = "poishigh", "High # of Events:",
-                                                                min = 0, value = 2)
-                                            )
-                                          )
-                                        ),
-                                        shiny::conditionalPanel(
-                                          condition = "(input.evaltype == \'glm\' && input.glmfamily == \'exponential\') || (input.evaltype == \'surv\' && input.distribution == \'exponential\')",
-                                          shiny::fluidRow(
-                                            shiny::column(width = 6,
-                                                   shiny::numericInput(inputId = "explow", "Low Mean:",
-                                                                min = 0, value = 1)
-                                            ),
-                                            shiny::column(width = 6,
-                                                   shiny::numericInput(inputId = "exphigh", "High Mean:",
-                                                                min = 0, value = 2)
-                                            )
-                                          )
-                                        ),
-                                        shiny::conditionalPanel(
-                                          condition = "input.evaltype == \'glm\' && input.glmfamily == \'binomial\'",
-                                          sliderInput(inputId = "binomialprobs", "Binomial Probabilities:",
-                                                      min = 0, max = 1, value = c(0.4, 0.6))
-                                        ),
-                                        rintrojs::introBox(shiny::conditionalPanel(
-                                          condition = "input.evaltype == \'lm\'",
-                                          checkboxInput(inputId = "conservative",
-                                                        label = "Conservative Power",
-                                                        value = FALSE)
-                                        ), data.step = 17, data.intro = "Calculates conservative effect power for 3+ level categorical factors. Calculates power once, and then sets the anticipated coefficient corresponding to the highest power level in each factor to zero. The effect power for those factors then show the most conservative power estimate."),
-                                        shiny::conditionalPanel(
-                                          condition = "input.evaltype == \'glm\'",
-                                          rintrojs::introBox(shiny::numericInput(inputId = "nsim",
-                                                                value = 1000,
-                                                                label = "Number of Simulations"), data.step = 19, data.intro = "The number of Monte Carlo simulations to run. More simulations will result in a more precise power estimation."),
-                                          rintrojs::introBox(shiny::selectInput(inputId = "glmfamily",
-                                                               choices = c("gaussian", "binomial", "poisson", "exponential"),
-                                                               label = "GLM Family"), data.step = 20, data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."),
-                                          rintrojs::introBox(checkboxInput(inputId = "parallel_eval_glm",
-                                                                 label = "Parallel Evaluation",
-                                                                 value = FALSE), data.step = 21, data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains.")
-                                        ),
-                                        shiny::conditionalPanel(
-                                          condition = "input.evaltype == \'surv\'",
-                                          shiny::numericInput(inputId = "nsim_surv",
-                                                       value = 1000,
-                                                       label = "Number of Simulations"),
-                                          shiny::selectInput(inputId = "distribution",
-                                                      choices = c("gaussian", "lognormal", "exponential"),
-                                                      label = "Distribution"),
-                                          rintrojs::introBox(shiny::numericInput(inputId = "censorpoint",
-                                                                value = NA,
-                                                                label = "Censor Point"), data.step = 23, data.intro = "The value after (if right censored) or before (if left censored) data will be censored. The default is no censoring."),
-                                          rintrojs::introBox(shiny::selectInput(inputId = "censortype",
-                                                               choices = c("right", "left"),
-                                                               label = "Censoring Type"), data.step = 24, data.intro = "The type of censoring."),
-                                          checkboxInput(inputId = "parallel_eval_surv",
-                                                        label = "Parallel Evaluation",
-                                                        value = FALSE)
-                                        ),
-                                        checkboxInput(inputId = "colorblind",
-                                                      label = "Colorblind Palette",
-                                                      value = FALSE)
-                               )
-                             )
-                ),
-                mainPanel(shiny::fluidRow(
-                  shiny::column(width = 4, shiny::h1("Results")),
-                  shiny::column(width = 2),
-                  shiny::column(width = 2, rintrojs::introBox(bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."), class = "bookmark", data.step = 33, data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results.")),
-                  shiny::column(width = 2, shiny::actionButton(inputId = "tutorial", "Tutorial", icon = icon("question-circle"))),
-                  shiny::column(width = 2, shiny::HTML(paste0("<div style='float:right; margin-top: 25px;'><img src=",b64,"></img></div>"))),
-                  shiny::tags$style(type = "text/css", "#tutorial {margin-top: 25px;} .bookmark {margin-top: 25px;}")
-                ),
-                shiny::tabsetPanel(
-                  shiny::tabPanel("Design",
-                           checkboxInput(inputId = "orderdesign", label = "Order Design", value = FALSE),
-                           rintrojs::introBox(tableOutput(outputId = "runmatrix"), data.step = 25, data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."),
-                           shiny::hr()
-                  ),
-                  shiny::tabPanel("Design Evaluation",
-                           rintrojs::introBox(shiny::fluidRow(
-                             shiny::column(width = 12,
-                                    shiny::h2("Power Results"),
-                                    shiny::conditionalPanel(
-                                      condition = "input.evaltype == \'lm\'",
-                                      gt::gt_output(outputId = "powerresults")
-                                    ),
-                                    rintrojs::introBox(shiny::conditionalPanel(
-                                      condition = "input.evaltype == \'glm\'",
-                                      gt::gt_output(outputId = "powerresultsglm")
-                                    ), data.step = 27, data.intro = "The power of the design. Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation."),
-                                    shiny::conditionalPanel(
-                                      condition = "input.evaltype == \'surv\'",
-                                      gt::gt_output(outputId = "powerresultssurv")
-                                    )
-                             )
-                           ), data.step = 26, data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"),
-                           shiny::hr(),
-                           shiny::fluidRow(align = "center",
-                                    shiny::column(width = 6,
-                                           shiny::h3("Correlation Map"),
-                                           rintrojs::introBox(shiny::conditionalPanel("input.numberfactors > 1",
-                                                                     shiny::plotOutput(outputId = "aliasplot")), data.step = 28, data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."),
-                                           shiny::conditionalPanel("input.numberfactors == 1",
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::br(),
-                                                            shiny::HTML("<font color=#898989> One Parameter: <br>No Correlation Map</font>"))
-                                    ),
-                                    shiny::column(width = 6,
-                                           shiny::h3("Fraction of Design Space"),
-                                           rintrojs::introBox(shiny::plotOutput(outputId = "fdsplot"), data.step = 29, data.intro = "Fraction of design space plot. The horizontal line corresponds to the average prediction variance for the design.")
-                                    )
-                           ),
-                           shiny::conditionalPanel(
-                             condition = "input.evaltype == \'glm\'",
-                             shiny::fluidRow(
-                               shiny::hr(),
-                               shiny::column(width = 12,
-                                      shiny::h3("Simulated Response Estimates"),
-                                      rintrojs::introBox(shiny::plotOutput(outputId = "responsehistogram"), data.step = 30, data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue). ")
-                               ),
-                               shiny::conditionalPanel(
-                                 condition = "input.glmfamily != \'binomial\'",
-                                 shiny::column(width = 6,
-                                        shiny::numericInput(inputId = "estimatesxminglm",
-                                                     value = NA,
-                                                     label = "x-min")
-                                 ),
-                                 shiny::column(width = 6,
-                                        shiny::numericInput(inputId = "estimatesxmaxglm",
-                                                     value = NA,
-                                                     label = "x-max")
-                                 )
-                               )
-                             )
-                           ),
-                           shiny::conditionalPanel(
-                             condition = "input.evaltype == \'surv\'",
-                             shiny::fluidRow(
-                               shiny::hr(),
-                               shiny::column(width = 12,
-                                      shiny::h3("Simulated Response Estimates"),
-                                      shiny::plotOutput(outputId = "responsehistogramsurv")
-                               ),
-                               shiny::column(width = 6,
-                                      shiny::numericInput(inputId = "estimatesxminsurv",
-                                                   value = NA,
-                                                   label = "x-min")
-                               ),
-                               shiny::column(width = 6,
-                                      shiny::numericInput(inputId = "estimatesxmaxsurv",
-                                                   value = NA,
-                                                   label = "x-max")
-                               )
-                             )
-                           ),
-                           shiny::conditionalPanel(
-                             condition = "input.evaltype == \'glm\'",
-                             shiny::fluidRow(
-                               shiny::hr(),
-                               shiny::column(width = 12,
-                                      shiny::h3("Simulated Estimates"),
-                                      rintrojs::introBox(shiny::plotOutput(outputId = "parameterestimates"), data.step = 31, data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values.")
-                               )
-                             )
-                           ),
-                           shiny::conditionalPanel(
-                             condition = "input.advanceddiagnostics",
-                             shiny::hr(),
-                             shiny::fluidRow(align = "left",
-                                             shiny::uiOutput(outputId = "optimality_results"),
-                                      # shiny::column(width = 6,
-                                      #        shiny::conditionalPanel(
-                                      #          condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
-                                      #          shiny::h3("Criteria"),
-                                      #          shiny::h4("D"),
-                                      #          textOutput(outputId = "dopt"),
-                                      #          shiny::h4("A"),
-                                      #          textOutput(outputId = "aopt")
-                                      #        ),
-                                      #        shiny::h4("I (Average prediction variance)"),
-                                      #        textOutput(outputId = "iopt"),
-                                      #        shiny::conditionalPanel(
-                                      #          condition = "input.blockdepth1 == 'etc' && input.blockdepth2 == 'etc' && input.blockdepth3 == 'etc' && input.blockdepth4 == 'etc' && input.blockdepth5 == 'etc' && input.blockdepth6 == 'etc'",
-                                      #          shiny::h4("E"),
-                                      #          textOutput(outputId = "eopt"),
-                                      #          shiny::h4("G"),
-                                      #          textOutput(outputId = "gopt"),
-                                      #          shiny::h4("T"),
-                                      #          textOutput(outputId = "topt")
-                                      #        )
-                                      # ),
-                                      shiny::column(width = 6,
-                                             shiny::h3("Optimal Search Values"),
-                                             shiny::plotOutput(outputId = "optimalsearch")
-                                      ),
-                                      shiny::hr(),
-                                      shiny::fluidRow(
-                                        shiny::conditionalPanel(
-                                          condition = "input.evaltype != \'lm\'",
-                                          shiny::column(width = 12,
-                                                 shiny::h3("Simulated P-Values"),
-                                                 shiny::plotOutput(outputId = "simulatedpvalues")
-                                          )
-                                        )
-                                      )
-                             )
-                           )
-                  ),
-                  shiny::tabPanel("Generating Code",
-                           rintrojs::introBox(htmlOutput(outputId = "code"), data.step = 32, data.intro = "The R code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. ")
-                  )
+                                        box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.15);}"
+          ),
+          shiny::HTML(
+            "<h1 style='margin-top: 0px;'>skpr<strong style='color: black;'>GUI</strong></h1>"
+          ),
+          shiny::hr(),
+          rintrojs::introBox(
+            shiny::fluidRow(
+              shiny::column(
+                width = 6,
+                shiny::actionButton(
+                  "submitbutton",
+                  shiny::HTML("<strong>Generate <br>Design</strong>"),
+                  class = "btn2"
                 )
+              ),
+              shiny::column(
+                width = 6,
+                shiny::actionButton(
+                  "evalbutton",
+                  shiny::HTML("<strong>Evaluate <br>Design</strong>"),
+                  class = "btn2"
                 )
               )
+            ),
+            data.step = 1,
+            data.intro = "<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the console, and skpr provides the full script used to do that, based on your inputs. Additional advanced capabilities not available in the GUI can be accessed via the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."
+          ),
+          shiny::tabsetPanel(
+            shiny::tabPanel(
+              "Basic",
+              rintrojs::introBox(
+                shiny::numericInput(inputId = "trials",
+                                    12, label = "Trials"),
+                data.step = 2,
+                data.intro = "This is the number of runs in the experiment."
+              ),
+              rintrojs::introBox(
+                shiny::textInput(inputId = "model",
+                                 "~.", label = "Model"),
+                data.step = 3,
+                data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."
+              ),
+
+              shiny::uiOutput("block_panel"),
+              rintrojs::introBox(
+                shiny::numericInput(
+                  inputId = "numberfactors",
+                  min = 1,
+                  max = NA,
+                  1,
+                  label = "Number of Factors"
+                ),
+                data.step = 4,
+                data.intro = "This is the number of factors in the experiment. "
+              ),
+              shiny::br(),
+              rintrojs::introBox(generate_factor_input_panel(1),
+                data.step = 5,
+                data.intro = "This pane allows you to change the factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."
+              ),
+              shiny::uiOutput("additional_factors")
+          ),
+          shiny::tabPanel(
+            "Advanced",
+            rintrojs::introBox(
+              shiny::selectInput(
+                inputId = "optimality",
+                choices = c("D", "I", "A", "Alias", "G", "E", "T"),
+                label = "Optimality"
+              ),
+              data.step = 6,
+              data.intro = "Change the optimality criterion. If Alias-optimal selected, additional Alias-optimal specific options (minimum D-optimality and Alias-interaction level) will become available to change."
+            ),
+            rintrojs::introBox(
+              shiny::numericInput(inputId = "repeats",
+                                  20, label = "Repeats"),
+              data.step = 7,
+              data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."
+            ),
+            rintrojs::introBox(
+              shiny::numericInput(inputId = "varianceratio",
+                                  1, label = "Variance Ratio"),
+              data.step = 8,
+              data.intro = "The ratio of the variance between whole plots and subplots for split-plot designs."
+            ),
+            shiny::conditionalPanel(
+              condition = "input.optimality == \'Alias\'",
+              shiny::numericInput(
+                inputId = "aliaspower",
+                min = 2,
+                value = 2,
+                label = "Alias Optimal Interaction Level"
+              ),
+              sliderInput(
+                inputId = "mindopt",
+                min = 0,
+                max = 1,
+                value = 0.8,
+                label = "Minimum D Optimality"
+              )
+            ),
+            rintrojs::introBox(
+              checkboxInput(
+                inputId = "setseed",
+                label = "Set Random Number Generator Seed",
+                value = FALSE
+              ),
+              data.step = 9,
+              data.intro = "Set the random seed for both design generation and evaluation. This allows for completely reproducible designs and Monte Carlo simulations."
+            ),
+            shiny::conditionalPanel(
+              condition = "input.setseed",
+              shiny::numericInput(inputId = "seed",
+                                  1, label = "Random Seed")
+            ),
+            rintrojs::introBox(
+              checkboxInput(
+                inputId = "parallel",
+                label = "Parallel Search",
+                value = FALSE
+              ),
+              data.step = 10,
+              data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."
+            ),
+            rintrojs::introBox(
+              checkboxInput(
+                inputId = "splitanalyzable",
+                label = "Include Blocking Columns in Run Matrix",
+                value = TRUE
+              ),
+              data.step = 11,
+              data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."
+            ),
+            rintrojs::introBox(
+              checkboxInput(
+                inputId = "detailedoutput",
+                label = "Detailed Output",
+                value = FALSE
+              ),
+              data.step = 12,
+              data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."
+            ),
+            rintrojs::introBox(
+              checkboxInput(
+                inputId = "advanceddiagnostics",
+                label = "Advanced Design Diagnostics",
+                value = TRUE
+              ),
+              data.step = 13,
+              data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations."
+            ),
+            shiny::selectInput(
+              inputId = "colorchoice",
+              choices = c(
+                "Default" = "D",
+                "Magma" = "A",
+                "Inferno" = "B",
+                "Plasma" = "C",
+                "None" = "none"
+              ),
+              label = "Color"
+            )
+          ),
+          shiny::tabPanel(
+            "Power",
+            rintrojs::introBox(
+              rintrojs::introBox(
+                rintrojs::introBox(
+                  radioButtons(
+                    inputId = "evaltype",
+                    label = "Model Type",
+                    choiceNames = c("Linear Model", "Generalized Linear Model", "Survival Model"),
+                    choiceValues = c("lm", "glm", "surv")
+                  ),
+                  data.step = 14,
+                  data.intro = "Change the type of analysis. Linear model calculates power with parametric assumptions, while the Generalized Linear Model and Survival Model both calculate power using a Monte Carlo approach."
+                ),
+                data.step = 18,
+                data.intro = "Changing the evaluation type to a GLM Monte Carlo reveals several additional controls."
+              ),
+              data.step = 22,
+              data.intro = "Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."
+            ),
+            rintrojs::introBox(
+              sliderInput(
+                inputId = "alpha",
+                min = 0,
+                max = 1,
+                value = 0.05,
+                label = "Alpha"
+              ),
+              data.step = 15,
+              data.intro = "Specify the acceptable Type-I error (false positive rate)"
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'lm\' || (input.evaltype == \'glm\' && input.glmfamily == \'gaussian\') || (input.evaltype == \'surv\' && (input.distribution == \'gaussian\' || input.distribution == \'lognormal\'))",
+              rintrojs::introBox(
+                shiny::numericInput(
+                  inputId = "snr",
+                  value = 2,
+                  step = 0.1,
+                  label = "SNR"
+                ),
+                data.step = 16,
+                data.intro = "Signal-to-noise ratio for linear models."
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'glm\' && input.glmfamily == \'poisson\'",
+              shiny::fluidRow(
+                shiny::column(
+                  width = 6,
+                  shiny::numericInput(
+                    inputId = "poislow",
+                    "Low # of Events:",
+                    min = 0,
+                    value = 1
+                  )
+                ),
+                shiny::column(
+                  width = 6,
+                  shiny::numericInput(
+                    inputId = "poishigh",
+                    "High # of Events:",
+                    min = 0,
+                    value = 2
+                  )
+                )
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "(input.evaltype == \'glm\' && input.glmfamily == \'exponential\') || (input.evaltype == \'surv\' && input.distribution == \'exponential\')",
+              shiny::fluidRow(
+                shiny::column(
+                  width = 6,
+                  shiny::numericInput(
+                    inputId = "explow",
+                    "Low Mean:",
+                    min = 0,
+                    value = 1
+                  )
+                ),
+                shiny::column(
+                  width = 6,
+                  shiny::numericInput(
+                    inputId = "exphigh",
+                    "High Mean:",
+                    min = 0,
+                    value = 2
+                  )
+                )
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'glm\' && input.glmfamily == \'binomial\'",
+              sliderInput(
+                inputId = "binomialprobs",
+                "Binomial Probabilities:",
+                min = 0,
+                max = 1,
+                value = c(0.4, 0.6)
+              )
+            ),
+            rintrojs::introBox(
+              shiny::conditionalPanel(
+                condition = "input.evaltype == \'lm\'",
+                checkboxInput(
+                  inputId = "conservative",
+                  label = "Conservative Power",
+                  value = FALSE
+                )
+              ),
+              data.step = 17,
+              data.intro = "Calculates conservative effect power for 3+ level categorical factors. Calculates power once, and then sets the anticipated coefficient corresponding to the highest power level in each factor to zero. The effect power for those factors then show the most conservative power estimate."
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'glm\'",
+              rintrojs::introBox(
+                shiny::numericInput(
+                  inputId = "nsim",
+                  value = 1000,
+                  label = "Number of Simulations"
+                ),
+                data.step = 19,
+                data.intro = "The number of Monte Carlo simulations to run. More simulations will result in a more precise power estimation."
+              ),
+              rintrojs::introBox(
+                shiny::selectInput(
+                  inputId = "glmfamily",
+                  choices = c("gaussian", "binomial", "poisson", "exponential"),
+                  label = "GLM Family"
+                ),
+                data.step = 20,
+                data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."
+              ),
+              rintrojs::introBox(
+                checkboxInput(
+                  inputId = "parallel_eval_glm",
+                  label = "Parallel Evaluation",
+                  value = FALSE
+                ),
+                data.step = 21,
+                data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'surv\'",
+              shiny::numericInput(
+                inputId = "nsim_surv",
+                value = 1000,
+                label = "Number of Simulations"
+              ),
+              shiny::selectInput(
+                inputId = "distribution",
+                choices = c("gaussian", "lognormal", "exponential"),
+                label = "Distribution"
+              ),
+              rintrojs::introBox(
+                shiny::numericInput(
+                  inputId = "censorpoint",
+                  value = NA,
+                  label = "Censor Point"
+                ),
+                data.step = 23,
+                data.intro = "The value after (if right censored) or before (if left censored) data will be censored. The default is no censoring."
+              ),
+              rintrojs::introBox(
+                shiny::selectInput(
+                  inputId = "censortype",
+                  choices = c("right", "left"),
+                  label = "Censoring Type"
+                ),
+                data.step = 24,
+                data.intro = "The type of censoring."
+              ),
+              checkboxInput(
+                inputId = "parallel_eval_surv",
+                label = "Parallel Evaluation",
+                value = FALSE
+              )
+            ),
+            checkboxInput(
+              inputId = "colorblind",
+              label = "Colorblind Palette",
+              value = FALSE
+            )
+          )
+        )
+      ),
+      mainPanel(
+        shiny::fluidRow(
+          shiny::column(width = 4, shiny::h1("Results")),
+          shiny::column(width = 2),
+          shiny::column(
+            width = 2,
+            rintrojs::introBox(
+              bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."),
+              class = "bookmark",
+              data.step = 33,
+              data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."
+            )
+          ),
+          shiny::column(
+            width = 2,
+            shiny::actionButton(
+              inputId = "tutorial",
+              "Tutorial",
+              icon = icon("question-circle")
+            )
+          ),
+          shiny::column(width = 2, shiny::HTML(
+            paste0(
+              "<div style='float:right; margin-top: 25px;'><img src=",
+              b64,
+              "></img></div>"
+            )
+          )),
+          shiny::tags$style(
+            type = "text/css",
+            "#tutorial {margin-top: 25px;} .bookmark {margin-top: 25px;}"
+          )
+        ),
+        shiny::tabsetPanel(
+          shiny::tabPanel(
+            "Design",
+            checkboxInput(
+              inputId = "orderdesign",
+              label = "Order Design",
+              value = FALSE
+            ),
+            rintrojs::introBox(
+              tableOutput(outputId = "runmatrix"),
+              data.step = 25,
+              data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."
+            ),
+            shiny::hr()
+          ),
+          shiny::tabPanel(
+            "Design Evaluation",
+            rintrojs::introBox(
+              shiny::fluidRow(
+                shiny::column(
+                  width = 12,
+                  shiny::h2("Power Results"),
+                  shiny::conditionalPanel(condition = "input.evaltype == \'lm\'",
+                                          gt::gt_output(outputId = "powerresults")),
+                  rintrojs::introBox(
+                    shiny::conditionalPanel(condition = "input.evaltype == \'glm\'",
+                                            gt::gt_output(outputId = "powerresultsglm")),
+                    data.step = 27,
+                    data.intro = "The power of the design. Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation."
+                  ),
+                  shiny::conditionalPanel(condition = "input.evaltype == \'surv\'",
+                                          gt::gt_output(outputId = "powerresultssurv"))
+                )
+              ),
+              data.step = 26,
+              data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"
+            ),
+            shiny::hr(),
+            shiny::fluidRow(
+              align = "center",
+              shiny::column(
+                width = 6,
+                shiny::h3("Correlation Map"),
+                rintrojs::introBox(
+                  shiny::conditionalPanel(
+                    "input.numberfactors > 1",
+                    shiny::plotOutput(outputId = "aliasplot")
+                  ),
+                  data.step = 28,
+                  data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."
+                ),
+                shiny::conditionalPanel(
+                  "input.numberfactors == 1",
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::br(),
+                  shiny::HTML(
+                    "<font color=#898989> One Parameter: <br>No Correlation Map</font>"
+                  )
+                )
+              ),
+              shiny::column(
+                width = 6,
+                shiny::h3("Fraction of Design Space"),
+                rintrojs::introBox(
+                  shiny::plotOutput(outputId = "fdsplot"),
+                  data.step = 29,
+                  data.intro = "Fraction of design space plot. The horizontal line corresponds to the average prediction variance for the design."
+                )
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'glm\'",
+              shiny::fluidRow(
+                shiny::hr(),
+                shiny::column(
+                  width = 12,
+                  shiny::h3("Simulated Response Estimates"),
+                  rintrojs::introBox(
+                    shiny::plotOutput(outputId = "responsehistogram"),
+                    data.step = 30,
+                    data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue). "
+                  )
+                ),
+                shiny::conditionalPanel(
+                  condition = "input.glmfamily != \'binomial\'",
+                  shiny::column(
+                    width = 6,
+                    shiny::numericInput(
+                      inputId = "estimatesxminglm",
+                      value = NA,
+                      label = "x-min"
+                    )
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::numericInput(
+                      inputId = "estimatesxmaxglm",
+                      value = NA,
+                      label = "x-max"
+                    )
+                  )
+                )
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'surv\'",
+              shiny::fluidRow(
+                shiny::hr(),
+                shiny::column(
+                  width = 12,
+                  shiny::h3("Simulated Response Estimates"),
+                  shiny::plotOutput(outputId = "responsehistogramsurv")
+                ),
+                shiny::column(
+                  width = 6,
+                  shiny::numericInput(
+                    inputId = "estimatesxminsurv",
+                    value = NA,
+                    label = "x-min"
+                  )
+                ),
+                shiny::column(
+                  width = 6,
+                  shiny::numericInput(
+                    inputId = "estimatesxmaxsurv",
+                    value = NA,
+                    label = "x-max"
+                  )
+                )
+              )
+            ),
+            shiny::conditionalPanel(condition = "input.evaltype == \'glm\'",
+                                    shiny::fluidRow(
+                                      shiny::hr(),
+                                      shiny::column(
+                                        width = 12,
+                                        shiny::h3("Simulated Estimates"),
+                                        rintrojs::introBox(
+                                          shiny::plotOutput(outputId = "parameterestimates"),
+                                          data.step = 31,
+                                          data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values."
+                                        )
+                                      )
+                                    )),
+            shiny::conditionalPanel(
+              condition = "input.advanceddiagnostics",
+              shiny::hr(),
+              shiny::fluidRow(
+                align = "left",
+                shiny::uiOutput(outputId = "optimality_results"),
+                shiny::column(
+                  width = 6,
+                  shiny::h3("Optimal Search Values"),
+                  shiny::plotOutput(outputId = "optimalsearch")
+                ),
+                shiny::hr(),
+                shiny::fluidRow(
+                  shiny::conditionalPanel(
+                    condition = "input.evaltype != \'lm\'",
+                    shiny::column(
+                      width = 12,
+                      shiny::h3("Simulated P-Values"),
+                      shiny::plotOutput(outputId = "simulatedpvalues")
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          shiny::tabPanel(
+            "Generating Code",
+            rintrojs::introBox(
+              htmlOutput(outputId = "code"),
+              data.step = 32,
+              data.intro = "The R code used to generate the design and evaluate power. This section is updated in real time as the user changes the inputs. Copy and paste this code at the end to easily save, distribute, and reproduce your results. This also provides an easy code template to automate more complex design searches not built in to the GUI. Also included is the code showing how to analyze the experiment once the data has been collected, for all supported types of analyses. "
+            )
+          )
+        )
+      )
+    )
     )
   }
 
@@ -827,85 +741,20 @@ skprGUI = function(inputValue1, inputValue2) {
         numericlength_n = sprintf("numericlength%i",i)
         disclevels_n = sprintf("disclevels%i",i)
         levels_n = sprintf("levels%i",i)
+        blockdepth_n = sprintf("blockdepth%i",i)
 
-        if (input[[factortype_n]] == "numeric") {
-          inputlist1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
-        }
-        if (input[[factortype_n]] == "discnum") {
-          inputlist1[[ input[[factorname_n]] ]] = as.numeric(strsplit(gsub(" ", "", input[[disclevels_n]], fixed = TRUE), split = ",")[[1]])
-        }
-        if (input[[factortype_n]] == "cat") {
-          inputlist1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
+        if(input[[numericlow_n]] == "htc") {
+          if (input[[factortype_n]] == "numeric") {
+            inputlist1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
+          }
+          if (input[[factortype_n]] == "discnum") {
+            inputlist1[[ input[[factorname_n]] ]] = as.numeric(strsplit(gsub(" ", "", input[[disclevels_n]], fixed = TRUE), split = ",")[[1]])
+          }
+          if (input[[factortype_n]] == "cat") {
+            inputlist1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
+          }
         }
       }
-      # for (i in 1:6) {
-      #   if ( (i == 1 && input$numberfactors > 0) && shiny::isolate(input$blockdepth1) == "htc") {
-      #     if (input$factortype1 == "numeric") {
-      #       inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-      #     }
-      #     if (input$factortype1 == "discnum") {
-      #       inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype1 == "cat") {
-      #       inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 2 && input$numberfactors > 1) && shiny::isolate(input$blockdepth2) == "htc") {
-      #     if (input$factortype2 == "numeric") {
-      #       inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-      #     }
-      #     if (input$factortype2 == "discnum") {
-      #       inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype2 == "cat") {
-      #       inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 3 && input$numberfactors > 2) && shiny::isolate(input$blockdepth3) == "htc") {
-      #     if (input$factortype3 == "numeric") {
-      #       inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-      #     }
-      #     if (input$factortype3 == "discnum") {
-      #       inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype3 == "cat") {
-      #       inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 4 && input$numberfactors > 3) && shiny::isolate(input$blockdepth4) == "htc") {
-      #     if (input$factortype4 == "numeric") {
-      #       inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-      #     }
-      #     if (input$factortype4 == "discnum") {
-      #       inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype4 == "cat") {
-      #       inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 5 && input$numberfactors > 4) && shiny::isolate(input$blockdepth5) == "htc") {
-      #     if (input$factortype5 == "numeric") {
-      #       inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-      #     }
-      #     if (input$factortype5 == "discnum") {
-      #       inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype5 == "cat") {
-      #       inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 6 && input$numberfactors > 5) && shiny::isolate(input$blockdepth6) == "htc") {
-      #     if (input$factortype6 == "numeric") {
-      #       inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-      #     }
-      #     if (input$factortype6 == "discnum") {
-      #       inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype6 == "cat") {
-      #       inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      # }
       inputlist1
     })
 
@@ -934,76 +783,7 @@ skprGUI = function(inputValue1, inputValue2) {
           }
         }
       }
-      # inputlist1 = list()
-      # for (i in 1:6) {
-      #   if ( (i == 1 && input$numberfactors > 0) && input$blockdepth1 == "htc") {
-      #     if (input$factortype1 == "numeric") {
-      #       inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-      #     }
-      #     if (input$factortype1 == "discnum") {
-      #       inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype1 == "cat") {
-      #       inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 2 && input$numberfactors > 1) && input$blockdepth2 == "htc") {
-      #     if (input$factortype2 == "numeric") {
-      #       inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-      #     }
-      #     if (input$factortype2 == "discnum") {
-      #       inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype2 == "cat") {
-      #       inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 3 && input$numberfactors > 2) && input$blockdepth3 == "htc") {
-      #     if (input$factortype3 == "numeric") {
-      #       inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-      #     }
-      #     if (input$factortype3 == "discnum") {
-      #       inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype3 == "cat") {
-      #       inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 4 && input$numberfactors > 3) && input$blockdepth4 == "htc") {
-      #     if (input$factortype4 == "numeric") {
-      #       inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-      #     }
-      #     if (input$factortype4 == "discnum") {
-      #       inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype4 == "cat") {
-      #       inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 5 && input$numberfactors > 4) && input$blockdepth5 == "htc") {
-      #     if (input$factortype5 == "numeric") {
-      #       inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-      #     }
-      #     if (input$factortype5 == "discnum") {
-      #       inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype5 == "cat") {
-      #       inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if ( (i == 6 && input$numberfactors > 5) && input$blockdepth6 == "htc") {
-      #     if (input$factortype6 == "numeric") {
-      #       inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-      #     }
-      #     if (input$factortype6 == "discnum") {
-      #       inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype6 == "cat") {
-      #       inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      # }
-      # inputlist1
+      inputlist1
     })
 
 
@@ -1031,88 +811,7 @@ skprGUI = function(inputValue1, inputValue2) {
           }
         }
       }
-      return(inputlist1)
-      # for (i in 1:6) {
-      #   if (i == 1 && input$numberfactors > 0 ) {
-      #     if (input$blockdepth1 == "etc") {
-      #       if (input$factortype1 == "numeric") {
-      #         inputlist1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-      #       }
-      #       if (input$factortype1 == "discnum") {
-      #         inputlist1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-      #       }
-      #       if (input$factortype1 == "cat") {
-      #         inputlist1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-      #       }
-      #     }
-      #   }
-      #   if (i == 2 && input$numberfactors > 1) {
-      #     if (input$blockdepth2 == "etc") {
-      #       if (input$factortype2 == "numeric") {
-      #         inputlist1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-      #       }
-      #       if (input$factortype2 == "discnum") {
-      #         inputlist1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-      #       }
-      #       if (input$factortype2 == "cat") {
-      #         inputlist1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-      #       }
-      #     }
-      #   }
-      #   if (i == 3 && input$numberfactors > 2) {
-      #     if (input$blockdepth3 == "etc") {
-      #       if (input$factortype3 == "numeric") {
-      #         inputlist1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-      #       }
-      #       if (input$factortype3 == "discnum") {
-      #         inputlist1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-      #       }
-      #       if (input$factortype3 == "cat") {
-      #         inputlist1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-      #       }
-      #     }
-      #   }
-      #   if (i == 4 && input$numberfactors > 3) {
-      #     if (input$blockdepth4 == "etc") {
-      #       if (input$factortype4 == "numeric") {
-      #         inputlist1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-      #       }
-      #       if (input$factortype4 == "discnum") {
-      #         inputlist1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-      #       }
-      #       if (input$factortype4 == "cat") {
-      #         inputlist1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-      #       }
-      #     }
-      #   }
-      #   if (i == 5 && input$numberfactors > 4) {
-      #     if (input$blockdepth5 == "etc") {
-      #       if (input$factortype5 == "numeric") {
-      #         inputlist1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-      #       }
-      #       if (input$factortype5 == "discnum") {
-      #         inputlist1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-      #       }
-      #       if (input$factortype5 == "cat") {
-      #         inputlist1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-      #       }
-      #     }
-      #   }
-      #   if (i == 6 && input$numberfactors > 5) {
-      #     if (input$blockdepth6 == "etc") {
-      #       if (input$factortype6 == "numeric") {
-      #         inputlist1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-      #       }
-      #       if (input$factortype6 == "discnum") {
-      #         inputlist1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-      #       }
-      #       if (input$factortype6 == "cat") {
-      #         inputlist1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-      #       }
-      #     }
-      #   }
-      # }
-      # inputlist1
+      inputlist1
     })
 
     candidatesetall = shiny::reactive({
@@ -1137,76 +836,7 @@ skprGUI = function(inputValue1, inputValue2) {
           candidateset1[[ input[[factorname_n]] ]] = strsplit(gsub(" ", "", input[[levels_n]], fixed = TRUE), split = ",")[[1]]
         }
       }
-      return(candidateset1)
-      # for (i in 1:6) {
-      #   if (i == 1 && input$numberfactors > 0 ) {
-      #     if (input$factortype1 == "numeric") {
-      #       candidateset1[[input$factorname1]] = seq(input$numericlow1, input$numerichigh1, length.out = input$numericlength1)
-      #     }
-      #     if (input$factortype1 == "discnum") {
-      #       candidateset1[[input$factorname1]] = as.numeric(strsplit(gsub(" ", "", input$disclevels1, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype1 == "cat") {
-      #       candidateset1[[input$factorname1]] = strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if (i == 2 && input$numberfactors > 1) {
-      #     if (input$factortype2 == "numeric") {
-      #       candidateset1[[input$factorname2]] = seq(input$numericlow2, input$numerichigh2, length.out = input$numericlength2)
-      #     }
-      #     if (input$factortype2 == "discnum") {
-      #       candidateset1[[input$factorname2]] = as.numeric(strsplit(gsub(" ", "", input$disclevels2, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype2 == "cat") {
-      #       candidateset1[[input$factorname2]] = strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if (i == 3 && input$numberfactors > 2) {
-      #     if (input$factortype3 == "numeric") {
-      #       candidateset1[[input$factorname3]] = seq(input$numericlow3, input$numerichigh3, length.out = input$numericlength3)
-      #     }
-      #     if (input$factortype3 == "discnum") {
-      #       candidateset1[[input$factorname3]] = as.numeric(strsplit(gsub(" ", "", input$disclevels3, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype3 == "cat") {
-      #       candidateset1[[input$factorname3]] = strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if (i == 4 && input$numberfactors > 3) {
-      #     if (input$factortype4 == "numeric") {
-      #       candidateset1[[input$factorname4]] = seq(input$numericlow4, input$numerichigh4, length.out = input$numericlength4)
-      #     }
-      #     if (input$factortype4 == "discnum") {
-      #       candidateset1[[input$factorname4]] = as.numeric(strsplit(gsub(" ", "", input$disclevels4, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype4 == "cat") {
-      #       candidateset1[[input$factorname4]] = strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if (i == 5 && input$numberfactors > 4) {
-      #     if (input$factortype5 == "numeric") {
-      #       candidateset1[[input$factorname5]] = seq(input$numericlow5, input$numerichigh5, length.out = input$numericlength5)
-      #     }
-      #     if (input$factortype5 == "discnum") {
-      #       candidateset1[[input$factorname5]] = as.numeric(strsplit(gsub(" ", "", input$disclevels5, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype5 == "cat") {
-      #       candidateset1[[input$factorname5]] = strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      #   if (i == 6 && input$numberfactors > 5) {
-      #     if (input$factortype6 == "numeric") {
-      #       candidateset1[[input$factorname6]] = seq(input$numericlow6, input$numerichigh6, length.out = input$numericlength6)
-      #     }
-      #     if (input$factortype6 == "discnum") {
-      #       candidateset1[[input$factorname6]] = as.numeric(strsplit(gsub(" ", "", input$disclevels6, fixed = TRUE), split = ",")[[1]])
-      #     }
-      #     if (input$factortype6 == "cat") {
-      #       candidateset1[[input$factorname6]] = strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]]
-      #     }
-      #   }
-      # }
-      # candidateset1
+      candidateset1
     })
 
 
@@ -1242,116 +872,7 @@ skprGUI = function(inputValue1, inputValue2) {
           finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
         }
       }
-      return(finalstring)
-      # updatevector = c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)
-      # commacount = input$numberfactors - 1
-      # for (i in 1:6) {
-      #   if (i == 1 && input$numberfactors > 0) {
-      #     finalstring = c(finalstring, input$factorname1, " = ")
-      #     if (input$factortype1 == "numeric") {
-      #       finalstring = c(finalstring, "seq(", input$numericlow1, ",", input$numerichigh1, ", length.out = ", input$numericlength1, ")")
-      #     }
-      #     if (input$factortype1 == "discnum") {
-      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels1, fixed = TRUE), ")")
-      #     }
-      #     if (input$factortype1 == "cat") {
-      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels1, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-      #       finalstring = c(finalstring, "c(", levelstring, ")")
-      #     }
-      #     if (commacount > 0) {
-      #       commacount = commacount - 1
-      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-      #     }
-      #   }
-      #   if ( (i == 2 && input$numberfactors > 1)) {
-      #     finalstring = c(finalstring, input$factorname2, " = ")
-      #     if (input$factortype2 == "numeric") {
-      #       finalstring = c(finalstring, "seq(", input$numericlow2, ",", input$numerichigh2, ", length.out = ", input$numericlength2, ")")
-      #     }
-      #     if (input$factortype2 == "discnum") {
-      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels2, fixed = TRUE), ")")
-      #     }
-      #     if (input$factortype2 == "cat") {
-      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels2, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-      #       finalstring = c(finalstring, "c(", levelstring, ")")
-      #     }
-      #     if (commacount > 0) {
-      #       commacount = commacount - 1
-      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-      #     }
-      #   }
-      #   if (i == 3 && input$numberfactors > 2) {
-      #     finalstring = c(finalstring, input$factorname3, " = ")
-      #     if (input$factortype3 == "numeric") {
-      #       finalstring = c(finalstring, "seq(", input$numericlow3, ",", input$numerichigh3, ", length.out = ", input$numericlength3, ")")
-      #     }
-      #     if (input$factortype3 == "discnum") {
-      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels3, fixed = TRUE), ")")
-      #     }
-      #     if (input$factortype3 == "cat") {
-      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels3, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-      #       finalstring = c(finalstring, "c(", levelstring, ")")
-      #     }
-      #     if (commacount > 0) {
-      #       commacount = commacount - 1
-      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-      #     }
-      #   }
-      #   if (i == 4 && input$numberfactors > 3) {
-      #     finalstring = c(finalstring, input$factorname4, " = ")
-      #     if (input$factortype4 == "numeric") {
-      #       finalstring = c(finalstring, "seq(", input$numericlow4, ",", input$numerichigh4, ", length.out = ", input$numericlength4, ")")
-      #     }
-      #     if (input$factortype4 == "discnum") {
-      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels4, fixed = TRUE), ")")
-      #     }
-      #     if (input$factortype4 == "cat") {
-      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels4, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-      #       finalstring = c(finalstring, "c(", levelstring, ")")
-      #     }
-      #     if (commacount > 0) {
-      #       commacount = commacount - 1
-      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-      #     }
-      #   }
-      #   if (i == 5 && input$numberfactors > 4) {
-      #     finalstring = c(finalstring, input$factorname5, " = ")
-      #     if (input$factortype5 == "numeric") {
-      #       finalstring = c(finalstring, "seq(", input$numericlow5, ",", input$numerichigh5, ", length.out = ", input$numericlength5, ")")
-      #     }
-      #     if (input$factortype5 == "discnum") {
-      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels5, fixed = TRUE), ")")
-      #     }
-      #     if (input$factortype5 == "cat") {
-      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels5, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-      #       finalstring = c(finalstring, "c(", levelstring, ")")
-      #     }
-      #     if (commacount > 0) {
-      #       commacount = commacount - 1
-      #       finalstring = c(finalstring, paste0(c(", \n", rep("&nbsp;", 27)), collapse = ""))
-      #     }
-      #   }
-      #   if (i == 6 && input$numberfactors > 5) {
-      #     finalstring = c(finalstring, input$factorname6, " = ")
-      #     if (input$factortype6 == "numeric") {
-      #       finalstring = c(finalstring, "seq(", input$numericlow6, ",", input$numerichigh6, ", length.out = ", input$numericlength6, ")")
-      #     }
-      #     if (input$factortype6 == "discnum") {
-      #       finalstring = c(finalstring, "c(", gsub(" ", "", input$disclevels6, fixed = TRUE), ")")
-      #     }
-      #     if (input$factortype6 == "cat") {
-      #       levelstring = paste0(c("\""), strsplit(gsub(" ", "", input$levels6, fixed = TRUE), split = ",")[[1]], c("\","), collapse = "")
-      #       levelstring = substr(levelstring, 1, nchar(levelstring) - 1)
-      #       finalstring = c(finalstring, "c(", levelstring, ")")
-      #     }
-      #   }
-      # }
-      # finalstring
+      finalstring
     })
 
     regularmodelstring = shiny::reactive({
@@ -1400,20 +921,18 @@ skprGUI = function(inputValue1, inputValue2) {
     })
 
     anyfactors = shiny::reactive({
+      fac = FALSE
       for(i in seq_len(input$numberfactors)) {
         factortype_n = sprintf("factortype%i",i)
         if(input[[factortype_n]] == "cat") {
-          return(TRUE)
+          fac = TRUE
         }
       }
-      return(FALSE)
-      # any(c(input$factortype1, input$factortype2, input$factortype3, input$factortype4, input$factortype5, input$factortype6) == "cat")
+      fac
     })
 
     code = shiny::reactive({
       blocking = any_htc()
-      # blocking = any("htc" %in% c(input$blockdepth1, input$blockdepth2, input$blockdepth3, input$blockdepth4, input$blockdepth5, input$blockdepth6)[1:input$numberfactors])
-
       first = paste0(c("<br><pre>",
                        "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
                        "<code style=\"color:#468449\"># Copy this into an R script and rerun to reproduce these results.</code><br><br>",
@@ -1636,22 +1155,10 @@ skprGUI = function(inputValue1, inputValue2) {
 
     isblocking = shiny::reactive({
       input$submitbutton
-      return(isolate(any_htc()))
-      # any("htc" %in% c(shiny::isolate(input$blockdepth1),
-      #                  shiny::isolate(input$blockdepth2),
-      #                  shiny::isolate(input$blockdepth3),
-      #                  shiny::isolate(input$blockdepth4),
-      #                  shiny::isolate(input$blockdepth5),
-      #                  shiny::isolate(input$blockdepth6))[1:shiny::isolate(input$numberfactors)])
+      isolate(any_htc())
     })
     isblockingtext = shiny::reactive({
-      return(any_htc())
-      # any("htc" %in% c(input$blockdepth1,
-      #                  input$blockdepth2,
-      #                  input$blockdepth3,
-      #                  input$blockdepth4,
-      #                  input$blockdepth5,
-      #                  input$blockdepth6)[1:(input$numberfactors)])
+      any_htc()
     })
 
     blockmodel = shiny::reactive({
@@ -2238,11 +1745,8 @@ skprGUI = function(inputValue1, inputValue2) {
         shiny::showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
       }
     })
-    # dynamic_ui_variables = reactiveValues()
-    # any_htc() = FALSE
     any_htc = reactive({
       has_htc = FALSE
-      print(names(input))
       for(i in seq_len(input$numberfactors)) {
         if(!is.null(input[[sprintf("blockdepth%i",i)]])) {
           if(input[[sprintf("blockdepth%i",i)]] == "htc") {
@@ -2257,21 +1761,10 @@ skprGUI = function(inputValue1, inputValue2) {
       ui_elements = list()
       if(input$numberfactors > 1) {
         for(i in seq_len(input$numberfactors)[-1]) {
-          # factorname_n = sprintf("factorname%i",i)
-          # factortype_n = sprintf("factortype%i",i)
-          # numericlow_n = sprintf("numericlow%i",i)
-          # numerichigh_n = sprintf("numerichigh%i",i)
-          # numericlength_n = sprintf("numericlength%i",i)
-          # disclevels_n = sprintf("disclevels%i",i)
-          # levels_n = sprintf("levels%i",i)
-          # blockdepth_n = sprintf("blockdepth%i",i)
-          # finalstring = c(finalstring, input[[factorname_n]], " = ")
-          # input[[factorname_n]] =
-          # print(generate_factor_input_panel(i))
           ui_elements[[i-1]] = generate_factor_input_panel(i)
         }
       }
-      ui_elements
+      do.call(shiny::tagList, ui_elements)
       }
     )
     output$additional_factors = shiny::renderUI({

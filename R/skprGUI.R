@@ -907,7 +907,7 @@ skprGUI = function(inputValue1, inputValue2) {
         name_cat[[i]] = input[[factorname_n]]
         factor_cat[[i]] = input[[factortype_n]]
       }
-      factorcat = unlist(factorcat)
+      factorcat = unlist(factor_cat)
       namecat = unlist(name_cat)
       contrasttemp = "list("
       for (i in seq_len(length(namecat))) {
@@ -1346,18 +1346,19 @@ skprGUI = function(inputValue1, inputValue2) {
         if (shiny::isolate(input$setseed)) {
           set.seed(shiny::isolate(input$seed))
         }
-        shiny::withProgress(message = ifelse(shiny::isolate(isblocking()), "Simulating (with REML):", "Simulating:"), value = 0, min = 0, max = 1, expr = {
+        shiny::withProgress(message = ifelse(shiny::isolate(isblocking()), "Simulating (with REML):", "Simulating:"),
+                            value = 0, min = 0, max = 1, expr = {
           powerval = suppressWarnings(eval_design_mc(design = shiny::isolate(runmatrix()),
-                         model = shiny::isolate(as.formula(input$model)),
-                         alpha = shiny::isolate(input$alpha),
-                         blocking = shiny::isolate(isblocking()),
-                         nsim = shiny::isolate(input$nsim),
-                         varianceratios = shiny::isolate(input$varianceratio),
-                         glmfamily = shiny::isolate(input$glmfamily),
-                         effectsize = shiny::isolate(effectsize()),
-                         parallel = shiny::isolate(input$parallel_eval_glm),
-                         detailedoutput = shiny::isolate(input$detailedoutput),
-                         advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
+                                      model = shiny::isolate(as.formula(input$model)),
+                                      alpha = shiny::isolate(input$alpha),
+                                      blocking = shiny::isolate(isblocking()),
+                                      nsim = shiny::isolate(input$nsim),
+                                      varianceratios = shiny::isolate(input$varianceratio),
+                                      glmfamily = shiny::isolate(input$glmfamily),
+                                      effectsize = shiny::isolate(effectsize()),
+                                      parallel = shiny::isolate(input$parallel_eval_glm),
+                                      detailedoutput = shiny::isolate(input$detailedoutput),
+                                      advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
           })
         powerval
       }
@@ -1373,15 +1374,15 @@ skprGUI = function(inputValue1, inputValue2) {
         }
         shiny::withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
           powerval = suppressWarnings(eval_design_survival_mc(design = shiny::isolate(runmatrix()),
-                                  model = shiny::isolate(as.formula(input$model)),
-                                  alpha = shiny::isolate(input$alpha),
-                                  nsim = shiny::isolate(input$nsim_surv),
-                                  censorpoint = shiny::isolate(input$censorpoint),
-                                  censortype = shiny::isolate(input$censortype),
-                                  distribution = shiny::isolate(input$distribution),
-                                  effectsize = shiny::isolate(effectsize()),
-                                  detailedoutput = shiny::isolate(input$detailedoutput),
-                                  advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
+                                      model = shiny::isolate(as.formula(input$model)),
+                                      alpha = shiny::isolate(input$alpha),
+                                      nsim = shiny::isolate(input$nsim_surv),
+                                      censorpoint = shiny::isolate(input$censorpoint),
+                                      censortype = shiny::isolate(input$censortype),
+                                      distribution = shiny::isolate(input$distribution),
+                                      effectsize = shiny::isolate(effectsize()),
+                                      detailedoutput = shiny::isolate(input$detailedoutput),
+                                      advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
           powerval
         })
       }
@@ -1479,7 +1480,7 @@ skprGUI = function(inputValue1, inputValue2) {
       format_table(powerresultssurv(),gt::gt(powerresultssurv()), shiny::isolate(input$alpha),shiny::isolate(input$nsim_surv),shiny::isolate(input$colorblind))
     }, align = "left")
 
-    output$aliasplot = renderPlot({
+    output$aliasplot = shiny::renderPlot({
       input$submitbutton
       tryCatch({
         plot_correlations(shiny::isolate(runmatrix()))
@@ -1487,40 +1488,40 @@ skprGUI = function(inputValue1, inputValue2) {
       })
     })
 
-    output$fdsplot = renderPlot({
+    output$fdsplot = shiny::renderPlot({
       input$submitbutton
       plot_fds(shiny::isolate(runmatrix()))
     })
 
-    output$code = renderUI({
+    output$code = shiny::renderUI({
       shiny::HTML(code())
     })
 
-    output$dopt = renderText({
+    output$dopt = shiny::renderText({
       input$submitbutton
       shiny::isolate(attr(runmatrix(), "D"))
     })
-    output$aopt = renderText({
+    output$aopt = shiny::renderText({
       input$submitbutton
       shiny::isolate(attr(runmatrix(), "A"))
     })
-    output$iopt = renderText({
+    output$iopt = shiny::renderText({
       input$submitbutton
       shiny::isolate(attr(runmatrix(), "I"))
     })
-    output$eopt = renderText({
+    output$eopt = shiny::renderText({
       input$submitbutton
       shiny::isolate(attr(runmatrix(), "E"))
     })
-    output$gopt = renderText({
+    output$gopt = shiny::renderText({
       input$submitbutton
       shiny::isolate(attr(runmatrix(), "G"))
     })
-    output$topt = renderText({
+    output$topt = shiny::renderText({
       input$submitbutton
       shiny::isolate(attr(runmatrix(), "T"))
     })
-    output$optimalsearch = renderPlot({
+    output$optimalsearch = shiny::renderPlot({
       input$submitbutton
       if (shiny::isolate(optimality()) %in% c("D", "G", "A")) {
         if(attr(runmatrix(), "blocking") || attr(runmatrix(), "splitplot")) {
@@ -1543,7 +1544,7 @@ skprGUI = function(inputValue1, inputValue2) {
         shiny::isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2))
       }
     })
-    output$simulatedpvalues = renderPlot({
+    output$simulatedpvalues = shiny::renderPlot({
       updateval = c(powerresultsglm(),powerresultssurv())
       if(shiny::isolate(evaluationtype() == "glm")) {
         pvalrows = shiny::isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
@@ -1568,7 +1569,7 @@ skprGUI = function(inputValue1, inputValue2) {
         }
       }
     })
-    output$parameterestimates = renderPlot({
+    output$parameterestimates = shiny::renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultsglm(), "estimates"))) {
         ests = apply(attr(powerresultsglm(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
@@ -1603,7 +1604,7 @@ skprGUI = function(inputValue1, inputValue2) {
       }
     })
 
-    output$parameterestimatessurv = renderPlot({
+    output$parameterestimatessurv = shiny::renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultssurv(), "estimates"))) {
         ests = apply(attr(powerresultssurv(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
@@ -1630,7 +1631,7 @@ skprGUI = function(inputValue1, inputValue2) {
       }
     })
 
-    output$responsehistogram = renderPlot({
+    output$responsehistogram = shiny::renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultsglm(), "estimates"))) {
         responses = as.vector(attr(powerresultsglm(), "estimates") %*% t(attr(powerresultsglm(), "modelmatrix")))
@@ -1688,7 +1689,7 @@ skprGUI = function(inputValue1, inputValue2) {
       }
     })
 
-    output$responsehistogramsurv = renderPlot({
+    output$responsehistogramsurv = shiny::renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultssurv(), "estimates"))) {
         responses = as.vector(attr(powerresultssurv(), "estimates") %*% t(attr(powerresultssurv(), "modelmatrix")))
@@ -1729,7 +1730,7 @@ skprGUI = function(inputValue1, inputValue2) {
         }
       }
     })
-    output$separationwarning = renderText({
+    output$separationwarning = shiny::renderText({
       input$evalbutton
       likelyseparation = FALSE
       if (shiny::isolate(input$evaltype) == "glm" && shiny::isolate(input$glmfamily) == "binomial") {
@@ -1745,7 +1746,7 @@ skprGUI = function(inputValue1, inputValue2) {
         shiny::showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
       }
     })
-    any_htc = reactive({
+    any_htc = shiny::reactive({
       has_htc = FALSE
       for(i in seq_len(input$numberfactors)) {
         if(!is.null(input[[sprintf("blockdepth%i",i)]])) {
@@ -1757,16 +1758,54 @@ skprGUI = function(inputValue1, inputValue2) {
       has_htc
     })
 
-    ui_elements = reactive({
+    factor_input_cache = shiny::reactiveValues()
+
+    ui_elements = shiny::reactive({
       ui_elements = list()
       if(input$numberfactors > 1) {
         for(i in seq_len(input$numberfactors)[-1]) {
-          ui_elements[[i-1]] = generate_factor_input_panel(i)
+          ui_elements[[i-1]] = generate_factor_input_panel(i, shiny::reactiveValuesToList(factor_input_cache))
         }
       }
       do.call(shiny::tagList, ui_elements)
       }
-    )
+    ) |>
+      shiny::bindEvent(updated_ui_defaults())
+
+    updated_ui_defaults = shiny::reactive({
+      for(i in seq_len(input$numberfactors)) {
+        factorname_n = sprintf("factorname%i",i)
+        factortype_n = sprintf("factortype%i",i)
+        numericlow_n = sprintf("numericlow%i",i)
+        numerichigh_n = sprintf("numerichigh%i",i)
+        numericlength_n = sprintf("numericlength%i",i)
+        disclevels_n = sprintf("disclevels%i",i)
+        levels_n = sprintf("levels%i",i)
+        blockdepth_n = sprintf("blockdepth%i",i)
+        if(is.null(factor_input_cache[[factorname_n]])) {
+          factor_input_cache[[factorname_n]]    = sprintf("X%i",i)
+          factor_input_cache[[factortype_n]]    = "Continuous"
+          factor_input_cache[[numericlow_n]]    = -1
+          factor_input_cache[[numerichigh_n]]   = 1
+          factor_input_cache[[numericlength_n]] = 3
+          factor_input_cache[[disclevels_n]]    = ""
+          factor_input_cache[[levels_n]]        = "a, b, c"
+          factor_input_cache[[blockdepth_n]]    = "Easy"
+        } else {
+          factor_input_cache[[factorname_n]]    = input[[factorname_n]]
+          factor_input_cache[[factortype_n]]    = input[[factortype_n]]
+          factor_input_cache[[numericlow_n]]    = input[[numericlow_n]]
+          factor_input_cache[[numerichigh_n]]   = input[[numerichigh_n]]
+          factor_input_cache[[numericlength_n]] = input[[numericlength_n]]
+          factor_input_cache[[disclevels_n]]    = input[[disclevels_n]]
+          factor_input_cache[[levels_n]]        = input[[levels_n]]
+          factor_input_cache[[blockdepth_n]]    = input[[blockdepth_n]]
+        }
+      }
+      input$numberfactors
+    }) |>
+      shiny::bindEvent(input$numberfactors)
+
     output$additional_factors = shiny::renderUI({
       ui_elements()
     })

@@ -26,7 +26,8 @@
 #'design = gen_design(candidatelist, ~(X1 + X2), 15)
 #'
 #'plot_fds(design)
-plot_fds = function(genoutput, model = NULL, continuouslength = 51, plot=TRUE,
+plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
+                    sample_size = 10000,
                     yaxis_max = NULL, description="Fraction of Design Space") {
   if(inherits(genoutput,"list") && length(genoutput) > 1) {
     old.par = par(no.readonly = TRUE)
@@ -102,12 +103,9 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 51, plot=TRUE,
       vals = unique(genoutput[, col])
     }
     if (is.numeric(genoutput[, col])) {
-      if (ncol(genoutput) == 1) {
-        continuouslength = 51
-      }
       vals = seq(-1, 1, length.out = continuouslength)
     }
-    sample_list[[colnames(genoutput)[col]]] = vals[sample(seq_len(length(vals)), size=10000, replace = TRUE)]
+    sample_list[[colnames(genoutput)[col]]] = vals[sample(seq_len(length(vals)), size=sample_size, replace = TRUE)]
   }
   samples = as.data.frame(sample_list)
 
@@ -139,7 +137,7 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 51, plot=TRUE,
     scale = scale[1]
   }
   varsorderedscaled = varsordered / scale * Iopt
-  midval = varsorderedscaled[5000]
+  midval = varsorderedscaled[sample_size/2]
   if(is.null(yaxis_max)) {
     maxyaxis = max(varsorderedscaled) + max(varsorderedscaled) / 20
   } else {

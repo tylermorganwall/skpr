@@ -907,7 +907,7 @@ skprGUI = function(inputValue1, inputValue2) {
         name_cat[[i]] = input[[factorname_n]]
         factor_cat[[i]] = input[[factortype_n]]
       }
-      factorcat = unlist(factor_cat)
+      factorcat = unlist(factorcat)
       namecat = unlist(name_cat)
       contrasttemp = "list("
       for (i in seq_len(length(namecat))) {

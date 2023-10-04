@@ -248,7 +248,7 @@ skprGUI = function(inputValue1, inputValue2) {
                 value = 2,
                 label = "Alias Optimal Interaction Level"
               ),
-              sliderInput(
+              shiny::sliderInput(
                 inputId = "mindopt",
                 min = 0,
                 max = 1,
@@ -257,7 +257,7 @@ skprGUI = function(inputValue1, inputValue2) {
               )
             ),
             rintrojs::introBox(
-              checkboxInput(
+              shiny::checkboxInput(
                 inputId = "setseed",
                 label = "Set Random Number Generator Seed",
                 value = FALSE
@@ -271,7 +271,7 @@ skprGUI = function(inputValue1, inputValue2) {
                                   1, label = "Random Seed")
             ),
             rintrojs::introBox(
-              checkboxInput(
+              shiny::checkboxInput(
                 inputId = "parallel",
                 label = "Parallel Search",
                 value = FALSE
@@ -280,7 +280,7 @@ skprGUI = function(inputValue1, inputValue2) {
               data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."
             ),
             rintrojs::introBox(
-              checkboxInput(
+              shiny::checkboxInput(
                 inputId = "splitanalyzable",
                 label = "Include Blocking Columns in Run Matrix",
                 value = TRUE
@@ -289,7 +289,7 @@ skprGUI = function(inputValue1, inputValue2) {
               data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."
             ),
             rintrojs::introBox(
-              checkboxInput(
+              shiny::checkboxInput(
                 inputId = "detailedoutput",
                 label = "Detailed Output",
                 value = FALSE
@@ -298,7 +298,7 @@ skprGUI = function(inputValue1, inputValue2) {
               data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."
             ),
             rintrojs::introBox(
-              checkboxInput(
+              shiny::checkboxInput(
                 inputId = "advanceddiagnostics",
                 label = "Advanced Design Diagnostics",
                 value = TRUE
@@ -339,7 +339,7 @@ skprGUI = function(inputValue1, inputValue2) {
               data.intro = "Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."
             ),
             rintrojs::introBox(
-              sliderInput(
+              shiny::sliderInput(
                 inputId = "alpha",
                 min = 0,
                 max = 1,
@@ -410,7 +410,7 @@ skprGUI = function(inputValue1, inputValue2) {
             ),
             shiny::conditionalPanel(
               condition = "input.evaltype == \'glm\' && input.glmfamily == \'binomial\'",
-              sliderInput(
+              shiny::sliderInput(
                 inputId = "binomialprobs",
                 "Binomial Probabilities:",
                 min = 0,
@@ -418,10 +418,18 @@ skprGUI = function(inputValue1, inputValue2) {
                 value = c(0.4, 0.6)
               )
             ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'glm\'",
+              shiny::checkboxInput(
+                inputId = "firth_correction",
+                "Use Firth Correction",
+                value = TRUE
+              )
+            ),
             rintrojs::introBox(
               shiny::conditionalPanel(
                 condition = "input.evaltype == \'lm\'",
-                checkboxInput(
+                shiny::checkboxInput(
                   inputId = "conservative",
                   label = "Conservative Power",
                   value = FALSE
@@ -451,7 +459,7 @@ skprGUI = function(inputValue1, inputValue2) {
                 data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."
               ),
               rintrojs::introBox(
-                checkboxInput(
+                shiny::checkboxInput(
                   inputId = "parallel_eval_glm",
                   label = "Parallel Evaluation",
                   value = FALSE
@@ -490,13 +498,13 @@ skprGUI = function(inputValue1, inputValue2) {
                 data.step = 24,
                 data.intro = "The type of censoring."
               ),
-              checkboxInput(
+              shiny::checkboxInput(
                 inputId = "parallel_eval_surv",
                 label = "Parallel Evaluation",
                 value = FALSE
               )
             ),
-            checkboxInput(
+            shiny::checkboxInput(
               inputId = "colorblind",
               label = "Colorblind Palette",
               value = FALSE
@@ -540,7 +548,7 @@ skprGUI = function(inputValue1, inputValue2) {
         shiny::tabsetPanel(
           shiny::tabPanel(
             "Design",
-            checkboxInput(
+            shiny::checkboxInput(
               inputId = "orderdesign",
               label = "Order Design",
               value = FALSE
@@ -1343,6 +1351,12 @@ skprGUI = function(inputValue1, inputValue2) {
     powerresultsglm = shiny::reactive({
       input$evalbutton
       if (shiny::isolate(evaluationtype()) == "glm") {
+        if(shiny::isolate(isblocking()) && isolate(input$firth_correction)) {
+          shiny::showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
+          firth_cor = FALSE
+        } else {
+          firth_cor = isolate(input$firth_correction)
+        }
         if (shiny::isolate(input$setseed)) {
           set.seed(shiny::isolate(input$seed))
         }
@@ -1356,6 +1370,7 @@ skprGUI = function(inputValue1, inputValue2) {
                                       varianceratios = shiny::isolate(input$varianceratio),
                                       glmfamily = shiny::isolate(input$glmfamily),
                                       effectsize = shiny::isolate(effectsize()),
+                                      firth = firth_cor,
                                       parallel = shiny::isolate(input$parallel_eval_glm),
                                       detailedoutput = shiny::isolate(input$detailedoutput),
                                       advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))

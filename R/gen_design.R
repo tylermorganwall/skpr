@@ -921,11 +921,7 @@ gen_design = function(candidateset, model, trials,
         }
       }
     } else {
-      if (is.null(options("cores")[[1]])) {
-        numbercores = parallel::detectCores()
-      } else {
-        numbercores = options("cores")[[1]]
-      }
+      numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
       cl = parallel::makeCluster(numbercores)
       numbercores = length(cl)
       if(timer) {
@@ -1050,11 +1046,7 @@ gen_design = function(candidateset, model, trials,
                                                  disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance = tolerance, kexchange = kexchange)
       }
     } else {
-      if (is.null(options("cores")[[1]])) {
-        numbercores = parallel::detectCores()
-      } else {
-        numbercores = options("cores")[[1]]
-      }
+      numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
       if(timer) {
         pb = progress::progress_bar$new(format = "  Searching [:bar] :percent ETA: :eta",
                                         total = repeats, clear = TRUE, width= 60)

@@ -253,11 +253,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     power_values = power_values / nsim
 
   } else {
-    if (is.null(options("cores")[[1]])) {
-      numbercores = parallel::detectCores()
-    } else {
-      numbercores = options("cores")[[1]]
-    }
+    numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
     cl = parallel::makeCluster(numbercores)
     numbercores = length(cl)
     doParallel::registerDoParallel(cl)

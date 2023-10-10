@@ -27,3 +27,14 @@ register_s3_method <- function(pkg, generic, class, fun = NULL) {
   register_s3_method("skpr", "print", "skpr_eval_output")
   register_s3_method("skpr", "print", "skpr_power_curve_output")
 }
+
+detect_multicore_support = function() {
+  ns = getNamespace("parallel")
+  supportedByOS = exists("mcparallel", mode = "function",
+                         envir = ns, inherits = FALSE)
+  return(supportedByOS)
+}
+
+skpr_system_setup_env = new.env(parent = emptyenv())
+
+assign("has_multicore_support", detect_multicore_support(), envir = skpr_system_setup_env)

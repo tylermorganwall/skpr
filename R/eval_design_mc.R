@@ -38,7 +38,8 @@
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#'@param parallel Default `FALSE`. If `TRUE`, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.
+#' If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+#' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param adjust_alpha_inflation Default `FALSE`. If `TRUE`, this will run the simulation twice:
 #'first to calculate the empirical distribution of p-values under the null hypothesis and find
 #'the true Type-I error cutoff that corresponds to the desired Type-I error rate,
@@ -115,7 +116,7 @@
 #'
 #'
 #'@export
-#'@import foreach doParallel stats
+#'@import foreach doParallel stats doRNG
 #'@examples #We first generate a full factorial design using expand.grid:
 #'factorialcoffee = expand.grid(cost = c(-1, 1),
 #'                               type = as.factor(c("Kona", "Colombian", "Ethiopian", "Sumatra")),
@@ -566,7 +567,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
 
   #---------------- Run Simulations ---------------#
   aliasing_checked = FALSE
-  progressbarupdates = floor(seq(1, nsim, length.out = 50))
+  progressbarupdates = floor(seq(1, nsim, length.out = 100))
   progresscurrent = 1
   estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
   effect_terms = c(1,rownames(attr(terms(model_formula), "factors"))[-1])
@@ -576,16 +577,18 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     stderrlist = list()
     iterlist = list()
     if(interactive() && progress) {
-      pb = progress::progress_bar$new(format = "  Calculating Power [:bar] :percent ETA: :eta",
-                                      total = nsim, clear = TRUE, width= 60)
+      pb = progress::progress_bar$new(format = sprintf("  Calculating Power [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"),
+                                      total = nsim, clear = TRUE, width= 100)
     }
     power_values = rep(0, ncol(ModelMatrix))
     effect_power_values = c()
-    for (j in 1:nsim) {
-      if (!is.null(progressBarUpdater) && progress) {
-        if (nsim > 50) {
+    for (j in seq_len(nsim)) {
+      if (advancedoptions$GUI) {
+        if (nsim > 100) {
+          #This code is to slow down the number of updates in the Shiny app--if there
+          #are too many updates, the progress bar will lag behind the actual computation
           if (progressbarupdates[progresscurrent] == j) {
-            progressBarUpdater(1 / 50)
+            progressBarUpdater(1 / 100)
             progresscurrent = progresscurrent + 1
           }
         } else {
@@ -706,7 +709,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         }
         power_values[pvals < alpha_parameter] = power_values[pvals < alpha_parameter] + 1
       }
-      if(interactive() && progress) {
+      if(interactive() && progress && !advancedoptions$GUI) {
         pb$tick()
       }
     }
@@ -728,17 +731,61 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       names(effect_power_values) = names(effectpvallist[[1]])
     }
   } else {
-    numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
-    cl = parallel::makeCluster(numbercores)
-    numbercores = length(cl)
-    doParallel::registerDoParallel(cl)
+    if(!advancedoptions$GUI) {
+      oplan = future::plan()
+      original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)
+      if(original_future_call != "NULL") {
+        if(skpr_system_setup_env$has_multicore_support) {
+          message_string = r"{plan("multicore", workers = number_of_cores-1)}"
+        } else {
+          message_string = r"{plan("multisession", workers = number_of_cores-1)}"
+        }
+        message(sprintf("Using user-defined {future} plan() `%s` instead of {skpr}'s default multicore plan (for this computer) of `%s`", original_future_call, message_string))
+      } else {
+        numbercores =  getOption("cores", default = getOption("Ncpus", default = max(c(1, future::availableCores()-1))))
+        doFuture::registerDoFuture()
+        doRNG::registerDoRNG()
+        if(skpr_system_setup_env$has_multicore_support) {
+          plan("multicore", workers = numbercores)
+        } else {
+          plan("multisession", workers = numbercores)
+        }
+      }
+      progressr::handlers(global = TRUE)
+      progressr::handlers(list(
+        progressr::handler_progress(
+          format   = sprintf("  Evaluating (%d workers) [:bar] (:current/:total, :tick_rate sim/s) ETA::eta", future::nbrOfWorkers()),
+          width    = 100,
+          complete = "=",
+          interval = 0.25
+        )
+      ))
+      num_updates = nsim
+    } else {
+      num_updates = 100
+    }
     modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
     packagelist = c("lme4", "lmerTest")
     if(firth) {
       packagelist = c("lme4", "lmerTest", "mbest")
     }
-    tryCatch({
-      power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = packagelist) %dopar% {
+    nc =  future::nbrOfWorkers()
+    run_search = function(iterations, is_shiny) {
+      prog = progressr::progressor(steps = num_updates)
+      foreach::foreach (j = seq_along(iterations), .combine = "rbind",
+                        .export = c("extractPvalues", "effectpowermc", "RunMatrixReduced",
+                                    "responses", "contrastslist", "model_formula", "glmfamily", "glmfamilyname",
+                                    "anovatype", "pvalstring", "anovatest", "firth", "effect_terms", "effect_anova", "method",
+                                    "modelmat", "aliasing_checked", "parameter_names", "progressbarupdates"),
+                        .packages = packagelist) %dopar% {
+        if(progress || is_shiny) {
+          if(is_shiny && j %in% progressbarupdates) {
+            prog(sprintf(" (%i workers) ", nc))
+          }
+          if(!is_shiny) {
+            prog()
+          }
+        }
         #simulate the data.
         fiterror = FALSE
         RunMatrixReduced$Y = responses[, j]
@@ -850,9 +897,124 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
           }
         }
       }
-    }, finally = {
-      parallel::stopCluster(cl)
-    })
+    }
+    power_estimates = run_search(seq_len(nsim), advancedoptions$GUI)
+    # tryCatch({
+    #   power_estimates = foreach::foreach (j = 1:nsim, .combine = "rbind", .export = c("extractPvalues", "effectpowermc"), .packages = packagelist) %dopar% {
+    #     #simulate the data.
+    #     fiterror = FALSE
+    #     RunMatrixReduced$Y = responses[, j]
+    #     if (blocking) {
+    #       if (glmfamilyname == "gaussian") {
+    #         fit = suppressWarnings(
+    #           suppressMessages(
+    #             lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+    #           )
+    #         )
+    #         if (calceffect) {
+    #           effect_pvals = effectpowermc(fit, type = "III",
+    #                                        test = "Pr(>Chisq)")
+    #         }
+    #       } else {
+    #         tryCatch({
+    #           fit = suppressWarnings(
+    #             suppressMessages(
+    #               lme4::glmer(model_formula, data = RunMatrixReduced, family = glmfamily, contrasts = contrastslist)
+    #             )
+    #           )
+    #         }, error = function(e) {
+    #           fiterror = TRUE
+    #         })
+    #         if (calceffect && !fiterror) {
+    #           effect_pvals = effectpowermc(fit, type = anovatype,
+    #                                        test = pvalstring,
+    #                                        test.statistic = anovatest,
+    #                                        model_formula = model_formula, firth = firth,
+    #                                        glmfamily = glmfamilyname, effect_terms = effect_terms,
+    #                                        RunMatrixReduced = RunMatrixReduced, method = method,
+    #                                        contrastslist = contrastslist, effect_anova = effect_anova)
+    #         }
+    #       }
+    #       if(!fiterror) {
+    #         estimates = coef(summary(fit))[, 1]
+    #       }
+    #     } else {
+    #       if (glmfamilyname == "gaussian") {
+    #         fit = lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+    #         if (calceffect) {
+    #           effect_pvals = effectpowermc(fit, type = "III", test = "Pr(>F)", test.statistic = anovatest,
+    #                                        model_formula = model_formula, firth = firth,
+    #                                        glmfamily = glmfamilyname, effect_terms = effect_terms,
+    #                                        RunMatrixReduced = RunMatrixReduced, method = method,
+    #                                        contrastslist = contrastslist, effect_anova = effect_anova)
+    #         }
+    #       } else {
+    #         tryCatch({
+    #           fit = suppressWarnings(
+    #             suppressMessages(
+    #               glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist, method = method)
+    #             )
+    #           )
+    #         }, error = function(e) {
+    #           fiterror = TRUE
+    #         })
+    #         if (calceffect && !fiterror) {
+    #           effect_pvals = effectpowermc(fit, type = anovatype, test = pvalstring, test.statistic = anovatest,
+    #                                        model_formula = model_formula, firth = firth,
+    #                                        glmfamily = glmfamilyname, effect_terms = effect_terms,
+    #                                        RunMatrixReduced = RunMatrixReduced, method = method,
+    #                                        contrastslist = contrastslist, effect_anova = effect_anova)
+    #         }
+    #       }
+    #       if(!fiterror) {
+    #         estimates = suppressWarnings(
+    #           suppressMessages(coef(fit)
+    #           ))
+    #       } else {
+    #         estimates = rep(NA,ncol(modelmat))
+    #       }
+    #     }
+    #     if(!fiterror) {
+    #       #Check for perfect aliasing in design
+    #       if(!aliasing_checked) {
+    #         aliasing_checked = TRUE
+    #         if(!inherits(fit, c("lmerMod","glmerMod","merMod")) && !is.null(alias(fit)$Complete)) {
+    #           alias_mat_fit = alias(fit)$Complete
+    #           if(nrow(alias_mat_fit) > 0) {
+    #             perfectly_aliased_terms = paste0(rownames(alias_mat_fit), collapse = ", ")
+    #             stop(sprintf("Perfectly aliased term(s) included in model (%s). Remove these terms to fit your model, or change your design.",
+    #                          perfectly_aliased_terms))
+    #           }
+    #         }
+    #       }
+    #       #determine whether beta[i] is significant. If so, increment nsignificant
+    #       pvals = extractPvalues(fit, glmfamily = glmfamilyname)
+    #       #reorder since firth correction can change the ordering
+    #       pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+    #       stopifnot(all(names(pvals) == parameter_names))
+    #       power_values = rep(0, length(pvals))
+    #       if (calceffect) {
+    #         effect_power_values = rep(0, length(effect_pvals))
+    #         names(effect_power_values) = names(effect_pvals)
+    #         effect_power_values[effect_pvals < alpha_effect] = 1
+    #       }
+    #       stderrval = coef(summary(fit))[, 2]
+    #       power_values[pvals < alpha_parameter] = 1
+    #       if (!blocking && !is.null(fit$iter)) {
+    #         iterval = fit$iter
+    #       } else {
+    #         iterval = NA
+    #       }
+    #       if (calceffect) {
+    #         list("parameterpower" = power_values, "effectpower" = effect_power_values, "estimates" = estimates, "pvals" = c(pvals), "effectpvals" = effect_pvals, "strerrval" = stderrval, "iterval" = iterval)
+    #       } else {
+    #         list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals, "strerrval" = stderrval, "iterval" = iterval)
+    #       }
+    #     }
+    #   }
+    # }, finally = {
+    #   parallel::stopCluster(cl)
+    # })
     power_values = apply(do.call(rbind, power_estimates[, "parameterpower"]), 2, sum) / nsim
     if (calceffect) {
       effect_power_values = apply(do.call(rbind, power_estimates[, "effectpower"]), 2, sum) / nsim

@@ -7,8 +7,9 @@
 plot_fds(
   genoutput,
   model = NULL,
-  continuouslength = 11,
+  continuouslength = 1001,
   plot = TRUE,
+  sample_size = 10000,
   yaxis_max = NULL,
   description = "Fraction of Design Space"
 )

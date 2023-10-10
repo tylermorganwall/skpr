@@ -72,7 +72,9 @@ user can change to type `II`). `advancedoptions$anovatest` specifies the test st
 `advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.}
 
-\item{parallel}{If TRUE, uses all cores available to speed up computation of power. Default FALSE.}
+\item{parallel}{Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
 \item{parallelpackages}{A vector of strings listing the external packages to be input into the parallel package.}
 

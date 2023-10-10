@@ -29,7 +29,9 @@ Imports:
     lazyeval,
     progress,
     scales,
-    doRNG
+    doRNG,
+    doFuture,
+    progressr
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat, mbest, ggplot2, lmtest, cli, gridExtra, rintrojs, shinythemes, shiny, shinyjs, gt
 Encoding: UTF-8

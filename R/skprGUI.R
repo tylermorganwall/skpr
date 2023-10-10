@@ -5,6 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'
+#'@import doRNG
 #'@export
 #'@examples
 #'#Type `skprGUI()` to begin
@@ -12,8 +13,27 @@
 # nocov start
 skprGUI = function(inputValue1, inputValue2) {
   check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
+  oplan = future::plan()
+  original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)
+  if(original_future_call != "NULL") {
+    if(skpr_system_setup_env$has_multicore_support) {
+      message_string = r"{plan("multicore", workers = number_of_cores-1)}"
+    } else {
+      message_string = r"{plan("multisession", workers = number_of_cores-1)}"
+    }
+    message(sprintf("Using user-defined {future} plan() `%s` instead of {skpr}'s default plan (for this computer) of `%s`", original_future_call, message_string))
+  } else {
+    numbercores = getOption("cores", default = getOption("Ncpus", default = max(c(1,future::availableCores()-1))))
+    doFuture::registerDoFuture()
+    doRNG::registerDoRNG()
+    if(skpr_system_setup_env$has_multicore_support) {
+      plan("multicore", workers = numbercores, .call = NULL)
+    } else {
+      plan("multisession", workers = numbercores, .call = NULL)
+    }
+  }
   b64 = "data:image/png;base64,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"
-
+  progressr::handlers(global = TRUE)
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
   border-radius: 15px;
@@ -850,6 +870,7 @@ skprGUI = function(inputValue1, inputValue2) {
 
 
     inputstring = shiny::reactive({
+      req(update)
       updatevector = list()
       finalstring = c()
       commacount = input$numberfactors - 1
@@ -863,7 +884,7 @@ skprGUI = function(inputValue1, inputValue2) {
         levels_n = sprintf("levels%i",i)
         blockdepth_n = sprintf("blockdepth%i",i)
         finalstring = c(finalstring, input[[factorname_n]], " = ")
-
+        req(input[[factortype_n]])
         if (input[[factortype_n]] == "numeric") {
           finalstring = c(finalstring, "seq(", input[[numericlow_n]], ",", input[[numerichigh_n]], ", length.out = ", input[[numericlength_n]], ")")
         }
@@ -940,6 +961,7 @@ skprGUI = function(inputValue1, inputValue2) {
     })
 
     code = shiny::reactive({
+      req(inputstring(), cancelOutput = TRUE)
       blocking = any_htc()
       first = paste0(c("<br><pre>",
                        "<code style=\"color:#468449\"># This is the R code used to generate these results in skpr.</code><br>",
@@ -1170,17 +1192,19 @@ skprGUI = function(inputValue1, inputValue2) {
     })
 
     blockmodel = shiny::reactive({
-      if (input$model == "~.") {
-        as.formula(paste0("~", paste(names(inputlist_htctext()), collapse = " + ")))
-      } else {
-        names = names(inputlist())
-        modelsplit = attr(terms.formula(as.formula(input$model), data = candidatesetall()), "term.labels")
-        regularmodel = rep(FALSE, length(modelsplit))
-        for (term in names) {
-          regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)|(:", term, ":)")
-          regularmodel = regularmodel | grepl(regex, modelsplit, perl = TRUE)
+      if(isblocking()) {
+        if (input$model == "~.") {
+          as.formula(paste0("~", paste(names(inputlist_htctext()), collapse = " + ")))
+        } else {
+          names = names(inputlist())
+          modelsplit = attr(terms.formula(as.formula(input$model), data = candidatesetall()), "term.labels")
+          regularmodel = rep(FALSE, length(modelsplit))
+          for (term in names) {
+            regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)|(:", term, ":)")
+            regularmodel = regularmodel | grepl(regex, modelsplit, perl = TRUE)
+          }
+          paste0("~", paste(modelsplit[!regularmodel], collapse = " + "))
         }
-        paste0("~", paste(modelsplit[!regularmodel], collapse = " + "))
       }
     })
 
@@ -1226,60 +1250,91 @@ skprGUI = function(inputValue1, inputValue2) {
       }
     })
 
-    runmatrix = shiny::reactive({
+    runmatrix = reactive({
       input$submitbutton
+      on.exit({
+        shinyjs::enable("evalbutton")
+        shinyjs::enable("submitbutton")
+      }, add = TRUE)
       shinyjs::disable("submitbutton")
       shinyjs::disable("evalbutton")
       if (shiny::isolate(input$setseed)) {
         set.seed(shiny::isolate(input$seed))
       }
-      tryCatch({
-        if (!isblocking()) {
-          shiny::withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = {
-            design = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
-                       model = shiny::isolate(as.formula(input$model)),
-                       trials = shiny::isolate(input$trials),
-                       optimality = shiny::isolate(optimality()),
-                       repeats = shiny::isolate(input$repeats),
-                       aliaspower = shiny::isolate(input$aliaspower),
-                       minDopt = shiny::isolate(input$mindopt),
-                       parallel = shiny::isolate(as.logical(input$parallel)),
-                       advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
-          })
+      if(!shiny::isolate(as.logical(input$parallel))) {
+        pb = inc_progress_session
+      } else {
+        pb = NULL
+      }
+      progress_wrapper = function(code) {
+        if(!shiny::isolate(as.logical(input$parallel))) {
+          shiny::withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
         } else {
-          shiny::withProgress(message = "Generating whole-plots:", value = 0, min = 0, max = 1, expr = {
-            spd = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
-                             model = shiny::isolate(as.formula(blockmodel())),
-                             trials = shiny::isolate(input$numberblocks),
-                             optimality = ifelse(toupper(shiny::isolate(optimality())) == "ALIAS" &&
-                                                   length(shiny::isolate(inputlist_htc())) == 1, "D", shiny::isolate(optimality())),
-                             repeats = shiny::isolate(input$repeats),
-                             varianceratio = shiny::isolate(input$varianceratio),
-                             aliaspower = shiny::isolate(input$aliaspower),
-                             minDopt = shiny::isolate(input$mindopt),
-                             parallel = shiny::isolate(as.logical(input$parallel)),
-                             advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
-          })
-          shiny::withProgress(message = "Generating full design:", value = 0, min = 0, max = 1, expr = {
-              design = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
-                         model = shiny::isolate(as.formula(input$model)),
-                         trials = shiny::isolate(input$trials),
-                         splitplotdesign = spd,
-                         optimality = shiny::isolate(optimality()),
-                         repeats = shiny::isolate(input$repeats),
-                         varianceratio = shiny::isolate(input$varianceratio),
-                         aliaspower = shiny::isolate(input$aliaspower),
-                         minDopt = shiny::isolate(input$mindopt),
-                         parallel = shiny::isolate(as.logical(input$parallel)),
-                         add_blocking_columns = shiny::isolate(input$splitanalyzable),
-                         advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session))
-          })
+          progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = 1, expr = code,
+                                       handlers = c(shiny = progressr::handler_shiny))
         }
-      }, finally = {
-        shinyjs::enable("evalbutton")
-        shinyjs::enable("submitbutton")
-      })
-      return(design)
+      }
+      # candidateset = shiny::isolate(expand.grid(candidatesetall()))
+      # model = shiny::isolate(as.formula(input$model))
+      # trials = shiny::isolate(input$trials)
+      # optimality = shiny::isolate(optimality())
+      # repeats = shiny::isolate(input$repeats)
+      # aliaspower = shiny::isolate(input$aliaspower)
+      # minDopt = shiny::isolate(input$mindopt)
+      # parallel = shiny::isolate(as.logical(input$parallel))
+      # advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
+      # progress_wrapper({
+      #     gen_design(candidateset = candidateset,
+      #                model = model,
+      #                trials = trials,
+      #                optimality = optimality,
+      #                repeats = repeats,
+      #                aliaspower = aliaspower,
+      #                minDopt = minDopt,
+      #                parallel = parallel,
+      #                advancedoptions = advancedoptions)
+      # })
+      if (!isblocking()) {
+        progress_wrapper({
+          gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
+                     model = shiny::isolate(as.formula(input$model)),
+                     trials = shiny::isolate(input$trials),
+                     optimality = shiny::isolate(optimality()),
+                     repeats = shiny::isolate(input$repeats),
+                     aliaspower = shiny::isolate(input$aliaspower),
+                     minDopt = shiny::isolate(input$mindopt),
+                     parallel = shiny::isolate(as.logical(input$parallel)),
+                     advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
+        })
+      } else {
+        progress_wrapper({
+          spd = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
+                           model = shiny::isolate(as.formula(blockmodel())),
+                           trials = shiny::isolate(input$numberblocks),
+                           optimality = ifelse(toupper(shiny::isolate(optimality())) == "ALIAS" &&
+                                               length(shiny::isolate(inputlist_htc())) == 1, "D", shiny::isolate(optimality())),
+                           repeats = shiny::isolate(input$repeats),
+                           varianceratio = shiny::isolate(input$varianceratio),
+                           aliaspower = shiny::isolate(input$aliaspower),
+                           minDopt = shiny::isolate(input$mindopt),
+                           parallel = shiny::isolate(as.logical(input$parallel)),
+                           advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
+        })
+        progress_wrapper({
+          gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
+                     model = shiny::isolate(as.formula(input$model)),
+                     trials = shiny::isolate(input$trials),
+                     splitplotdesign = spd,
+                     optimality = shiny::isolate(optimality()),
+                     repeats = shiny::isolate(input$repeats),
+                     varianceratio = shiny::isolate(input$varianceratio),
+                     aliaspower = shiny::isolate(input$aliaspower),
+                     minDopt = shiny::isolate(input$mindopt),
+                     parallel = shiny::isolate(as.logical(input$parallel)),
+                     add_blocking_columns = shiny::isolate(input$splitanalyzable),
+                     advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
+        })
+      }
     })
 
     evaluationtype = shiny::reactive({
@@ -1347,9 +1402,29 @@ skprGUI = function(inputValue1, inputValue2) {
                     detailedoutput = shiny::isolate(input$detailedoutput))
         powerval
       }
-    })
+    }) |>
+      shiny::bindEvent(input$evalbutton)
+
     powerresultsglm = shiny::reactive({
       input$evalbutton
+      if(!shiny::isolate(as.logical(input$parallel_eval_glm))) {
+        pb = inc_progress_session
+      } else {
+        pb = NULL
+      }
+      progress_wrapper = function(code) {
+        if(shiny::isolate(isblocking())) {
+          mess = "Evaluating design (with REML):"
+        } else {
+          mess = "Evaluating design:"
+        }
+        if(!shiny::isolate(as.logical(input$parallel_eval_glm))) {
+          shiny::withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
+        } else {
+          progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
+                                       handlers = c(shiny = progressr::handler_shiny))
+        }
+      }
       if (shiny::isolate(evaluationtype()) == "glm") {
         if(shiny::isolate(isblocking()) && isolate(input$firth_correction)) {
           shiny::showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
@@ -1360,9 +1435,8 @@ skprGUI = function(inputValue1, inputValue2) {
         if (shiny::isolate(input$setseed)) {
           set.seed(shiny::isolate(input$seed))
         }
-        shiny::withProgress(message = ifelse(shiny::isolate(isblocking()), "Simulating (with REML):", "Simulating:"),
-                            value = 0, min = 0, max = 1, expr = {
-          powerval = suppressWarnings(eval_design_mc(design = shiny::isolate(runmatrix()),
+        progress_wrapper({
+          suppressWarnings(eval_design_mc(design = shiny::isolate(runmatrix()),
                                       model = shiny::isolate(as.formula(input$model)),
                                       alpha = shiny::isolate(input$alpha),
                                       blocking = shiny::isolate(isblocking()),
@@ -1373,13 +1447,28 @@ skprGUI = function(inputValue1, inputValue2) {
                                       firth = firth_cor,
                                       parallel = shiny::isolate(input$parallel_eval_glm),
                                       detailedoutput = shiny::isolate(input$detailedoutput),
-                                      advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
-          })
-        powerval
+                                      advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)))
+        })
       }
-    })
+    }) |>
+      shiny::bindEvent(input$evalbutton)
+
     powerresultssurv = shiny::reactive({
       input$evalbutton
+      if(!shiny::isolate(as.logical(input$parallel_eval_surv))) {
+        pb = inc_progress_session
+      } else {
+        pb = NULL
+      }
+      progress_wrapper = function(code) {
+        mess = "Evaluating design:"
+        if(!shiny::isolate(as.logical(input$parallel_eval_surv))) {
+          shiny::withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
+        } else {
+          progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
+                                       handlers = c(shiny = progressr::handler_shiny))
+        }
+      }
       if (shiny::isolate(evaluationtype()) == "surv") {
         if (shiny::isolate(input$setseed)) {
           set.seed(shiny::isolate(input$seed))
@@ -1387,37 +1476,38 @@ skprGUI = function(inputValue1, inputValue2) {
         if (shiny::isolate(isblocking())) {
           print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
         }
-        shiny::withProgress(message = "Simulating:", value = 0, min = 0, max = 1, expr = {
-          powerval = suppressWarnings(eval_design_survival_mc(design = shiny::isolate(runmatrix()),
-                                      model = shiny::isolate(as.formula(input$model)),
-                                      alpha = shiny::isolate(input$alpha),
-                                      nsim = shiny::isolate(input$nsim_surv),
-                                      censorpoint = shiny::isolate(input$censorpoint),
-                                      censortype = shiny::isolate(input$censortype),
-                                      distribution = shiny::isolate(input$distribution),
-                                      effectsize = shiny::isolate(effectsize()),
-                                      detailedoutput = shiny::isolate(input$detailedoutput),
-                                      advancedoptions = list(GUI = TRUE, progressBarUpdater = inc_progress_session)))
-          powerval
+        progress_wrapper({
+          eval_design_survival_mc(design = shiny::isolate(runmatrix()),
+                                  model = shiny::isolate(as.formula(input$model)),
+                                  alpha = shiny::isolate(input$alpha),
+                                  nsim = shiny::isolate(input$nsim_surv),
+                                  censorpoint = shiny::isolate(input$censorpoint),
+                                  censortype = shiny::isolate(input$censortype),
+                                  distribution = shiny::isolate(input$distribution),
+                                  parallel = shiny::isolate(input$parallel_eval_surv),
+                                  effectsize = shiny::isolate(effectsize()),
+                                  detailedoutput = shiny::isolate(input$detailedoutput),
+                                  advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
         })
       }
-    })
+    }) |>
+      shiny::bindEvent(input$evalbutton)
 
-    pal_option = function(n) {
+    pal_option = function() {
       if(input$colorchoice == "A") {
-        viridis::magma(n)
+        viridis::magma
       } else if(input$colorchoice == "B") {
-        viridis::inferno(n)
+        viridis::inferno
       } else if(input$colorchoice == "C") {
-        viridis::plasma(n)
+        viridis::plasma
       } else if(input$colorchoice == "D") {
-        viridis::viridis(n)
+        viridis::viridis
       } else {
-        "white"
+        function(x) return("white")
       }
     }
 
-    style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality) {
+    style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality, pal_choice) {
       . = NULL
       if(order_vals) {
         new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
@@ -1456,14 +1546,14 @@ skprGUI = function(inputValue1, inputValue2) {
           display_rm = display_rm %>%
             gt::data_color(
               columns = cols_rm[i],
-              palette = pal_option(100),
+              palette = pal_choice(100),
               alpha = alpha,
               autocolor_text = FALSE)
         } else {
           display_rm = display_rm %>%
             gt::data_color(
               columns = cols_rm[i],
-              palette = pal_option(length(unique(runmat[,i]))),
+              palette = pal_choice(length(unique(runmat[,i]))),
               alpha = alpha,
               autocolor_text = FALSE)
         }
@@ -1472,10 +1562,15 @@ skprGUI = function(inputValue1, inputValue2) {
     }
 
     output$runmatrix = gt::render_gt({
-      style_matrix(runmatrix(),
-                   order_vals = input$orderdesign,
-                   trials = shiny::isolate(input$trials),
-                   optimality = shiny::isolate(input$optimality))
+      ord_design = input$orderdesign
+      trials =  shiny::isolate(input$trials)
+      opt = shiny::isolate(input$optimality)
+      pal_choice = pal_option()
+      runmatrix()  |>
+        style_matrix(order_vals = ord_design,
+                     trials = trials,
+                     optimality = opt,
+                     pal_choice = pal_choice)
     }, align = "left")
 
     output$powerresults = gt::render_gt( {
@@ -1509,6 +1604,7 @@ skprGUI = function(inputValue1, inputValue2) {
     })
 
     output$code = shiny::renderUI({
+      req(valid_code_pane(), cancelOutput = TRUE)
       shiny::HTML(code())
     })
 
@@ -1776,18 +1872,28 @@ skprGUI = function(inputValue1, inputValue2) {
     factor_input_cache = shiny::reactiveValues()
 
     ui_elements = shiny::reactive({
-      ui_elements = list()
+      on.exit({
+        shinyjs::enable("evalbutton")
+        shinyjs::enable("submitbutton")
+      }, add = TRUE)
+      req(factor_input_cache, cancelOutput = TRUE)
+      ui_elements_list = list()
       if(input$numberfactors > 1) {
         for(i in seq_len(input$numberfactors)[-1]) {
-          ui_elements[[i-1]] = generate_factor_input_panel(i, shiny::reactiveValuesToList(factor_input_cache))
+          ui_elements_list[[i-1]] = generate_factor_input_panel(i, shiny::reactiveValuesToList(factor_input_cache))
         }
       }
-      do.call(shiny::tagList, ui_elements)
+      do.call(shiny::tagList, ui_elements_list)
       }
     ) |>
       shiny::bindEvent(updated_ui_defaults())
 
+    valid_code_pane = reactiveVal(TRUE)
+
     updated_ui_defaults = shiny::reactive({
+      valid_code_pane(FALSE)
+      shinyjs::disable("submitbutton")
+      shinyjs::disable("evalbutton")
       for(i in seq_len(input$numberfactors)) {
         factorname_n = sprintf("factorname%i",i)
         factortype_n = sprintf("factortype%i",i)
@@ -1797,6 +1903,7 @@ skprGUI = function(inputValue1, inputValue2) {
         disclevels_n = sprintf("disclevels%i",i)
         levels_n = sprintf("levels%i",i)
         blockdepth_n = sprintf("blockdepth%i",i)
+
         if(is.null(factor_input_cache[[factorname_n]])) {
           factor_input_cache[[factorname_n]]    = sprintf("X%i",i)
           factor_input_cache[[factortype_n]]    = "Continuous"
@@ -1819,9 +1926,13 @@ skprGUI = function(inputValue1, inputValue2) {
       }
       input$numberfactors
     }) |>
-      shiny::bindEvent(input$numberfactors)
+      shiny::bindEvent(input$numberfactors) |>
+      shiny::debounce(500)
 
     output$additional_factors = shiny::renderUI({
+      on.exit(
+        valid_code_pane(TRUE), add = TRUE
+      )
       ui_elements()
     })
     output$block_panel = shiny::renderUI({

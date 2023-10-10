@@ -29,14 +29,17 @@
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Default \code{contr.sum}. Function used to encode categorical variables in the model matrix. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
-#'@param detailedoutput If TRUE, return additional information about evaluation in results. Default FALSE.
+#'@param parallel Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
+#' If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+#' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
+#'@param detailedoutput Default `FALSE`. If `TRUE`, return additional information about evaluation in results.
+#'@param progress Default `TRUE`. Whether to include a progress bar.
 #'@param advancedoptions Default NULL. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
 #'categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
-#'@import foreach doParallel stats iterators
+#'@import foreach doParallel stats iterators doFuture
 #'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
 #'with a survival model (\code{survival::survreg}), and the fraction of simulations in which a parameter
 #'is significant
@@ -115,7 +118,7 @@
 eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
                                    nsim = 1000, distribution = "gaussian", censorpoint = NA, censortype = "right",
                                    rfunctionsurv = NULL, anticoef = NULL, effectsize = 2, contrasts = contr.sum,
-                                   parallel = FALSE, detailedoutput = FALSE, advancedoptions = NULL, ...) {
+                                   parallel = FALSE, detailedoutput = FALSE, progress = TRUE, advancedoptions = NULL, ...) {
   if(missing(design)) {
     stop("skpr: No design detected in arguments.")
   }
@@ -256,7 +259,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
   #---------------- Run Simulations ---------------#
 
-  progressbarupdates = floor(seq(1, nsim, length.out = 50))
+  progressbarupdates = floor(seq(1, nsim, length.out = 100))
   progresscurrent = 1
   pvallist = list()
   estimates = matrix(0, nrow = nsim, ncol = nparam)
@@ -265,9 +268,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     power_values = rep(0, ncol(ModelMatrix))
     for (j in 1:nsim) {
       if (!is.null(progressBarUpdater)) {
-        if (nsim > 50) {
+        if (nsim > 100) {
           if (progressbarupdates[progresscurrent] == j) {
-            progressBarUpdater(1 / 50)
+            progressBarUpdater(1 / 100)
             progresscurrent = progresscurrent + 1
           }
         } else {
@@ -288,6 +291,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
       pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+      pvals[is.na(pvals)] = 1
       stopifnot(all(names(pvals) == parameter_names))
       pvallist[[j]] = pvals
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
@@ -297,39 +301,79 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     pvals = do.call(rbind, pvallist)
 
   } else {
-    numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
-    cl = parallel::makeCluster(numbercores)
-    numbercores = length(cl)
-    doParallel::registerDoParallel(cl)
-
-    tryCatch({
-      power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .export = ("extractPvalues"), .packages = c("survival")) %dopar% {
+    if(!advancedoptions$GUI) {
+      oplan = future::plan()
+      original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)
+      if(original_future_call != "NULL") {
+        if(skpr_system_setup_env$has_multicore_support) {
+          message_string = r"{plan("multicore", workers = number_of_cores-1)}"
+        } else {
+          message_string = r"{plan("multisession", workers = number_of_cores-1)}"
+        }
+        message(sprintf("Using user-defined {future} plan() `%s` instead of {skpr}'s default multicore plan (for this computer) of `%s`", original_future_call, message_string))
+      } else {
+        numbercores =  getOption("cores", default = getOption("Ncpus", default = max(c(1, future::availableCores()-1))))
+        doFuture::registerDoFuture()
+        doRNG::registerDoRNG()
+        if(skpr_system_setup_env$has_multicore_support) {
+          plan("multicore", workers = numbercores)
+        } else {
+          plan("multisession", workers = numbercores)
+        }
+      }
+      progressr::handlers(global = TRUE)
+      progressr::handlers(list(
+        progressr::handler_progress(
+          format   = sprintf("  Evaluating (%d workers) [:bar] (:current/:total, :tick_rate sim/s) ETA::eta", future::nbrOfWorkers()),
+          width    = 100,
+          complete = "=",
+          interval = 0.25
+        )
+      ))
+      num_updates = nsim
+    } else {
+      num_updates = 100
+    }
+    nc =  future::nbrOfWorkers()
+    run_search = function(iterations, is_shiny) {
+      prog = progressr::progressor(steps = num_updates)
+      foreach::foreach(i = iterations,
+                       .export = c("extractPvalues", "rfunctionsurv", "parameter_names", "progress", "progressbarupdates",
+                                   "model", "distribution", "RunMatrixReduced", "ModelMatrix", "anticoef" ,"nc", "prog",
+                                   "is_shiny"),
+                       .packages = c("survival"), .options.future = list(seed = TRUE)) %dopar% {
+        if(progress || is_shiny) {
+          if(is_shiny && i %in% progressbarupdates) {
+            prog(sprintf(" (%i workers) ", nc))
+          }
+          if(!is_shiny) {
+            prog()
+          }
+        }
         power_values = rep(0, ncol(ModelMatrix))
         #simulate the data.
 
-        anticoef_adjusted = anticoef
-
-        RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef_adjusted)
+        RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef)
 
         model_formula = update.formula(model, Y ~ .)
 
-        #fit a model to the simulated data.
+        # fit a model to the simulated data.
         fit = survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
         pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
         stopifnot(all(names(pvals) == parameter_names))
+        pvals[is.na(pvals)] = 1
         power_values[pvals < alpha] = 1
         estimates = coef(fit)
         list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals)
       }
-    }, finally  = {
-      parallel::stopCluster(cl)
-    })
-    power_values = apply(do.call(rbind, power_estimates[, "parameterpower"]), 2, sum) / nsim
-    pvals = do.call(rbind, power_estimates[, "pvals"])
-    estimates = do.call(rbind, power_estimates[, "estimates"])
+    }
+    power_estimates = run_search(seq_len(nsim), advancedoptions$GUI)
+    power_values = apply(do.call("rbind",lapply(power_estimates,\(x) x$parameterpower)), 2, sum) / nsim
+    pvals = do.call("rbind",lapply(power_estimates,\(x) x$pvals))
+    estimates = do.call("rbind",lapply(power_estimates,\(x) x$estimates))
   }
   #output the results (tidy data format)
   retval = data.frame(parameter = parameter_names,

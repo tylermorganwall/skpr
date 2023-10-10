@@ -38,12 +38,14 @@
 #'half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts  Default \code{contr.sum}. Function used to generate the contrasts encoding for categorical variables. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#'@param parallel If TRUE, uses all cores available to speed up computation of power. Default FALSE.
+#'@param parallel Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
+#' If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+#' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
 #'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
-#'@import foreach doParallel stats
+#'@import foreach doParallel stats doRNG
 #'@export
 #'@examples #To demonstrate how a user can use their own libraries for Monte Carlo power generation,
 #'#We will recreate eval_design_survival_mc using the eval_design_custom_mc framework.
@@ -253,7 +255,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     power_values = power_values / nsim
 
   } else {
-    numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
+    numbercores = getOption("cores", default = getOption("Ncpus", default = future::availableCores()))
     cl = parallel::makeCluster(numbercores)
     numbercores = length(cl)
     doParallel::registerDoParallel(cl)

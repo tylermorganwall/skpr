@@ -103,6 +103,10 @@ calculate_power_curves = function(trials,
   } else {
     length_2_effect = FALSE
   }
+  calc_effect = TRUE
+  if(!is.null(eval_args[["calceffect"]])) {
+    calc_effect = eval_args[["calceffect"]]
+  }
 
   if(length_2_effect && inherits(effectsize,"list") && !all(unlist(lapply(effectsize, length)) == 2)) {
     stop("skpr: If passing in a list of effectsizes for evaluation functions that require two values, all effect sizes must be length-2 vectors in the list")
@@ -162,7 +166,7 @@ calculate_power_curves = function(trials,
     }
     eval_args = append(eval_args, list(effectsize = effectsize))
   }
-  gen_args$timer = FALSE
+  gen_args$progress = FALSE
   if(eval_function %in% c("eval_design_mc", "eval_design_survival_mc", "eval_design_custom_mc")) {
     eval_args$progress = FALSE
   }
@@ -268,8 +272,13 @@ calculate_power_curves = function(trials,
   }
   if(plot_results) {
     if(auto_scale) {
+      if(!is.null(x_breaks)) {
+        x_breaks_gg = x_breaks
+      } else {
+        x_breaks_gg = ggplot2::waiver()
+      }
       ggscale_element = list(ggplot2::scale_y_continuous("Power", limits=c(0,1), breaks = y_breaks),
-                             ggplot2::scale_x_continuous("Trials", breaks = x_breaks, expand=c(0,0)))
+                             ggplot2::scale_x_continuous("Trials", breaks = x_breaks_gg, expand=c(0,0)))
     } else {
       ggscale_element = list()
     }
@@ -391,7 +400,11 @@ calculate_power_curves = function(trials,
           ggscale_element + color_scale_name + parameter_title
       }
     }
-    gridExtra::grid.arrange(effect_plot, parameter_plot, nrow=1)
+    if(calc_effect) {
+      gridExtra::grid.arrange(effect_plot, parameter_plot, nrow=1)
+    } else {
+      gridExtra::grid.arrange(parameter_plot,nrow=1)
+    }
   }
 
   class(all_results) = c("skpr_power_curve_output", "data.frame")

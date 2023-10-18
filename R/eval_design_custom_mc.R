@@ -41,7 +41,8 @@
 #'@param parallel Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
 #' If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
-#'@param parallelpackages A vector of strings listing the external packages to be input into the parallel package.
+#'@param progress Default `TRUE`. Whether to include a progress bar.
+#'@param parallel_pkgs A vector of strings listing the external packages to be included in each parallel worker.
 #'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute.
@@ -85,18 +86,27 @@
 #'
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
+#'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
 #'d = eval_design_custom_mc(design = design, model = ~a,
 #'                          alpha = 0.05, nsim = 100,
 #'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
 #'                          rfunction = rsurvival, effectsize = 1)
 #'
-#'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
+#'#We can also use skpr's framework for parallel computation to automatically parallelize this
+#'#to speed up computation
+#'\dontrun{
+#'d = eval_design_custom_mc(design = design, model = ~a,
+#'                          alpha = 0.05, nsim = 1000,
+#'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
+#'                          rfunction = rsurvival, effectsize = 1,
+#'                          parallel = TRUE, parallel_pkgs = "survival")
+#'}
 eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
                                  nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, effectsize = 2, contrasts = contr.sum,
                                  coef_function = coef, calceffect = FALSE,
-                                 parameternames = NULL, advancedoptions = NULL,
-                                 parallel = FALSE, parallelpackages = NULL, ...) {
+                                 parameternames = NULL, advancedoptions = NULL, progress = TRUE,
+                                 parallel = FALSE, parallel_pkgs = NULL, ...) {
   if (!is.null(advancedoptions)) {
     if(is.null(advancedoptions$save_simulated_responses)) {
       advancedoptions$save_simulated_responses = FALSE
@@ -122,6 +132,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     advancedoptions$alphacorrection = TRUE
     progressBarUpdater = NULL
     advancedoptions$save_simulated_responses = FALSE
+  }
+  if(!is.null(getOption("skpr_progress"))) {
+    progress = getOption("skpr_progress")
   }
 
   if (!is.null(advancedoptions$anovatype)) {
@@ -217,6 +230,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     stop("skpr: Wrong number of anticipated coefficients")
   }
 
+  num_updates = min(c(nsim, 500))
+  progressbarupdates = floor(seq(1, nsim, length.out = num_updates))
+  progresscurrent = 1
 
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)
@@ -226,10 +242,12 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     power_values = rep(0, length(parameter_names))
     effect_pvals_list = list()
     effect_power_values = list()
-
     estimates = list()
-    for (j in 1:nsim) {
-
+    if(interactive() && progress) {
+      pb = progress::progress_bar$new(format = sprintf("  Evaluating [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"),
+                                      total = nsim, clear = TRUE, width= 100)
+    }
+    for (j in seq_len(nsim)) {
       #simulate the data.
       RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
 
@@ -244,6 +262,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
         effect_pvals_list[[j]] = effect_pvals
       }
       estimates[[j]] = coef_function(fit)
+      if(interactive() && progress && !advancedoptions$GUI) {
+        pb$tick()
+      }
     }
     if (calceffect) {
       effect_results= do.call(rbind,effect_pvals_list)
@@ -255,13 +276,23 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     power_values = power_values / nsim
 
   } else {
-    numbercores = getOption("cores", default = getOption("Ncpus", default = future::availableCores()))
-    cl = parallel::makeCluster(numbercores)
-    numbercores = length(cl)
-    doParallel::registerDoParallel(cl)
-
-    tryCatch({
-      power_estimates = foreach::foreach (i = 1:nsim, .combine = "rbind", .packages = parallelpackages, .export = "effectpowermc") %dopar% {
+    if(!advancedoptions$GUI && progress) {
+      set_up_progressr_handler("Evaluating", "sims")
+    }
+    run_search = function(iterations) {
+       prog = progressr::progressor(steps = nsim)
+       foreach::foreach(i = iterations,
+                        .options.future = list(packages = parallel_pkgs,
+                                               globals = c("extractPvalues", "pvalfunction",
+                                                           "parameter_names", "progress", "progressbarupdates",
+                                                           "model_formula", "rfunction", "RunMatrixReduced",
+                                                           "ModelMatrix", "anticoef" ,"prog", "fitfunction",
+                                                           "contrastslist", "effectpowermc", "anovatype", "calceffect",
+                                                           "alpha", "coef_function", "nsim", "num_updates"),
+                                               seed = TRUE)) %dofuture% {
+        if(i %in% progressbarupdates) {
+          prog(amount = nsim/num_updates)
+        }
         power_values = rep(0, ncol(ModelMatrix))
         #simulate the data.
         RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
@@ -271,33 +302,32 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = pvalfunction(fit)
+        pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
+        pvals[is.na(pvals)] = 1
+        stopifnot(all(names(pvals) == parameter_names))
+
         if (calceffect) {
           effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
+          effect_pvals[is.na(effect_pvals)] = 1
         }
 
         power_values[pvals < alpha] = 1
         estimates = coef_function(fit)
 
-        #We are going to output a tidy data.frame with the results, so just append the effect powers
-        #to the parameter powers. We'll use another column of that dataframe to label whether it is parameter
-        #or effect power.
         if(!calceffect) {
-          list(power_values=power_values, estimates=estimates)
+          list("parameter_power" = power_values, "estimates" = estimates, "pvals" = pvals)
         } else {
-          list(power_values=power_values, estimates=estimates, effect_power = effect_pvals)
+          list("parameter_power" = power_values, "effect_power" = effect_pvals, "estimates" = estimates, "pvals" = pvals)
         }
-      }
-    }, finally = {
-      parallel::stopCluster(cl)
-    })
-    power_values = apply(do.call(rbind,power_estimates[,1]), 2, sum) / nsim
-    estimates = do.call(rbind,power_estimates[,2])
+      };
+    }
+    power_estimates = run_search(seq_len(nsim))
+    power_values = apply(do.call("rbind",lapply(power_estimates,\(x) x$parameter_power)), 2, sum) / nsim
+    pvals = do.call("rbind",lapply(power_estimates,\(x) x$pvals))
+    estimates = do.call("rbind",lapply(power_estimates,\(x) x$estimates))
     if(calceffect) {
-      effect_results = do.call(rbind,power_estimates[,3])
-      effect_power_names = colnames(effect_results)
-      effect_power_matrix = matrix(0,nrow(effect_results),ncol(effect_results))
-      effect_power_matrix[effect_results < alpha] = 1
-      effect_power_results = apply(effect_power_matrix,2,sum)/nsim
+      effect_power_results = apply(do.call("rbind",lapply(power_estimates,\(x) x$effect_power)), 2, sum) / nsim
+      effect_power_names = colnames(effect_power_values)
     }
   }
   #output the results (tidy data format)

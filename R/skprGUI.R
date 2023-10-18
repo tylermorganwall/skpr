@@ -17,15 +17,13 @@ skprGUI = function(inputValue1, inputValue2) {
   original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)
   if(original_future_call != "NULL") {
     if(skpr_system_setup_env$has_multicore_support) {
-      message_string = r"{plan("multicore", workers = number_of_cores-1)}"
+      message_string = 'plan("multicore", workers = number_of_cores-1)'
     } else {
-      message_string = r"{plan("multisession", workers = number_of_cores-1)}"
+      message_string = 'plan("multisession", workers = number_of_cores-1)'
     }
     message(sprintf("Using user-defined {future} plan() `%s` instead of {skpr}'s default plan (for this computer) of `%s`", original_future_call, message_string))
   } else {
     numbercores = getOption("cores", default = getOption("Ncpus", default = max(c(1,future::availableCores()-1))))
-    doFuture::registerDoFuture()
-    doRNG::registerDoRNG()
     if(skpr_system_setup_env$has_multicore_support) {
       plan("multicore", workers = numbercores, .call = NULL)
     } else {
@@ -566,8 +564,10 @@ skprGUI = function(inputValue1, inputValue2) {
           )
         ),
         shiny::tabsetPanel(
+          id = "results_panels",
           shiny::tabPanel(
             "Design",
+            value = "design",
             shiny::checkboxInput(
               inputId = "orderdesign",
               label = "Order Design",
@@ -582,6 +582,7 @@ skprGUI = function(inputValue1, inputValue2) {
           ),
           shiny::tabPanel(
             "Design Evaluation",
+            value = "eval",
             rintrojs::introBox(
               shiny::fluidRow(
                 shiny::column(
@@ -742,6 +743,7 @@ skprGUI = function(inputValue1, inputValue2) {
           ),
           shiny::tabPanel(
             "Generating Code",
+            value = "code",
             rintrojs::introBox(
               htmlOutput(outputId = "code"),
               data.step = 32,
@@ -1274,26 +1276,6 @@ skprGUI = function(inputValue1, inputValue2) {
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
-      # candidateset = shiny::isolate(expand.grid(candidatesetall()))
-      # model = shiny::isolate(as.formula(input$model))
-      # trials = shiny::isolate(input$trials)
-      # optimality = shiny::isolate(optimality())
-      # repeats = shiny::isolate(input$repeats)
-      # aliaspower = shiny::isolate(input$aliaspower)
-      # minDopt = shiny::isolate(input$mindopt)
-      # parallel = shiny::isolate(as.logical(input$parallel))
-      # advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
-      # progress_wrapper({
-      #     gen_design(candidateset = candidateset,
-      #                model = model,
-      #                trials = trials,
-      #                optimality = optimality,
-      #                repeats = repeats,
-      #                aliaspower = aliaspower,
-      #                minDopt = minDopt,
-      #                parallel = parallel,
-      #                advancedoptions = advancedoptions)
-      # })
       if (!isblocking()) {
         progress_wrapper({
           gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
@@ -1940,6 +1922,16 @@ skprGUI = function(inputValue1, inputValue2) {
     })
     output$optimality_results = shiny::renderUI({
       generate_optimality_results(any_htc())
+    })
+
+    observeEvent(input$evalbutton, {
+      updateNavbarPage(session, "results_panels",
+                       selected = "eval")
+    })
+
+    observeEvent(input$submitbutton, {
+      updateNavbarPage(session, "results_panels",
+                       selected = "design")
     })
 
     shiny::observeEvent(input$tutorial,

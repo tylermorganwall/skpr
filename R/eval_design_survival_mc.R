@@ -122,6 +122,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   if(missing(design)) {
     stop("skpr: No design detected in arguments.")
   }
+  if(!is.null(getOption("skpr_progress"))) {
+    progress = getOption("skpr_progress")
+  }
   if(missing(model) || (is.numeric(model) && missing(alpha))) {
     if(is.numeric(model) && missing(alpha)) {
       alpha = model
@@ -189,6 +192,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
   if (is.null(rfunctionsurv)) {
     if (distribution == "exponential") {
+      if(!is.na(censorpoint) && censorpoint <= 0) {
+        stop("For an exponential distribution, `censorpoint` must be greater than zero.")
+      }
       rfunctionsurv = function(X, b) {
         Y = rexp(n = nrow(X), rate = exp(-(X %*% b)))
         condition = censorfunction(Y, censorpoint)
@@ -197,6 +203,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       }
     }
     if (distribution == "lognormal") {
+      if(!is.na(censorpoint) && censorpoint <= 0) {
+        stop("For an lognormal distribution, `censorpoint` must be greater than zero.")
+      }
       rfunctionsurv = function(X, b) {
         Y = rlnorm(n = nrow(X), meanlog = X %*% b, sdlog = 1)
         condition = censorfunction(Y, censorpoint)
@@ -259,25 +268,26 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
   #---------------- Run Simulations ---------------#
 
-  progressbarupdates = floor(seq(1, nsim, length.out = 100))
+  num_updates = min(c(nsim, 200))
+  progressbarupdates = floor(seq(1, nsim, length.out = num_updates))
   progresscurrent = 1
   pvallist = list()
   estimates = matrix(0, nrow = nsim, ncol = nparam)
 
   if (!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
-    for (j in 1:nsim) {
-      if (!is.null(progressBarUpdater)) {
-        if (nsim > 100) {
-          if (progressbarupdates[progresscurrent] == j) {
-            progressBarUpdater(1 / 100)
-            progresscurrent = progresscurrent + 1
-          }
-        } else {
-          progressBarUpdater(1 / nsim)
+    if(interactive() && progress) {
+      pb = progress::progress_bar$new(format = sprintf("  Calculating Power [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"),
+                                      total = nsim, clear = TRUE, width= 100)
+    }
+    for (j in seq_len(nsim)) {
+      if (advancedoptions$GUI) {
+          #This code is to slow down the number of updates in the Shiny app--if there
+          #are too many updates, the progress bar will lag behind the actual computation
+        if (j %in% progressbarupdates) {
+          progressBarUpdater(1 / num_updates)
         }
       }
-
       #simulate the data.
       anticoef_adjusted = anticoef
 
@@ -286,7 +296,11 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       model_formula = update.formula(model, Y ~ .)
 
       #fit a model to the simulated data.
-      fit = survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
+      fit = suppressWarnings(
+        suppressMessages(
+          survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
+        )
+      )
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
@@ -299,55 +313,27 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     }
     power_values = power_values / nsim
     pvals = do.call(rbind, pvallist)
-
+    if(interactive() && progress && !advancedoptions$GUI) {
+      pb$tick()
+    }
   } else {
-    if(!advancedoptions$GUI) {
-      oplan = future::plan()
-      original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)
-      if(original_future_call != "NULL") {
-        if(skpr_system_setup_env$has_multicore_support) {
-          message_string = r"{plan("multicore", workers = number_of_cores-1)}"
-        } else {
-          message_string = r"{plan("multisession", workers = number_of_cores-1)}"
-        }
-        message(sprintf("Using user-defined {future} plan() `%s` instead of {skpr}'s default multicore plan (for this computer) of `%s`", original_future_call, message_string))
-      } else {
-        numbercores =  getOption("cores", default = getOption("Ncpus", default = max(c(1, future::availableCores()-1))))
-        doFuture::registerDoFuture()
-        doRNG::registerDoRNG()
-        if(skpr_system_setup_env$has_multicore_support) {
-          plan("multicore", workers = numbercores)
-        } else {
-          plan("multisession", workers = numbercores)
-        }
-      }
-      progressr::handlers(global = TRUE)
-      progressr::handlers(list(
-        progressr::handler_progress(
-          format   = sprintf("  Evaluating (%d workers) [:bar] (:current/:total, :tick_rate sim/s) ETA::eta", future::nbrOfWorkers()),
-          width    = 100,
-          complete = "=",
-          interval = 0.25
-        )
-      ))
-      num_updates = nsim
-    } else {
-      num_updates = 100
+    if(!advancedoptions$GUI && progress) {
+      set_up_progressr_handler("Evaluating", "sims")
     }
     nc =  future::nbrOfWorkers()
-    run_search = function(iterations, is_shiny) {
-      prog = progressr::progressor(steps = num_updates)
+    run_search = function(iterations, is_shiny, surv_args) {
+      prog = progressr::progressor(steps = nsim)
       foreach::foreach(i = iterations,
-                       .export = c("extractPvalues", "rfunctionsurv", "parameter_names", "progress", "progressbarupdates",
-                                   "model", "distribution", "RunMatrixReduced", "ModelMatrix", "anticoef" ,"nc", "prog",
-                                   "is_shiny"),
-                       .packages = c("survival"), .options.future = list(seed = TRUE)) %dopar% {
-        if(progress || is_shiny) {
-          if(is_shiny && i %in% progressbarupdates) {
-            prog(sprintf(" (%i workers) ", nc))
-          }
-          if(!is_shiny) {
-            prog()
+                       .options.future = list(packages = "survival",
+                                              globals  = c("extractPvalues", "rfunctionsurv", "parameter_names", "progress", "progressbarupdates",
+                                                            "model", "distribution", "RunMatrixReduced", "ModelMatrix", "anticoef" ,"nc", "prog",
+                                                            "is_shiny", "num_updates", "nsim", "alpha", "surv_args"),
+                                              seed = TRUE)) %dofuture% {
+        if(i %in% progressbarupdates) {
+          if(is_shiny) {
+            prog(sprintf(" (%i workers) ", nc), amount = nsim/num_updates)
+          } else {
+            prog(amount = nsim/num_updates)
           }
         }
         power_values = rep(0, ncol(ModelMatrix))
@@ -357,8 +343,16 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
         model_formula = update.formula(model, Y ~ .)
 
+        surv_args$formula = model_formula
+        surv_args$data = RunMatrixReduced
+        surv_args$dist = distribution
+
         # fit a model to the simulated data.
-        fit = survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
+        fit = suppressWarnings(
+          suppressMessages(
+            do.call("survreg", args = surv_args)
+          )
+        )
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
@@ -370,7 +364,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
         list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals)
       }
     }
-    power_estimates = run_search(seq_len(nsim), advancedoptions$GUI)
+    power_estimates = run_search(seq_len(nsim), advancedoptions$GUI, args)
     power_values = apply(do.call("rbind",lapply(power_estimates,\(x) x$parameterpower)), 2, sum) / nsim
     pvals = do.call("rbind",lapply(power_estimates,\(x) x$pvals))
     estimates = do.call("rbind",lapply(power_estimates,\(x) x$estimates))

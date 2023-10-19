@@ -72,9 +72,7 @@ setting also automatically sets `effect_lr = TRUE`.}
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{contrasts}{Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
-
-\item{parallel}{Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
 If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 

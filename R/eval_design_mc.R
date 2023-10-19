@@ -291,6 +291,11 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     if(is.null(advancedoptions$save_simulated_responses)) {
       advancedoptions$save_simulated_responses = FALSE
     }
+    if(!is.null(advancedoptions$progress_msg)) {
+      progress_message = advancedoptions$progress_msg
+    } else {
+      progress_message = "Power"
+    }
     if (is.null(advancedoptions$GUI)) {
       advancedoptions$GUI = FALSE
     }
@@ -300,6 +305,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       progressBarUpdater = NULL
     }
   } else {
+    progress_message =  "Power"
     advancedoptions = list()
     advancedoptions$GUI = FALSE
     progressBarUpdater = NULL
@@ -323,12 +329,12 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     } else {
       effectsizetemp = advancedoptions$alphanull
     }
+    advancedoptions$progress_msg = "Type-I Error"
     nullresults = eval_design_mc(design = design, model = model, alpha = alpha,
                    blocking = blocking, nsim = nsim, glmfamily = glmfamily,
                    calceffect = calceffect, effect_anova = effect_anova,
                    varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef, firth = firth,
                    effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
-                   progress = FALSE,
                    detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
     if (attr(terms.formula(model, data = design), "intercept") == 1) {
       alpha_parameter = c(alpha, apply(attr(nullresults, "pvals"), 2, quantile, probs = alpha)[-1])
@@ -581,7 +587,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     stderrlist = list()
     iterlist = list()
     if(interactive() && progress) {
-      pb = progress::progress_bar$new(format = sprintf("  Calculating Power [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"),
+      pb = progress::progress_bar$new(format = sprintf("  Calculating %s [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta", progress_message),
                                       total = nsim, clear = TRUE, width= 100)
     }
     power_values = rep(0, ncol(ModelMatrix))
@@ -730,8 +736,11 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       names(effect_power_values) = names(effectpvallist[[1]])
     }
   } else {
+    if(!getOption("skpr_progress", TRUE)) {
+      progressbarupdates = c()
+    }
     if(!advancedoptions$GUI && progress) {
-      set_up_progressr_handler("Evaluating", "sims")
+      set_up_progressr_handler(sprintf("Evaluating %s",progress_message), "sims")
     }
     modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
     packagelist = c("lme4", "lmerTest")
@@ -743,10 +752,11 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       prog = progressr::progressor(steps = nsim)
       foreach::foreach (j = seq_along(iterations), .combine = "rbind",
                         .options.future = list(packages = packagelist,
-                                               globals = c("extractPvalues", "effectpowermc", "RunMatrixReduced",
-                                                           "responses", "contrastslist", "model_formula", "glmfamily", "glmfamilyname",
+                                               globals = c("extractPvalues", "effectpowermc", "RunMatrixReduced", "is_shiny", "blocking",
+                                                           "responses", "contrastslist", "model_formula", "glmfamily", "glmfamilyname", "calceffect",
                                                            "anovatype", "pvalstring", "anovatest", "firth", "effect_terms", "effect_anova", "method",
-                                                           "modelmat", "aliasing_checked", "parameter_names", "progressbarupdates"),
+                                                           "modelmat", "aliasing_checked", "parameter_names", "progressbarupdates",
+                                                           "alpha_parameter", "alpha_effect", "prog", "nsim", "num_updates", "nc"),
                                                seed = TRUE)) %dofuture% {
         if(j %in% progressbarupdates) {
           if(is_shiny) {

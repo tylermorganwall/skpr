@@ -20,10 +20,11 @@ gen_design(
   minDopt = 0.8,
   k = NA,
   parallel = FALSE,
-  timer = TRUE,
+  progress = TRUE,
   add_blocking_columns = FALSE,
   randomized = TRUE,
-  advancedoptions = NULL
+  advancedoptions = NULL,
+  timer = NULL
 )
 }
 \arguments{
@@ -88,7 +89,7 @@ A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and 
 This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{timer}{Default `FALSE`. If `TRUE`, will print an estimate of the optimal design search time.}
+\item{progress}{Default `TRUE`. Whether to include a progress bar.}
 
 \item{add_blocking_columns}{Default `FALSE`. The blocking structure of the design will be indicated in the row names of the returned
 design. If `TRUE`, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
@@ -107,6 +108,8 @@ and `progressBarUpdater`` (a function called in non-parallel optimal searches th
 and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
 the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.}
+
+\item{timer}{Deprecated: Use `progress` instead.}
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary

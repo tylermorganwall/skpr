@@ -4,6 +4,7 @@
 #'
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
+#'@param browser Default `FALSE`. Whether to open the application in an external browser.
 #'
 #'@import doRNG
 #'@export
@@ -11,8 +12,10 @@
 #'#Type `skprGUI()` to begin
 #'
 # nocov start
-skprGUI = function(inputValue1, inputValue2) {
+skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
   check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
+  skpr_progress = getOption("skpr_progress",  TRUE)
+
   oplan = future::plan()
   original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)
   if(original_future_call != "NULL") {
@@ -31,7 +34,9 @@ skprGUI = function(inputValue1, inputValue2) {
     }
   }
   b64 = "data:image/png;base64,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"
-  progressr::handlers(global = TRUE)
+  if(skpr_progress) {
+    progressr::handlers(global = TRUE)
+  }
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
   border-radius: 15px;
@@ -442,6 +447,14 @@ skprGUI = function(inputValue1, inputValue2) {
                 inputId = "firth_correction",
                 "Use Firth Correction",
                 value = TRUE
+              )
+            ),
+            shiny::conditionalPanel(
+              condition = "input.evaltype == \'glm\'",
+              shiny::checkboxInput(
+                inputId = "adjust_alpha",
+                "Adjust for Type-I Error Inflation",
+                value = FALSE
               )
             ),
             rintrojs::introBox(
@@ -938,11 +951,13 @@ skprGUI = function(inputValue1, inputValue2) {
         name_cat[[i]] = input[[factorname_n]]
         factor_cat[[i]] = input[[factortype_n]]
       }
-      factorcat = unlist(factorcat)
+      factor_cat = unlist(factor_cat)
+      fac_idx = which(factor_cat == "cat")
+      last_idx = tail(fac_idx,1)
       namecat = unlist(name_cat)
       contrasttemp = "list("
-      for (i in seq_len(length(namecat))) {
-        if (i != length(namecat)) {
+      for (i in fac_idx) {
+        if (i != last_idx) {
           contrasttemp = paste0(contrasttemp, namecat[i], " = ", "contr.sum, ")
         } else {
           contrasttemp = paste0(contrasttemp, namecat[i], " = ", "contr.sum)")
@@ -1083,12 +1098,16 @@ skprGUI = function(inputValue1, inputValue2) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
                           "glmfamily = \"", input$glmfamily, "\""), collapse = "")
         }
-        if (length(effectsize()) == 1) {
+        if (input$adjust_error) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
-                          "effectsize = ", effectsize()), collapse = "")
+                          "adjust_alpha_inflation  = TRUE"), collapse = "")
         } else {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
                           "effectsize = c(", effectsize()[1], ", ", effectsize()[2], ")"), collapse = "")
+        }
+        if (length(effectsize()) == 1) {
+          first = paste(c(first, ", <br>", rep("&nbsp;", 15),
+                          "effectsize = ", effectsize()), collapse = "")
         }
         if (!is.null(input$varianceratios)) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
@@ -1263,13 +1282,13 @@ skprGUI = function(inputValue1, inputValue2) {
       if (shiny::isolate(input$setseed)) {
         set.seed(shiny::isolate(input$seed))
       }
-      if(!shiny::isolate(as.logical(input$parallel))) {
+      if(!shiny::isolate(as.logical(input$parallel)) || !skpr_progress) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
-        if(!shiny::isolate(as.logical(input$parallel))) {
+        if(!shiny::isolate(as.logical(input$parallel)) || !skpr_progress) {
           shiny::withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
         } else {
           progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = 1, expr = code,
@@ -1389,21 +1408,34 @@ skprGUI = function(inputValue1, inputValue2) {
 
     powerresultsglm = shiny::reactive({
       input$evalbutton
-      if(!shiny::isolate(as.logical(input$parallel_eval_glm))) {
+      if(!shiny::isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
-        if(shiny::isolate(isblocking())) {
-          mess = "Evaluating design (with REML):"
+        if(shiny::isolate(input$adjust_alpha)) {
+          max_val = 2
         } else {
-          mess = "Evaluating design:"
+          max_val = 1
         }
-        if(!shiny::isolate(as.logical(input$parallel_eval_glm))) {
-          shiny::withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
+        if(!shiny::isolate(input$adjust_alpha)) {
+          if(shiny::isolate(isblocking())) {
+            mess = "Evaluating power (with REML):"
+          } else {
+            mess = "Evaluating power:"
+          }
         } else {
-          progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
+          if(shiny::isolate(isblocking())) {
+            mess = "Evaluating power (with adjusted Type-I error and REML):"
+          } else {
+            mess = "Evaluating power (with adjusted Type-I error):"
+          }
+        }
+        if(!shiny::isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+          shiny::withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
+        } else {
+          progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
@@ -1428,6 +1460,7 @@ skprGUI = function(inputValue1, inputValue2) {
                                       effectsize = shiny::isolate(effectsize()),
                                       firth = firth_cor,
                                       parallel = shiny::isolate(input$parallel_eval_glm),
+                                      adjust_alpha_inflation = shiny::isolate(input$adjust_alpha),
                                       detailedoutput = shiny::isolate(input$detailedoutput),
                                       advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)))
         })
@@ -1437,14 +1470,14 @@ skprGUI = function(inputValue1, inputValue2) {
 
     powerresultssurv = shiny::reactive({
       input$evalbutton
-      if(!shiny::isolate(as.logical(input$parallel_eval_surv))) {
+      if(!shiny::isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
         mess = "Evaluating design:"
-        if(!shiny::isolate(as.logical(input$parallel_eval_surv))) {
+        if(!shiny::isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
           shiny::withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
         } else {
           progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
@@ -1557,19 +1590,29 @@ skprGUI = function(inputValue1, inputValue2) {
 
     output$powerresults = gt::render_gt( {
       req(powerresults())
-      format_table(powerresults(),gt::gt(powerresults()), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
+      pwr_results = powerresults()
+      col_results = colnames(pwr_results)
+      pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
+      format_table(pwr_results,gt::gt(pwr_results), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
     }, align = "left")
 
     output$powerresultsglm = gt::render_gt( {
       req(powerresultsglm())
 
-      format_table(powerresultsglm(),gt::gt(powerresultsglm()), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
+      pwr_results = powerresultsglm()
+      col_results = colnames(pwr_results)
+      pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
+      format_table(pwr_results,gt::gt(pwr_results), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
     }, align = "left")
 
     output$powerresultssurv = gt::render_gt({
       req(powerresultssurv())
 
-      format_table(powerresultssurv(),gt::gt(powerresultssurv()), shiny::isolate(input$alpha),shiny::isolate(input$nsim_surv),shiny::isolate(input$colorblind))
+      pwr_results = powerresultssurv()
+      col_results = colnames(pwr_results)
+      pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
+
+      format_table(pwr_results,gt::gt(pwr_results), shiny::isolate(input$alpha),shiny::isolate(input$nsim_surv),shiny::isolate(input$colorblind))
     }, align = "left")
 
     output$aliasplot = shiny::renderPlot({
@@ -1992,7 +2035,10 @@ skprGUI = function(inputValue1, inputValue2) {
                  ))
     shiny::outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
   }
-
-  shiny::runGadget(shiny::shinyApp(ui, server, enableBookmarking = "url"), viewer = shiny::dialogViewer(dialogName = "skprGUI", width = 1200, height = 1200))
+  if(browser) {
+    shiny::runGadget(shiny::shinyApp(ui, server, enableBookmarking = "url"), viewer = shiny::browserViewer())
+  } else {
+    shiny::runGadget(shiny::shinyApp(ui, server, enableBookmarking = "url"), viewer = shiny::dialogViewer(dialogName = "skprGUI", width = 1200, height = 1200))
+  }
 }
 # nocov end

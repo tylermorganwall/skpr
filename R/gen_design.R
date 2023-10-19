@@ -933,6 +933,9 @@ gen_design = function(candidateset, model, trials,
         }
       }
     } else {
+      if(!getOption("skpr_progress", TRUE)) {
+        progressbarupdates = c()
+      }
       if(!advancedoptions$GUI && progress) {
         set_up_progressr_handler("Searching", "designs")
       }
@@ -943,7 +946,7 @@ gen_design = function(candidateset, model, trials,
                          .options.future = list(globals = c("genOptimalDesign","genBlockedOptimalDesign", "candidatesetmm", "trials",
                                                             "initialreplace", "augmentdesign", "augmentedrows", "augmentdesignmm",
                                                             "progress", "is_shiny", "progressbarupdates", "repeats", "num_updates",
-                                                            "initialdesign", "optimality", "mm", "aliasmm",
+                                                            "initialdesign", "optimality", "mm", "aliasmm", "blocking",
                                                             "minDopt", "tolerance", "kexchange" ,"V","prog","nc"),
                                                 seed = TRUE)) %dofuture% {
           randomindices = sample(nrow(candidatesetmm), trials, replace = initialreplace)
@@ -1046,6 +1049,9 @@ gen_design = function(candidateset, model, trials,
                                                  disallowed = disallowedcomb, anydisallowed = anydisallowed, tolerance = tolerance, kexchange = kexchange)
       }
     } else {
+      if(!getOption("skpr_progress", TRUE)) {
+        progressbarupdates = c()
+      }
       if(!advancedoptions$GUI && progress) {
         set_up_progressr_handler("Searching", "designs")
       }

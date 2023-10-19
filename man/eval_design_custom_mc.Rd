@@ -19,8 +19,9 @@ eval_design_custom_mc(
   calceffect = FALSE,
   parameternames = NULL,
   advancedoptions = NULL,
+  progress = TRUE,
   parallel = FALSE,
-  parallelpackages = NULL,
+  parallel_pkgs = NULL,
   ...
 )
 }
@@ -72,11 +73,13 @@ user can change to type `II`). `advancedoptions$anovatest` specifies the test st
 `advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.}
 
+\item{progress}{Default `TRUE`. Whether to include a progress bar.}
+
 \item{parallel}{Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
 If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{parallelpackages}{A vector of strings listing the external packages to be input into the parallel package.}
+\item{parallel_pkgs}{A vector of strings listing the external packages to be included in each parallel worker.}
 
 \item{...}{Additional arguments.}
 }
@@ -129,10 +132,19 @@ pvalsurv = function(fit) {
 
 #And now we evaluate the design, passing the fitting function and p-value extracting function
 #in along with the standard inputs for eval_design_mc.
+#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
 d = eval_design_custom_mc(design = design, model = ~a,
                          alpha = 0.05, nsim = 100,
                          fitfunction = fitsurv, pvalfunction = pvalsurv,
                          rfunction = rsurvival, effectsize = 1)
 
-#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
+#We can also use skpr's framework for parallel computation to automatically parallelize this
+#to speed up computation
+\dontrun{
+d = eval_design_custom_mc(design = design, model = ~a,
+                         alpha = 0.05, nsim = 1000,
+                         fitfunction = fitsurv, pvalfunction = pvalsurv,
+                         rfunction = rsurvival, effectsize = 1,
+                         parallel = TRUE, parallel_pkgs = "survival")
+}
 }

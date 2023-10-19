@@ -276,6 +276,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     power_values = power_values / nsim
 
   } else {
+    if(!getOption("skpr_progress", TRUE)) {
+      progressbarupdates = c()
+    }
     if(!advancedoptions$GUI && progress) {
       set_up_progressr_handler("Evaluating", "sims")
     }

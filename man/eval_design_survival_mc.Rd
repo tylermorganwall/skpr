@@ -18,6 +18,7 @@ eval_design_survival_mc(
   contrasts = contr.sum,
   parallel = FALSE,
   detailedoutput = FALSE,
+  progress = TRUE,
   advancedoptions = NULL,
   ...
 )
@@ -63,7 +64,9 @@ for a categorical factor using the contrasts function, those will be used. Other
 If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{detailedoutput}{If TRUE, return additional information about evaluation in results. Default FALSE.}
+\item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
+
+\item{progress}{Default `TRUE`. Whether to include a progress bar.}
 
 \item{advancedoptions}{Default NULL. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.}
 

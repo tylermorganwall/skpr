@@ -317,6 +317,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       pb$tick()
     }
   } else {
+    if(!getOption("skpr_progress", TRUE)) {
+      progressbarupdates = c()
+    }
     if(!advancedoptions$GUI && progress) {
       set_up_progressr_handler("Evaluating", "sims")
     }

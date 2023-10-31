@@ -7,6 +7,7 @@
 #'@param model Default `NULL`. The model, if `NULL` it defaults to the model used in `eval_design` or `gen_design`.
 #'@param continuouslength Default `11`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.
 #'@param plot Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.
+#'@param sample_size Default `10000`. Number of samples to take of the design space.
 #'@param yaxis_max Default `NULL`. Manually set the maximum value of the prediction variance.
 #'@param description Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
 #'passed to genoutput, it will be the description for each plot.

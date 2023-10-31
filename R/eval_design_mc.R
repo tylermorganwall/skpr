@@ -50,6 +50,8 @@
 #'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 #'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 #'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.
+#'@param parallel Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+#' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
@@ -239,9 +241,6 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     }
     method = mbest::firthglm.fit
   }
-  if(!is.null(getOption("skpr_progress"))) {
-    progress = getOption("skpr_progress")
-  }
   if(missing(design)) {
     stop("skpr: No design detected in arguments.")
   }
@@ -311,6 +310,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     progressBarUpdater = NULL
     advancedoptions$save_simulated_responses = FALSE
     advancedoptions$aliaspower = 2
+  }
+  if(!advancedoptions$GUI) {
+    progress = getOption("skpr_progress", progress)
   }
   if(is.null(advancedoptions$aliaspower)) {
     aliaspower = 2
@@ -736,16 +738,16 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       names(effect_power_values) = names(effectpvallist[[1]])
     }
   } else {
-    if(!getOption("skpr_progress", TRUE)) {
+    if(!progress) {
       progressbarupdates = c()
     }
     if(!advancedoptions$GUI && progress) {
       set_up_progressr_handler(sprintf("Evaluating %s",progress_message), "sims")
     }
     modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
-    packagelist = c("lme4", "lmerTest")
+    packagelist = c()
     if(firth) {
-      packagelist = c("lme4", "lmerTest", "mbest")
+      packagelist = "mbest"
     }
     nc =  future::nbrOfWorkers()
     run_search = function(iterations, is_shiny) {

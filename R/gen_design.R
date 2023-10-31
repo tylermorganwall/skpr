@@ -296,9 +296,6 @@ gen_design = function(candidateset, model, trials,
     warning("Use of `timer` argument deprecated: use `progress` instead.")
     progress = timer
   }
-  # if(!is.null(getOption("skpr_progress"))) {
-  #   progress = getOption("skpr_progress")
-  # }
   check_model_validity(model)
   #standardize and check optimality inputs
   optimality_uc = toupper(tolower(optimality))
@@ -902,6 +899,9 @@ gen_design = function(candidateset, model, trials,
 
     mm = gen_momentsmatrix(factors, levelvector, classvector)
     if (!parallel) {
+      if(!is.null(getOption("skpr_progress"))) {
+        progress = getOption("skpr_progress")
+      }
       if(progress && !advancedoptions$GUI) {
         pb = progress::progress_bar$new(format = "  Searching (1 core) [:bar] (:current/:total, :tick_rate designs/s) ETA::eta",
                                         total = repeats, clear = TRUE, width= 100)

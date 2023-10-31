@@ -24,6 +24,8 @@ of several designs, which will result in all of them being plotted in a row (for
 
 \item{plot}{Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.}
 
+\item{sample_size}{Default `10000`. Number of samples to take of the design space.}
+
 \item{yaxis_max}{Default `NULL`. Manually set the maximum value of the prediction variance.}
 
 \item{description}{Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs

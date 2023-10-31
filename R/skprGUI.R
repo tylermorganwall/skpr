@@ -37,6 +37,48 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
   if(skpr_progress) {
     progressr::handlers(global = TRUE)
   }
+  #Load Shiny functions from namespace (due to shiny being Suggests)
+  fluidPage = shiny::fluidPage
+  HTML = shiny::HTML
+  sidebarLayout = shiny::sidebarLayout
+  sidebarPanel = shiny::sidebarPanel
+  tags = shiny::tags
+  hr = shiny::hr
+  fluidRow = shiny::fluidRow
+  column = shiny::column
+  actionButton = shiny::actionButton
+  tabsetPanel = shiny::tabsetPanel
+  tabPanel = shiny::tabPanel
+  numericInput = shiny::numericInput
+  textInput = shiny::textInput
+  uiOutput = shiny::uiOutput
+  br = shiny::br
+  selectInput = shiny::selectInput
+  conditionalPanel = shiny::conditionalPanel
+  sliderInput = shiny::sliderInput
+  checkboxInput = shiny::checkboxInput
+  h1 = shiny::h1
+  h2 = shiny::h2
+  h3 = shiny::h3
+  plotOutput = shiny::plotOutput
+  reactive = shiny::reactive
+  isolate = shiny::isolate
+  showNotification = shiny::showNotification
+  updateSelectInput = shiny::updateSelectInput
+  withProgress = shiny::withProgress
+  bindEvent = shiny::bindEvent
+  renderPlot = shiny::renderPlot
+  renderUI = shiny::renderUI
+  renderText = shiny::renderText
+  reactiveValues = shiny::reactiveValues
+  reactiveValuesToList = shiny::reactiveValuesToList
+  debounce = shiny::debounce
+  observeEvent = shiny::observeEvent
+  outputOptions = shiny::outputOptions
+  runGadget = shiny::runGadget
+  shinyApp = shiny::shinyApp
+  browserViewer = shiny::browserViewer
+  dialogViewer = shiny::dialogViewer
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
   border-radius: 15px;
@@ -48,11 +90,11 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
   border: 0px;"
 
   ui = function(request) {
-    shiny::fluidPage(
+    fluidPage(
       theme = shinythemes::shinytheme("yeti"),
       shinyjs::useShinyjs(),
       rintrojs::introjsUI(),
-      shiny::HTML(
+      HTML(
         "<style> table {font-size: 14px;}
                    .btn2 {
                    color: #fff;
@@ -170,34 +212,34 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                    @media (max-width: 767px) { #evalbutton {margin-top: 10px;} .btn2{ width: 100%;} }
                    .irs-grid-text {color: rgb(0, 0, 0);}</style>"
       ),
-      shiny::sidebarLayout(
-        shiny::sidebarPanel(
-          shiny::tags$style(
+      sidebarLayout(
+        sidebarPanel(
+          tags$style(
             ".well {background-color:#a1b0da;
                                         border: 1px solid #a1b0da;
                                         border-radius: 13px;
                                         -webkit-box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.15);
                                         box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.15);}"
           ),
-          shiny::HTML(
+          HTML(
             "<h1 style='margin-top: 0px;'>skpr<strong style='color: black;'>GUI</strong></h1>"
           ),
-          shiny::hr(),
+          hr(),
           rintrojs::introBox(
-            shiny::fluidRow(
-              shiny::column(
+            fluidRow(
+              column(
                 width = 6,
-                shiny::actionButton(
+                actionButton(
                   "submitbutton",
-                  shiny::HTML("<strong>Generate <br>Design</strong>"),
+                  HTML("<strong>Generate <br>Design</strong>"),
                   class = "btn2"
                 )
               ),
-              shiny::column(
+              column(
                 width = 6,
-                shiny::actionButton(
+                actionButton(
                   "evalbutton",
-                  shiny::HTML("<strong>Evaluate <br>Design</strong>"),
+                  HTML("<strong>Evaluate <br>Design</strong>"),
                   class = "btn2"
                 )
               )
@@ -205,25 +247,25 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
             data.step = 1,
             data.intro = "<h3><center>Welcome to skpr!</h3></center> This tutorial will walk you through all of the features of the GUI and teach you how to create and analyze an experimental design. All features seen in the GUI can be easily recreated in the console, and skpr provides the full script used to do that, based on your inputs. Additional advanced capabilities not available in the GUI can be accessed via the code. <b>Let's get started!</b> <br><br>Click these buttons to generate a new design, or re-run a new design evaluation with updated parameters."
           ),
-          shiny::tabsetPanel(
-            shiny::tabPanel(
+          tabsetPanel(
+            tabPanel(
               "Basic",
               rintrojs::introBox(
-                shiny::numericInput(inputId = "trials",
+                numericInput(inputId = "trials",
                                     12, label = "Trials"),
                 data.step = 2,
                 data.intro = "This is the number of runs in the experiment."
               ),
               rintrojs::introBox(
-                shiny::textInput(inputId = "model",
+                textInput(inputId = "model",
                                  "~.", label = "Model"),
                 data.step = 3,
                 data.intro = "This is the model. <br><br> <b>~.</b> produces a linear model for all terms with no interactions. <br><br> Interactions can be added with the colon operator: <br><br> <b>~X1 + X2 + X1:X2</b> <br><br> and quadratic effects with an I() (as in India): <br><br><b>~X1 + X2 + I(X1^2)</b>."
               ),
 
-              shiny::uiOutput("block_panel"),
+              uiOutput("block_panel"),
               rintrojs::introBox(
-                shiny::numericInput(
+                numericInput(
                   inputId = "numberfactors",
                   min = 1,
                   max = NA,
@@ -233,17 +275,17 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.step = 4,
                 data.intro = "This is the number of factors in the experiment. "
               ),
-              shiny::br(),
+              br(),
               rintrojs::introBox(generate_factor_input_panel(1),
                 data.step = 5,
                 data.intro = "This pane allows you to change the factor type, specify categorical and discrete numeric levels, and make factors hard-to-change. If numeric, specify the highest and lowest values and the number of breaks between. If categorical or discrete numeric, specify levels separated by commas."
               ),
-              shiny::uiOutput("additional_factors")
+              uiOutput("additional_factors")
           ),
-          shiny::tabPanel(
+          tabPanel(
             "Advanced",
             rintrojs::introBox(
-              shiny::selectInput(
+              selectInput(
                 inputId = "optimality",
                 choices = c("D", "I", "A", "Alias", "G", "E", "T"),
                 label = "Optimality"
@@ -252,26 +294,26 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.intro = "Change the optimality criterion. If Alias-optimal selected, additional Alias-optimal specific options (minimum D-optimality and Alias-interaction level) will become available to change."
             ),
             rintrojs::introBox(
-              shiny::numericInput(inputId = "repeats",
+              numericInput(inputId = "repeats",
                                   20, label = "Repeats"),
               data.step = 7,
               data.intro = "Changes the depth of the optimal design search. Increasing this will increase the probability that an optimal design is found."
             ),
             rintrojs::introBox(
-              shiny::numericInput(inputId = "varianceratio",
+              numericInput(inputId = "varianceratio",
                                   1, label = "Variance Ratio"),
               data.step = 8,
               data.intro = "The ratio of the variance between whole plots and subplots for split-plot designs."
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.optimality == \'Alias\'",
-              shiny::numericInput(
+              numericInput(
                 inputId = "aliaspower",
                 min = 2,
                 value = 2,
                 label = "Alias Optimal Interaction Level"
               ),
-              shiny::sliderInput(
+              sliderInput(
                 inputId = "mindopt",
                 min = 0,
                 max = 1,
@@ -280,7 +322,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               )
             ),
             rintrojs::introBox(
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "setseed",
                 label = "Set Random Number Generator Seed",
                 value = FALSE
@@ -288,13 +330,13 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.step = 9,
               data.intro = "Set the random seed for both design generation and evaluation. This allows for completely reproducible designs and Monte Carlo simulations."
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.setseed",
-              shiny::numericInput(inputId = "seed",
+              numericInput(inputId = "seed",
                                   1, label = "Random Seed")
             ),
             rintrojs::introBox(
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "parallel",
                 label = "Parallel Search",
                 value = FALSE
@@ -303,7 +345,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.intro = "Use all available cores to compute design. Only set to true if the design search is taking >10 seconds to finish. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."
             ),
             rintrojs::introBox(
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "splitanalyzable",
                 label = "Include Blocking Columns in Run Matrix",
                 value = TRUE
@@ -312,7 +354,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.intro = "Convert row structure to blocking columns. This is required for analyzing the split-plot structure using REML."
             ),
             rintrojs::introBox(
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "detailedoutput",
                 label = "Detailed Output",
                 value = FALSE
@@ -321,7 +363,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.intro = "Outputs a tidy data frame of additional design information, including anticipated coefficients and design size."
             ),
             rintrojs::introBox(
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "advanceddiagnostics",
                 label = "Advanced Design Diagnostics",
                 value = TRUE
@@ -329,7 +371,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.step = 13,
               data.intro = "Outputs additional information about the optimal search and advanced Monte Carlo information. This includes a list of all available optimal criteria, a plot of the computed optimal values during the search (useful for determining if the repeats argument should be increased), and a histogram of p-values for each parameter in Monte Carlo simulations."
             ),
-            shiny::selectInput(
+            selectInput(
               inputId = "colorchoice",
               choices = c(
                 "Default" = "D",
@@ -341,7 +383,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               label = "Color"
             )
           ),
-          shiny::tabPanel(
+          tabPanel(
             "Power",
             rintrojs::introBox(
               rintrojs::introBox(
@@ -362,7 +404,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.intro = "Survival analysis Monte Carlo power generation. This simulates data according to the design, and then censors the data if it is above or below a user defined threshold. This simulation is performed with the survreg package."
             ),
             rintrojs::introBox(
-              shiny::sliderInput(
+              sliderInput(
                 inputId = "alpha",
                 min = 0,
                 max = 1,
@@ -372,10 +414,10 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.step = 15,
               data.intro = "Specify the acceptable Type-I error (false positive rate)"
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'lm\' || (input.evaltype == \'glm\' && input.glmfamily == \'gaussian\') || (input.evaltype == \'surv\' && (input.distribution == \'gaussian\' || input.distribution == \'lognormal\'))",
               rintrojs::introBox(
-                shiny::numericInput(
+                numericInput(
                   inputId = "snr",
                   value = 2,
                   step = 0.1,
@@ -385,21 +427,21 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.intro = "Signal-to-noise ratio for linear models."
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'glm\' && input.glmfamily == \'poisson\'",
-              shiny::fluidRow(
-                shiny::column(
+              fluidRow(
+                column(
                   width = 6,
-                  shiny::numericInput(
+                  numericInput(
                     inputId = "poislow",
                     "Low # of Events:",
                     min = 0,
                     value = 1
                   )
                 ),
-                shiny::column(
+                column(
                   width = 6,
-                  shiny::numericInput(
+                  numericInput(
                     inputId = "poishigh",
                     "High # of Events:",
                     min = 0,
@@ -408,21 +450,21 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 )
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "(input.evaltype == \'glm\' && input.glmfamily == \'exponential\') || (input.evaltype == \'surv\' && input.distribution == \'exponential\')",
-              shiny::fluidRow(
-                shiny::column(
+              fluidRow(
+                column(
                   width = 6,
-                  shiny::numericInput(
+                  numericInput(
                     inputId = "explow",
                     "Low Mean:",
                     min = 0,
                     value = 1
                   )
                 ),
-                shiny::column(
+                column(
                   width = 6,
-                  shiny::numericInput(
+                  numericInput(
                     inputId = "exphigh",
                     "High Mean:",
                     min = 0,
@@ -431,9 +473,9 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 )
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'glm\' && input.glmfamily == \'binomial\'",
-              shiny::sliderInput(
+              sliderInput(
                 inputId = "binomialprobs",
                 "Binomial Probabilities:",
                 min = 0,
@@ -441,26 +483,26 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 value = c(0.4, 0.6)
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'glm\'",
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "firth_correction",
                 "Use Firth Correction",
                 value = TRUE
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'glm\'",
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "adjust_alpha",
                 "Adjust for Type-I Error Inflation",
                 value = FALSE
               )
             ),
             rintrojs::introBox(
-              shiny::conditionalPanel(
+              conditionalPanel(
                 condition = "input.evaltype == \'lm\'",
-                shiny::checkboxInput(
+                checkboxInput(
                   inputId = "conservative",
                   label = "Conservative Power",
                   value = FALSE
@@ -469,10 +511,10 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.step = 17,
               data.intro = "Calculates conservative effect power for 3+ level categorical factors. Calculates power once, and then sets the anticipated coefficient corresponding to the highest power level in each factor to zero. The effect power for those factors then show the most conservative power estimate."
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'glm\'",
               rintrojs::introBox(
-                shiny::numericInput(
+                numericInput(
                   inputId = "nsim",
                   value = 1000,
                   label = "Number of Simulations"
@@ -481,7 +523,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.intro = "The number of Monte Carlo simulations to run. More simulations will result in a more precise power estimation."
               ),
               rintrojs::introBox(
-                shiny::selectInput(
+                selectInput(
                   inputId = "glmfamily",
                   choices = c("gaussian", "binomial", "poisson", "exponential"),
                   label = "GLM Family"
@@ -490,7 +532,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.intro = "The distributional family used in the generalized linear model. If binomial, an additional slider will appear allowing you to change the desired upper and lower probability bounds. This automatically calculates the anticipated coefficients that correspond to that probability range."
               ),
               rintrojs::introBox(
-                shiny::checkboxInput(
+                checkboxInput(
                   inputId = "parallel_eval_glm",
                   label = "Parallel Evaluation",
                   value = FALSE
@@ -499,20 +541,20 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.intro = "Turn on multicore support for evaluation. Should only be used if the calculation is taking >10s to complete. Otherwise, the overhead in setting up the parallel computation outweighs the speed gains."
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'surv\'",
-              shiny::numericInput(
+              numericInput(
                 inputId = "nsim_surv",
                 value = 1000,
                 label = "Number of Simulations"
               ),
-              shiny::selectInput(
+              selectInput(
                 inputId = "distribution",
                 choices = c("gaussian", "lognormal", "exponential"),
                 label = "Distribution"
               ),
               rintrojs::introBox(
-                shiny::numericInput(
+                numericInput(
                   inputId = "censorpoint",
                   value = NA,
                   label = "Censor Point"
@@ -521,7 +563,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.intro = "The value after (if right censored) or before (if left censored) data will be censored. The default is no censoring."
               ),
               rintrojs::introBox(
-                shiny::selectInput(
+                selectInput(
                   inputId = "censortype",
                   choices = c("right", "left"),
                   label = "Censoring Type"
@@ -529,13 +571,13 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 data.step = 24,
                 data.intro = "The type of censoring."
               ),
-              shiny::checkboxInput(
+              checkboxInput(
                 inputId = "parallel_eval_surv",
                 label = "Parallel Evaluation",
                 value = FALSE
               )
             ),
-            shiny::checkboxInput(
+            checkboxInput(
               inputId = "colorblind",
               label = "Colorblind Palette",
               value = FALSE
@@ -544,10 +586,10 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
         )
       ),
       mainPanel(
-        shiny::fluidRow(
-          shiny::column(width = 4, shiny::h1("Results")),
-          shiny::column(width = 2),
-          shiny::column(
+        fluidRow(
+          column(width = 4, h1("Results")),
+          column(width = 2),
+          column(
             width = 2,
             rintrojs::introBox(
               bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."),
@@ -556,32 +598,32 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."
             )
           ),
-          shiny::column(
+          column(
             width = 2,
-            shiny::actionButton(
+            actionButton(
               inputId = "tutorial",
               "Tutorial",
               icon = icon("question-circle")
             )
           ),
-          shiny::column(width = 2, shiny::HTML(
+          column(width = 2, HTML(
             paste0(
               "<div style='float:right; margin-top: 25px;'><img src=",
               b64,
               "></img></div>"
             )
           )),
-          shiny::tags$style(
+          tags$style(
             type = "text/css",
             "#tutorial {margin-top: 25px;} .bookmark {margin-top: 25px;}"
           )
         ),
-        shiny::tabsetPanel(
+        tabsetPanel(
           id = "results_panels",
-          shiny::tabPanel(
+          tabPanel(
             "Design",
             value = "design",
-            shiny::checkboxInput(
+            checkboxInput(
               inputId = "orderdesign",
               label = "Order Design",
               value = FALSE
@@ -591,96 +633,96 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
               data.step = 25,
               data.intro = "The generated optimal design. If hard-to-change factors are present, there will be an additional blocking column specifying the block number. Here, we have generated a design with three factors and 12 runs."
             ),
-            shiny::hr()
+            hr()
           ),
-          shiny::tabPanel(
+          tabPanel(
             "Design Evaluation",
             value = "eval",
             rintrojs::introBox(
-              shiny::fluidRow(
-                shiny::column(
+              fluidRow(
+                column(
                   width = 12,
-                  shiny::h2("Power Results"),
-                  shiny::conditionalPanel(condition = "input.evaltype == \'lm\'",
+                  h2("Power Results"),
+                  conditionalPanel(condition = "input.evaltype == \'lm\'",
                                           gt::gt_output(outputId = "powerresults")),
                   rintrojs::introBox(
-                    shiny::conditionalPanel(condition = "input.evaltype == \'glm\'",
+                    conditionalPanel(condition = "input.evaltype == \'glm\'",
                                             gt::gt_output(outputId = "powerresultsglm")),
                     data.step = 27,
                     data.intro = "The power of the design. Output is a tidy data frame of the power and the type of evaluation for each parameter. If the evaluation type is parametric and there are 3+ level categorical factors, effect power will also be shown. Here, we have our GLM simulated power estimation."
                   ),
-                  shiny::conditionalPanel(condition = "input.evaltype == \'surv\'",
+                  conditionalPanel(condition = "input.evaltype == \'surv\'",
                                           gt::gt_output(outputId = "powerresultssurv"))
                 )
               ),
               data.step = 26,
               data.intro = "This page shows the calculated/simulated power, as well as other design diagnostics. (results may take a second to appear)"
             ),
-            shiny::hr(),
-            shiny::fluidRow(
+            hr(),
+            fluidRow(
               align = "center",
-              shiny::column(
+              column(
                 width = 6,
-                shiny::h3("Correlation Map"),
+                h3("Correlation Map"),
                 rintrojs::introBox(
-                  shiny::conditionalPanel(
+                  conditionalPanel(
                     "input.numberfactors > 1",
-                    shiny::plotOutput(outputId = "aliasplot")
+                    plotOutput(outputId = "aliasplot")
                   ),
                   data.step = 28,
                   data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."
                 ),
-                shiny::conditionalPanel(
+                conditionalPanel(
                   "input.numberfactors == 1",
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::br(),
-                  shiny::HTML(
+                  br(),
+                  br(),
+                  br(),
+                  br(),
+                  br(),
+                  br(),
+                  br(),
+                  br(),
+                  HTML(
                     "<font color=#898989> One Parameter: <br>No Correlation Map</font>"
                   )
                 )
               ),
-              shiny::column(
+              column(
                 width = 6,
-                shiny::h3("Fraction of Design Space"),
+                h3("Fraction of Design Space"),
                 rintrojs::introBox(
-                  shiny::plotOutput(outputId = "fdsplot"),
+                  plotOutput(outputId = "fdsplot"),
                   data.step = 29,
                   data.intro = "Fraction of design space plot. The horizontal line corresponds to the average prediction variance for the design."
                 )
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'glm\'",
-              shiny::fluidRow(
-                shiny::hr(),
-                shiny::column(
+              fluidRow(
+                hr(),
+                column(
                   width = 12,
-                  shiny::h3("Simulated Response Estimates"),
+                  h3("Simulated Response Estimates"),
                   rintrojs::introBox(
-                    shiny::plotOutput(outputId = "responsehistogram"),
+                    plotOutput(outputId = "responsehistogram"),
                     data.step = 30,
                     data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue). "
                   )
                 ),
-                shiny::conditionalPanel(
+                conditionalPanel(
                   condition = "input.glmfamily != \'binomial\'",
-                  shiny::column(
+                  column(
                     width = 6,
-                    shiny::numericInput(
+                    numericInput(
                       inputId = "estimatesxminglm",
                       value = NA,
                       label = "x-min"
                     )
                   ),
-                  shiny::column(
+                  column(
                     width = 6,
-                    shiny::numericInput(
+                    numericInput(
                       inputId = "estimatesxmaxglm",
                       value = NA,
                       label = "x-max"
@@ -689,26 +731,26 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 )
               )
             ),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.evaltype == \'surv\'",
-              shiny::fluidRow(
-                shiny::hr(),
-                shiny::column(
+              fluidRow(
+                hr(),
+                column(
                   width = 12,
-                  shiny::h3("Simulated Response Estimates"),
-                  shiny::plotOutput(outputId = "responsehistogramsurv")
+                  h3("Simulated Response Estimates"),
+                  plotOutput(outputId = "responsehistogramsurv")
                 ),
-                shiny::column(
+                column(
                   width = 6,
-                  shiny::numericInput(
+                  numericInput(
                     inputId = "estimatesxminsurv",
                     value = NA,
                     label = "x-min"
                   )
                 ),
-                shiny::column(
+                column(
                   width = 6,
-                  shiny::numericInput(
+                  numericInput(
                     inputId = "estimatesxmaxsurv",
                     value = NA,
                     label = "x-max"
@@ -716,45 +758,45 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 )
               )
             ),
-            shiny::conditionalPanel(condition = "input.evaltype == \'glm\'",
-                                    shiny::fluidRow(
-                                      shiny::hr(),
-                                      shiny::column(
+            conditionalPanel(condition = "input.evaltype == \'glm\'",
+                                    fluidRow(
+                                      hr(),
+                                      column(
                                         width = 12,
-                                        shiny::h3("Simulated Estimates"),
+                                        h3("Simulated Estimates"),
                                         rintrojs::introBox(
-                                          shiny::plotOutput(outputId = "parameterestimates"),
+                                          plotOutput(outputId = "parameterestimates"),
                                           data.step = 31,
                                           data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values."
                                         )
                                       )
                                     )),
-            shiny::conditionalPanel(
+            conditionalPanel(
               condition = "input.advanceddiagnostics",
-              shiny::hr(),
-              shiny::fluidRow(
+              hr(),
+              fluidRow(
                 align = "left",
-                shiny::uiOutput(outputId = "optimality_results"),
-                shiny::column(
+                uiOutput(outputId = "optimality_results"),
+                column(
                   width = 6,
-                  shiny::h3("Optimal Search Values"),
-                  shiny::plotOutput(outputId = "optimalsearch")
+                  h3("Optimal Search Values"),
+                  plotOutput(outputId = "optimalsearch")
                 ),
-                shiny::hr(),
-                shiny::fluidRow(
-                  shiny::conditionalPanel(
+                hr(),
+                fluidRow(
+                  conditionalPanel(
                     condition = "input.evaltype != \'lm\'",
-                    shiny::column(
+                    column(
                       width = 12,
-                      shiny::h3("Simulated P-Values"),
-                      shiny::plotOutput(outputId = "simulatedpvalues")
+                      h3("Simulated P-Values"),
+                      plotOutput(outputId = "simulatedpvalues")
                     )
                   )
                 )
               )
             )
           ),
-          shiny::tabPanel(
+          tabPanel(
             "Generating Code",
             value = "code",
             rintrojs::introBox(
@@ -773,7 +815,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
 
     inc_progress_session = function(amount = 0.1, message = NULL, detail = NULL) incProgress(amount, message, detail, session)
 
-    inputlist_htc = shiny::reactive({
+    inputlist_htc = reactive({
       input$submitbutton
       inputlist1 = list()
       for(i in seq_len(input$numberfactors)) {
@@ -801,7 +843,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       inputlist1
     })
 
-    inputlist_htctext = shiny::reactive({
+    inputlist_htctext = reactive({
       input$submitbutton
       inputlist1 = list()
       for(i in seq_len(input$numberfactors)) {
@@ -830,7 +872,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
     })
 
 
-    inputlist = shiny::reactive({
+    inputlist = reactive({
       inputlist1 = list()
       for(i in seq_len(input$numberfactors)) {
         factorname_n = sprintf("factorname%i",i)
@@ -857,7 +899,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       inputlist1
     })
 
-    candidatesetall = shiny::reactive({
+    candidatesetall = reactive({
       candidateset1 = list()
       for(i in seq_len(input$numberfactors)) {
         factorname_n = sprintf("factorname%i",i)
@@ -884,7 +926,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
 
 
 
-    inputstring = shiny::reactive({
+    inputstring = reactive({
       req(update)
       updatevector = list()
       finalstring = c()
@@ -919,7 +961,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       finalstring
     })
 
-    regularmodelstring = shiny::reactive({
+    regularmodelstring = reactive({
       tryCatch({
         if (any(unlist(strsplit(as.character(as.formula(input$model)[2]), "\\s\\+\\s|\\s\\*\\s|\\:")) == ".")) {
           dotreplace = paste0("(", paste0(names(candidatesetall()), collapse = " + "), ")")
@@ -933,7 +975,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       )
     })
 
-    modelwithblocks = shiny::reactive({
+    modelwithblocks = reactive({
       if (isblockingtext()) {
         basemodel = gsub(pattern = "~", replacement = "", x = regularmodelstring(), fixed = TRUE)
         blockingmodelterms = "~ (1|Block1) + "
@@ -941,7 +983,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
     })
 
-    contraststring = shiny::reactive({
+    contraststring = reactive({
       factor_cat = list()
       name_cat = list()
 
@@ -966,7 +1008,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       contrasttemp
     })
 
-    anyfactors = shiny::reactive({
+    anyfactors = reactive({
       fac = FALSE
       for(i in seq_len(input$numberfactors)) {
         factortype_n = sprintf("factortype%i",i)
@@ -977,7 +1019,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       fac
     })
 
-    code = shiny::reactive({
+    code = reactive({
       req(inputstring(), cancelOutput = TRUE)
       blocking = any_htc()
       first = paste0(c("<br><pre>",
@@ -1204,15 +1246,15 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       first
     })
 
-    isblocking = shiny::reactive({
+    isblocking = reactive({
       input$submitbutton
       isolate(any_htc())
     })
-    isblockingtext = shiny::reactive({
+    isblockingtext = reactive({
       any_htc()
     })
 
-    blockmodel = shiny::reactive({
+    blockmodel = reactive({
       if(isblocking()) {
         if (input$model == "~.") {
           as.formula(paste0("~", paste(names(inputlist_htctext()), collapse = " + ")))
@@ -1229,18 +1271,18 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
     })
 
-    optimality = shiny::reactive({
+    optimality = reactive({
       input$submitbutton
-      if (shiny::isolate(input$numberfactors) == 1 && shiny::isolate(input$optimality) == "Alias") {
-        shiny::showNotification("Alias-optimal design selected with only one factor: Switching to D-optimal.", type = "warning", duration = 10)
-        shiny::updateSelectInput(session, "optimality", choices = c("D", "I", "A", "Alias", "G", "E", "T"), selected = "D")
+      if (isolate(input$numberfactors) == 1 && isolate(input$optimality) == "Alias") {
+        showNotification("Alias-optimal design selected with only one factor: Switching to D-optimal.", type = "warning", duration = 10)
+        updateSelectInput(session, "optimality", choices = c("D", "I", "A", "Alias", "G", "E", "T"), selected = "D")
         "D"
       } else {
-        shiny::isolate(input$optimality)
+        isolate(input$optimality)
       }
     })
 
-    effectsize = shiny::reactive({
+    effectsize = reactive({
       if (input$evaltype == "lm") {
         return(input$snr)
       }
@@ -1279,17 +1321,17 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }, add = TRUE)
       shinyjs::disable("submitbutton")
       shinyjs::disable("evalbutton")
-      if (shiny::isolate(input$setseed)) {
-        set.seed(shiny::isolate(input$seed))
+      if (isolate(input$setseed)) {
+        set.seed(isolate(input$seed))
       }
-      if(!shiny::isolate(as.logical(input$parallel)) || !skpr_progress) {
+      if(!isolate(as.logical(input$parallel)) || !skpr_progress) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
-        if(!shiny::isolate(as.logical(input$parallel)) || !skpr_progress) {
-          shiny::withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
+        if(!isolate(as.logical(input$parallel)) || !skpr_progress) {
+          withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
         } else {
           progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = 1, expr = code,
                                        handlers = c(shiny = progressr::handler_shiny))
@@ -1297,50 +1339,50 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
       if (!isblocking()) {
         progress_wrapper({
-          gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
-                     model = shiny::isolate(as.formula(input$model)),
-                     trials = shiny::isolate(input$trials),
-                     optimality = shiny::isolate(optimality()),
-                     repeats = shiny::isolate(input$repeats),
-                     aliaspower = shiny::isolate(input$aliaspower),
-                     minDopt = shiny::isolate(input$mindopt),
-                     parallel = shiny::isolate(as.logical(input$parallel)),
+          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                     model = isolate(as.formula(input$model)),
+                     trials = isolate(input$trials),
+                     optimality = isolate(optimality()),
+                     repeats = isolate(input$repeats),
+                     aliaspower = isolate(input$aliaspower),
+                     minDopt = isolate(input$mindopt),
+                     parallel = isolate(as.logical(input$parallel)),
                      advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
         })
       } else {
         progress_wrapper({
-          spd = gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
-                           model = shiny::isolate(as.formula(blockmodel())),
-                           trials = shiny::isolate(input$numberblocks),
-                           optimality = ifelse(toupper(shiny::isolate(optimality())) == "ALIAS" &&
-                                               length(shiny::isolate(inputlist_htc())) == 1, "D", shiny::isolate(optimality())),
-                           repeats = shiny::isolate(input$repeats),
-                           varianceratio = shiny::isolate(input$varianceratio),
-                           aliaspower = shiny::isolate(input$aliaspower),
-                           minDopt = shiny::isolate(input$mindopt),
-                           parallel = shiny::isolate(as.logical(input$parallel)),
+          spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                           model = isolate(as.formula(blockmodel())),
+                           trials = isolate(input$numberblocks),
+                           optimality = ifelse(toupper(isolate(optimality())) == "ALIAS" &&
+                                               length(isolate(inputlist_htc())) == 1, "D", isolate(optimality())),
+                           repeats = isolate(input$repeats),
+                           varianceratio = isolate(input$varianceratio),
+                           aliaspower = isolate(input$aliaspower),
+                           minDopt = isolate(input$mindopt),
+                           parallel = isolate(as.logical(input$parallel)),
                            advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
         })
         progress_wrapper({
-          gen_design(candidateset = shiny::isolate(expand.grid(candidatesetall())),
-                     model = shiny::isolate(as.formula(input$model)),
-                     trials = shiny::isolate(input$trials),
+          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
+                     model = isolate(as.formula(input$model)),
+                     trials = isolate(input$trials),
                      splitplotdesign = spd,
-                     optimality = shiny::isolate(optimality()),
-                     repeats = shiny::isolate(input$repeats),
-                     varianceratio = shiny::isolate(input$varianceratio),
-                     aliaspower = shiny::isolate(input$aliaspower),
-                     minDopt = shiny::isolate(input$mindopt),
-                     parallel = shiny::isolate(as.logical(input$parallel)),
-                     add_blocking_columns = shiny::isolate(input$splitanalyzable),
+                     optimality = isolate(optimality()),
+                     repeats = isolate(input$repeats),
+                     varianceratio = isolate(input$varianceratio),
+                     aliaspower = isolate(input$aliaspower),
+                     minDopt = isolate(input$mindopt),
+                     parallel = isolate(as.logical(input$parallel)),
+                     add_blocking_columns = isolate(input$splitanalyzable),
                      advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
         })
       }
     })
 
-    evaluationtype = shiny::reactive({
+    evaluationtype = reactive({
       input$evalbutton
-      shiny::isolate(input$evaltype)
+      isolate(input$evaltype)
     })
 
     format_table = function(powerval, display_table, alpha, nsim, colorblind) {
@@ -1391,122 +1433,122 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       return(display_table)
     }
 
-    powerresults = shiny::reactive({
+    powerresults = reactive({
       input$evalbutton
       if (evaluationtype() == "lm") {
-        powerval = eval_design(design = shiny::isolate(runmatrix()),
-                    model = as.formula(shiny::isolate(input$model)),
-                    alpha = shiny::isolate(input$alpha),
+        powerval = eval_design(design = isolate(runmatrix()),
+                    model = as.formula(isolate(input$model)),
+                    alpha = isolate(input$alpha),
                     blocking = isblocking(),
-                    effectsize = shiny::isolate(effectsize()),
-                    conservative = shiny::isolate(input$conservative),
-                    detailedoutput = shiny::isolate(input$detailedoutput))
+                    effectsize = isolate(effectsize()),
+                    conservative = isolate(input$conservative),
+                    detailedoutput = isolate(input$detailedoutput))
         powerval
       }
     }) |>
-      shiny::bindEvent(input$evalbutton)
+      bindEvent(input$evalbutton)
 
-    powerresultsglm = shiny::reactive({
+    powerresultsglm = reactive({
       input$evalbutton
-      if(!shiny::isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+      if(!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
-        if(shiny::isolate(input$adjust_alpha)) {
+        if(isolate(input$adjust_alpha)) {
           max_val = 2
         } else {
           max_val = 1
         }
-        if(!shiny::isolate(input$adjust_alpha)) {
-          if(shiny::isolate(isblocking())) {
+        if(!isolate(input$adjust_alpha)) {
+          if(isolate(isblocking())) {
             mess = "Evaluating power (with REML):"
           } else {
             mess = "Evaluating power:"
           }
         } else {
-          if(shiny::isolate(isblocking())) {
+          if(isolate(isblocking())) {
             mess = "Evaluating power (with adjusted Type-I error and REML):"
           } else {
             mess = "Evaluating power (with adjusted Type-I error):"
           }
         }
-        if(!shiny::isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
-          shiny::withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
+        if(!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+          withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
         } else {
           progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
-      if (shiny::isolate(evaluationtype()) == "glm") {
-        if(shiny::isolate(isblocking()) && isolate(input$firth_correction)) {
-          shiny::showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
+      if (isolate(evaluationtype()) == "glm") {
+        if(isolate(isblocking()) && isolate(input$firth_correction)) {
+          showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
           firth_cor = FALSE
         } else {
           firth_cor = isolate(input$firth_correction)
         }
-        if (shiny::isolate(input$setseed)) {
-          set.seed(shiny::isolate(input$seed))
+        if (isolate(input$setseed)) {
+          set.seed(isolate(input$seed))
         }
         progress_wrapper({
-          suppressWarnings(eval_design_mc(design = shiny::isolate(runmatrix()),
-                                      model = shiny::isolate(as.formula(input$model)),
-                                      alpha = shiny::isolate(input$alpha),
-                                      blocking = shiny::isolate(isblocking()),
-                                      nsim = shiny::isolate(input$nsim),
-                                      varianceratios = shiny::isolate(input$varianceratio),
-                                      glmfamily = shiny::isolate(input$glmfamily),
-                                      effectsize = shiny::isolate(effectsize()),
+          suppressWarnings(eval_design_mc(design = isolate(runmatrix()),
+                                      model = isolate(as.formula(input$model)),
+                                      alpha = isolate(input$alpha),
+                                      blocking = isolate(isblocking()),
+                                      nsim = isolate(input$nsim),
+                                      varianceratios = isolate(input$varianceratio),
+                                      glmfamily = isolate(input$glmfamily),
+                                      effectsize = isolate(effectsize()),
                                       firth = firth_cor,
-                                      parallel = shiny::isolate(input$parallel_eval_glm),
-                                      adjust_alpha_inflation = shiny::isolate(input$adjust_alpha),
-                                      detailedoutput = shiny::isolate(input$detailedoutput),
+                                      parallel = isolate(input$parallel_eval_glm),
+                                      adjust_alpha_inflation = isolate(input$adjust_alpha),
+                                      detailedoutput = isolate(input$detailedoutput),
                                       advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)))
         })
       }
     }) |>
-      shiny::bindEvent(input$evalbutton)
+      bindEvent(input$evalbutton)
 
-    powerresultssurv = shiny::reactive({
+    powerresultssurv = reactive({
       input$evalbutton
-      if(!shiny::isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
+      if(!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
         mess = "Evaluating design:"
-        if(!shiny::isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
-          shiny::withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
+        if(!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
+          withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
         } else {
           progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
-      if (shiny::isolate(evaluationtype()) == "surv") {
-        if (shiny::isolate(input$setseed)) {
-          set.seed(shiny::isolate(input$seed))
+      if (isolate(evaluationtype()) == "surv") {
+        if (isolate(input$setseed)) {
+          set.seed(isolate(input$seed))
         }
-        if (shiny::isolate(isblocking())) {
+        if (isolate(isblocking())) {
           print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
         }
         progress_wrapper({
-          eval_design_survival_mc(design = shiny::isolate(runmatrix()),
-                                  model = shiny::isolate(as.formula(input$model)),
-                                  alpha = shiny::isolate(input$alpha),
-                                  nsim = shiny::isolate(input$nsim_surv),
-                                  censorpoint = shiny::isolate(input$censorpoint),
-                                  censortype = shiny::isolate(input$censortype),
-                                  distribution = shiny::isolate(input$distribution),
-                                  parallel = shiny::isolate(input$parallel_eval_surv),
-                                  effectsize = shiny::isolate(effectsize()),
-                                  detailedoutput = shiny::isolate(input$detailedoutput),
+          eval_design_survival_mc(design = isolate(runmatrix()),
+                                  model = isolate(as.formula(input$model)),
+                                  alpha = isolate(input$alpha),
+                                  nsim = isolate(input$nsim_surv),
+                                  censorpoint = isolate(input$censorpoint),
+                                  censortype = isolate(input$censortype),
+                                  distribution = isolate(input$distribution),
+                                  parallel = isolate(input$parallel_eval_surv),
+                                  effectsize = isolate(effectsize()),
+                                  detailedoutput = isolate(input$detailedoutput),
                                   advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
         })
       }
     }) |>
-      shiny::bindEvent(input$evalbutton)
+      bindEvent(input$evalbutton)
 
     pal_option = function() {
       if(input$colorchoice == "A") {
@@ -1578,8 +1620,8 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
 
     output$runmatrix = gt::render_gt({
       ord_design = input$orderdesign
-      trials =  shiny::isolate(input$trials)
-      opt = shiny::isolate(input$optimality)
+      trials =  isolate(input$trials)
+      opt = isolate(input$optimality)
       pal_choice = pal_option()
       runmatrix()  |>
         style_matrix(order_vals = ord_design,
@@ -1593,7 +1635,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       pwr_results = powerresults()
       col_results = colnames(pwr_results)
       pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
-      format_table(pwr_results,gt::gt(pwr_results), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
+      format_table(pwr_results,gt::gt(pwr_results), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
     }, align = "left")
 
     output$powerresultsglm = gt::render_gt( {
@@ -1602,7 +1644,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       pwr_results = powerresultsglm()
       col_results = colnames(pwr_results)
       pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
-      format_table(pwr_results,gt::gt(pwr_results), shiny::isolate(input$alpha),shiny::isolate(input$nsim),shiny::isolate(input$colorblind))
+      format_table(pwr_results,gt::gt(pwr_results), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
     }, align = "left")
 
     output$powerresultssurv = gt::render_gt({
@@ -1612,54 +1654,54 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       col_results = colnames(pwr_results)
       pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
 
-      format_table(pwr_results,gt::gt(pwr_results), shiny::isolate(input$alpha),shiny::isolate(input$nsim_surv),shiny::isolate(input$colorblind))
+      format_table(pwr_results,gt::gt(pwr_results), isolate(input$alpha),isolate(input$nsim_surv),isolate(input$colorblind))
     }, align = "left")
 
-    output$aliasplot = shiny::renderPlot({
+    output$aliasplot = renderPlot({
       input$submitbutton
       tryCatch({
-        plot_correlations(shiny::isolate(runmatrix()))
+        plot_correlations(isolate(runmatrix()))
       }, error = function(e) {
       })
     })
 
-    output$fdsplot = shiny::renderPlot({
+    output$fdsplot = renderPlot({
       input$submitbutton
-      plot_fds(shiny::isolate(runmatrix()))
+      plot_fds(isolate(runmatrix()))
     })
 
-    output$code = shiny::renderUI({
+    output$code = renderUI({
       req(valid_code_pane(), cancelOutput = TRUE)
-      shiny::HTML(code())
+      HTML(code())
     })
 
-    output$dopt = shiny::renderText({
+    output$dopt = renderText({
       input$submitbutton
-      shiny::isolate(attr(runmatrix(), "D"))
+      isolate(attr(runmatrix(), "D"))
     })
-    output$aopt = shiny::renderText({
+    output$aopt = renderText({
       input$submitbutton
-      shiny::isolate(attr(runmatrix(), "A"))
+      isolate(attr(runmatrix(), "A"))
     })
-    output$iopt = shiny::renderText({
+    output$iopt = renderText({
       input$submitbutton
-      shiny::isolate(attr(runmatrix(), "I"))
+      isolate(attr(runmatrix(), "I"))
     })
-    output$eopt = shiny::renderText({
+    output$eopt = renderText({
       input$submitbutton
-      shiny::isolate(attr(runmatrix(), "E"))
+      isolate(attr(runmatrix(), "E"))
     })
-    output$gopt = shiny::renderText({
+    output$gopt = renderText({
       input$submitbutton
-      shiny::isolate(attr(runmatrix(), "G"))
+      isolate(attr(runmatrix(), "G"))
     })
-    output$topt = shiny::renderText({
+    output$topt = renderText({
       input$submitbutton
-      shiny::isolate(attr(runmatrix(), "T"))
+      isolate(attr(runmatrix(), "T"))
     })
-    output$optimalsearch = shiny::renderPlot({
+    output$optimalsearch = renderPlot({
       input$submitbutton
-      if (shiny::isolate(optimality()) %in% c("D", "G", "A")) {
+      if (isolate(optimality()) %in% c("D", "G", "A")) {
         if(attr(runmatrix(), "blocking") || attr(runmatrix(), "splitplot")) {
           max_y_val = max(attr(runmatrix(), "optimalsearchvalues"),na.rm=TRUE)
           statement = "Optimality Value (higher is better)"
@@ -1667,58 +1709,58 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
           max_y_val = 100
           statement = "Efficiency (higher is better)"
         }
-        shiny::isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
+        isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
                      type = "p", col = "red", pch = 16, ylim = c(0, max_y_val)))
-        shiny::isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")],
+        isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")],
                        type = "p", col = "green", pch = 16, cex = 2, ylim = c(0, max_y_val)))
       } else {
-        if (shiny::isolate(optimality()) == "I") {
-          shiny::isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))
+        if (isolate(optimality()) == "I") {
+          isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))
         } else {
-          shiny::isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Criteria Value (higher is better)"), type = "p", col = "red", pch = 16))
+          isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Criteria Value (higher is better)"), type = "p", col = "red", pch = 16))
         }
-        shiny::isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2))
+        isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2))
       }
     })
-    output$simulatedpvalues = shiny::renderPlot({
+    output$simulatedpvalues = renderPlot({
       updateval = c(powerresultsglm(),powerresultssurv())
-      if(shiny::isolate(evaluationtype() == "glm")) {
-        pvalrows = shiny::isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
+      if(isolate(evaluationtype() == "glm")) {
+        pvalrows = isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
         if (!is.null(attr(powerresultsglm(), "pvals"))) {
           par(mfrow = c(pvalrows, 3))
-          for (col in 1:shiny::isolate(ncol(attr(powerresultsglm(), "pvals")))) {
-            shiny::isolate(hist(attr(powerresultsglm(), "pvals")[, col], breaks = seq(0, 1, 0.05),
+          for (col in 1:isolate(ncol(attr(powerresultsglm(), "pvals")))) {
+            isolate(hist(attr(powerresultsglm(), "pvals")[, col], breaks = seq(0, 1, 0.05),
                          main = colnames(attr(powerresultsglm(), "pvals"))[col],
                          xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
           }
         }
       }
-      if(shiny::isolate(evaluationtype() == "surv")) {
-        pvalrows = shiny::isolate(floor(ncol(attr(powerresultssurv(), "pvals")) / 3) + 1)
+      if(isolate(evaluationtype() == "surv")) {
+        pvalrows = isolate(floor(ncol(attr(powerresultssurv(), "pvals")) / 3) + 1)
         if (!is.null(attr(powerresultssurv(), "pvals"))) {
           par(mfrow = c(pvalrows, 3))
-          for (col in 1:shiny::isolate(ncol(attr(powerresultssurv(), "pvals")))) {
-            shiny::isolate(hist(attr(powerresultssurv(), "pvals")[, col], breaks = seq(0, 1, 0.05),
+          for (col in 1:isolate(ncol(attr(powerresultssurv(), "pvals")))) {
+            isolate(hist(attr(powerresultssurv(), "pvals")[, col], breaks = seq(0, 1, 0.05),
                          main = colnames(attr(powerresultssurv(), "pvals"))[col],
                          xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
           }
         }
       }
     })
-    output$parameterestimates = shiny::renderPlot({
+    output$parameterestimates = renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultsglm(), "estimates"))) {
         ests = apply(attr(powerresultsglm(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
         truth = attr(powerresultsglm(), "anticoef")
-        if (shiny::isolate(input$glmfamily) == "binomial") {
+        if (isolate(input$glmfamily) == "binomial") {
           ests = exp(ests) / (1 + exp(ests))
           truth = exp(truth) / (1 + exp(truth))
         }
-        if (shiny::isolate(input$glmfamily) == "poisson") {
+        if (isolate(input$glmfamily) == "poisson") {
           ests = exp(ests)
           truth = exp(truth)
         }
-        if (shiny::isolate(input$glmfamily) == "exponential") {
+        if (isolate(input$glmfamily) == "exponential") {
           ests = exp(ests)
           truth = exp(truth)
         }
@@ -1726,8 +1768,8 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
         plot(x = 1:length(colnames(ests)), y = ests[2, ],
              xaxt = "n",
              xlab = "Parameters",
-             ylab = ifelse(shiny::isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-             ylim = ifelse(rep(shiny::isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
+             ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
+             ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
              xlim = c(0.5, length(colnames(ests)) + 0.5),
              type = "p", pch = 16, col = "red", cex = 1)
         axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
@@ -1740,12 +1782,12 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
     })
 
-    output$parameterestimatessurv = shiny::renderPlot({
+    output$parameterestimatessurv = renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultssurv(), "estimates"))) {
         ests = apply(attr(powerresultssurv(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
         truth = attr(powerresultssurv(), "anticoef")
-        if (shiny::isolate(input$distibution) == "exponential") {
+        if (isolate(input$distibution) == "exponential") {
           ests = exp(ests)
           truth = exp(truth)
         }
@@ -1753,8 +1795,8 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
         plot(x = 1:length(colnames(ests)), y = ests[2, ],
              xaxt = "n",
              xlab = "Parameters",
-             ylab = ifelse(shiny::isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-             ylim = ifelse(rep(shiny::isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
+             ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
+             ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
              xlim = c(0.5, length(colnames(ests)) + 0.5),
              type = "p", pch = 16, col = "red", cex = 1)
         axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
@@ -1767,7 +1809,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
     })
 
-    output$responsehistogram = shiny::renderPlot({
+    output$responsehistogram = renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultsglm(), "estimates"))) {
         responses = as.vector(attr(powerresultsglm(), "estimates") %*% t(attr(powerresultsglm(), "modelmatrix")))
@@ -1776,8 +1818,8 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
         widths = widths[widths != 0]
         widths = sqrt(widths)
         uniquevalues = length(table(responses))
-        breakvalues = ifelse(uniquevalues < shiny::isolate(input$nsim) * shiny::isolate(input$trials) / 10, uniquevalues, shiny::isolate(input$nsim) * shiny::isolate(input$trials) / 10)
-        if (shiny::isolate(input$glmfamily) == "binomial") {
+        breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
+        if (isolate(input$glmfamily) == "binomial") {
           responses = exp(responses) / (1 + exp(responses))
           trueresponses = exp(trueresponses) / (1 + exp(trueresponses))
           par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1788,7 +1830,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
           hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses Estimates", xlab = "Response", ylab = "Count", col = "red", border = "red")
           abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
         }
-        if (shiny::isolate(input$glmfamily) == "poisson") {
+        if (isolate(input$glmfamily) == "poisson") {
           responses = exp(responses)
           trueresponses = exp(trueresponses)
           par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1799,7 +1841,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
           hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses ", xlab = "Response", ylab = "Count", col = "red", border = "red")
           abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
         }
-        if (shiny::isolate(input$glmfamily) == "exponential") {
+        if (isolate(input$glmfamily) == "exponential") {
           responses = exp(responses)
           trueresponses = exp(trueresponses)
 
@@ -1812,7 +1854,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
           hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
           abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
         }
-        if (shiny::isolate(input$glmfamily) == "gaussian") {
+        if (isolate(input$glmfamily) == "gaussian") {
           par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
           hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
           legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
@@ -1825,13 +1867,13 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
     })
 
-    output$responsehistogramsurv = shiny::renderPlot({
+    output$responsehistogramsurv = renderPlot({
       input$evalbutton
       if (!is.null(attr(powerresultssurv(), "estimates"))) {
         responses = as.vector(attr(powerresultssurv(), "estimates") %*% t(attr(powerresultssurv(), "modelmatrix")))
         trueresponses = as.vector(attr(powerresultssurv(), "anticoef") %*% t(attr(powerresultssurv(), "modelmatrix")))
         filtered_string = ""
-        if(shiny::isolate(input$distribution) == "exponential") {
+        if(isolate(input$distribution) == "exponential") {
           #Filter out extreme values
           mad_trueresp = 20*max(exp(trueresponses))
           num_filtered = sum(exp(responses) > mad_trueresp)
@@ -1843,8 +1885,8 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
         widths = widths[widths != 0]
         widths = sqrt(widths)
         uniquevalues = length(table(responses))
-        breakvalues = ifelse(uniquevalues < shiny::isolate(input$nsim_surv) * shiny::isolate(input$trials) / 10, uniquevalues, shiny::isolate(input$nsim_surv) * shiny::isolate(input$trials) / 10)
-        if (shiny::isolate(input$distribution) == "exponential") {
+        breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
+        if (isolate(input$distribution) == "exponential") {
           responses = exp(responses)
           trueresponses = exp(trueresponses)
           par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
@@ -1855,7 +1897,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
           hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
           abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
         }
-        if (shiny::isolate(input$distribution) %in% c("gaussian", "lognormal")) {
+        if (isolate(input$distribution) %in% c("gaussian", "lognormal")) {
           par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
           hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates (from survival analysis)", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
           legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
@@ -1866,23 +1908,23 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
         }
       }
     })
-    output$separationwarning = shiny::renderText({
+    output$separationwarning = renderText({
       input$evalbutton
       likelyseparation = FALSE
-      if (shiny::isolate(input$evaltype) == "glm" && shiny::isolate(input$glmfamily) == "binomial") {
+      if (isolate(input$evaltype) == "glm" && isolate(input$glmfamily) == "binomial") {
         if (!is.null(attr(powerresultsglm(), "pvals"))) {
           pvalmat = attr(powerresultsglm(), "pvals")
           for (i in 2:ncol(pvalmat)) {
             pvalcount = hist(pvalmat[, i], breaks = seq(0, 1, 0.05), plot = FALSE)
-            likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > shiny::isolate(input$nsim) / 15)
+            likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim) / 15)
           }
         }
       }
       if (likelyseparation) {
-        shiny::showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
+        showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
       }
     })
-    any_htc = shiny::reactive({
+    any_htc = reactive({
       has_htc = FALSE
       for(i in seq_len(input$numberfactors)) {
         if(!is.null(input[[sprintf("blockdepth%i",i)]])) {
@@ -1894,9 +1936,9 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       has_htc
     })
 
-    factor_input_cache = shiny::reactiveValues()
+    factor_input_cache = reactiveValues()
 
-    ui_elements = shiny::reactive({
+    ui_elements = reactive({
       on.exit({
         shinyjs::enable("evalbutton")
         shinyjs::enable("submitbutton")
@@ -1905,17 +1947,17 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       ui_elements_list = list()
       if(input$numberfactors > 1) {
         for(i in seq_len(input$numberfactors)[-1]) {
-          ui_elements_list[[i-1]] = generate_factor_input_panel(i, shiny::reactiveValuesToList(factor_input_cache))
+          ui_elements_list[[i-1]] = generate_factor_input_panel(i, reactiveValuesToList(factor_input_cache))
         }
       }
-      do.call(shiny::tagList, ui_elements_list)
+      do.call(tagList, ui_elements_list)
       }
     ) |>
-      shiny::bindEvent(updated_ui_defaults())
+      bindEvent(updated_ui_defaults())
 
     valid_code_pane = reactiveVal(TRUE)
 
-    updated_ui_defaults = shiny::reactive({
+    updated_ui_defaults = reactive({
       valid_code_pane(FALSE)
       shinyjs::disable("submitbutton")
       shinyjs::disable("evalbutton")
@@ -1951,19 +1993,19 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
       }
       input$numberfactors
     }) |>
-      shiny::bindEvent(input$numberfactors) |>
-      shiny::debounce(500)
+      bindEvent(input$numberfactors) |>
+      debounce(500)
 
-    output$additional_factors = shiny::renderUI({
+    output$additional_factors = renderUI({
       on.exit(
         valid_code_pane(TRUE), add = TRUE
       )
       ui_elements()
     })
-    output$block_panel = shiny::renderUI({
+    output$block_panel = renderUI({
       generate_block_panel(any_htc())
     })
-    output$optimality_results = shiny::renderUI({
+    output$optimality_results = renderUI({
       generate_optimality_results(any_htc())
     })
 
@@ -1977,7 +2019,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                        selected = "design")
     })
 
-    shiny::observeEvent(input$tutorial,
+    observeEvent(input$tutorial,
                  rintrojs::introjs(session,
                          options = list("showProgress" = "true",
                                         "showBullets" = "false"),
@@ -2033,12 +2075,12 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                                           }"
                            ))
                  ))
-    shiny::outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
+    outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
   }
   if(browser) {
-    shiny::runGadget(shiny::shinyApp(ui, server, enableBookmarking = "url"), viewer = shiny::browserViewer())
+    runGadget(shinyApp(ui, server, enableBookmarking = "url"), viewer = browserViewer())
   } else {
-    shiny::runGadget(shiny::shinyApp(ui, server, enableBookmarking = "url"), viewer = shiny::dialogViewer(dialogName = "skprGUI", width = 1200, height = 1200))
+    runGadget(shinyApp(ui, server, enableBookmarking = "url"), viewer = dialogViewer(dialogName = "skprGUI", width = 1200, height = 1200))
   }
 }
 # nocov end

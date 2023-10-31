@@ -14,7 +14,7 @@ using the survival package and survreg to fit the data. Split-plot designs are n
     
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,6 +68,7 @@ using the <code>survival</code> package and <code>survreg</code> to fit the data
 <span>  contrasts <span class="op">=</span> <span class="va">contr.sum</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -134,11 +135,17 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 
 <dt>parallel</dt>
-<dd><p>If TRUE, uses all cores available to speed up computation of power. Default FALSE.</p></dd>
+<dd><p>Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
 <dt>detailedoutput</dt>
-<dd><p>If TRUE, return additional information about evaluation in results. Default FALSE.</p></dd>
+<dd><p>Default `FALSE`. If `TRUE`, return additional information about evaluation in results.</p></dd>
+
+
+<dt>progress</dt>
+<dd><p>Default `TRUE`. Whether to include a progress bar.</p></dd>
 
 
 <dt>advancedoptions</dt>

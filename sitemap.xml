@@ -55,6 +55,9 @@
     <loc>https://tylermorganwall.github.io/skpr/reference/calculatepower.html</loc>
   </url>
   <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/check_for_suggest_packages.html</loc>
+  </url>
+  <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/check_model_validity.html</loc>
   </url>
   <url>
@@ -115,7 +118,16 @@
     <loc>https://tylermorganwall.github.io/skpr/reference/gen_poisson_anticoef.html</loc>
   </url>
   <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/generate_block_panel.html</loc>
+  </url>
+  <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/generate_factor_input_panel.html</loc>
+  </url>
+  <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/generate_noise_block.html</loc>
+  </url>
+  <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/generate_optimality_results.html</loc>
   </url>
   <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/genhypmatrix.html</loc>
@@ -187,10 +199,10 @@
     <loc>https://tylermorganwall.github.io/skpr/reference/run_documentation.html</loc>
   </url>
   <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/skprGUI.html</loc>
+    <loc>https://tylermorganwall.github.io/skpr/reference/set_up_progressr_handler.html</loc>
   </url>
   <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/skprGUIbrowser.html</loc>
+    <loc>https://tylermorganwall.github.io/skpr/reference/skprGUI.html</loc>
   </url>
   <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/skprGUIserver.html</loc>

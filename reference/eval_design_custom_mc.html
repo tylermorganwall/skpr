@@ -16,7 +16,7 @@ a data frame of parameter powers."><!-- mathjax --><script src="https://cdnjs.cl
     
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,8 +72,9 @@ a data frame of parameter powers.</p>
 <span>  calceffect <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  parameternames <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  parallelpackages <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  parallel_pkgs <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -155,12 +156,18 @@ user can change to type `II`). `advancedoptions$anovatest` specifies the test st
 If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.</p></dd>
 
 
+<dt>progress</dt>
+<dd><p>Default `TRUE`. Whether to include a progress bar.</p></dd>
+
+
 <dt>parallel</dt>
-<dd><p>If TRUE, uses all cores available to speed up computation of power. Default FALSE.</p></dd>
+<dd><p>Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
-<dt>parallelpackages</dt>
-<dd><p>A vector of strings listing the external packages to be input into the parallel package.</p></dd>
+<dt>parallel_pkgs</dt>
+<dd><p>A vector of strings listing the external packages to be included in each parallel worker.</p></dd>
 
 
 <dt>...</dt>
@@ -215,12 +222,21 @@ stored in the 'estimates' attribute.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#And now we evaluate the design, passing the fitting function and p-value extracting function</span></span></span>
 <span class="r-in"><span><span class="co">#in along with the standard inputs for eval_design_mc.</span></span></span>
+<span class="r-in"><span><span class="co">#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.</span></span></span>
 <span class="r-in"><span><span class="va">d</span> <span class="op">=</span> <span class="fu">eval_design_custom_mc</span><span class="op">(</span>design <span class="op">=</span> <span class="va">design</span>, model <span class="op">=</span> <span class="op">~</span><span class="va">a</span>,</span></span>
 <span class="r-in"><span>                         alpha <span class="op">=</span> <span class="fl">0.05</span>, nsim <span class="op">=</span> <span class="fl">100</span>,</span></span>
 <span class="r-in"><span>                         fitfunction <span class="op">=</span> <span class="va">fitsurv</span>, pvalfunction <span class="op">=</span> <span class="va">pvalsurv</span>,</span></span>
 <span class="r-in"><span>                         rfunction <span class="op">=</span> <span class="va">rsurvival</span>, effectsize <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co">#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.</span></span></span>
+<span class="r-in"><span><span class="co">#We can also use skpr's framework for parallel computation to automatically parallelize this</span></span></span>
+<span class="r-in"><span><span class="co">#to speed up computation</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">=</span> <span class="fu">eval_design_custom_mc</span><span class="op">(</span>design <span class="op">=</span> <span class="va">design</span>, model <span class="op">=</span> <span class="op">~</span><span class="va">a</span>,</span></span>
+<span class="r-in"><span>                         alpha <span class="op">=</span> <span class="fl">0.05</span>, nsim <span class="op">=</span> <span class="fl">1000</span>,</span></span>
+<span class="r-in"><span>                         fitfunction <span class="op">=</span> <span class="va">fitsurv</span>, pvalfunction <span class="op">=</span> <span class="va">pvalsurv</span>,</span></span>
+<span class="r-in"><span>                         rfunction <span class="op">=</span> <span class="va">rsurvival</span>, effectsize <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>                         parallel <span class="op">=</span> <span class="cn">TRUE</span>, parallel_pkgs <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

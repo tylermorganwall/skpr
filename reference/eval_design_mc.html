@@ -18,7 +18,7 @@ Returns a data frame of parameter powers."><!-- mathjax --><script src="https://
     
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -157,11 +157,14 @@ If you specify <code>anticoef</code>, <code>effectsize</code> will be ignored.</
 
 <dt>contrasts</dt>
 <dd><p>Default <code>contr.sum</code>. The contrasts to use for categorical factors. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.</p></dd>
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
+If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
 <dt>parallel</dt>
-<dd><p>Default `FALSE`. If `TRUE`, uses all cores available to speed up computation. WARNING: This can slow down computation if nonparallel time to complete the computation is less than a few seconds.</p></dd>
+<dd><p>Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
 <dt>adjust_alpha_inflation</dt>
@@ -392,25 +395,7 @@ and the other coefficients will be
 <span class="r-in"><span><span class="fu">eval_design_mc</span><span class="op">(</span>design <span class="op">=</span> <span class="va">designcoffee</span>, nsim <span class="op">=</span> <span class="fl">10000</span>,</span></span>
 <span class="r-in"><span>                       glmfamily <span class="op">=</span> <span class="st">"gaussian"</span>, parallel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type  power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc 0.9869</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc 0.9869</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc 0.9189</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc 0.8468</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc 0.9869</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6         cost parameter.power.mc 0.9869</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc 0.6574</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc 0.6600</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type3 parameter.power.mc 0.6697</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc 0.8405</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size2 parameter.power.mc 0.8422</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>21 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + type + size </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1, -1, 1, 1, -1) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lm(...)` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Effect Analysis Method = </span>`car::Anova(fit, type = "III")` </span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in globalCallingHandlers(condition = global_progression_handler):</span> should not be called with handlers on the stack</span>
 <span class="r-in"><span><span class="kw">if</span><span class="op">(</span><span class="fu">skpr</span><span class="fu">:::</span><span class="fu"><a href="run_documentation.html">run_documentation</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span><span class="co">#We can also evaluate split-plot designs. First, let us generate the split-plot design:</span></span></span>
 <span class="r-in"><span></span></span>

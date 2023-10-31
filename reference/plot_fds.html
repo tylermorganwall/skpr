@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,8 +51,9 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_fds</span><span class="op">(</span></span>
 <span>  <span class="va">genoutput</span>,</span>
 <span>  model <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  continuouslength <span class="op">=</span> <span class="fl">11</span>,</span>
+<span>  continuouslength <span class="op">=</span> <span class="fl">1001</span>,</span>
 <span>  plot <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  sample_size <span class="op">=</span> <span class="fl">10000</span>,</span>
 <span>  yaxis_max <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  description <span class="op">=</span> <span class="st">"Fraction of Design Space"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -75,6 +76,10 @@ of several designs, which will result in all of them being plotted in a row (for
 
 <dt>plot</dt>
 <dd><p>Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.</p></dd>
+
+
+<dt>sample_size</dt>
+<dd><p>Default `10000`. Number of samples to take of the design space.</p></dd>
 
 
 <dt>yaxis_max</dt>

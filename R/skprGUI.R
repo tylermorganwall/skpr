@@ -2,8 +2,6 @@
 #'
 #'@description skprGUI provides a graphical user interface to skpr, within R Studio.
 #'
-#'@param inputValue1 Required by Shiny
-#'@param inputValue2 Required by Shiny
 #'@param browser Default `FALSE`. Whether to open the application in an external browser.
 #'@param return_app Default `FALSE`. If `TRUE`, this will return the shinyApp object.
 #'
@@ -39,6 +37,19 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
     progressr::handlers(global = TRUE)
   }
   #Load Shiny functions from namespace (due to shiny being Suggests)
+  checkboxInput = shiny::checkboxInput
+  tagList = shiny::tagList
+  reactiveVal = shiny::reactiveVal
+  sliderInput = shiny::sliderInput
+  incProgress = shiny::incProgress
+  htmlOutput = shiny::htmlOutput
+  tableOutput = shiny::tableOutput
+  icon = shiny::icon
+  bookmarkButton = shiny::bookmarkButton
+  mainPanel = shiny::mainPanel
+  radioButtons = shiny::radioButtons
+  req = shiny::req
+  updateNavbarPage = shiny::updateNavbarPage
   fluidPage = shiny::fluidPage
   HTML = shiny::HTML
   sidebarLayout = shiny::sidebarLayout

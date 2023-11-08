@@ -13,6 +13,7 @@ generate_factor_input_panel = function(factor_n = 1, factor_input_cache = NULL) 
   padding-bottom: 10px;
   color: rgb(255, 255, 255);
   border: 0px;"
+
   factorname_n = sprintf("factorname%i",factor_n)
   factortype_n = sprintf("factortype%i",factor_n)
   numericlow_n = sprintf("numericlow%i",factor_n)
@@ -181,6 +182,7 @@ generate_block_panel = function(any_htc) {
 #' @return Shiny UI
 #' @keywords internal
 generate_optimality_results = function(any_htc) {
+  textOutput = shiny::textOutput
   if(!any_htc) {
     opt_display = shiny::column(width = 6,
                                 shiny::h3("Criteria"),

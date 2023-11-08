@@ -235,6 +235,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   for (x in names(RunMatrixReduced)[lapply(RunMatrixReduced, class) %in% c("character", "factor")]) {
     if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
+      stats::contrasts(RunMatrixReduced[[x]]) = contrasts
     } else {
       contrastslist[[x]] = presetcontrasts[[x]]
     }

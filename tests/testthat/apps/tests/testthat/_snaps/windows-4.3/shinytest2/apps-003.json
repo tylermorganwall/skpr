@@ -1,0 +1,78 @@
+{
+  "input": {
+    "._bookmark_": 0,
+    "adjust_alpha": false,
+    "advanceddiagnostics": true,
+    "aliaspower": 2,
+    "alpha": 0.05,
+    "binomialprobs": [
+      0.4,
+      0.6
+    ],
+    "blockdepth1": "etc",
+    "censorpoint": null,
+    "censortype": "right",
+    "colorblind": false,
+    "colorchoice": "D",
+    "conservative": false,
+    "detailedoutput": false,
+    "disclevels1": "",
+    "distribution": "gaussian",
+    "estimatesxmaxglm": null,
+    "estimatesxmaxsurv": null,
+    "estimatesxminglm": null,
+    "estimatesxminsurv": null,
+    "evalbutton": 0,
+    "evaltype": "lm",
+    "exphigh": 2,
+    "explow": 1,
+    "factorname1": "X1",
+    "factortype1": "numeric",
+    "firth_correction": true,
+    "glmfamily": "gaussian",
+    "levels1": "a, b, c",
+    "mindopt": 0.8,
+    "model": "~.",
+    "nsim": 1000,
+    "nsim_surv": 1000,
+    "numberfactors": 5,
+    "numerichigh1": 1,
+    "numericlength1": 3,
+    "numericlow1": -1,
+    "optimality": "D",
+    "orderdesign": false,
+    "parallel": false,
+    "parallel_eval_glm": false,
+    "parallel_eval_surv": false,
+    "poishigh": 2,
+    "poislow": 1,
+    "repeats": 20,
+    "results_panels": "design",
+    "seed": 5,
+    "setseed": true,
+    "snr": 2,
+    "splitanalyzable": true,
+    "submitbutton": 2,
+    "trials": 12,
+    "tutorial": 0,
+    "varianceratio": 1
+  },
+  "output": {
+    "additional_factors": null,
+    "block_panel": null,
+    "runmatrix": {
+      "message": "argument is of length zero",
+      "call": [
+        "if (input[[factortype_n]] == \"numeric\") {",
+        "    candidateset1[[input[[factorname_n]]]] = seq(input[[numericlow_n]], ",
+        "        input[[numerichigh_n]], length.out = input[[numericlength_n]])",
+        "}"
+      ],
+      "type": null
+    },
+    "separationwarning": ""
+  },
+  "export": {
+
+  }
+}

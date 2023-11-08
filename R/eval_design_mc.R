@@ -233,7 +233,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                           effectsize = 2, contrasts = contr.sum, parallel = FALSE,
                           adjust_alpha_inflation = FALSE,
                           detailedoutput = FALSE, progress = TRUE, advancedoptions = NULL, ...) {
-  if(!firth) {
+  if(!firth || glmfamily != "binomial") {
     method = "glm.fit"
   } else {
     if(!(length(find.package("mbest", quiet = TRUE)) > 0)) {
@@ -334,7 +334,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     advancedoptions$progress_msg = "Type-I Error"
     nullresults = eval_design_mc(design = design, model = model, alpha = alpha,
                    blocking = blocking, nsim = nsim, glmfamily = glmfamily,
-                   calceffect = calceffect, effect_anova = effect_anova,
+                   calceffect = calceffect, effect_anova = effect_anova, adjust_alpha_inflation = FALSE,
                    varianceratios = varianceratios, rfunction = rfunction, anticoef = anticoef, firth = firth,
                    effectsize = effectsizetemp, contrasts = contrasts, parallel = parallel,
                    detailedoutput = detailedoutput, advancedoptions = advancedoptions, ...)
@@ -566,7 +566,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     anovatype = "III"
   }
   #-------------- -------------#
-  if(effect_anova && firth && glmfamily == "binomial" && !alpha_adjust) {
+  if(effect_anova && firth && glmfamilyname == "binomial" && !alpha_adjust) {
     warning(r"(skpr uses a likelihood ratio test (instead of a type-III ANOVA) for",
       "effect power when `firth = TRUE` and `glmfamily = "binomial"`: setting `effect_lr = TRUE`.)")
   }

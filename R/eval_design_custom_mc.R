@@ -54,8 +54,8 @@
 #'#To begin, first let us generate the same design and random generation function shown in the
 #'#eval_design_survival_mc examples:
 #'
-#'basicdesign = expand.grid(a = c(-1, 1))
-#'design = gen_design(candidateset = basicdesign, model = ~a, trials = 100,
+#'basicdesign = expand.grid(a = c(-1, 1), b = c("a","b","c"))
+#'design = gen_design(candidateset = basicdesign, model = ~a + b + a:b, trials = 100,
 #'                          optimality = "D", repeats = 100)
 #'
 #'#Random number generating function
@@ -87,15 +87,13 @@
 #'#And now we evaluate the design, passing the fitting function and p-value extracting function
 #'#in along with the standard inputs for eval_design_mc.
 #'#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
-#'d = eval_design_custom_mc(design = design, model = ~a,
-#'                          alpha = 0.05, nsim = 100,
-#'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
-#'                          rfunction = rsurvival, effectsize = 1)
-#'
+#'eval_design_custom_mc(design = design, model = ~a + b + a:b,
+#'                      alpha = 0.05, nsim = 100,
+#'                      fitfunction = fitsurv, pvalfunction = pvalsurv,
+#'                      rfunction = rsurvival, effectsize = 1)
 #'#We can also use skpr's framework for parallel computation to automatically parallelize this
 #'#to speed up computation
-#'\dontrun{
-#'d = eval_design_custom_mc(design = design, model = ~a,
+#'\dontrun{eval_design_custom_mc(design = design, model = ~a + b + a:b,
 #'                          alpha = 0.05, nsim = 1000,
 #'                          fitfunction = fitsurv, pvalfunction = pvalsurv,
 #'                          rfunction = rsurvival, effectsize = 1,
@@ -195,6 +193,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
     if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
+      stats::contrasts(RunMatrixReduced[[x]]) = contrasts
     } else {
       contrastslist[[x]] = presetcontrasts[[x]]
     }

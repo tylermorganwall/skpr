@@ -4,14 +4,16 @@
 \alias{skprGUI}
 \title{Graphical User Interface for skpr}
 \usage{
-skprGUI(inputValue1, inputValue2, browser = FALSE)
+skprGUI(browser = FALSE, return_app = FALSE)
 }
 \arguments{
+\item{browser}{Default `FALSE`. Whether to open the application in an external browser.}
+
+\item{return_app}{Default `FALSE`. If `TRUE`, this will return the shinyApp object.}
+
 \item{inputValue1}{Required by Shiny}
 
 \item{inputValue2}{Required by Shiny}
-
-\item{browser}{Default `FALSE`. Whether to open the application in an external browser.}
 }
 \description{
 skprGUI provides a graphical user interface to skpr, within R Studio.

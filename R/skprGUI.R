@@ -5,6 +5,7 @@
 #'@param inputValue1 Required by Shiny
 #'@param inputValue2 Required by Shiny
 #'@param browser Default `FALSE`. Whether to open the application in an external browser.
+#'@param return_app Default `FALSE`. If `TRUE`, this will return the shinyApp object.
 #'
 #'@import doRNG
 #'@export
@@ -12,7 +13,7 @@
 #'#Type `skprGUI()` to begin
 #'
 # nocov start
-skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
+skprGUI = function(browser = FALSE, return_app = FALSE) {
   check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
   skpr_progress = getOption("skpr_progress",  TRUE)
 
@@ -481,10 +482,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                 min = 0,
                 max = 1,
                 value = c(0.4, 0.6)
-              )
-            ),
-            conditionalPanel(
-              condition = "input.evaltype == \'glm\'",
+              ),
               checkboxInput(
                 inputId = "firth_correction",
                 "Use Firth Correction",
@@ -1140,7 +1138,7 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
                           "glmfamily = \"", input$glmfamily, "\""), collapse = "")
         }
-        if (input$adjust_error) {
+        if (input$adjust_alpha) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
                           "adjust_alpha_inflation  = TRUE"), collapse = "")
         } else {
@@ -2076,6 +2074,9 @@ skprGUI = function(inputValue1, inputValue2, browser = FALSE) {
                            ))
                  ))
     outputOptions(output, "separationwarning", suspendWhenHidden = FALSE)
+  }
+  if(return_app) {
+    return(shinyApp(ui, server, enableBookmarking = "url"))
   }
   if(browser) {
     runGadget(shinyApp(ui, server, enableBookmarking = "url"), viewer = browserViewer())

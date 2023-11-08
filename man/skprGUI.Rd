@@ -10,10 +10,6 @@ skprGUI(browser = FALSE, return_app = FALSE)
 \item{browser}{Default `FALSE`. Whether to open the application in an external browser.}
 
 \item{return_app}{Default `FALSE`. If `TRUE`, this will return the shinyApp object.}
-
-\item{inputValue1}{Required by Shiny}
-
-\item{inputValue2}{Required by Shiny}
 }
 \description{
 skprGUI provides a graphical user interface to skpr, within R Studio.

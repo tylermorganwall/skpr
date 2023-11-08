@@ -4,12 +4,7 @@
 \alias{skprGUIserver}
 \title{Graphical User Interface for skpr}
 \usage{
-skprGUIserver(inputValue1, inputValue2)
-}
-\arguments{
-\item{inputValue1}{Required by Shiny}
-
-\item{inputValue2}{Required by Shiny}
+skprGUIserver()
 }
 \description{
 skprGUI provides a graphical user interface to skpr, within R Studio.

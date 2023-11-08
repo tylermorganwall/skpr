@@ -2,16 +2,13 @@
 #'
 #'@description skprGUI provides a graphical user interface to skpr, within R Studio.
 #'
-#'@param inputValue1 Required by Shiny
-#'@param inputValue2 Required by Shiny
-#'
 #'@import future
 #'@export
 #'@examples
 #'#Type `skprGUIserver()` to begin
 #'
 # nocov start
-skprGUIserver = function(inputValue1, inputValue2) {
+skprGUIserver = function() {
   check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
@@ -25,6 +22,7 @@ skprGUIserver = function(inputValue1, inputValue2) {
   b64 = "data:image/png;base64,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"
 
   #Load Shiny functions from namespace (due to Shiny being listed in Suggests)
+  textOutput = shiny::textOutput
   renderText = shiny::renderText
   renderUI = shiny::renderUI
   renderPlot = shiny::renderPlot

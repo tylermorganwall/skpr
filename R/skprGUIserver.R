@@ -69,7 +69,7 @@ skprGUIserver = function() {
   reactive = shiny::reactive
   showNotification = shiny::showNotification
   updateSelectInput = shiny::updateSelectInput
-  Progress$new = shiny::Progress$new
+  Progress = shiny::Progress
   observeEvent = shiny::observeEvent
   outputOptions = shiny::outputOptions
   runGadget = shiny::runGadget
@@ -945,21 +945,32 @@ skprGUIserver = function() {
     }
 
     prog_env = new.env()
-    assign("prog_first", FALSE, envir = prog_env)
+    assign("previouspercent", 0, envir = prog_env)
+    assign("percentdone", 0, envir = prog_env)
+    assign("prog_first", TRUE, envir = prog_env)
+    assign("whichfuture", "", envir = prog_env)
+
 
     observe({
       invalidateLater(500, session)
+      progress_closed = FALSE
       runmatresolved = tryCatch({resolved(isolate(runmatrix_future()))},
                                 error = function(e) FALSE)
       powerresolved = tryCatch({resolved(isolate(powerresultsglm_future()))},
                                error = function(e) FALSE)
+      if((runmatresolved && get("whichfuture", envir = prog_env) == "gen") ||
+         (powerresolved && get("whichfuture", envir = prog_env) == "pow")) {
+        assign("prog_first", FALSE, envir = prog_env)
+      }
+      # print( get("whichfuture", envir = prog_env))
+      # print(c(runmatresolved, powerresolved,prog_env$prog_first,  exists("progress", envir = prog_env)))
       if (!runmatresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "gen") {
         if (prog_env$prog_first) {
           assign("prog_first", FALSE, envir = prog_env)
           prog_env$progress$set(message = "Calculating...", value = 0)
         }
         assign("percentdone", (file.info(tempfilename)$size - 1) / isolate(input$repeats), envir = prog_env)
-        progress$inc(percentdone - previouspercent)
+        prog_env$progress$inc(percentdone - previouspercent)
         assign("previouspercent", percentdone, envir = prog_env)
       }
       if (!powerresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "pow") {
@@ -982,26 +993,34 @@ skprGUIserver = function() {
         }
 
         assign("percentdone", (file.info(tempfilename)$size - 1) / sims, envir = prog_env)
-        progress$inc(percentdone - previouspercent)
+        prog_env$progress$inc(percentdone - previouspercent)
         assign("previouspercent", percentdone, envir = prog_env)
       }
-      if (runmatresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "gen") {
+      if (runmatresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "gen" &&
+          !prog_env$prog_first) {
         shinyjs::enable("submitbutton")
         shinyjs::enable("evalbutton")
         if(file.exists(tempfilename)) {
           file.remove(tempfilename)
         }
-        progress$close()
-        rm(progress, envir = prog_env)
+        if(is.function(prog_env$progress$close)) {
+          prog_env$progress$close()
+          rm(progress, envir = prog_env)
+          prog_env$prog_first = TRUE
+        }
       }
-      if (powerresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "pow") {
+      if (powerresolved && exists("progress", envir = prog_env) && get("whichfuture", envir = prog_env) == "pow" &&
+          !prog_env$prog_first) {
         shinyjs::enable("submitbutton")
         shinyjs::enable("evalbutton")
         if(file.exists(tempfilename)) {
           file.remove(tempfilename)
         }
-        progress$close()
-        rm(progress, envir = prog_env)
+        if(is.function(prog_env$progress$close)) {
+          prog_env$progress$close()
+          rm(progress, envir = prog_env)
+          prog_env$prog_first = TRUE
+        }
       }
       if (file.exists(file.path(tempdir_runmatrix, paste0(unique_file_name2, ".Rds"))) && resolved(isolate(runmatrix_future()))) {
         tempval = tryCatch({
@@ -1014,7 +1033,8 @@ skprGUIserver = function() {
           }, error = function(e) "", warning = function(w) "")
         }
       }
-      if (file.exists(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds"))) && isolate(input$evaltype) != "lm" && powerresolved && !file.exists(tempfilename)) {
+      if (file.exists(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds"))) &&
+          isolate(input$evaltype) != "lm" && powerresolved && !file.exists(tempfilename)) {
         tryCatch({
           tempvalpower = readRDS(file.path(tempdir_runmatrix, paste0(unique_file_name3, ".Rds")))
           powerresolved = FALSE

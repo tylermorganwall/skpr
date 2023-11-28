@@ -282,7 +282,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
                                       total = nsim, clear = TRUE, width= 100)
     }
     for (j in seq_len(nsim)) {
-      if (advancedoptions$GUI) {
+      if (advancedoptions$GUI && !is.null(progressBarUpdater)) {
           #This code is to slow down the number of updates in the Shiny app--if there
           #are too many updates, the progress bar will lag behind the actual computation
         if (j %in% progressbarupdates) {

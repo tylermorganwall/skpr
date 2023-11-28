@@ -4,6 +4,7 @@
 #'
 #'@param browser Default `FALSE`. Whether to open the application in an external browser.
 #'@param return_app Default `FALSE`. If `TRUE`, this will return the shinyApp object.
+#'@param multiuser Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.
 #'
 #'@import doRNG
 #'@export
@@ -11,8 +12,8 @@
 #'#Type `skprGUI()` to begin
 #'
 # nocov start
-skprGUI = function(browser = FALSE, return_app = FALSE) {
-  check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
+skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
+  check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs", "promises"))
   skpr_progress = getOption("skpr_progress",  TRUE)
 
   oplan = future::plan()
@@ -26,14 +27,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
     message(sprintf("Using user-defined {future} plan() `%s` instead of {skpr}'s default plan (for this computer) of `%s`", original_future_call, message_string))
   } else {
     numbercores = getOption("cores", default = getOption("Ncpus", default = max(c(1,future::availableCores()-1))))
-    if(skpr_system_setup_env$has_multicore_support) {
+    if(skpr_system_setup_env$has_multicore_support && !multiuser) {
       plan("multicore", workers = numbercores, .call = NULL)
     } else {
       plan("multisession", workers = numbercores, .call = NULL)
     }
   }
   b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFUAAAAnCAYAAAB+HwSQAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AEKEAsxvdBAYQAAAAd0RVh0QXV0aG9yAKmuzEgAAAAMdEVYdERlc2NyaXB0aW9uABMJISMAAAAKdEVYdENvcHlyaWdodACsD8w6AAAADnRFWHRDcmVhdGlvbiB0aW1lADX3DwkAAAAJdEVYdFNvZnR3YXJlAF1w/zoAAAALdEVYdERpc2NsYWltZXIAt8C0jwAAAAh0RVh0V2FybmluZwDAG+aHAAAAB3RFWHRTb3VyY2UA9f+D6wAAAAh0RVh0Q29tbWVudAD2zJa/AAAABnRFWHRUaXRsZQCo7tInAAAFW0lEQVRoge2aa6hVRRTHf+vejq/Uq6WZVj6SIEoiSkQpIorMCCSUwkQjtYdpBL3UrJAQLC0lzMgyqC/RBQ2KEAn6UFEISpJBaZpW+KCXmY/ypl7/fZh98nicmb3POfvaRu4fBvaZtWbN2uvMrL1mrQF4BhBwPNAE/Aj0lwTwUNLXHhmTpR0DDgN7gI1Aa6LLbcCFkmi0ASVgc8r7ld/xF2BgLvMmkz+ZCPa1DUCvKmUnJkYNjWm0tQFrgbE5GLYv8GXKfNuAAXkYtNKoV0YmfMWjaG/gUAcatbK9S7JLGjDsmylzfJaXQSXRhEN3wih5+mL8eWMSsN7MrqhnsJmVgJtS2EaZ2eX1yPehKZ2lLpzI0GrBcOBjMxtahy6TgGEpPF2B+XXI9uKcvARV4AtgGmApfF2APsAlwDXAWOCqCP9AYI2ZjZZ0PIsiZmbAvCy8wN1mtlDS9oz8YSQ+ZyRhf7PS46MGEPap6xrwfXcCuyK6CJhfg7wJKbKq29t5+tQ80VzvQEmrgTHAtxG2uWbWL6PIWrf0ZDMbXuOY09BRPrVuSNoNjAcOBlh6A9PT5JjZOOBaD2kXMCcwrEQOvrVwRgWQtAN4PsIyOYOYpwP9qyW9COwI0KeYWdqHLYpCGjXB68CBAG1EbJua2Q3A9R7SUeDV5Hl5YHgX4KmsSvpQWKNK2g98GiA349/aZYRW6RpJO5Pnt4DfA3z3mNmQdC39KKxRE6yP0LyHATMbiQvPfFhSfpB0CFgV4OtK9lDsNBTdqN9HaBcH+kOr9CNJm6v6VgBHAvz3mtngmHIhFN2o+yK0luoOMxuBixx8eKG6Q9JeXG7Bh27A3DQFfSi6UY9GaL6cxDz877RB0icBOcsIH5unmVloRwRRdKP6DFfGscofSTRwV4B3SaAfSd8A6wLk7oRj2iCKbtTzI7TqcGsO/j/hK0nvpcyzAJcf9mGGmQ1KGX8KOiKhkicujdD2lh+SLTo1wLfWzC4j/q6HgK24vHI1euCS+I/GVT2Joht1dIS2teL5McI53icIRwRlnMCVVUK438wWS/o5RQ5Q4O1vZr2AGwPkE7gSCWbWH7gvIqprhumacCepEM7F/TmZUFij4pIm5wVoW3B1JYBHgF5nQJ8HzeyCLIyFNKqZXQQ8G2FplSQzawFmRfiyVCCyViR6Ao9n0b9wPjXJlX5A+Mv/F66QBzAT/2o+DNyCOzykVSAqIeABwlt9ppm9JOm3uJRiZf5vB7ZHdBGwIOHtgYsAfDwvN6BDb+CPyPyL0mR0xErtmRToYitEuJiyBRgMXA3cCoxKkb0JWJQ8T8fVrarRBizNrm6VYtJBM1tB2P3MMrOlksJH6A5Yqe3AP7gjZqzVehljNzAkmb8E/BDgW9VojQnnev6M6LLwTNeoyuFJKaXVMvd24GZJPyW/pwBDPXxtRI6kWZGswtciLA+bWd8QsfxibREBxzx9oXRZR6AVGCPpu4q+UGb+c+VRYnZ4g/DRtQ+x6CRZ7rG7VJuAlqrtMTHCn0fz3qXCBfLLI+O2AYPyKDMDd2TQcypg1WMNmA0sJhyjlYCvgXGS9pvZZFxyt9GPnHBHwyO45MjexCgbcXebdlYyJ9vtfeA64O+IrruB8ZK21KuYmc0GniN+ymrC2eAdSTNOGQ/0S5QJLXVwCds9ktqTl+uB3y3UgrJR2ySluhMza8bdZjmSjI3p+qukmEtLm6s/zqBp79gMNMuV1U+OT5Z6J3KEUduJoxN+mKT/3Kfh/GW3/0+fswbLJK0EZ9TO/Z8PDgDDJe1rIvwl7URtaMFFDBjOqGfyZvTZjHZgmOFu13X61HzQDHz4LwBKRJdWuineAAAAAElFTkSuQmCC"
-  if(skpr_progress) {
+  if(skpr_progress && !multiuser) {
     progressr::handlers(global = TRUE)
   }
   #Load Shiny functions from namespace (due to shiny being Suggests)
@@ -350,7 +351,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
             rintrojs::introBox(
               checkboxInput(
                 inputId = "parallel",
-                label = "Parallel Search",
+                label =  ifelse(!multiuser, "Parallel Search", "Parallel Search (disabled on multiuser app)"),
                 value = FALSE
               ),
               data.step = 10,
@@ -543,7 +544,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
               rintrojs::introBox(
                 checkboxInput(
                   inputId = "parallel_eval_glm",
-                  label = "Parallel Evaluation",
+                  label = ifelse(!multiuser, "Parallel Evaluation", "Parallel Evaluation (disabled on multiuser app)"),
                   value = FALSE
                 ),
                 data.step = 21,
@@ -582,7 +583,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
               ),
               checkboxInput(
                 inputId = "parallel_eval_surv",
-                label = "Parallel Evaluation",
+                label = ifelse(!multiuser, "Parallel Evaluation", "Parallel Evaluation (disabled on multiuser app)"),
                 value = FALSE
               )
             ),
@@ -675,14 +676,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
                 h3("Correlation Map"),
                 rintrojs::introBox(
                   conditionalPanel(
-                    "input.numberfactors > 1",
+                    "output.displayed_design_number_factors != 1",
                     plotOutput(outputId = "aliasplot")
                   ),
                   data.step = 28,
                   data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."
                 ),
                 conditionalPanel(
-                  "input.numberfactors == 1",
+                  "output.displayed_design_number_factors == 1",
                   br(),
                   br(),
                   br(),
@@ -768,18 +769,19 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
               )
             ),
             conditionalPanel(condition = "input.evaltype == \'glm\'",
-                                    fluidRow(
-                                      hr(),
-                                      column(
-                                        width = 12,
-                                        h3("Simulated Estimates"),
-                                        rintrojs::introBox(
-                                          plotOutput(outputId = "parameterestimates"),
-                                          data.step = 31,
-                                          data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values."
-                                        )
-                                      )
-                                    )),
+              fluidRow(
+                hr(),
+                column(
+                  width = 12,
+                  h3("Simulated Estimates"),
+                  rintrojs::introBox(
+                    plotOutput(outputId = "parameterestimates"),
+                    data.step = 31,
+                    data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values."
+                  )
+                )
+              )
+            ),
             conditionalPanel(
               condition = "input.advanceddiagnostics",
               hr(),
@@ -803,6 +805,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
                   )
                 )
               )
+            ),
+            hr(),
+            fluidRow(
+              column(
+                width = 12,
+                h3("Number of Terms in Design"),
+                shiny::textOutput(outputId = "displayed_design_number_factors"),
+              )
             )
           ),
           tabPanel(
@@ -823,7 +833,9 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
   server = function(input, output, session) {
 
     inc_progress_session = function(amount = 0.1, message = NULL, detail = NULL) incProgress(amount, message, detail, session)
-
+    # if(multiuser) {
+    #   inc_progress_session = NULL
+    # }
     inputlist_htc = reactive({
       input$submitbutton
       inputlist1 = list()
@@ -1154,11 +1166,15 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
                           "adjust_alpha_inflation  = TRUE"), collapse = "")
         } else {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
-                          "effectsize = c(", effectsize()[1], ", ", effectsize()[2], ")"), collapse = "")
+                          "adjust_alpha_inflation = FALSE"), collapse = "")
         }
         if (length(effectsize()) == 1) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
                           "effectsize = ", effectsize()), collapse = "")
+        } else {
+          effectsize2 = effectsize()
+          first = paste(c(first, ", <br>", rep("&nbsp;", 15),
+                          "effectsize = c(", effectsize2[1], ", ", effectsize2[2], ")"), collapse = "")
         }
         if (!is.null(input$varianceratios)) {
           first = paste(c(first, ", <br>", rep("&nbsp;", 15),
@@ -1322,77 +1338,196 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
       }
     })
 
+    # This infix operator uses a promise pipe when multiuser, otherwise defaulting to the usual pipe
+    # This operator shows where async operations are taking place.
+    if(multiuser) {
+      `%then%` = promises::`%...>%`
+    } else {
+      `%then%` = `%>%`
+    }
+
+    # if(multiuser) {
+    #   promise_results = reactiveValues(
+    #     runmatrix = NULL,
+    #     powerresults = NULL,
+    #     powerresultsglm = NULL,
+    #     powerresultssurv = NULL
+    #   )
+    # }
+
+
+    ############### Make sure this logic is all correct ###############
+    if(multiuser) {
+      observe({
+        invalidateLater(500, session)
+        isolate({
+        runmatresolved = tryCatch({resolved(isolate(runmatrix()))},
+                                  error = function(e) FALSE)
+        if(runmatresolved) {
+          shinyjs::enable("evalbutton")
+          shinyjs::enable("submitbutton")
+          current_design_valid(TRUE)
+        }
+
+        # powerresolved = tryCatch({resolved(isolate(powerresultsglm()))},
+        #                          error = function(e) FALSE)
+        # if(powerresolved) {
+        #   shinyjs::enable("evalbutton")
+        #   shinyjs::enable("submitbutton")
+        # }
+        # progress_closed = FALSE
+        # runmatresolved = tryCatch({resolved(isolate(runmatrix_future()))},
+        #                           error = function(e) FALSE)
+        # powerresolved = tryCatch({resolved(isolate(powerresultsglm_future()))},
+        #                          error = function(e) FALSE)
+        })
+      })
+    }
+
+
     runmatrix = reactive({
-      input$submitbutton
       on.exit({
-        shinyjs::enable("evalbutton")
-        shinyjs::enable("submitbutton")
+        if(!multiuser) {
+          shinyjs::enable("evalbutton")
+          shinyjs::enable("submitbutton")
+          current_design_valid(TRUE)
+        }
       }, add = TRUE)
       shinyjs::disable("submitbutton")
       shinyjs::disable("evalbutton")
-      if (isolate(input$setseed)) {
-        set.seed(isolate(input$seed))
+      if (input$setseed) {
+        set.seed(input$seed)
       }
-      if(!isolate(as.logical(input$parallel)) || !skpr_progress) {
+      if(!multiuser && (!as.logical(input$parallel) || !skpr_progress)) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
-        if(!isolate(as.logical(input$parallel)) || !skpr_progress) {
+        if(!as.logical(input$parallel) || !skpr_progress) {
           withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
         } else {
-          progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = 1, expr = code,
+          if(!isblocking()) {
+            max_val = 1
+          } else {
+            max_val = 2
+          }
+          progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = max_val, expr = code,
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
-      if (!isblocking()) {
-        progress_wrapper({
-          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                     model = isolate(as.formula(input$model)),
-                     trials = isolate(input$trials),
-                     optimality = isolate(optimality()),
-                     repeats = isolate(input$repeats),
-                     aliaspower = isolate(input$aliaspower),
-                     minDopt = isolate(input$mindopt),
-                     parallel = isolate(as.logical(input$parallel)),
-                     advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
-        })
+      candidateset = expand.grid(candidatesetall())
+      model = as.formula(input$model)
+      trials = input$trials
+      repeats = input$repeats
+      optimality = optimality()
+      parallel = as.logical(input$parallel)
+      minDopt = input$mindopt
+      aliaspower = input$aliaspower
+      advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
+      if(!multiuser) {
+        if(!isblocking()) {
+          progress_wrapper({
+            gen_design(candidateset = candidateset,
+                       model = model,
+                       trials = trials,
+                       optimality = optimality,
+                       repeats = repeats,
+                       aliaspower = aliaspower,
+                       minDopt = minDopt,
+                       parallel = parallel,
+                       advancedoptions = advancedoptions)
+          })
+        } else {
+          blockmodel = blockmodel()
+          numberblocks = input$numberblocks
+          block_optimality = ifelse(toupper(optimality()) == "ALIAS" &&
+                              length(inputlist_htc()) == 1, "D", optimality())
+          varianceratio = input$varianceratio
+          add_blocking_columns = input$splitanalyzable
+          progress_wrapper({
+            spd = gen_design(candidateset = candidateset,
+                             model = blockmodel,
+                             trials = numberblocks,
+                             optimality = block_optimality,
+                             repeats = repeats,
+                             varianceratio = varianceratio,
+                             aliaspower = aliaspower,
+                             minDopt = minDopt,
+                             parallel = parallel,
+                             advancedoptions = advancedoptions)
+            gen_design(candidateset = candidateset,
+                       model = model,
+                       trials = trials,
+                       splitplotdesign = spd,
+                       optimality = optimality,
+                       repeats =repeats,
+                       varianceratio = varianceratio,
+                       aliaspower = aliaspower,
+                       minDopt = minDopt,
+                       parallel = parallel,
+                       add_blocking_columns = add_blocking_columns,
+                       advancedoptions = advancedoptions)
+          })
+        }
       } else {
-        progress_wrapper({
-          spd = gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                           model = isolate(as.formula(blockmodel())),
-                           trials = isolate(input$numberblocks),
-                           optimality = ifelse(toupper(isolate(optimality())) == "ALIAS" &&
-                                               length(isolate(inputlist_htc())) == 1, "D", isolate(optimality())),
-                           repeats = isolate(input$repeats),
-                           varianceratio = isolate(input$varianceratio),
-                           aliaspower = isolate(input$aliaspower),
-                           minDopt = isolate(input$mindopt),
-                           parallel = isolate(as.logical(input$parallel)),
-                           advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
-        })
-        progress_wrapper({
-          gen_design(candidateset = isolate(expand.grid(candidatesetall())),
-                     model = isolate(as.formula(input$model)),
-                     trials = isolate(input$trials),
-                     splitplotdesign = spd,
-                     optimality = isolate(optimality()),
-                     repeats = isolate(input$repeats),
-                     varianceratio = isolate(input$varianceratio),
-                     aliaspower = isolate(input$aliaspower),
-                     minDopt = isolate(input$mindopt),
-                     parallel = isolate(as.logical(input$parallel)),
-                     add_blocking_columns = isolate(input$splitanalyzable),
-                     advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
-        })
+        if (input$setseed) {
+          seed_val = input$seed
+        } else {
+          seed_val = NULL
+        }
+        if(!isblocking()) {
+          promises::future_promise({
+            gen_design(candidateset = candidateset,
+                       model = model,
+                       trials = trials,
+                       optimality = optimality,
+                       repeats = repeats,
+                       aliaspower = aliaspower,
+                       minDopt = minDopt,
+                       parallel = parallel,
+                       advancedoptions = advancedoptions)},
+             seed = seed_val)
+        } else {
+          blockmodel = blockmodel()
+          numberblocks = input$numberblocks
+          block_optimality = ifelse(toupper(optimality()) == "ALIAS" &&
+                                      length(inputlist_htc()) == 1, "D", optimality())
+          varianceratio = input$varianceratio
+          add_blocking_columns = input$splitanalyzable
+          promises::future_promise({
+            spd = gen_design(candidateset = candidateset,
+                             model = blockmodel,
+                             trials = numberblocks,
+                             optimality = block_optimality,
+                             repeats = repeats,
+                             varianceratio = varianceratio,
+                             aliaspower = aliaspower,
+                             minDopt = minDopt,
+                             parallel = parallel,
+                             advancedoptions = advancedoptions)
+            gen_design(candidateset = candidateset,
+                       model = model,
+                       trials = trials,
+                       splitplotdesign = spd,
+                       optimality = optimality,
+                       repeats =repeats,
+                       varianceratio = varianceratio,
+                       aliaspower = aliaspower,
+                       minDopt = minDopt,
+                       parallel = parallel,
+                       add_blocking_columns = add_blocking_columns,
+                       advancedoptions = advancedoptions)},
+            seed = seed_val)
+        }
       }
-    })
+    }) |>
+       bindEvent(input$submitbutton)
 
     evaluationtype = reactive({
-      input$evalbutton
       isolate(input$evaltype)
-    })
+    }) |>
+      bindEvent(input$evalbutton)
 
     format_table = function(powerval, display_table, alpha, nsim, colorblind) {
       color_bad = "red"
@@ -1442,86 +1577,139 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
       return(display_table)
     }
 
+    observeEvent(input$evalbutton, {
+      if(!current_design_valid()) {
+        showNotification("Warning: Design generation inputs have potentially changed but new design has not been generated. Evaluation is for displayed design.", type = "warning")
+      }
+    })
+
+    # promise_wrapper = function(promise,
+    #                            code) {
+    #   if(!multiuser) {
+    #     code
+    #   } else {
+    #     promises::then(promise, onFulfilled = (\() {code}))
+    #   }
+    # }
+
     powerresults = reactive({
-      input$evalbutton
       if (evaluationtype() == "lm") {
-        powerval = eval_design(design = isolate(runmatrix()),
-                    model = as.formula(isolate(input$model)),
-                    alpha = isolate(input$alpha),
-                    blocking = isblocking(),
-                    effectsize = isolate(effectsize()),
-                    conservative = isolate(input$conservative),
-                    detailedoutput = isolate(input$detailedoutput))
-        powerval
+        return(runmatrix() %then%
+          eval_design(model = as.formula(isolate(input$model)),
+                      alpha = isolate(input$alpha),
+                      blocking = isblocking(),
+                      effectsize = isolate(effectsize()),
+                      conservative = isolate(input$conservative),
+                      detailedoutput = isolate(input$detailedoutput)))
       }
     }) |>
       bindEvent(input$evalbutton)
 
     powerresultsglm = reactive({
-      input$evalbutton
-      if(!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+      req(runmatrix())
+      if(!multiuser && (!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress)) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
-        if(isolate(input$adjust_alpha)) {
+        if(input$adjust_alpha) {
           max_val = 2
         } else {
           max_val = 1
         }
-        if(!isolate(input$adjust_alpha)) {
-          if(isolate(isblocking())) {
+        if(!input$adjust_alpha) {
+          if(isblocking()) {
             mess = "Evaluating power (with REML):"
           } else {
             mess = "Evaluating power:"
           }
         } else {
-          if(isolate(isblocking())) {
+          if(isblocking()) {
             mess = "Evaluating power (with adjusted Type-I error and REML):"
           } else {
             mess = "Evaluating power (with adjusted Type-I error):"
           }
         }
-        if(!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+        if(!as.logical(input$parallel_eval_glm) || !skpr_progress) {
           withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
         } else {
           progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
-      if (isolate(evaluationtype()) == "glm") {
-        if(isolate(isblocking()) && isolate(input$firth_correction)) {
+      if (evaluationtype() == "glm") {
+        if(isblocking() && input$firth_correction) {
           showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
           firth_cor = FALSE
         } else {
-          firth_cor = isolate(input$firth_correction)
+          firth_cor = input$firth_correction
         }
-        if (isolate(input$setseed)) {
-          set.seed(isolate(input$seed))
+        if (input$setseed) {
+          set.seed(input$seed)
         }
-        progress_wrapper({
-          suppressWarnings(eval_design_mc(design = isolate(runmatrix()),
-                                      model = isolate(as.formula(input$model)),
-                                      alpha = isolate(input$alpha),
-                                      blocking = isolate(isblocking()),
-                                      nsim = isolate(input$nsim),
-                                      varianceratios = isolate(input$varianceratio),
-                                      glmfamily = isolate(input$glmfamily),
-                                      effectsize = isolate(effectsize()),
-                                      firth = firth_cor,
-                                      parallel = isolate(input$parallel_eval_glm),
-                                      adjust_alpha_inflation = isolate(input$adjust_alpha),
-                                      detailedoutput = isolate(input$detailedoutput),
-                                      advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)))
-        })
+        model = as.formula(input$model)
+        alpha = input$alpha
+        blocking = isblocking()
+        nsim = input$nsim
+        varianceratios = input$varianceratio
+        glmfamily = input$glmfamily
+        effectsize_val = effectsize()
+        firth = firth_cor
+        parallel = input$parallel_eval_glm
+        adjust_alpha_inflation = input$adjust_alpha
+        detailedoutput = input$detailedoutput
+        advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
+
+        if(!multiuser) {
+          progress_wrapper({
+            eval_design_mc(runmatrix(),
+                           model = model,
+                           alpha = alpha,
+                           blocking = blocking,
+                           nsim = nsim,
+                           varianceratios = varianceratios,
+                           glmfamily = glmfamily,
+                           effectsize = effectsize_val,
+                           firth = firth,
+                           parallel = parallel,
+                           adjust_alpha_inflation = adjust_alpha_inflation,
+                           detailedoutput = detailedoutput,
+                           advancedoptions = advancedoptions)
+          })
+        } else {
+          if (input$setseed) {
+            seed_val = input$seed
+          } else {
+            seed_val = NULL
+          }
+          runmatrix() %then%
+            (\(x)
+             {promises::future_promise({
+              eval_design_mc(x,
+                             model = model,
+                             alpha = alpha,
+                             blocking = blocking,
+                             nsim = nsim,
+                             varianceratios = varianceratios,
+                             glmfamily = glmfamily,
+                             effectsize = effectsize_val,
+                             firth = firth,
+                             parallel = parallel,
+                             adjust_alpha_inflation = adjust_alpha_inflation,
+                             detailedoutput = detailedoutput,
+                             advancedoptions = advancedoptions)},
+              seed = seed_val
+             )
+            })()
+        }
       }
     }) |>
       bindEvent(input$evalbutton)
 
     powerresultssurv = reactive({
-      input$evalbutton
-      if(!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
+      req(runmatrix())
+      if(!multiuser && (!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress)) {
         pb = inc_progress_session
       } else {
         pb = NULL
@@ -1535,26 +1723,62 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
                                        handlers = c(shiny = progressr::handler_shiny))
         }
       }
-      if (isolate(evaluationtype()) == "surv") {
-        if (isolate(input$setseed)) {
-          set.seed(isolate(input$seed))
+      if (evaluationtype() == "surv") {
+        if (input$setseed) {
+          set.seed(input$seed)
         }
-        if (isolate(isblocking())) {
+        if (isblocking()) {
           print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
         }
-        progress_wrapper({
-          eval_design_survival_mc(design = isolate(runmatrix()),
-                                  model = isolate(as.formula(input$model)),
-                                  alpha = isolate(input$alpha),
-                                  nsim = isolate(input$nsim_surv),
-                                  censorpoint = isolate(input$censorpoint),
-                                  censortype = isolate(input$censortype),
-                                  distribution = isolate(input$distribution),
-                                  parallel = isolate(input$parallel_eval_surv),
-                                  effectsize = isolate(effectsize()),
-                                  detailedoutput = isolate(input$detailedoutput),
-                                  advancedoptions = list(GUI = TRUE, progressBarUpdater = pb))
-        })
+        model = as.formula(input$model)
+        alpha = input$alpha
+        nsim = input$nsim_surv
+        censorpoint = input$censorpoint
+        censortype = input$censortype
+        distribution = input$distribution
+        parallel = input$parallel_eval_surv
+        effectsize_val = effectsize()
+        detailedoutput = input$detailedoutput
+        advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
+        runmat = runmatrix()
+        if(!multiuser) {
+          progress_wrapper({
+            eval_design_survival_mc(runmatrix(),
+                                    model = model,
+                                    alpha = alpha,
+                                    nsim = nsim,
+                                    censorpoint = censorpoint,
+                                    censortype = censortype,
+                                    distribution = distribution,
+                                    parallel = parallel,
+                                    effectsize = effectsize_val,
+                                    detailedoutput = detailedoutput,
+                                    advancedoptions = advancedoptions)
+          })
+        } else {
+          if (input$setseed) {
+            seed_val = input$seed
+          } else {
+            seed_val = NULL
+          }
+          runmatrix() %then%
+            (\(x)
+             {promises::future_promise({
+                eval_design_survival_mc(x,
+                                        model = model,
+                                        alpha = alpha,
+                                        nsim = nsim,
+                                        censorpoint = censorpoint,
+                                        censortype = censortype,
+                                        distribution = distribution,
+                                        parallel = parallel,
+                                        effectsize = effectsize_val,
+                                        detailedoutput = detailedoutput,
+                                        advancedoptions = advancedoptions)},
+                seed = seed_val
+             )
+            })()
+        }
       }
     }) |>
       bindEvent(input$evalbutton)
@@ -1576,11 +1800,16 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
     style_matrix = function(runmat, order_vals = FALSE, alpha = 0.3, trials, optimality, pal_choice) {
       . = NULL
       if(order_vals) {
-        new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
-        rownames(new_runmat) = 1:nrow(new_runmat)
+        reorder_runmat = function(run_mat) {
+          new_runmat = runmat[do.call(order, runmat),, drop=FALSE ]
+          rownames(new_runmat) = 1:nrow(new_runmat)
+          return(new_runmat)
+        }
 
-        display_rm = gt::gt(new_runmat[do.call(order, new_runmat),, drop=FALSE ],
-                            rownames_to_stub = TRUE) %>%
+
+        display_rm = runmat %>%
+          reorder_runmat() %>%
+          gt::gt(rownames_to_stub = TRUE) %>%
           gt::tab_stubhead("Run") %>%
           gt::tab_options(data_row.padding = gt::px(10))  %>%
           gt::tab_spanner(
@@ -1593,7 +1822,9 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
                                optimality)
           )
       } else {
-        display_rm = gt::gt(runmat,rownames_to_stub = TRUE) %>%
+
+        display_rm = runmat %>%
+          gt::gt(rownames_to_stub = TRUE) %>%
           gt::tab_stubhead("Run") %>%
           gt::tab_options(data_row.padding = gt::px(10)) %>%
           gt::tab_spanner(
@@ -1632,52 +1863,63 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
       trials =  isolate(input$trials)
       opt = isolate(input$optimality)
       pal_choice = pal_option()
-      runmatrix()  |>
+      runmatrix() %then%
         style_matrix(order_vals = ord_design,
                      trials = trials,
                      optimality = opt,
                      pal_choice = pal_choice)
     }, align = "left")
 
+    filter_power_results = function(results) {
+      col_results = colnames(results)
+      results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
+    }
+
     output$powerresults = gt::render_gt( {
       req(powerresults())
-      pwr_results = powerresults()
-      col_results = colnames(pwr_results)
-      pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
-      format_table(pwr_results,gt::gt(pwr_results), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
+      alpha = isolate(input$alpha)
+      colorblind = isolate(input$colorblind)
+      powerresults() %then%
+        filter_power_results() %then%
+        format_table(., gt::gt(.), alpha, 0,colorblind)
     }, align = "left")
 
-    output$powerresultsglm = gt::render_gt( {
+    output$powerresultsglm = gt::render_gt({
       req(powerresultsglm())
-
-      pwr_results = powerresultsglm()
-      col_results = colnames(pwr_results)
-      pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
-      format_table(pwr_results,gt::gt(pwr_results), isolate(input$alpha),isolate(input$nsim),isolate(input$colorblind))
-    }, align = "left")
+      alpha = isolate(input$alpha)
+      nsim = isolate(input$nsim)
+      colorblind = isolate(input$colorblind)
+      powerresultsglm() %then%
+        filter_power_results() %then%
+        format_table(., gt::gt(.), alpha, nsim,colorblind)
+    }, align = "left") |>
+      bindEvent(powerresultsglm())
 
     output$powerresultssurv = gt::render_gt({
       req(powerresultssurv())
-
-      pwr_results = powerresultssurv()
-      col_results = colnames(pwr_results)
-      pwr_results = pwr_results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
-
-      format_table(pwr_results,gt::gt(pwr_results), isolate(input$alpha),isolate(input$nsim_surv),isolate(input$colorblind))
-    }, align = "left")
+      alpha = isolate(input$alpha)
+      nsim_surv = isolate(input$nsim_surv)
+      colorblind = isolate(input$colorblind)
+      powerresultssurv() %then%
+        filter_power_results() %then%
+        format_table(., gt::gt(.), alpha, nsim_surv,colorblind)
+    }, align = "left") |>
+      bindEvent(powerresultssurv())
 
     output$aliasplot = renderPlot({
-      input$submitbutton
-      tryCatch({
-        plot_correlations(isolate(runmatrix()))
-      }, error = function(e) {
-      })
-    })
+      req(runmatrix())
+      if(displayed_design_number_factors() > 1) {
+        runmatrix() %then%
+          plot_correlations()
+      }
+    }) |>
+      bindEvent(runmatrix(), ignoreInit = TRUE)
 
     output$fdsplot = renderPlot({
-      input$submitbutton
-      plot_fds(isolate(runmatrix()))
-    })
+      runmatrix() %then%
+        plot_fds()
+    }) |>
+      bindEvent(input$submitbutton)
 
     output$code = renderUI({
       req(valid_code_pane(), cancelOutput = TRUE)
@@ -1685,254 +1927,291 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
     })
 
     output$dopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(), "D"))
-    })
+      runmatrix() %then%
+        attr("D")
+    }) |>
+      bindEvent(runmatrix())
+
     output$aopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(), "A"))
-    })
+      runmatrix() %then%
+        attr("A")
+    })  |>
+      bindEvent(runmatrix())
+
     output$iopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(), "I"))
-    })
+      runmatrix() %then%
+        attr("I")
+    }) |>
+      bindEvent(runmatrix())
+
     output$eopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(), "E"))
-    })
+      runmatrix() %then%
+        attr("E")
+    }) |>
+      bindEvent(runmatrix())
+
     output$gopt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(), "G"))
-    })
+      runmatrix() %then%
+        attr("G")
+    }) |>
+      bindEvent(runmatrix())
+
     output$topt = renderText({
-      input$submitbutton
-      isolate(attr(runmatrix(), "T"))
-    })
+      runmatrix() %then%
+        attr("T")
+    }) |>
+      bindEvent(runmatrix())
+
     output$optimalsearch = renderPlot({
-      input$submitbutton
-      if (isolate(optimality()) %in% c("D", "G", "A")) {
-        if(attr(runmatrix(), "blocking") || attr(runmatrix(), "splitplot")) {
-          max_y_val = max(attr(runmatrix(), "optimalsearchvalues"),na.rm=TRUE)
-          statement = "Optimality Value (higher is better)"
-        }  else {
-          max_y_val = 100
-          statement = "Efficiency (higher is better)"
-        }
-        isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
-                     type = "p", col = "red", pch = 16, ylim = c(0, max_y_val)))
-        isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")],
-                       type = "p", col = "green", pch = 16, cex = 2, ylim = c(0, max_y_val)))
-      } else {
-        if (isolate(optimality()) == "I") {
-          isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))
+      optimal_design_plot = function(runmat) {
+        if (isolate(optimality()) %in% c("D", "G", "A")) {
+          if(attr(runmat, "blocking") || attr(runmat, "splitplot")) {
+            max_y_val = max(attr(runmat, "optimalsearchvalues"),na.rm=TRUE)
+            statement = "Optimality Value (higher is better)"
+          }  else {
+            max_y_val = 100
+            statement = "Efficiency (higher is better)"
+          }
+          isolate(plot(attr(runmat, "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), statement),
+                       type = "p", col = "red", pch = 16, ylim = c(0, max_y_val)))
+          isolate(points(x = attr(runmat, "best"), y = attr(runmat, "optimalsearchvalues")[attr(runmat, "best")],
+                         type = "p", col = "green", pch = 16, cex = 2, ylim = c(0, max_y_val)))
         } else {
-          isolate(plot(attr(runmatrix(), "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Criteria Value (higher is better)"), type = "p", col = "red", pch = 16))
+          if (isolate(optimality()) == "I") {
+            isolate(plot(attr(runmat, "optimalsearchvalues"), xlab = "Search Iteration", ylab = "Average Prediction Variance (lower is better)", type = "p", col = "red", pch = 16))
+          } else {
+            isolate(plot(attr(runmat, "optimalsearchvalues"), xlab = "Search Iteration", ylab = paste(optimality(), "Criteria Value (higher is better)"), type = "p", col = "red", pch = 16))
+          }
+          isolate(points(x = attr(runmat, "best"), y = attr(runmat, "optimalsearchvalues")[attr(runmat, "best")], type = "p", col = "green", pch = 16, cex = 2))
         }
-        isolate(points(x = attr(runmatrix(), "best"), y = attr(runmatrix(), "optimalsearchvalues")[attr(runmatrix(), "best")], type = "p", col = "green", pch = 16, cex = 2))
       }
-    })
+      runmatrix() %then%
+        optimal_design_plot()
+    }) |>
+      bindEvent(runmatrix())
+
     output$simulatedpvalues = renderPlot({
-      updateval = c(powerresultsglm(),powerresultssurv())
-      if(isolate(evaluationtype() == "glm")) {
-        pvalrows = isolate(floor(ncol(attr(powerresultsglm(), "pvals")) / 3) + 1)
-        if (!is.null(attr(powerresultsglm(), "pvals"))) {
+      plot_pvalue_histogram = function(poweresults) {
+        pvalrows = isolate(floor(ncol(attr(poweresults, "pvals")) / 3) + 1)
+        if (!is.null(attr(poweresults, "pvals"))) {
           par(mfrow = c(pvalrows, 3))
-          for (col in 1:isolate(ncol(attr(powerresultsglm(), "pvals")))) {
-            isolate(hist(attr(powerresultsglm(), "pvals")[, col], breaks = seq(0, 1, 0.05),
-                         main = colnames(attr(powerresultsglm(), "pvals"))[col],
+          for (col in 1:isolate(ncol(attr(poweresults, "pvals")))) {
+            isolate(hist(attr(poweresults, "pvals")[, col], breaks = seq(0, 1, 0.05),
+                         main = colnames(attr(poweresults, "pvals"))[col],
                          xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
           }
         }
       }
-      if(isolate(evaluationtype() == "surv")) {
-        pvalrows = isolate(floor(ncol(attr(powerresultssurv(), "pvals")) / 3) + 1)
-        if (!is.null(attr(powerresultssurv(), "pvals"))) {
-          par(mfrow = c(pvalrows, 3))
-          for (col in 1:isolate(ncol(attr(powerresultssurv(), "pvals")))) {
-            isolate(hist(attr(powerresultssurv(), "pvals")[, col], breaks = seq(0, 1, 0.05),
-                         main = colnames(attr(powerresultssurv(), "pvals"))[col],
-                         xlim = c(0, 1), xlab = "p values", ylab = "Count", col = "red", pch = 16))
-          }
-        }
+      if(evaluationtype() == "glm") {
+        powerresultsglm() %then%
+          plot_pvalue_histogram()
       }
-    })
+      if(evaluationtype() == "surv") {
+        powerresultssurv() %then%
+          plot_pvalue_histogram()
+      }
+    }) |>
+      bindEvent(powerresultsglm(), powerresultssurv())
+
     output$parameterestimates = renderPlot({
-      input$evalbutton
-      if (!is.null(attr(powerresultsglm(), "estimates"))) {
-        ests = apply(attr(powerresultsglm(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
-        truth = attr(powerresultsglm(), "anticoef")
-        if (isolate(input$glmfamily) == "binomial") {
-          ests = exp(ests) / (1 + exp(ests))
-          truth = exp(truth) / (1 + exp(truth))
+      plot_parameter_estimates = function(powerresults) {
+        if (!is.null(attr(powerresults, "estimates"))) {
+          ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
+          truth = attr(powerresults, "anticoef")
+          if (isolate(input$glmfamily) == "binomial") {
+            ests = exp(ests) / (1 + exp(ests))
+            truth = exp(truth) / (1 + exp(truth))
+          }
+          if (isolate(input$glmfamily) == "poisson") {
+            ests = exp(ests)
+            truth = exp(truth)
+          }
+          if (isolate(input$glmfamily) == "exponential") {
+            ests = exp(ests)
+            truth = exp(truth)
+          }
+          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+          plot(x = 1:length(colnames(ests)), y = ests[2, ],
+               xaxt = "n",
+               xlab = "Parameters",
+               ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
+               ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
+               xlim = c(0.5, length(colnames(ests)) + 0.5),
+               type = "p", pch = 16, col = "red", cex = 1)
+          axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
+          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+          grid(nx = NA, ny = NULL)
+          arrows(x0 = 1:length(colnames(ests)), y0 = ests[1, ], x1 = 1:length(colnames(ests)), y1 = ests[3, ], length = 0.05, angle = 90, code = 3)
+          points(x = 1:length(colnames(ests)), y = truth, pch = 16, col = "blue", cex = 1)
+          title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
         }
-        if (isolate(input$glmfamily) == "poisson") {
-          ests = exp(ests)
-          truth = exp(truth)
-        }
-        if (isolate(input$glmfamily) == "exponential") {
-          ests = exp(ests)
-          truth = exp(truth)
-        }
-        par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-        plot(x = 1:length(colnames(ests)), y = ests[2, ],
-             xaxt = "n",
-             xlab = "Parameters",
-             ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-             ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
-             xlim = c(0.5, length(colnames(ests)) + 0.5),
-             type = "p", pch = 16, col = "red", cex = 1)
-        axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
-        legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-        par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-        grid(nx = NA, ny = NULL)
-        arrows(x0 = 1:length(colnames(ests)), y0 = ests[1, ], x1 = 1:length(colnames(ests)), y1 = ests[3, ], length = 0.05, angle = 90, code = 3)
-        points(x = 1:length(colnames(ests)), y = truth, pch = 16, col = "blue", cex = 1)
-        title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
       }
-    })
+      powerresultsglm() %then%
+        plot_parameter_estimates()
+    }) |>
+      bindEvent(powerresultsglm())
 
     output$parameterestimatessurv = renderPlot({
-      input$evalbutton
-      if (!is.null(attr(powerresultssurv(), "estimates"))) {
-        ests = apply(attr(powerresultssurv(), "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
-        truth = attr(powerresultssurv(), "anticoef")
-        if (isolate(input$distibution) == "exponential") {
-          ests = exp(ests)
-          truth = exp(truth)
+      plot_parameter_estimates = function(powerresults) {
+        if (!is.null(attr(powerresults, "estimates"))) {
+          ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
+          truth = attr(powerresults, "anticoef")
+          if (isolate(input$distibution) == "exponential") {
+            ests = exp(ests)
+            truth = exp(truth)
+          }
+          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+          plot(x = 1:length(colnames(ests)), y = ests[2, ],
+               xaxt = "n",
+               xlab = "Parameters",
+               ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
+               ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
+               xlim = c(0.5, length(colnames(ests)) + 0.5),
+               type = "p", pch = 16, col = "red", cex = 1)
+          axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
+          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+          grid(nx = NA, ny = NULL)
+          arrows(x0 = 1:length(colnames(ests)), y0 = ests[1, ], x1 = 1:length(colnames(ests)), y1 = ests[3, ], length = 0.05, angle = 90, code = 3)
+          points(x = 1:length(colnames(ests)), y = truth, pch = 16, col = "blue", cex = 1)
+          title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
         }
-        par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-        plot(x = 1:length(colnames(ests)), y = ests[2, ],
-             xaxt = "n",
-             xlab = "Parameters",
-             ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-             ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
-             xlim = c(0.5, length(colnames(ests)) + 0.5),
-             type = "p", pch = 16, col = "red", cex = 1)
-        axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
-        legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-        par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-        grid(nx = NA, ny = NULL)
-        arrows(x0 = 1:length(colnames(ests)), y0 = ests[1, ], x1 = 1:length(colnames(ests)), y1 = ests[3, ], length = 0.05, angle = 90, code = 3)
-        points(x = 1:length(colnames(ests)), y = truth, pch = 16, col = "blue", cex = 1)
-        title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
       }
-    })
+      powerresultssurv() %then%
+        plot_parameter_estimates()
+    }) |>
+      bindEvent(powerresultssurv())
 
     output$responsehistogram = renderPlot({
-      input$evalbutton
-      if (!is.null(attr(powerresultsglm(), "estimates"))) {
-        responses = as.vector(attr(powerresultsglm(), "estimates") %*% t(attr(powerresultsglm(), "modelmatrix")))
-        trueresponses = as.vector(attr(powerresultsglm(), "anticoef") %*% t(attr(powerresultsglm(), "modelmatrix")))
-        widths = hist(trueresponses, plot = FALSE)$counts
-        widths = widths[widths != 0]
-        widths = sqrt(widths)
-        uniquevalues = length(table(responses))
-        breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
-        if (isolate(input$glmfamily) == "binomial") {
-          responses = exp(responses) / (1 + exp(responses))
-          trueresponses = exp(trueresponses) / (1 + exp(trueresponses))
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          hist(responses, breaks = breakvalues, xlab = "Response (Probability)", main = "Distribution of Simulated Response Estimates", xlim = c(0, 1))
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses Estimates", xlab = "Response", ylab = "Count", col = "red", border = "red")
-          abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-        }
-        if (isolate(input$glmfamily) == "poisson") {
-          responses = exp(responses)
-          trueresponses = exp(trueresponses)
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses ", xlab = "Response", ylab = "Count", col = "red", border = "red")
-          abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-        }
-        if (isolate(input$glmfamily) == "exponential") {
-          responses = exp(responses)
-          trueresponses = exp(trueresponses)
+      plot_response_histogram = function(powerresults) {
+        if (!is.null(attr(powerresults, "estimates"))) {
+          responses = as.vector(attr(powerresults, "estimates") %*% t(attr(powerresults, "modelmatrix")))
+          trueresponses = as.vector(attr(powerresults, "anticoef") %*% t(attr(powerresults, "modelmatrix")))
+          widths = hist(trueresponses, plot = FALSE)$counts
+          widths = widths[widths != 0]
+          widths = sqrt(widths)
+          uniquevalues = length(table(responses))
+          breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
+          if (isolate(input$glmfamily) == "binomial") {
+            responses = exp(responses) / (1 + exp(responses))
+            trueresponses = exp(trueresponses) / (1 + exp(trueresponses))
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            hist(responses, breaks = breakvalues, xlab = "Response (Probability)", main = "Distribution of Simulated Response Estimates", xlim = c(0, 1))
+            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            grid(nx = NA, ny = NULL)
+            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses Estimates", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          }
+          if (isolate(input$glmfamily) == "poisson") {
+            responses = exp(responses)
+            trueresponses = exp(trueresponses)
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
+            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            grid(nx = NA, ny = NULL)
+            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses ", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          }
+          if (isolate(input$glmfamily) == "exponential") {
+            responses = exp(responses)
+            trueresponses = exp(trueresponses)
 
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates",
-               xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-          abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-        }
-        if (isolate(input$glmfamily) == "gaussian") {
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-          abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates",
+                 xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
+            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            grid(nx = NA, ny = NULL)
+            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          }
+          if (isolate(input$glmfamily) == "gaussian") {
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
+            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            grid(nx = NA, ny = NULL)
+            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
 
-        }
-      }
-    })
-
-    output$responsehistogramsurv = renderPlot({
-      input$evalbutton
-      if (!is.null(attr(powerresultssurv(), "estimates"))) {
-        responses = as.vector(attr(powerresultssurv(), "estimates") %*% t(attr(powerresultssurv(), "modelmatrix")))
-        trueresponses = as.vector(attr(powerresultssurv(), "anticoef") %*% t(attr(powerresultssurv(), "modelmatrix")))
-        filtered_string = ""
-        if(isolate(input$distribution) == "exponential") {
-          #Filter out extreme values
-          mad_trueresp = 20*max(exp(trueresponses))
-          num_filtered = sum(exp(responses) > mad_trueresp)
-          responses = responses[exp(responses) < mad_trueresp]
-          trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
-          filtered_string = sprintf(" (%g extreme outliers removed)",num_filtered)
-        }
-        widths = hist(trueresponses, plot = FALSE)$counts
-        widths = widths[widths != 0]
-        widths = sqrt(widths)
-        uniquevalues = length(table(responses))
-        breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
-        if (isolate(input$distribution) == "exponential") {
-          responses = exp(responses)
-          trueresponses = exp(trueresponses)
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          hist(responses, breaks = breakvalues, xlab = "Response", main = sprintf("Distribution of Simulated Response Estimates%s", filtered_string), xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-          abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-        }
-        if (isolate(input$distribution) %in% c("gaussian", "lognormal")) {
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates (from survival analysis)", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-          abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-        }
-      }
-    })
-    output$separationwarning = renderText({
-      input$evalbutton
-      likelyseparation = FALSE
-      if (isolate(input$evaltype) == "glm" && isolate(input$glmfamily) == "binomial") {
-        if (!is.null(attr(powerresultsglm(), "pvals"))) {
-          pvalmat = attr(powerresultsglm(), "pvals")
-          for (i in 2:ncol(pvalmat)) {
-            pvalcount = hist(pvalmat[, i], breaks = seq(0, 1, 0.05), plot = FALSE)
-            likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim) / 15)
           }
         }
       }
-      if (likelyseparation) {
-        showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
+      powerresultsglm() %then%
+        plot_response_histogram()
+    }) |>
+      bindEvent(powerresultsglm())
+
+    output$responsehistogramsurv = renderPlot({
+      plot_response_histogram = function(powerresults) {
+        if (!is.null(attr(powerresults, "estimates"))) {
+          responses = as.vector(attr(powerresults, "estimates") %*% t(attr(powerresults, "modelmatrix")))
+          trueresponses = as.vector(attr(powerresults, "anticoef") %*% t(attr(powerresults, "modelmatrix")))
+          filtered_string = ""
+          if(isolate(input$distribution) == "exponential") {
+            #Filter out extreme values
+            mad_trueresp = 20*max(exp(trueresponses))
+            num_filtered = sum(exp(responses) > mad_trueresp)
+            responses = responses[exp(responses) < mad_trueresp]
+            trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
+            filtered_string = sprintf(" (%g extreme outliers removed)",num_filtered)
+          }
+          widths = hist(trueresponses, plot = FALSE)$counts
+          widths = widths[widths != 0]
+          widths = sqrt(widths)
+          uniquevalues = length(table(responses))
+          breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
+          if (isolate(input$distribution) == "exponential") {
+            responses = exp(responses)
+            trueresponses = exp(trueresponses)
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            hist(responses, breaks = breakvalues, xlab = "Response", main = sprintf("Distribution of Simulated Response Estimates%s", filtered_string), xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
+            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            grid(nx = NA, ny = NULL)
+            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          }
+          if (isolate(input$distribution) %in% c("gaussian", "lognormal")) {
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates (from survival analysis)", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
+            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            grid(nx = NA, ny = NULL)
+            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          }
+        }
       }
-    })
+      powerresultssurv() %then%
+        plot_response_histogram()
+    }) |>
+      bindEvent(powerresultssurv())
+
+    output$separationwarning = renderText({
+      output_separation_warning = function(powerresults) {
+        likelyseparation = FALSE
+        if (input$evaltype == "glm" && input$glmfamily == "binomial") {
+          if (!is.null(attr(powerresults, "pvals"))) {
+            pvalmat = attr(powerresults, "pvals")
+            for (i in 2:ncol(pvalmat)) {
+              pvalcount = hist(pvalmat[, i], breaks = seq(0, 1, 0.05), plot = FALSE)
+              likelyseparation = likelyseparation || (all(pvalcount$count[20] > pvalcount$count[17:19]) && pvalcount$count[20] > isolate(input$nsim) / 15)
+            }
+          }
+        }
+        if (likelyseparation) {
+          showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
+        }
+      }
+      powerresultsglm() %then%
+        output_separation_warning()
+    }) |>
+      bindEvent(powerresultsglm())
+
     any_htc = reactive({
       has_htc = FALSE
       for(i in seq_len(input$numberfactors)) {
@@ -1964,9 +2243,11 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
     ) |>
       bindEvent(updated_ui_defaults())
 
+    current_design_valid = reactiveVal(FALSE)
     valid_code_pane = reactiveVal(TRUE)
 
     updated_ui_defaults = reactive({
+      current_design_valid(FALSE)
       valid_code_pane(FALSE)
       shinyjs::disable("submitbutton")
       shinyjs::disable("evalbutton")
@@ -2026,6 +2307,15 @@ skprGUI = function(browser = FALSE, return_app = FALSE) {
     observeEvent(input$submitbutton, {
       updateNavbarPage(session, "results_panels",
                        selected = "design")
+    })
+
+    displayed_design_number_factors = reactive({
+      input$numberfactors
+    }) |>
+      bindEvent(input$submitbutton)
+
+    output$displayed_design_number_factors = reactive({
+      displayed_design_number_factors()
     })
 
     observeEvent(input$tutorial,

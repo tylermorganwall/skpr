@@ -939,7 +939,7 @@ gen_design = function(candidateset, model, trials,
       if(!advancedoptions$GUI && progress) {
         set_up_progressr_handler("Searching", "designs")
       }
-      nc =  future::nbrOfWorkers()
+      nc = future::nbrOfWorkers()
       run_search = function(iterations, is_shiny) {
         prog = progressr::progressor(steps = repeats)
         foreach::foreach(i = iterations,

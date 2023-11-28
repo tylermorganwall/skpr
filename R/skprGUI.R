@@ -833,9 +833,11 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
   server = function(input, output, session) {
 
     inc_progress_session = function(amount = 0.1, message = NULL, detail = NULL) incProgress(amount, message, detail, session)
-    # if(multiuser) {
-    #   inc_progress_session = NULL
-    # }
+    if(multiuser) {
+      shinyjs::disable("parallel")
+      shinyjs::disable("parallel_eval_glm")
+      shinyjs::disable("parallel_eval_surv")
+    }
     inputlist_htc = reactive({
       input$submitbutton
       inputlist1 = list()
@@ -1357,24 +1359,32 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
 
 
     ############### Make sure this logic is all correct ###############
+    ## Add stop and reset buttons ##
     if(multiuser) {
       observe({
         invalidateLater(500, session)
         isolate({
         runmatresolved = tryCatch({resolved(isolate(runmatrix()))},
                                   error = function(e) FALSE)
-        if(runmatresolved) {
+        if(runmatresolved && !current_design_valid()) {
           shinyjs::enable("evalbutton")
           shinyjs::enable("submitbutton")
           current_design_valid(TRUE)
         }
 
-        # powerresolved = tryCatch({resolved(isolate(powerresultsglm()))},
-        #                          error = function(e) FALSE)
-        # if(powerresolved) {
-        #   shinyjs::enable("evalbutton")
-        #   shinyjs::enable("submitbutton")
-        # }
+        powerresolved = tryCatch({resolved(isolate(powerresultsglm()))},
+                                 error = function(e) FALSE)
+        if(powerresolved && current_design_valid()) {
+          shinyjs::enable("evalbutton")
+          shinyjs::enable("submitbutton")
+        }
+
+        powerresolvedsurv = tryCatch({resolved(isolate(powerresultssurv()))},
+                                 error = function(e) FALSE)
+        if(powerresolvedsurv && current_design_valid()) {
+          shinyjs::enable("evalbutton")
+          shinyjs::enable("submitbutton")
+        }
         # progress_closed = FALSE
         # runmatresolved = tryCatch({resolved(isolate(runmatrix_future()))},
         #                           error = function(e) FALSE)
@@ -1683,6 +1693,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           } else {
             seed_val = NULL
           }
+          shinyjs::disable("submitbutton")
+          shinyjs::disable("evalbutton")
           runmatrix() %then%
             (\(x)
              {promises::future_promise({
@@ -1761,6 +1773,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           } else {
             seed_val = NULL
           }
+          shinyjs::disable("submitbutton")
+          shinyjs::disable("evalbutton")
           runmatrix() %then%
             (\(x)
              {promises::future_promise({

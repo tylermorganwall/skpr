@@ -831,13 +831,288 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
   }
 
   server = function(input, output, session) {
-
     inc_progress_session = function(amount = 0.1, message = NULL, detail = NULL) incProgress(amount, message, detail, session)
+
+    session_id = session$token
+    progress_file_name = tempfile(pattern = sprintf("progress_%s_",session_id))
+    runmatrix_file_name = tempfile(pattern = sprintf("runmatrix_%s_",session_id), fileext = ".Rds")
+    power_file_name = tempfile(pattern = sprintf("power_%s_",session_id), fileext = ".Rds")
+
+    tempdir_runmatrix = tempdir()
+
+    #This just queries
+    multiuser_progress_bar_updater = function(...) {
+      if (file.exists(progress_file_name)) {
+        number = file.info(progress_file_name)$size - 1
+        if (number < 0) {
+          number = 0
+        }
+        ## This clears the file of any existing information
+        close(file(progress_file_name, open="w"))
+      } else {
+        number = 0
+      }
+      stringtowrite = as.character(paste0(rep(0, number + 1), collapse = ""))
+      prog_file = file(progress_file_name, "wb")
+      writeBin(stringtowrite, prog_file)
+      close(prog_file)
+    }
+
+    #Environment for the progress bar
+    prog_env = new.env()
+    prog_env$previouspercent = 0
+    prog_env$percentdone = 0
+    prog_env$need_to_initialize_progress_bar = TRUE
+    prog_env$progress_type = ""
+
+    promise_fulfilled_rejected = function(x) {
+      if(inherits(x, "promise")) {
+        if(!is.null(attr(x, "promise_impl")$status())) {
+          return(attr(x, "promise_impl")$status() %in% c("fulfilled", "rejected"))
+        } else {
+          return(FALSE)
+        }
+      } else {
+        #This means that the promise hasn't been initialized yet--treat as fulfilled.
+        return(TRUE)
+      }
+    }
+
+    multiuser
+    ############### Make sure this logic is all correct ###############
+    ##Can't use promises as is--that blocks the main session, which prevents updating the progress bars ###
+    ## Add stop and reset buttons ##
+    if(multiuser) {
+      multiuser_helper = observe({
+        invalidateLater(500)
+        isolate({
+          runmatrix_future_resolved = promise_fulfilled_rejected(runmatrix())
+          #Handle design generation progress bars
+          if(exists("progress", envir = prog_env) &&
+             prog_env$progress_type == "gen") {
+            runmatrix_future_resolved = promise_fulfilled_rejected(runmatrix())
+
+            if(runmatrix_future_resolved) {
+              shinyjs::enable("evalbutton")
+              shinyjs::enable("submitbutton")
+              current_design_valid(TRUE)
+              if(is.function(prog_env$progress$close)) {
+                prog_env$progress$close()
+                rm(progress, envir = prog_env)
+                prog_env$need_to_initialize_progress_bar = TRUE
+                prog_env$progress_type = ""
+              }
+            } else {
+              if (prog_env$need_to_initialize_progress_bar) {
+                prog_env$progress$set(message = "Searching for designs...", value = 0)
+                prog_env$need_to_initialize_progress_bar = FALSE
+              }
+              if (input$repeats > 200) {
+                sims = 200
+              } else {
+                sims = input$repeats
+              }
+              if(isblocking()) {
+                sims = sims * 2
+              }
+              #Increment via percent
+              prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+              prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+              prog_env$previouspercent = prog_env$percentdone
+            }
+          }
+
+          #Handle GLM power simulation progress bars
+          if(exists("progress", envir = prog_env) &&
+             prog_env$progress_type == "glm") {
+            power_results_glm_resolved = promise_fulfilled_rejected(powerresultsglm())
+            if(power_results_glm_resolved) {
+              shinyjs::enable("evalbutton")
+              shinyjs::enable("submitbutton")
+              current_design_valid(TRUE)
+              if(is.function(prog_env$progress$close)) {
+                prog_env$progress$close()
+                rm(progress, envir = prog_env)
+                prog_env$need_to_initialize_progress_bar = TRUE
+                prog_env$progress_type = ""
+              }
+            } else {
+
+            }
+          }
+
+          #Handle survival power simulation progress bars
+          if(exists("progress", envir = prog_env) &&
+             prog_env$progress_type == "surv") {
+            power_results_surv_resolved = promise_fulfilled_rejected(powerresultssurv())
+            if(power_results_surv_resolved) {
+              shinyjs::enable("evalbutton")
+              shinyjs::enable("submitbutton")
+              current_design_valid(TRUE)
+              if(is.function(prog_env$progress$close)) {
+                prog_env$progress$close()
+                rm(progress, envir = prog_env)
+                prog_env$need_to_initialize_progress_bar = TRUE
+                prog_env$progress_type = ""
+              }
+            }
+          }
+          print("11")
+          # print(current_design_valid())
+          # browser()
+          # print(class(powerresultsglm))
+          # print(class(powerresultsglm()))
+          # print(powerresultsglm())
+
+          # power_results_glm_resolved = promise_fulfilled_rejected(powerresultsglm())
+          # print("111")
+          # power_results_glm_resolved = TRUE
+          # power_results_surv_resolved = TRUE
+          # power_results_surv_resolved = promise_fulfilled_rejected(powerresultssurv())
+          # print("1111")
+
+          # if(evaluationtype() == "glm") {
+          #   power_results_resolved = power_results_glm_resolved
+          # } else if(evaluationtype() == "surv") {
+          #   power_results_resolved = power_results_surv_resolved
+          # } else {
+          #   power_results_resolved = TRUE
+          # }
+          # print("22")
+          # if(power_results_resolved && current_design_valid()) {
+          #   shinyjs::enable("evalbutton")
+          #   shinyjs::enable("submitbutton")
+          # }
+          # print("33")
+          # ### Now deal with multi-user progress bars
+          #
+          # # If the current progress bar type matches the future and the future has resolved
+          # # but never it happened quickly enough that we never updated the progress bar once,
+          # # set need to initialize to false.
+          # print("44")
+          # if(exists("progress", envir = prog_env) &&
+          #    ((runmatrix_future_resolved && prog_env$progress_type == "gen") ||
+          #     (power_results_resolved    && prog_env$progress_type == "pow"))) {
+          #   print("2")
+          #   prog_env$need_to_initialize_progress_bar = FALSE
+          # }
+          # print("55")
+          # #Here we handle the progress bar for design generation
+          # if (!runmatrix_future_resolved &&
+          #     exists("progress", envir = prog_env) &&
+          #     prog_env$progress_type == "gen") {
+          #   print("3")
+          #
+          #   ## This just changes the message from "setting up"
+          #   if (prog_env$need_to_initialize_progress_bar) {
+          #     prog_env$progress$set(message = "Searching for designs...", value = 0)
+          #     prog_env$need_to_initialize_progress_bar = FALSE
+          #   }
+          #
+          #   #Here, we have a maximum of 200 increments on the progress bar. (x2 if split plot)
+          #   if (input$repeats > 200) {
+          #     sims = 200
+          #   } else {
+          #     sims = input$repeats
+          #   }
+          #   if(isblocking()) {
+          #     sims = sims * 2
+          #   }
+          #
+          #   #Increment via percent
+          #   prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+          #   prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+          #   prog_env$previouspercent = prog_env$percentdone
+          # }
+          # print("66")
+          # #Here we handle the progress bar for power calculations
+          # if (!power_results_resolved &&
+          #     exists("progress", envir = prog_env) &&
+          #     prog_env$progress_type == "pow") {
+          #   print("4")
+          #   ## This just changes the message from "setting up"
+          #   if (prog_env$need_to_initialize_progress_bar) {
+          #     prog_env$progress$set(message = "Calculating power...", value = 0)
+          #     prog_env$need_to_initialize_progress_bar =  FALSE
+          #   }
+          #
+          #   #Here, we have a maximum of 200 increments on the progress bar. (x2 if adjusting alpha)
+          #   if(evaluationtype() != "surv") {
+          #     if (input$nsim > 200) {
+          #       sims = 200
+          #     } else {
+          #       sims = input$nsim
+          #     }
+          #   } else {
+          #     if (input$nsim_surv > 200) {
+          #       sims = 200
+          #     } else {
+          #       sims = input$nsim_surv
+          #     }
+          #   }
+          #
+          #   if(input$adjust_alpha) {
+          #     sims = sims * 2
+          #   }
+          #
+          #   #Increment via percent
+          #   prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+          #   prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+          #   prog_env$previouspercent = prog_env$percentdone
+          # }
+          # # If the search has ended and the future has resolved, delete the progress bar
+          # # and clear the file tracking the number of iterations.
+          # print(c(runmatrix_future_resolved, exists("progress", envir = prog_env),
+          #         prog_env$progress_type == "gen", !prog_env$need_to_initialize_progress_bar))
+          # if (runmatrix_future_resolved &&
+          #     exists("progress", envir = prog_env) &&
+          #     prog_env$progress_type == "gen" &&
+          #     !prog_env$need_to_initialize_progress_bar) {
+          #   print("5")
+          #   # shinyjs::enable("submitbutton")
+          #   # shinyjs::enable("evalbutton")
+          #   # if(file.exists(progress_file_name)) {
+          #   #   file.remove(progress_file_name)
+          #   # }
+          #   close(file(progress_file_name, open="w"))
+          #   if(is.function(prog_env$progress$close)) {
+          #     prog_env$progress$close()
+          #     rm(progress, envir = prog_env)
+          #     prog_env$need_to_initialize_progress_bar = TRUE
+          #   }
+          # }
+          # if (power_results_resolved &&
+          #     exists("progress", envir = prog_env) &&
+          #     prog_env$progress_type == "pow" &&
+          #     !prog_env$need_to_initialize_progress_bar) {
+          #   print("6")
+          #   # shinyjs::enable("submitbutton")
+          #   # shinyjs::enable("evalbutton")
+          #   # if(file.exists(progress_file_name)) {
+          #   #   file.remove(progress_file_name)
+          #   # }
+          #   close(file(progress_file_name, open="w"))
+          #   if(is.function(prog_env$progress$close)) {
+          #     prog_env$progress$close()
+          #     rm(progress, envir = prog_env)
+          #     prog_env$need_to_initialize_progress_bar = TRUE
+          #   }
+          # }
+        })
+      },
+        suspended = TRUE
+      )
+      observeEvent(c(input$submitbutton, input$evalbutton),{
+        multiuser_helper$resume()
+      }, once = TRUE)
+    }
+
     if(multiuser) {
       shinyjs::disable("parallel")
       shinyjs::disable("parallel_eval_glm")
       shinyjs::disable("parallel_eval_surv")
     }
+
     inputlist_htc = reactive({
       input$submitbutton
       inputlist1 = list()
@@ -894,7 +1169,6 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       inputlist1
     })
 
-
     inputlist = reactive({
       inputlist1 = list()
       for(i in seq_len(input$numberfactors)) {
@@ -946,8 +1220,6 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       }
       candidateset1
     })
-
-
 
     inputstring = reactive({
       req(update)
@@ -1274,9 +1546,10 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
     })
 
     isblocking = reactive({
-      input$submitbutton
-      isolate(any_htc())
-    })
+      any_htc()
+    }) |>
+      bindEvent(input$submitbutton)
+
     isblockingtext = reactive({
       any_htc()
     })
@@ -1348,53 +1621,6 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       `%then%` = `%>%`
     }
 
-    # if(multiuser) {
-    #   promise_results = reactiveValues(
-    #     runmatrix = NULL,
-    #     powerresults = NULL,
-    #     powerresultsglm = NULL,
-    #     powerresultssurv = NULL
-    #   )
-    # }
-
-
-    ############### Make sure this logic is all correct ###############
-    ## Add stop and reset buttons ##
-    if(multiuser) {
-      observe({
-        invalidateLater(500, session)
-        isolate({
-        runmatresolved = tryCatch({resolved(isolate(runmatrix()))},
-                                  error = function(e) FALSE)
-        if(runmatresolved && !current_design_valid()) {
-          shinyjs::enable("evalbutton")
-          shinyjs::enable("submitbutton")
-          current_design_valid(TRUE)
-        }
-
-        powerresolved = tryCatch({resolved(isolate(powerresultsglm()))},
-                                 error = function(e) FALSE)
-        if(powerresolved && current_design_valid()) {
-          shinyjs::enable("evalbutton")
-          shinyjs::enable("submitbutton")
-        }
-
-        powerresolvedsurv = tryCatch({resolved(isolate(powerresultssurv()))},
-                                 error = function(e) FALSE)
-        if(powerresolvedsurv && current_design_valid()) {
-          shinyjs::enable("evalbutton")
-          shinyjs::enable("submitbutton")
-        }
-        # progress_closed = FALSE
-        # runmatresolved = tryCatch({resolved(isolate(runmatrix_future()))},
-        #                           error = function(e) FALSE)
-        # powerresolved = tryCatch({resolved(isolate(powerresultsglm_future()))},
-        #                          error = function(e) FALSE)
-        })
-      })
-    }
-
-
     runmatrix = reactive({
       on.exit({
         if(!multiuser) {
@@ -1405,6 +1631,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       }, add = TRUE)
       shinyjs::disable("submitbutton")
       shinyjs::disable("evalbutton")
+      if(multiuser) {
+        prog_env$previouspercent = 0
+        prog_env$percentdone = 0
+        prog_env$need_to_initialize_progress_bar = TRUE
+        prog_env$progress = Progress$new()
+        prog_env$progress_type = "gen"
+        prog_env$progress$set(message = "Setting up...", value = 0)
+      }
       if (input$setseed) {
         set.seed(input$seed)
       }
@@ -1486,6 +1720,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
         } else {
           seed_val = NULL
         }
+        advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
         if(!isblocking()) {
           promises::future_promise({
             gen_design(candidateset = candidateset,
@@ -1535,7 +1770,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
        bindEvent(input$submitbutton)
 
     evaluationtype = reactive({
-      isolate(input$evaltype)
+      input$evaltype
     }) |>
       bindEvent(input$evalbutton)
 
@@ -1593,15 +1828,6 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       }
     })
 
-    # promise_wrapper = function(promise,
-    #                            code) {
-    #   if(!multiuser) {
-    #     code
-    #   } else {
-    #     promises::then(promise, onFulfilled = (\() {code}))
-    #   }
-    # }
-
     powerresults = reactive({
       if (evaluationtype() == "lm") {
         return(runmatrix() %then%
@@ -1649,6 +1875,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
         }
       }
       if (evaluationtype() == "glm") {
+        if(multiuser) {
+          prog_env$previouspercent = 0
+          prog_env$percentdone = 0
+          prog_env$need_to_initialize_progress_bar = TRUE
+          prog_env$progress = Progress$new()
+          prog_env$progress_type = "glm"
+          prog_env$progress$set(message = "Setting up simulation...", value = 0)
+        }
         if(isblocking() && input$firth_correction) {
           showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
           firth_cor = FALSE
@@ -1693,6 +1927,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           } else {
             seed_val = NULL
           }
+          advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
           shinyjs::disable("submitbutton")
           shinyjs::disable("evalbutton")
           runmatrix() %then%
@@ -1721,6 +1956,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
 
     powerresultssurv = reactive({
       req(runmatrix())
+      if(multiuser) {
+        prog_env$previouspercent = 0
+        prog_env$percentdone = 0
+        prog_env$need_to_initialize_progress_bar = TRUE
+        prog_env$progress = Progress$new()
+        prog_env$progress_type = "surv"
+        prog_env$progress$set(message = "Setting up...", value = 0)
+      }
       if(!multiuser && (!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress)) {
         pb = inc_progress_session
       } else {
@@ -1773,6 +2016,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           } else {
             seed_val = NULL
           }
+          advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
           shinyjs::disable("submitbutton")
           shinyjs::disable("evalbutton")
           runmatrix() %then%

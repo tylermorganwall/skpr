@@ -92,6 +92,9 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
   shinyApp = shiny::shinyApp
   browserViewer = shiny::browserViewer
   dialogViewer = shiny::dialogViewer
+  invalidateLater = shiny::invalidateLater
+  observe = shiny::observe
+  Progress = shiny::Progress
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
   border-radius: 15px;
@@ -900,7 +903,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
               current_design_valid(TRUE)
               if(is.function(prog_env$progress$close)) {
                 prog_env$progress$close()
-                rm(progress, envir = prog_env)
+                rm("progress", envir = prog_env)
                 prog_env$need_to_initialize_progress_bar = TRUE
                 prog_env$progress_type = ""
                 close(file(progress_file_name, open="w"))
@@ -1224,7 +1227,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
               current_design_valid(TRUE)
               if(is.function(prog_env$progress$close)) {
                 prog_env$progress$close()
-                rm(progress, envir = prog_env)
+                rm("progress", envir = prog_env)
                 prog_env$need_to_initialize_progress_bar = TRUE
                 prog_env$progress_type = ""
                 close(file(progress_file_name, open="w"))
@@ -1279,7 +1282,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
               current_design_valid(TRUE)
               if(is.function(prog_env$progress$close)) {
                 prog_env$progress$close()
-                rm(progress, envir = prog_env)
+                rm("progress", envir = prog_env)
                 prog_env$need_to_initialize_progress_bar = TRUE
                 prog_env$progress_type = ""
                 close(file(progress_file_name, open="w"))
@@ -2385,9 +2388,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       req(powerresults())
       alpha = isolate(input$alpha)
       colorblind = isolate(input$colorblind)
-      powerresults() %>%
-        filter_power_results() %>%
-        format_table(., gt::gt(.), alpha, 0,colorblind)
+      pwr_results = filter_power_results(powerresults())
+      format_table(pwr_results, gt::gt(pwr_results), alpha, 0,colorblind)
     }, align = "left")
 
     output$powerresultsglm = gt::render_gt({
@@ -2395,9 +2397,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       alpha = isolate(input$alpha)
       nsim = isolate(input$nsim)
       colorblind = isolate(input$colorblind)
-      powerresultsglm() %>%
-        filter_power_results() %>%
-        format_table(., gt::gt(.), alpha, nsim,colorblind)
+      pwr_results = filter_power_results(powerresultsglm())
+      format_table(pwr_results, gt::gt(pwr_results), alpha, nsim,colorblind)
     }, align = "left") |>
       bindEvent(powerresultsglm())
 
@@ -2406,9 +2407,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       alpha = isolate(input$alpha)
       nsim_surv = isolate(input$nsim_surv)
       colorblind = isolate(input$colorblind)
-      powerresultssurv() %>%
-        filter_power_results() %>%
-        format_table(., gt::gt(.), alpha, nsim_surv,colorblind)
+      pwr_results = filter_power_results(powerresultssurv())
+      format_table(pwr_results, gt::gt(pwr_results), alpha, nsim_surv,colorblind)
     }, align = "left") |>
       bindEvent(powerresultssurv())
 

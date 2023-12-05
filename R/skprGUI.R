@@ -840,7 +840,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
 
     tempdir_runmatrix = tempdir()
 
-    #This just queries
+    #### Multiuser Progress Bar ############
     multiuser_progress_bar_updater = function(...) {
       if (file.exists(progress_file_name)) {
         number = file.info(progress_file_name)$size - 1
@@ -858,40 +858,42 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       close(prog_file)
     }
 
-    #Environment for the progress bar
+    #### Progress Bar Environment ############
     prog_env = new.env()
     prog_env$previouspercent = 0
     prog_env$percentdone = 0
     prog_env$need_to_initialize_progress_bar = TRUE
     prog_env$progress_type = ""
 
-    promise_fulfilled_rejected = function(x) {
-      if(inherits(x, "promise")) {
-        if(!is.null(attr(x, "promise_impl")$status())) {
-          return(attr(x, "promise_impl")$status() %in% c("fulfilled", "rejected"))
-        } else {
-          return(FALSE)
-        }
-      } else {
-        #This means that the promise hasn't been initialized yet--treat as fulfilled.
-        return(TRUE)
-      }
-    }
-
-    multiuser
-    ############### Make sure this logic is all correct ###############
-    ##Can't use promises as is--that blocks the main session, which prevents updating the progress bars ###
+    #### Multiuser Reactive Values ############
+    multiuser_rv = reactiveValues()
+    multiuser_rv$runmatrix = NA
+    multiuser_rv$powerresultsglm = NA
+    multiuser_rv$powerresultssurv = NA
     ## Add stop and reset buttons ##
-    if(multiuser) {
-      multiuser_helper = observe({
+    #### Multiuser Observer ############
+
+
+    multiuser_helper_runmatrix = observe({
+      if(multiuser) {
         invalidateLater(500)
+        runmatrix_future_resolved = future::resolved(runmatrix_container())
         isolate({
-          runmatrix_future_resolved = promise_fulfilled_rejected(runmatrix())
           #Handle design generation progress bars
           if(exists("progress", envir = prog_env) &&
              prog_env$progress_type == "gen") {
-            runmatrix_future_resolved = promise_fulfilled_rejected(runmatrix())
-
+            if(file.exists(runmatrix_file_name) &&
+               runmatrix_future_resolved) {
+              tempval = tryCatch({
+                readRDS(file.path(runmatrix_file_name))
+              }, error = function(e) "", warning = function(w) "")
+              if (inherits(tempval, "data.frame")) {
+                multiuser_rv$runmatrix = tempval
+                tryCatch({
+                  file.remove(runmatrix_file_name)
+                }, error = function(e) "", warning = function(w) "")
+              }
+            }
             if(runmatrix_future_resolved) {
               shinyjs::enable("evalbutton")
               shinyjs::enable("submitbutton")
@@ -901,6 +903,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
                 rm(progress, envir = prog_env)
                 prog_env$need_to_initialize_progress_bar = TRUE
                 prog_env$progress_type = ""
+                close(file(progress_file_name, open="w"))
               }
             } else {
               if (prog_env$need_to_initialize_progress_bar) {
@@ -922,42 +925,134 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
             }
           }
 
+          #Handle GLM power
+          # if(exists("progress", envir = prog_env) &&
+          #    prog_env$progress_type == "glm") {
+          #   if(file.exists(power_file_name) &&
+          #      power_results_glm_resolved) {
+          #     tempval = tryCatch({
+          #       readRDS(file.path(power_file_name))
+          #     }, error = function(e) "", warning = function(w) "")
+          #     if (inherits(tempval, "data.frame")) {
+          #       multiuser_rv$powerresultsglm  = tempval
+          #       tryCatch({
+          #         file.remove(power_file_name)
+          #       }, error = function(e) "", warning = function(w) "")
+          #     }
+          #   }
+          #   if(power_results_glm_resolved) {
+          #     shinyjs::enable("evalbutton")
+          #     shinyjs::enable("submitbutton")
+          #     current_design_valid(TRUE)
+          #     if(is.function(prog_env$progress$close)) {
+          #       prog_env$progress$close()
+          #       rm(progress, envir = prog_env)
+          #       prog_env$need_to_initialize_progress_bar = TRUE
+          #       prog_env$progress_type = ""
+          #       close(file(progress_file_name, open="w"))
+          #     }
+          #   } else {
+          #     if (prog_env$need_to_initialize_progress_bar) {
+          #       prog_env$progress$set(message = "Calculating power...", value = 0)
+          #       prog_env$need_to_initialize_progress_bar = FALSE
+          #     }
+          #     if (input$nsim > 200) {
+          #       sims = 200
+          #     } else {
+          #       sims = input$nsim
+          #     }
+          #     if(isblocking()) {
+          #       sims = sims * 2
+          #     }
+          #     #Increment via percent
+          #     prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+          #     prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+          #     prog_env$previouspercent = prog_env$percentdone
+          #   }
+          # }
+
+          #Handle survival power
+          # if(exists("progress", envir = prog_env) &&
+          #    prog_env$progress_type == "surv") {
+          #   if(file.exists(power_file_name) &&
+          #      power_results_surv_resolved) {
+          #     tempval = tryCatch({
+          #       readRDS(file.path(power_file_name))
+          #     }, error = function(e) "", warning = function(w) "")
+          #     if (inherits(tempval, "data.frame")) {
+          #       multiuser_rv$powerresultssurv  = tempval
+          #       tryCatch({
+          #         file.remove(power_file_name)
+          #       }, error = function(e) "", warning = function(w) "")
+          #     }
+          #   }
+          #   if(power_results_surv_resolved) {
+          #     shinyjs::enable("evalbutton")
+          #     shinyjs::enable("submitbutton")
+          #     current_design_valid(TRUE)
+          #     if(is.function(prog_env$progress$close)) {
+          #       prog_env$progress$close()
+          #       rm(progress, envir = prog_env)
+          #       prog_env$need_to_initialize_progress_bar = TRUE
+          #       prog_env$progress_type = ""
+          #       close(file(progress_file_name, open="w"))
+          #     }
+          #   } else {
+          #     if (prog_env$need_to_initialize_progress_bar) {
+          #       prog_env$progress$set(message = "Calculating power...", value = 0)
+          #       prog_env$need_to_initialize_progress_bar = FALSE
+          #     }
+          #     if (input$nsim_surv > 200) {
+          #       sims = 200
+          #     } else {
+          #       sims = input$nsim_surv
+          #     }
+          #     # if(isblocking()) {
+          #     #   sims = sims * 2
+          #     # }
+          #     #Increment via percent
+          #     prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+          #     prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+          #     prog_env$previouspercent = prog_env$percentdone
+          #   }
+          # }
+
           #Handle GLM power simulation progress bars
-          if(exists("progress", envir = prog_env) &&
-             prog_env$progress_type == "glm") {
-            power_results_glm_resolved = promise_fulfilled_rejected(powerresultsglm())
-            if(power_results_glm_resolved) {
-              shinyjs::enable("evalbutton")
-              shinyjs::enable("submitbutton")
-              current_design_valid(TRUE)
-              if(is.function(prog_env$progress$close)) {
-                prog_env$progress$close()
-                rm(progress, envir = prog_env)
-                prog_env$need_to_initialize_progress_bar = TRUE
-                prog_env$progress_type = ""
-              }
-            } else {
-
-            }
-          }
-
-          #Handle survival power simulation progress bars
-          if(exists("progress", envir = prog_env) &&
-             prog_env$progress_type == "surv") {
-            power_results_surv_resolved = promise_fulfilled_rejected(powerresultssurv())
-            if(power_results_surv_resolved) {
-              shinyjs::enable("evalbutton")
-              shinyjs::enable("submitbutton")
-              current_design_valid(TRUE)
-              if(is.function(prog_env$progress$close)) {
-                prog_env$progress$close()
-                rm(progress, envir = prog_env)
-                prog_env$need_to_initialize_progress_bar = TRUE
-                prog_env$progress_type = ""
-              }
-            }
-          }
-          print("11")
+          # if(exists("progress", envir = prog_env) &&
+          #    prog_env$progress_type == "glm") {
+          #   power_results_glm_resolved = promise_fulfilled_rejected(powerresultsglm())
+          #   if(power_results_glm_resolved) {
+          #     shinyjs::enable("evalbutton")
+          #     shinyjs::enable("submitbutton")
+          #     current_design_valid(TRUE)
+          #     if(is.function(prog_env$progress$close)) {
+          #       prog_env$progress$close()
+          #       rm(progress, envir = prog_env)
+          #       prog_env$need_to_initialize_progress_bar = TRUE
+          #       prog_env$progress_type = ""
+          #     }
+          #   } else {
+          #
+          #   }
+          # }
+          #
+          # #Handle survival power simulation progress bars
+          # if(exists("progress", envir = prog_env) &&
+          #    prog_env$progress_type == "surv") {
+          #   power_results_surv_resolved = promise_fulfilled_rejected(powerresultssurv())
+          #   if(power_results_surv_resolved) {
+          #     shinyjs::enable("evalbutton")
+          #     shinyjs::enable("submitbutton")
+          #     current_design_valid(TRUE)
+          #     if(is.function(prog_env$progress$close)) {
+          #       prog_env$progress$close()
+          #       rm(progress, envir = prog_env)
+          #       prog_env$need_to_initialize_progress_bar = TRUE
+          #       prog_env$progress_type = ""
+          #     }
+          #   }
+          # }
+          # print("11")
           # print(current_design_valid())
           # browser()
           # print(class(powerresultsglm))
@@ -1099,19 +1194,149 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           #   }
           # }
         })
-      },
-        suspended = TRUE
-      )
-      observeEvent(c(input$submitbutton, input$evalbutton),{
-        multiuser_helper$resume()
-      }, once = TRUE)
-    }
+      }
+    }, label = "multiuser_observer_runmatrix", priority = 2)
+
+    multiuser_helper_glm = observe({
+      req(powerresultsglm_container())
+      if(multiuser && evaluationtype() == "glm") {
+        invalidateLater(500)
+        power_results_glm_resolved = future::resolved(powerresultsglm_container())
+        isolate({
+          #Handle GLM power
+          if(exists("progress", envir = prog_env) &&
+             prog_env$progress_type == "glm") {
+            if(file.exists(power_file_name) &&
+               power_results_glm_resolved) {
+              tempval = tryCatch({
+                readRDS(file.path(power_file_name))
+              }, error = function(e) "", warning = function(w) "")
+              if (inherits(tempval, "data.frame")) {
+                multiuser_rv$powerresultsglm  = tempval
+                tryCatch({
+                  file.remove(power_file_name)
+                }, error = function(e) "", warning = function(w) "")
+              }
+            }
+            if(power_results_glm_resolved) {
+              shinyjs::enable("evalbutton")
+              shinyjs::enable("submitbutton")
+              current_design_valid(TRUE)
+              if(is.function(prog_env$progress$close)) {
+                prog_env$progress$close()
+                rm(progress, envir = prog_env)
+                prog_env$need_to_initialize_progress_bar = TRUE
+                prog_env$progress_type = ""
+                close(file(progress_file_name, open="w"))
+              }
+            } else {
+              if (prog_env$need_to_initialize_progress_bar) {
+                prog_env$progress$set(message = "Calculating power...", value = 0)
+                prog_env$need_to_initialize_progress_bar = FALSE
+              }
+              if (input$nsim > 200) {
+                sims = 200
+              } else {
+                sims = input$nsim
+              }
+              if(isblocking()) {
+                sims = sims * 2
+              }
+              #Increment via percent
+              prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+              prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+              prog_env$previouspercent = prog_env$percentdone
+            }
+          }
+        })
+      }
+    }, label = "multiuser_observer_glm", priority = 1)
+
+    multiuser_helper_surv = observe({
+      req(powerresultssurv_container())
+      if(multiuser && evaluationtype() == "surv") {
+        invalidateLater(500)
+        power_results_surv_resolved = future::resolved(powerresultssurv_container())
+        isolate({
+          #Handle survival power
+          if(exists("progress", envir = prog_env) &&
+             prog_env$progress_type == "surv") {
+            if(file.exists(power_file_name) &&
+               power_results_surv_resolved) {
+              tempval = tryCatch({
+                readRDS(file.path(power_file_name))
+              }, error = function(e) "", warning = function(w) "")
+              if (inherits(tempval, "data.frame")) {
+                multiuser_rv$powerresultssurv  = tempval
+                tryCatch({
+                  file.remove(power_file_name)
+                }, error = function(e) "", warning = function(w) "")
+              }
+            }
+            if(power_results_surv_resolved) {
+              shinyjs::enable("evalbutton")
+              shinyjs::enable("submitbutton")
+              current_design_valid(TRUE)
+              if(is.function(prog_env$progress$close)) {
+                prog_env$progress$close()
+                rm(progress, envir = prog_env)
+                prog_env$need_to_initialize_progress_bar = TRUE
+                prog_env$progress_type = ""
+                close(file(progress_file_name, open="w"))
+              }
+            } else {
+              if (prog_env$need_to_initialize_progress_bar) {
+                prog_env$progress$set(message = "Calculating power...", value = 0)
+                prog_env$need_to_initialize_progress_bar = FALSE
+              }
+              if (input$nsim_surv > 200) {
+                sims = 200
+              } else {
+                sims = input$nsim_surv
+              }
+              #Increment via percent
+              prog_env$percentdone = (file.info(progress_file_name)$size - 1) / sims
+              prog_env$progress$inc(prog_env$percentdone - prog_env$previouspercent)
+              prog_env$previouspercent = prog_env$percentdone
+            }
+          }
+        })
+      }
+    }, label = "multiuser_observer_surv", priority = 0)
+
 
     if(multiuser) {
       shinyjs::disable("parallel")
       shinyjs::disable("parallel_eval_glm")
       shinyjs::disable("parallel_eval_surv")
     }
+
+    ##### Unify Run Matrix ###########
+    runmatrix = reactive({
+      if(!multiuser) {
+        runmatrix_container()
+      } else {
+        multiuser_rv$runmatrix
+      }
+    }, label = "runmatrix_unifier")
+
+    powerresultsglm = reactive({
+      if(!multiuser) {
+        powerresultsglm_container()
+      } else {
+        multiuser_rv$powerresultsglm
+      }
+    }, label = "power_glm_unifier")
+
+
+    powerresultssurv = reactive({
+      if(!multiuser) {
+        powerresultssurv_container()
+      } else {
+        multiuser_rv$powerresultssurv
+      }
+    }, label = "power_surv_unifier")
+
 
     inputlist_htc = reactive({
       input$submitbutton
@@ -1613,63 +1838,46 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       }
     })
 
-    # This infix operator uses a promise pipe when multiuser, otherwise defaulting to the usual pipe
-    # This operator shows where async operations are taking place.
-    if(multiuser) {
-      `%then%` = promises::`%...>%`
-    } else {
-      `%then%` = `%>%`
-    }
-
-    runmatrix = reactive({
-      on.exit({
-        if(!multiuser) {
+    ###### Run Matrix ######
+    runmatrix_container = reactive({
+      if(!multiuser) {
+        on.exit({
           shinyjs::enable("evalbutton")
           shinyjs::enable("submitbutton")
           current_design_valid(TRUE)
+        }, add = TRUE)
+        shinyjs::disable("submitbutton")
+        shinyjs::disable("evalbutton")
+        if (input$setseed) {
+          set.seed(input$seed)
         }
-      }, add = TRUE)
-      shinyjs::disable("submitbutton")
-      shinyjs::disable("evalbutton")
-      if(multiuser) {
-        prog_env$previouspercent = 0
-        prog_env$percentdone = 0
-        prog_env$need_to_initialize_progress_bar = TRUE
-        prog_env$progress = Progress$new()
-        prog_env$progress_type = "gen"
-        prog_env$progress$set(message = "Setting up...", value = 0)
-      }
-      if (input$setseed) {
-        set.seed(input$seed)
-      }
-      if(!multiuser && (!as.logical(input$parallel) || !skpr_progress)) {
-        pb = inc_progress_session
-      } else {
-        pb = NULL
-      }
-      progress_wrapper = function(code) {
-        if(!as.logical(input$parallel) || !skpr_progress) {
-          withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
+        if(!multiuser && (!as.logical(input$parallel) || !skpr_progress)) {
+          pb = inc_progress_session
         } else {
-          if(!isblocking()) {
-            max_val = 1
-          } else {
-            max_val = 2
-          }
-          progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = max_val, expr = code,
-                                       handlers = c(shiny = progressr::handler_shiny))
+          pb = NULL
         }
-      }
-      candidateset = expand.grid(candidatesetall())
-      model = as.formula(input$model)
-      trials = input$trials
-      repeats = input$repeats
-      optimality = optimality()
-      parallel = as.logical(input$parallel)
-      minDopt = input$mindopt
-      aliaspower = input$aliaspower
-      advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
-      if(!multiuser) {
+        progress_wrapper = function(code) {
+          if(!as.logical(input$parallel) || !skpr_progress) {
+            withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
+          } else {
+            if(!isblocking()) {
+              max_val = 1
+            } else {
+              max_val = 2
+            }
+            progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = max_val, expr = code,
+                                         handlers = c(shiny = progressr::handler_shiny))
+          }
+        }
+        candidateset = expand.grid(candidatesetall())
+        model = as.formula(input$model)
+        trials = input$trials
+        repeats = input$repeats
+        optimality = optimality()
+        parallel = as.logical(input$parallel)
+        minDopt = input$mindopt
+        aliaspower = input$aliaspower
+        advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
         if(!isblocking()) {
           progress_wrapper({
             gen_design(candidateset = candidateset,
@@ -1715,24 +1923,43 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           })
         }
       } else {
+        shinyjs::disable("submitbutton")
+        shinyjs::disable("evalbutton")
+        prog_env$previouspercent = 0
+        prog_env$percentdone = 0
+        prog_env$need_to_initialize_progress_bar = TRUE
+        prog_env$progress = Progress$new()
+        prog_env$progress_type = "gen"
+        prog_env$progress$set(message = "Setting up design search...", value = 0)
         if (input$setseed) {
           seed_val = input$seed
         } else {
           seed_val = NULL
         }
+        candidateset = expand.grid(candidatesetall())
+        model = as.formula(input$model)
+        trials = input$trials
+        repeats = input$repeats
+        optimality = optimality()
+        parallel = as.logical(input$parallel)
+        minDopt = input$mindopt
+        aliaspower = input$aliaspower
         advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
+
         if(!isblocking()) {
-          promises::future_promise({
-            gen_design(candidateset = candidateset,
-                       model = model,
-                       trials = trials,
-                       optimality = optimality,
-                       repeats = repeats,
-                       aliaspower = aliaspower,
-                       minDopt = minDopt,
-                       parallel = parallel,
-                       advancedoptions = advancedoptions)},
-             seed = seed_val)
+          future::future({
+            temp_design = gen_design(candidateset = candidateset,
+                                     model = model,
+                                     trials = trials,
+                                     optimality = optimality,
+                                     repeats = repeats,
+                                     aliaspower = aliaspower,
+                                     minDopt = minDopt,
+                                     parallel = parallel,
+                                     advancedoptions = advancedoptions)
+            attr(temp_design, "generating.model") = NULL
+            saveRDS(temp_design, file = file.path(runmatrix_file_name))
+          }, seed = seed_val)
         } else {
           blockmodel = blockmodel()
           numberblocks = input$numberblocks
@@ -1740,7 +1967,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
                                       length(inputlist_htc()) == 1, "D", optimality())
           varianceratio = input$varianceratio
           add_blocking_columns = input$splitanalyzable
-          promises::future_promise({
+          future::future({
             spd = gen_design(candidateset = candidateset,
                              model = blockmodel,
                              trials = numberblocks,
@@ -1751,22 +1978,24 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
                              minDopt = minDopt,
                              parallel = parallel,
                              advancedoptions = advancedoptions)
-            gen_design(candidateset = candidateset,
-                       model = model,
-                       trials = trials,
-                       splitplotdesign = spd,
-                       optimality = optimality,
-                       repeats =repeats,
-                       varianceratio = varianceratio,
-                       aliaspower = aliaspower,
-                       minDopt = minDopt,
-                       parallel = parallel,
-                       add_blocking_columns = add_blocking_columns,
-                       advancedoptions = advancedoptions)},
-            seed = seed_val)
+            temp_design = gen_design(candidateset = candidateset,
+                                     model = model,
+                                     trials = trials,
+                                     splitplotdesign = spd,
+                                     optimality = optimality,
+                                     repeats =repeats,
+                                     varianceratio = varianceratio,
+                                     aliaspower = aliaspower,
+                                     minDopt = minDopt,
+                                     parallel = parallel,
+                                     add_blocking_columns = add_blocking_columns,
+                                     advancedoptions = advancedoptions)
+            attr(temp_design, "generating.model") = NULL
+            saveRDS(temp_design, file = file.path(runmatrix_file_name))
+          }, seed = seed_val)
         }
       }
-    }) |>
+    }, label = "runmatrix_container") |>
        bindEvent(input$submitbutton)
 
     evaluationtype = reactive({
@@ -1828,84 +2057,77 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       }
     })
 
+    ###### Power Results ######
     powerresults = reactive({
       if (evaluationtype() == "lm") {
-        return(runmatrix() %then%
-          eval_design(model = as.formula(isolate(input$model)),
-                      alpha = isolate(input$alpha),
+        runmatrix() %>%
+          eval_design(model = as.formula(input$model),
+                      alpha = input$alpha,
                       blocking = isblocking(),
-                      effectsize = isolate(effectsize()),
-                      conservative = isolate(input$conservative),
-                      detailedoutput = isolate(input$detailedoutput)))
+                      effectsize = effectsize(),
+                      conservative = input$conservative,
+                      detailedoutput = input$detailedoutput)
       }
-    }) |>
+    }, label = "powerresults") |>
       bindEvent(input$evalbutton)
 
-    powerresultsglm = reactive({
+    ###### Power Results GLM ######
+    powerresultsglm_container = reactive({
       req(runmatrix())
-      if(!multiuser && (!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress)) {
-        pb = inc_progress_session
-      } else {
-        pb = NULL
-      }
-      progress_wrapper = function(code) {
-        if(input$adjust_alpha) {
-          max_val = 2
-        } else {
-          max_val = 1
-        }
-        if(!input$adjust_alpha) {
-          if(isblocking()) {
-            mess = "Evaluating power (with REML):"
-          } else {
-            mess = "Evaluating power:"
-          }
-        } else {
-          if(isblocking()) {
-            mess = "Evaluating power (with adjusted Type-I error and REML):"
-          } else {
-            mess = "Evaluating power (with adjusted Type-I error):"
-          }
-        }
-        if(!as.logical(input$parallel_eval_glm) || !skpr_progress) {
-          withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
-        } else {
-          progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
-                                       handlers = c(shiny = progressr::handler_shiny))
-        }
-      }
       if (evaluationtype() == "glm") {
-        if(multiuser) {
-          prog_env$previouspercent = 0
-          prog_env$percentdone = 0
-          prog_env$need_to_initialize_progress_bar = TRUE
-          prog_env$progress = Progress$new()
-          prog_env$progress_type = "glm"
-          prog_env$progress$set(message = "Setting up simulation...", value = 0)
-        }
-        if(isblocking() && input$firth_correction) {
-          showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
-          firth_cor = FALSE
-        } else {
-          firth_cor = input$firth_correction
-        }
-        if (input$setseed) {
-          set.seed(input$seed)
-        }
-        model = as.formula(input$model)
-        alpha = input$alpha
-        blocking = isblocking()
-        nsim = input$nsim
-        varianceratios = input$varianceratio
-        glmfamily = input$glmfamily
-        effectsize_val = effectsize()
-        firth = firth_cor
-        parallel = input$parallel_eval_glm
-        adjust_alpha_inflation = input$adjust_alpha
-        detailedoutput = input$detailedoutput
-        advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
-
         if(!multiuser) {
+          if(!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+            pb = inc_progress_session
+          } else {
+            pb = NULL
+          }
+          progress_wrapper = function(code) {
+            if(input$adjust_alpha) {
+              max_val = 2
+            } else {
+              max_val = 1
+            }
+            if(!input$adjust_alpha) {
+              if(isblocking()) {
+                mess = "Evaluating power (with REML):"
+              } else {
+                mess = "Evaluating power:"
+              }
+            } else {
+              if(isblocking()) {
+                mess = "Evaluating power (with adjusted Type-I error and REML):"
+              } else {
+                mess = "Evaluating power (with adjusted Type-I error):"
+              }
+            }
+            if(!as.logical(input$parallel_eval_glm) || !skpr_progress) {
+              withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
+            } else {
+              progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
+                                           handlers = c(shiny = progressr::handler_shiny))
+            }
+          }
+          if(isblocking() && input$firth_correction) {
+            showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
+            firth_cor = FALSE
+          } else {
+            firth_cor = input$firth_correction
+          }
+          if (input$setseed) {
+            set.seed(input$seed)
+          }
+          model = as.formula(input$model)
+          alpha = input$alpha
+          blocking = isblocking()
+          nsim = input$nsim
+          varianceratios = input$varianceratio
+          glmfamily = input$glmfamily
+          effectsize_val = effectsize()
+          firth = firth_cor
+          parallel = input$parallel_eval_glm
+          adjust_alpha_inflation = input$adjust_alpha
+          detailedoutput = input$detailedoutput
+          advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
           progress_wrapper({
             eval_design_mc(runmatrix(),
                            model = model,
@@ -1922,48 +2144,67 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
                            advancedoptions = advancedoptions)
           })
         } else {
+          prog_env$previouspercent = 0
+          prog_env$percentdone = 0
+          prog_env$need_to_initialize_progress_bar = TRUE
+          prog_env$progress = Progress$new()
+          prog_env$progress_type = "glm"
+          prog_env$progress$set(message = "Setting up simulation...", value = 0)
+          if(isblocking() && input$firth_correction) {
+            showNotification("Firth correction not supported for blocked designs. Using un-penalized logistic regression.", type = "warning", duration = 10)
+            firth_cor = FALSE
+          } else {
+            firth_cor = input$firth_correction
+          }
+          if (input$setseed) {
+            set.seed(input$seed)
+          }
+          model = as.formula(input$model)
+          alpha = input$alpha
+          blocking = isblocking()
+          nsim = input$nsim
+          varianceratios = input$varianceratio
+          glmfamily = input$glmfamily
+          effectsize_val = effectsize()
+          firth = firth_cor
+          parallel = input$parallel_eval_glm
+          adjust_alpha_inflation = input$adjust_alpha
+          detailedoutput = input$detailedoutput
+          advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
+
           if (input$setseed) {
             seed_val = input$seed
           } else {
             seed_val = NULL
           }
-          advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
+          runmat = runmatrix()
           shinyjs::disable("submitbutton")
           shinyjs::disable("evalbutton")
-          runmatrix() %then%
-            (\(x)
-             {promises::future_promise({
-              eval_design_mc(x,
-                             model = model,
-                             alpha = alpha,
-                             blocking = blocking,
-                             nsim = nsim,
-                             varianceratios = varianceratios,
-                             glmfamily = glmfamily,
-                             effectsize = effectsize_val,
-                             firth = firth,
-                             parallel = parallel,
-                             adjust_alpha_inflation = adjust_alpha_inflation,
-                             detailedoutput = detailedoutput,
-                             advancedoptions = advancedoptions)},
-              seed = seed_val
-             )
-            })()
+          future::future({
+            temp_power = eval_design_mc(runmat,
+                           model = model,
+                           alpha = alpha,
+                           blocking = blocking,
+                           nsim = nsim,
+                           varianceratios = varianceratios,
+                           glmfamily = glmfamily,
+                           effectsize = effectsize_val,
+                           firth = firth,
+                           parallel = parallel,
+                           adjust_alpha_inflation = adjust_alpha_inflation,
+                           detailedoutput = detailedoutput,
+                           advancedoptions = advancedoptions)
+            attr(temp_power, "generating.model") = NULL
+            saveRDS(temp_power, file = file.path(power_file_name))
+          }, seed = seed_val)
         }
       }
-    }) |>
+    }, label = "powerresultsglm_container") |>
       bindEvent(input$evalbutton)
 
-    powerresultssurv = reactive({
+    ###### Power Results Survival ######
+    powerresultssurv_container = reactive({
       req(runmatrix())
-      if(multiuser) {
-        prog_env$previouspercent = 0
-        prog_env$percentdone = 0
-        prog_env$need_to_initialize_progress_bar = TRUE
-        prog_env$progress = Progress$new()
-        prog_env$progress_type = "surv"
-        prog_env$progress$set(message = "Setting up...", value = 0)
-      }
       if(!multiuser && (!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress)) {
         pb = inc_progress_session
       } else {
@@ -2011,6 +2252,12 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
                                     advancedoptions = advancedoptions)
           })
         } else {
+          prog_env$previouspercent = 0
+          prog_env$percentdone = 0
+          prog_env$need_to_initialize_progress_bar = TRUE
+          prog_env$progress = Progress$new()
+          prog_env$progress_type = "surv"
+          prog_env$progress$set(message = "Setting up simulation...", value = 0)
           if (input$setseed) {
             seed_val = input$seed
           } else {
@@ -2019,23 +2266,23 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
           shinyjs::disable("submitbutton")
           shinyjs::disable("evalbutton")
-          runmatrix() %then%
-            (\(x)
-             {promises::future_promise({
-                eval_design_survival_mc(x,
-                                        model = model,
-                                        alpha = alpha,
-                                        nsim = nsim,
-                                        censorpoint = censorpoint,
-                                        censortype = censortype,
-                                        distribution = distribution,
-                                        parallel = parallel,
-                                        effectsize = effectsize_val,
-                                        detailedoutput = detailedoutput,
-                                        advancedoptions = advancedoptions)},
-                seed = seed_val
-             )
-            })()
+          run_matrix = runmatrix()
+
+          future::future({
+            temp_power = eval_design_survival_mc(run_matrix,
+                                    model = model,
+                                    alpha = alpha,
+                                    nsim = nsim,
+                                    censorpoint = censorpoint,
+                                    censortype = censortype,
+                                    distribution = distribution,
+                                    parallel = parallel,
+                                    effectsize = effectsize_val,
+                                    detailedoutput = detailedoutput,
+                                    advancedoptions = advancedoptions)
+            attr(temp_power, "generating.model") = NULL
+            saveRDS(temp_power, file = file.path(power_file_name))
+            }, seed = seed_val)
         }
       }
     }) |>
@@ -2117,11 +2364,12 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
     }
 
     output$runmatrix = gt::render_gt({
+      req(runmatrix())
       ord_design = input$orderdesign
       trials =  isolate(input$trials)
       opt = isolate(input$optimality)
       pal_choice = pal_option()
-      runmatrix() %then%
+      runmatrix() %>%
         style_matrix(order_vals = ord_design,
                      trials = trials,
                      optimality = opt,
@@ -2137,8 +2385,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       req(powerresults())
       alpha = isolate(input$alpha)
       colorblind = isolate(input$colorblind)
-      powerresults() %then%
-        filter_power_results() %then%
+      powerresults() %>%
+        filter_power_results() %>%
         format_table(., gt::gt(.), alpha, 0,colorblind)
     }, align = "left")
 
@@ -2147,8 +2395,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       alpha = isolate(input$alpha)
       nsim = isolate(input$nsim)
       colorblind = isolate(input$colorblind)
-      powerresultsglm() %then%
-        filter_power_results() %then%
+      powerresultsglm() %>%
+        filter_power_results() %>%
         format_table(., gt::gt(.), alpha, nsim,colorblind)
     }, align = "left") |>
       bindEvent(powerresultsglm())
@@ -2158,8 +2406,8 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
       alpha = isolate(input$alpha)
       nsim_surv = isolate(input$nsim_surv)
       colorblind = isolate(input$colorblind)
-      powerresultssurv() %then%
-        filter_power_results() %then%
+      powerresultssurv() %>%
+        filter_power_results() %>%
         format_table(., gt::gt(.), alpha, nsim_surv,colorblind)
     }, align = "left") |>
       bindEvent(powerresultssurv())
@@ -2167,14 +2415,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
     output$aliasplot = renderPlot({
       req(runmatrix())
       if(displayed_design_number_factors() > 1) {
-        runmatrix() %then%
+        runmatrix() %>%
           plot_correlations()
       }
     }) |>
       bindEvent(runmatrix(), ignoreInit = TRUE)
 
     output$fdsplot = renderPlot({
-      runmatrix() %then%
+      runmatrix() %>%
         plot_fds()
     }) |>
       bindEvent(input$submitbutton)
@@ -2185,42 +2433,43 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
     })
 
     output$dopt = renderText({
-      runmatrix() %then%
+      runmatrix() %>%
         attr("D")
     }) |>
       bindEvent(runmatrix())
 
     output$aopt = renderText({
-      runmatrix() %then%
+      runmatrix() %>%
         attr("A")
     })  |>
       bindEvent(runmatrix())
 
     output$iopt = renderText({
-      runmatrix() %then%
+      runmatrix() %>%
         attr("I")
     }) |>
       bindEvent(runmatrix())
 
     output$eopt = renderText({
-      runmatrix() %then%
+      runmatrix() %>%
         attr("E")
     }) |>
       bindEvent(runmatrix())
 
     output$gopt = renderText({
-      runmatrix() %then%
+      runmatrix() %>%
         attr("G")
     }) |>
       bindEvent(runmatrix())
 
     output$topt = renderText({
-      runmatrix() %then%
+      runmatrix() %>%
         attr("T")
     }) |>
       bindEvent(runmatrix())
 
     output$optimalsearch = renderPlot({
+      req(runmatrix())
       optimal_design_plot = function(runmat) {
         if (isolate(optimality()) %in% c("D", "G", "A")) {
           if(attr(runmat, "blocking") || attr(runmat, "splitplot")) {
@@ -2243,7 +2492,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           isolate(points(x = attr(runmat, "best"), y = attr(runmat, "optimalsearchvalues")[attr(runmat, "best")], type = "p", col = "green", pch = 16, cex = 2))
         }
       }
-      runmatrix() %then%
+      runmatrix() %>%
         optimal_design_plot()
     }) |>
       bindEvent(runmatrix())
@@ -2261,11 +2510,11 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
         }
       }
       if(evaluationtype() == "glm") {
-        powerresultsglm() %then%
+        powerresultsglm() %>%
           plot_pvalue_histogram()
       }
       if(evaluationtype() == "surv") {
-        powerresultssurv() %then%
+        powerresultssurv() %>%
           plot_pvalue_histogram()
       }
     }) |>
@@ -2305,7 +2554,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
         }
       }
-      powerresultsglm() %then%
+      powerresultsglm() %>%
         plot_parameter_estimates()
     }) |>
       bindEvent(powerresultsglm())
@@ -2336,7 +2585,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
         }
       }
-      powerresultssurv() %then%
+      powerresultssurv() %>%
         plot_parameter_estimates()
     }) |>
       bindEvent(powerresultssurv())
@@ -2398,7 +2647,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           }
         }
       }
-      powerresultsglm() %then%
+      powerresultsglm() %>%
         plot_response_histogram()
     }) |>
       bindEvent(powerresultsglm())
@@ -2444,7 +2693,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           }
         }
       }
-      powerresultssurv() %then%
+      powerresultssurv() %>%
         plot_response_histogram()
     }) |>
       bindEvent(powerresultssurv())
@@ -2465,7 +2714,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
           showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
         }
       }
-      powerresultsglm() %then%
+      powerresultsglm() %>%
         output_separation_warning()
     }) |>
       bindEvent(powerresultsglm())

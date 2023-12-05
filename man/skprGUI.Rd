@@ -4,12 +4,14 @@
 \alias{skprGUI}
 \title{Graphical User Interface for skpr}
 \usage{
-skprGUI(browser = FALSE, return_app = FALSE)
+skprGUI(browser = FALSE, return_app = FALSE, multiuser = FALSE)
 }
 \arguments{
 \item{browser}{Default `FALSE`. Whether to open the application in an external browser.}
 
 \item{return_app}{Default `FALSE`. If `TRUE`, this will return the shinyApp object.}
+
+\item{multiuser}{Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.}
 }
 \description{
 skprGUI provides a graphical user interface to skpr, within R Studio.

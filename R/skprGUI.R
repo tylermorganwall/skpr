@@ -13,7 +13,7 @@
 #'
 # nocov start
 skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
-  check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs", "promises"))
+  check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
   skpr_progress = getOption("skpr_progress",  TRUE)
 
   oplan = future::plan()

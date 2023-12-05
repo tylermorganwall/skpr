@@ -1,7 +1,11 @@
 library(shinytest2)
+library(shiny)
 
 test_that("{shinytest2} recording: apps", {
-  app <- AppDriver$new(variant = platform_variant(), name = "apps", height = 923, 
+  options("skpr_progress" = FALSE)
+  on.exit(options("skpr_progress" = NULL), add = TRUE)
+  app <- AppDriver$new(app_dir = testthat::test_path("apps"),
+    variant = platform_variant(), name = "apps", height = 923,
       width = 1619)
   app$set_inputs(setseed = TRUE)
   app$set_inputs(seed = 5)

@@ -5,6 +5,7 @@
 #'@param browser Default `FALSE`. Whether to open the application in an external browser.
 #'@param return_app Default `FALSE`. If `TRUE`, this will return the shinyApp object.
 #'@param multiuser Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.
+#'@param progress Default `TRUE`. Whether to include a progress bar in the application.
 #'
 #'@import doRNG
 #'@export
@@ -12,9 +13,9 @@
 #'#Type `skprGUI()` to begin
 #'
 # nocov start
-skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE) {
+skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progress = TRUE) {
   check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
-  skpr_progress = getOption("skpr_progress",  TRUE)
+  skpr_progress = getOption("skpr_progress",  progress)
 
   oplan = future::plan()
   original_future_call = deparse(attr(oplan,"call", exact = TRUE), width.cutoff = 500L)

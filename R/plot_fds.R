@@ -32,7 +32,7 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
                     yaxis_max = NULL, description="Fraction of Design Space") {
   if(inherits(genoutput,"list") && length(genoutput) > 1) {
     old.par = par(no.readonly = TRUE)
-    on.exit(par(old.par))
+    on.exit(par(old.par), add = TRUE)
     par(mfrow = c(1,length(genoutput)))
     fds_values = list()
     if(!plot && !is.null(yaxis_max)) {

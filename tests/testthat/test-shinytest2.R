@@ -2,8 +2,8 @@ library(shinytest2)
 library(shiny)
 
 test_that("{shinytest2} recording: apps", {
-  options("skpr_progress" = FALSE)
-  on.exit(options("skpr_progress" = NULL), add = TRUE)
+  options("in_skpr_test_environment" = TRUE)
+  on.exit(options("in_skpr_test_environment" = NULL), add = TRUE)
   app <- AppDriver$new(app_dir = testthat::test_path("apps"),
     variant = platform_variant(), name = "apps", height = 923,
       width = 1619)

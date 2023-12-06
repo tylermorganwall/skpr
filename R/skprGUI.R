@@ -5,7 +5,8 @@
 #'@param browser Default `FALSE`. Whether to open the application in an external browser.
 #'@param return_app Default `FALSE`. If `TRUE`, this will return the shinyApp object.
 #'@param multiuser Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.
-#'@param progress Default `TRUE`. Whether to include a progress bar in the application.
+#'@param progress Default `TRUE`. Whether to include a progress bar in the application. Note: if `multiuser = TRUE`, progress
+#'bars are turned on by default.
 #'
 #'@import doRNG
 #'@export
@@ -1855,22 +1856,26 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         if (input$setseed) {
           set.seed(input$seed)
         }
-        if(!multiuser && (!as.logical(input$parallel) || !skpr_progress)) {
+        if(!as.logical(input$parallel) && skpr_progress) {
           pb = inc_progress_session
         } else {
           pb = NULL
         }
         progress_wrapper = function(code) {
-          if(!as.logical(input$parallel) || !skpr_progress) {
-            withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
-          } else {
-            if(!isblocking()) {
-              max_val = 1
+          if(skpr_progress) {
+            if(!as.logical(input$parallel)) {
+              withProgress(message = "Generating design:", value = 0, min = 0, max = 1, expr = code)
             } else {
-              max_val = 2
+              if(!isblocking()) {
+                max_val = 1
+              } else {
+                max_val = 2
+              }
+              progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = max_val, expr = code,
+                                           handlers = c(shiny = progressr::handler_shiny))
             }
-            progressr::withProgressShiny(message = "Generating design:", value = 0, min = 0, max = max_val, expr = code,
-                                         handlers = c(shiny = progressr::handler_shiny))
+          } else {
+            code
           }
         }
         candidateset = expand.grid(candidatesetall())
@@ -2080,7 +2085,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       req(runmatrix())
       if (evaluationtype() == "glm") {
         if(!multiuser) {
-          if(!isolate(as.logical(input$parallel_eval_glm)) || !skpr_progress) {
+          if(!as.logical(input$parallel_eval_glm) && skpr_progress) {
             pb = inc_progress_session
           } else {
             pb = NULL
@@ -2104,11 +2109,15 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                 mess = "Evaluating power (with adjusted Type-I error):"
               }
             }
-            if(!as.logical(input$parallel_eval_glm) || !skpr_progress) {
-              withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
+            if(skpr_progress) {
+              if(!as.logical(input$parallel_eval_glm)) {
+                withProgress(message = mess, value = 0, min = 0, max = max_val, expr = code)
+              } else {
+                progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
+                                             handlers = c(shiny = progressr::handler_shiny))
+              }
             } else {
-              progressr::withProgressShiny(message = mess, value = 0, min = 0, max = max_val, expr = code,
-                                           handlers = c(shiny = progressr::handler_shiny))
+              code
             }
           }
           if(isblocking() && input$firth_correction) {
@@ -2209,18 +2218,22 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     ###### Power Results Survival ######
     powerresultssurv_container = reactive({
       req(runmatrix())
-      if(!multiuser && (!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress)) {
+      if(!multiuser && (!as.logical(input$parallel_eval_surv) && skpr_progress)) {
         pb = inc_progress_session
       } else {
         pb = NULL
       }
       progress_wrapper = function(code) {
         mess = "Evaluating design:"
-        if(!isolate(as.logical(input$parallel_eval_surv)) || !skpr_progress) {
-          withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
+        if(skpr_progress) {
+          if(!as.logical(input$parallel_eval_surv)) {
+            withProgress(message = mess, value = 0, min = 0, max = 1, expr = code)
+          } else {
+            progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
+                                         handlers = c(shiny = progressr::handler_shiny))
+          }
         } else {
-          progressr::withProgressShiny(message = mess, value = 0, min = 0, max = 1, expr = code,
-                                       handlers = c(shiny = progressr::handler_shiny))
+          code
         }
       }
       if (evaluationtype() == "surv") {
@@ -2711,12 +2724,15 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             }
           }
         }
-        if (likelyseparation) {
+        if (likelyseparation && !getOption("in_skpr_test_environment", TRUE)) {
           showNotification("Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.", type = "warning", duration = 10)
         }
       }
-      powerresultsglm() %>%
-        output_separation_warning()
+      if(evaluationtype() == "glm") {
+        powerresultsglm() %>%
+          output_separation_warning()
+      }
+      ""
     }) |>
       bindEvent(powerresultsglm())
 

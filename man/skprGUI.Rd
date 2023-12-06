@@ -4,7 +4,12 @@
 \alias{skprGUI}
 \title{Graphical User Interface for skpr}
 \usage{
-skprGUI(browser = FALSE, return_app = FALSE, multiuser = FALSE)
+skprGUI(
+  browser = FALSE,
+  return_app = FALSE,
+  multiuser = FALSE,
+  progress = TRUE
+)
 }
 \arguments{
 \item{browser}{Default `FALSE`. Whether to open the application in an external browser.}
@@ -12,6 +17,8 @@ skprGUI(browser = FALSE, return_app = FALSE, multiuser = FALSE)
 \item{return_app}{Default `FALSE`. If `TRUE`, this will return the shinyApp object.}
 
 \item{multiuser}{Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.}
+
+\item{progress}{Default `TRUE`. Whether to include a progress bar in the application.}
 }
 \description{
 skprGUI provides a graphical user interface to skpr, within R Studio.

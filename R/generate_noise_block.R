@@ -1,8 +1,8 @@
 #'@title Generate Noise Block
 #'
 #'@description Generates the noise to be added in the REML power calculation
-#'@param RunMatrix The run matrix
-#'@return Normalized run matrix
+#'
+#'@return Noise vector
 #'@keywords internal
 generate_noise_block = function(noise, groups) {
   listblocknoise = list()

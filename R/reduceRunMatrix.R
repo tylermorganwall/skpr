@@ -2,8 +2,6 @@
 #'
 #'@description Remove columns not in model
 #'
-#'@param ModelMatrix The model matrix
-#'@param model The formula
 #'@return The reduced model matrix.
 #'@keywords internal
 reduceRunMatrix = function(RunMatrix, model, first_run = TRUE) {

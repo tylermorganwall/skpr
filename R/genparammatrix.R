@@ -3,9 +3,9 @@
 #'@description Generates the parameter matrix L to isolate the levels of interest
 #' in the calculation of power
 #'
-#'@param Parameters Number of parameters total in model.
-#'@param Levels Number of levels in parameter of interest
-#'@param G Number of levels/parameters preceeding parameter of interest
+#'@param parameters Number of parameters total in model.
+#'@param levels Number of levels in parameter of interest
+#'@param g Number of levels/parameters preceeding parameter of interest
 #'@return The parameter vector Q isolating the levels of parameter of interest
 #'@keywords internal
 genparammatrix = function(parameters, levels, g) {

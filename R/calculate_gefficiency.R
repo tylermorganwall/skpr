@@ -1,7 +1,6 @@
 #'@title Calculate G Efficiency
 #'
 #'@description Either calculates G-Efficiency by Monte Carlo sampling from the design space (ignoring constraints), searching for the maximum point (slower but higher quality), or by using a user-specified candidate set for the design space (fastest).
-#'@param RunMatrix The run matrix
 #'@return Normalized run matrix
 #'@keywords internal
 calculate_gefficiency = function(design, calculation_type = "random", randsearches = 1000,  design_space_mm = NULL) {

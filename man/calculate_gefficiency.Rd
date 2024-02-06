@@ -11,9 +11,6 @@ calculate_gefficiency(
   design_space_mm = NULL
 )
 }
-\arguments{
-\item{RunMatrix}{The run matrix}
-}
 \value{
 Normalized run matrix
 }

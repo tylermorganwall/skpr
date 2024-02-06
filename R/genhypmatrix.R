@@ -2,9 +2,9 @@
 #'
 #'@description Generates hypothesis matrix for power calculation
 #'
-#'@param Parameters Number of parameters total in model
-#'@param Levels Number of levels in parameter of interest
-#'@param G Number of levels/parameters preceeding parameter of interest
+#'@param parameters Number of parameters total in model
+#'@param levels Number of levels in parameter of interest
+#'@param g Number of levels/parameters preceding parameter of interest
 #'@return The parameter matrix L isolating the levels of parameter of interest
 #'@keywords internal
 genhypmatrix = function(parameters, levels, g) {

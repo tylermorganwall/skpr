@@ -605,6 +605,7 @@ gen_design = function(candidateset, model, trials,
     spdnormalized = normalize_design(splitplotdesign)
   }
 
+
   splitplot = FALSE
   blocking = FALSE
   #-----generate blocked design with replicates-----#
@@ -1300,9 +1301,17 @@ gen_design = function(candidateset, model, trials,
     attr(design, "z.matrix.list") = zlist
     finallist = list()
     counterfinallist = 1
-    for (row in seq_len(nrow(splitplotdesign))) {
+    splitplotdesign_all_char = splitplotdesign
+    spd_fctr_levels = list()
+    for(col in seq_len(ncol(splitplotdesign_all_char))) {
+      if(is.factor(splitplotdesign_all_char[,col])) {
+        spd_fctr_levels[[col]] = levels(splitplotdesign_all_char[,col])
+        splitplotdesign_all_char[,col] = as.character(splitplotdesign_all_char[,col])
+      }
+    }
+    for (row in seq_len(nrow(splitplotdesign_all_char))) {
       for (size in seq_len(blocksizes[row])) {
-        finallist[[counterfinallist]] = splitplotdesign[row, ]
+        finallist[[counterfinallist]] = splitplotdesign_all_char[row, ]
         counterfinallist = counterfinallist + 1
       }
     }
@@ -1310,6 +1319,9 @@ gen_design = function(candidateset, model, trials,
     for (col in seq_len(ncol(finalspddesign))) {
       if (is.numeric(finalspddesign[, col])) {
         design[, col] = finalspddesign[, col]
+      }
+      if (is.character(finalspddesign[, col]) && length(spd_fctr_levels[[col]] > 0)) {
+        levels(design[, col]) = spd_fctr_levels[[col]]
       }
     }
   }

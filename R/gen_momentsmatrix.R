@@ -2,7 +2,6 @@
 #'
 #'@description Returns number of levels prior to each parameter
 #'
-#'@param Levelvector Returns a vector consisting of the number
 #'@keywords internal
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)

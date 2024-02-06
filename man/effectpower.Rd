@@ -14,6 +14,8 @@ effectpower(
 )
 }
 \arguments{
+\item{RunMatrix}{The model matrix}
+
 \item{levelvector}{The number of levels in each parameter (1st is always the intercept)}
 
 \item{anticoef}{The anticipated coefficients}
@@ -22,7 +24,7 @@ effectpower(
 
 \item{vinv}{The V inverse matrix}
 
-\item{X}{The model matrix}
+\item{degrees}{Degrees of freedom}
 }
 \value{
 The effect power for the parameters

@@ -6,9 +6,6 @@
 \usage{
 priorlevels(levelvector)
 }
-\arguments{
-\item{Levelvector}{Returns a vector consisting of the number}
-}
 \value{
 Returns a vector consisting of the number
 of levels preceeding each parameter (including the intercept)

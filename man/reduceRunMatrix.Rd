@@ -6,11 +6,6 @@
 \usage{
 reduceRunMatrix(RunMatrix, model, first_run = TRUE)
 }
-\arguments{
-\item{model}{The formula}
-
-\item{ModelMatrix}{The model matrix}
-}
 \value{
 The reduced model matrix.
 }

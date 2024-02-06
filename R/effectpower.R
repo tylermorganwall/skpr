@@ -3,11 +3,12 @@
 #'@description Calculates the effect power given the anticipated coefficients and the type-I error
 #'
 #'
-#'@param X The model matrix
+#'@param RunMatrix The model matrix
 #'@param levelvector The number of levels in each parameter (1st is always the intercept)
 #'@param anticoef The anticipated coefficients
 #'@param alpha the specified type-I error
 #'@param vinv The V inverse matrix
+#'@param degrees Degrees of freedom
 #'@return The effect power for the parameters
 #'@keywords internal
 effectpower = function(RunMatrix, levelvector, anticoef, alpha, vinv = NULL, degrees=NULL) {

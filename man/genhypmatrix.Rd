@@ -7,11 +7,11 @@
 genhypmatrix(parameters, levels, g)
 }
 \arguments{
-\item{Parameters}{Number of parameters total in model}
+\item{parameters}{Number of parameters total in model}
 
-\item{Levels}{Number of levels in parameter of interest}
+\item{levels}{Number of levels in parameter of interest}
 
-\item{G}{Number of levels/parameters preceeding parameter of interest}
+\item{g}{Number of levels/parameters preceding parameter of interest}
 }
 \value{
 The parameter matrix L isolating the levels of parameter of interest

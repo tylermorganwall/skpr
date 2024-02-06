@@ -6,11 +6,8 @@
 \usage{
 generate_noise_block(noise, groups)
 }
-\arguments{
-\item{RunMatrix}{The run matrix}
-}
 \value{
-Normalized run matrix
+Noise vector
 }
 \description{
 Generates the noise to be added in the REML power calculation

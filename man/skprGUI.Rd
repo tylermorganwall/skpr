@@ -18,7 +18,8 @@ skprGUI(
 
 \item{multiuser}{Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.}
 
-\item{progress}{Default `TRUE`. Whether to include a progress bar in the application.}
+\item{progress}{Default `TRUE`. Whether to include a progress bar in the application. Note: if `multiuser = TRUE`, progress
+bars are turned on by default.}
 }
 \description{
 skprGUI provides a graphical user interface to skpr, within R Studio.

@@ -11,6 +11,7 @@
 #'@param custompar Default NULL. Custom parameters to pass to the `par` function for base R plotting.
 #'@param standardize Default `TRUE`. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
 #'standardizing the numeric columns can increase multi-collinearity (predictors that are correlated with other predictors in the model).
+#'@param plot Default `TRUE`. If `FALSE`, this will return the correlation matrix.
 #'@return Silently returns the correlation matrix with the proper row and column names.
 #'@import graphics grDevices
 #'@export
@@ -34,7 +35,7 @@
 #'plot_correlations(cardesign, customcolors = c("blue", "grey", "red"))
 #'plot_correlations(cardesign, customcolors = c("blue", "green", "yellow", "orange", "red"))
 plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow = 2, custompar = NULL,
-                             standardize = TRUE) {
+                             standardize = TRUE, plot = TRUE) {
   #Remove skpr-generated REML blocking indicators if present
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
@@ -107,6 +108,9 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   mm = model.matrix(model, genoutput, contrasts.arg = contrastlist)
   #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
   cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1, -1])
+  if(!plot) {
+    return(cormat)
+  }
 
   if (is.null(customcolors)) {
     imagecolors = viridis::viridis(101)

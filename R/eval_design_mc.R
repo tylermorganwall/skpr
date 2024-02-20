@@ -753,6 +753,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     run_search = function(iterations, is_shiny) {
       prog = progressr::progressor(steps = nsim)
       foreach::foreach (j = seq_along(iterations), .combine = "rbind",
+                        .errorhandling = "remove",
                         .options.future = list(packages = packagelist,
                                                globals = c("extractPvalues", "effectpowermc", "RunMatrixReduced", "is_shiny", "blocking",
                                                            "responses", "contrastslist", "model_formula", "glmfamily", "glmfamilyname", "calceffect",

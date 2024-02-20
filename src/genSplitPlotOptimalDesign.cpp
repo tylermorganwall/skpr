@@ -44,7 +44,7 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
   //Checks if the initial matrix is singular. If so, randomly generates a new design nTrials times.
   for(int j = 1; j < candidatelist.cols(); j++) {
     if(ones.col(0).cwiseEqual(candidatelist.col(j)).all()) {
-      throw std::runtime_error("skpr: Singular model matrix from factor aliased into intercept, revise model");
+      Rcpp::stop("skpr: Singular model matrix from factor aliased into intercept, revise model");
     }
   }
   int nTrials = initialdesign.rows();
@@ -82,7 +82,7 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
   Eigen::VectorXi candidateRow = initialRows;
   Eigen::VectorXi shuffledindices;
   if(nTrials < candidatelist.cols() + blockedCols + numberinteractions) {
-    throw std::runtime_error("skpr: Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
+    Rcpp::stop("skpr: Too few runs to generate initial non-singular matrix: increase the number of runs or decrease the number of parameters in the matrix");
   }
   //Checks if the initial matrix is singular. If so, randomly generates a new design maxSingularityChecks times.
   for (int check = 0; check < maxSingularityChecks; check++) {

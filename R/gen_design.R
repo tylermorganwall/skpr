@@ -574,7 +574,15 @@ gen_design = function(candidateset, model, trials,
               "' don't match candidate set '",paste0(cand_coltype[aug_coltype != cand_coltype],collapse=", "),
               "'--attempting to covert columns to that of the candidate set")
       for(i in seq_len(ncol(augmentdesign))) {
-        augmentdesign[,i] = methods::as(augmentdesign[,i],cand_coltype[i])
+        if(cand_coltype[i] == "factor") {
+          candsetlevels = levels(candidateset[,i])
+          augmentlevels = unique(augmentdesign[,i, drop = TRUE])
+          augmentlevels_unique = augmentlevels[!augmentlevels %in% candsetlevels]
+          candsetlevels_all = c(candsetlevels,augmentlevels_unique)
+          augmentdesign[,i] = factor(augmentdesign[,i, drop = TRUE],levels=candsetlevels_all)
+        } else {
+          augmentdesign[,i] = methods::as(augmentdesign[,i, drop = TRUE],cand_coltype[i])
+        }
       }
     }
     if (nrow(augmentdesign) >= trials) {
@@ -944,6 +952,7 @@ gen_design = function(candidateset, model, trials,
       run_search = function(iterations, is_shiny) {
         prog = progressr::progressor(steps = repeats)
         foreach::foreach(i = iterations,
+                         .errorhandling = "remove",
                          .options.future = list(globals = c("genOptimalDesign","genBlockedOptimalDesign", "candidatesetmm", "trials",
                                                             "initialreplace", "augmentdesign", "augmentedrows", "augmentdesignmm",
                                                             "progress", "is_shiny", "progressbarupdates", "repeats", "num_updates",
@@ -1059,13 +1068,15 @@ gen_design = function(candidateset, model, trials,
       nc = future::nbrOfWorkers()
       run_search = function(iterations, is_shiny) {
         prog = progressr::progressor(steps = repeats)
-        foreach::foreach(i = iterations, .options.future = list(globals = c("genSplitPlotOptimalDesign", "candidatesetmm", "trials", "candidateset",
-                                                                            "initialreplace", "blockedmm", "interactionlist", "disallowedcomb",
-                                                                            "anydisallowed",
-                                                                            "progress", "is_shiny", "progressbarupdates", "repeats", "num_updates",
-                                                                            "initialdesign", "optimality", "mm", "aliasmm", "blockedmodelmatrix",
-                                                                            "minDopt", "tolerance",  "kexchange" ,"V" ,"prog" ,"nc"),
-                                                                seed = TRUE)) %dofuture% {
+        foreach::foreach(i = iterations,
+                         .errorhandling = "remove",
+                         .options.future = list(globals = c("genSplitPlotOptimalDesign", "candidatesetmm", "trials", "candidateset",
+                                                            "initialreplace", "blockedmm", "interactionlist", "disallowedcomb",
+                                                            "anydisallowed",
+                                                            "progress", "is_shiny", "progressbarupdates", "repeats", "num_updates",
+                                                            "initialdesign", "optimality", "mm", "aliasmm", "blockedmodelmatrix",
+                                                            "minDopt", "tolerance",  "kexchange" ,"V" ,"prog" ,"nc"),
+                                                seed = TRUE)) %dofuture% {
           if(progress || is_shiny) {
             if(is_shiny && i %in% progressbarupdates) {
               prog(sprintf(" (%i workers) ", nc), amount = repeats/num_updates)
@@ -1092,7 +1103,7 @@ gen_design = function(candidateset, model, trials,
   criteria = list()
   designcounter = 1
 
-  for (i in seq_len(repeats)) {
+  for (i in seq_len(length(genOutput))) {
     if (!is.na(genOutput[[i]]["criterion"])) {
       designs[designcounter] = genOutput[[i]]["modelmatrix"]
       rowindicies[designcounter] = genOutput[[i]]["indices"]

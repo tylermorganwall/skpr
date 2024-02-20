@@ -284,6 +284,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     run_search = function(iterations) {
        prog = progressr::progressor(steps = nsim)
        foreach::foreach(i = iterations,
+                        .errorhandling = "remove",
                         .options.future = list(packages = parallel_pkgs,
                                                globals = c("extractPvalues", "pvalfunction",
                                                            "parameter_names", "progress", "progressbarupdates",

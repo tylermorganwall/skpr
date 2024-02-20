@@ -328,6 +328,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     run_search = function(iterations, is_shiny, surv_args) {
       prog = progressr::progressor(steps = nsim)
       foreach::foreach(i = iterations,
+                       .errorhandling = "remove",
                        .options.future = list(packages = "survival",
                                               globals  = c("extractPvalues", "rfunctionsurv", "parameter_names", "progress", "progressbarupdates",
                                                             "model", "distribution", "RunMatrixReduced", "ModelMatrix", "anticoef" ,"nc", "prog",

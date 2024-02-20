@@ -54,7 +54,8 @@
 <span>  customcolors <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  pow <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  custompar <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  standardize <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  standardize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  plot <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -85,6 +86,10 @@ model used to generate/evaluate the design.</p></dd>
 <dt>standardize</dt>
 <dd><p>Default `TRUE`. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
 standardizing the numeric columns can increase multi-collinearity (predictors that are correlated with other predictors in the model).</p></dd>
+
+
+<dt>plot</dt>
+<dd><p>Default `TRUE`. If `FALSE`, this will return the correlation matrix.</p></dd>
 
 </dl></div>
     <div class="section level2">

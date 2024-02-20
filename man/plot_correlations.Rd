@@ -10,7 +10,8 @@ plot_correlations(
   customcolors = NULL,
   pow = 2,
   custompar = NULL,
-  standardize = TRUE
+  standardize = TRUE,
+  plot = TRUE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ model used to generate/evaluate the design.}
 
 \item{standardize}{Default `TRUE`. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
 standardizing the numeric columns can increase multi-collinearity (predictors that are correlated with other predictors in the model).}
+
+\item{plot}{Default `TRUE`. If `FALSE`, this will return the correlation matrix.}
 }
 \value{
 Silently returns the correlation matrix with the proper row and column names.

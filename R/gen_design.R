@@ -1097,7 +1097,6 @@ gen_design = function(candidateset, model, trials,
       genOutput = run_search(seq_len(repeats), advancedoptions$GUI)
     }
   }
-
   designs = list()
   rowindicies = list()
   criteria = list()
@@ -1177,7 +1176,10 @@ gen_design = function(candidateset, model, trials,
   }
 
   if (optimality == "A" || optimality == "I" || optimality == "ALIAS" || optimality == "G") {
-    criteria = criteria[criteria > 0]
+    negative_criteria = criteria < 0
+    criteria = criteria[!negative_criteria]
+    rowindicies = rowindicies[!negative_criteria]
+    designs = designs[!negative_criteria]
     if (length(criteria) == 0) {
       stop("skpr: No non-singular designs found--increase number of repeats.")
     }

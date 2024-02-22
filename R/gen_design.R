@@ -320,12 +320,11 @@ gen_design = function(candidateset, model, trials,
   } else {
     tolerance = advancedoptions$design_search_tolerance
   }
-
-  if (is.null(advancedoptions$alias_compare)) {
-    advancedoptions$alias_compare = TRUE
-  }
   #Check for progress bar and GUI options
   if (!is.null(advancedoptions)) {
+    if (is.null(advancedoptions$alias_compare)) {
+      advancedoptions$alias_compare = TRUE
+    }
     if (is.null(advancedoptions$GUI)) {
       advancedoptions$GUI = FALSE
     }
@@ -342,7 +341,7 @@ gen_design = function(candidateset, model, trials,
     if(!is.null(advancedoptions$g_efficiency_method) && advancedoptions$g_efficiency_method != "none") {
       if(advancedoptions$g_efficiency_method == "random") {
         if(is.null(advancedoptions$g_efficiency_samples))  {
-          advancedoptions$g_efficiency_samples = 1000
+          advancedoptions$g_efficiency_samples = 10000
         }
       } else if (advancedoptions$g_efficiency_method == "optim") {
         if(is.null(advancedoptions$g_efficiency_samples))  {
@@ -352,7 +351,7 @@ gen_design = function(candidateset, model, trials,
         if(is.null(advancedoptions$g_efficiency_samples) || is.numeric(advancedoptions$g_efficiency_samples))  {
           warning("no data.frame passed to advancedoptions$g_efficiency_samples, ignoring and using random sampling")
           advancedoptions$g_efficiency_method == "random"
-          advancedoptions$g_efficiency_samples = 1000
+          advancedoptions$g_efficiency_samples = 10000
         }
         contrastslisttemp = list()
         for (x in names(advancedoptions$g_efficiency_samples[lapply(advancedoptions$g_efficiency_samples, class) %in%
@@ -370,15 +369,30 @@ gen_design = function(candidateset, model, trials,
       } else {
         warning("advancedoptions$g_efficiency_method not recognized, defaulting to random search")
         advancedoptions$g_efficiency_method = "random"
-        advancedoptions$g_efficiency_samples = 1000
+        advancedoptions$g_efficiency_samples = 10000
       }
     } else {
-      advancedoptions$g_efficiency_method = "none"
+      if(optimality == "G") {
+        advancedoptions$g_efficiency_method = "random"
+        advancedoptions$g_efficiency_samples = 10000
+
+      } else {
+        advancedoptions$g_efficiency_method = "none"
+        advancedoptions$g_efficiency_samples = 10000
+      }
     }
   } else {
     advancedoptions = list()
+    advancedoptions$alias_compare = TRUE
     advancedoptions$GUI = FALSE
-    advancedoptions$g_efficiency_method = "none"
+    amodel = NULL
+    if(optimality == "G") {
+      advancedoptions$g_efficiency_method = "random"
+      advancedoptions$g_efficiency_samples = 1000
+    } else {
+      advancedoptions$g_efficiency_method = "none"
+      advancedoptions$g_efficiency_samples = 1000
+    }
     progressBarUpdater = NULL
   }
   #turn off progress bar for non-interactive sessions
@@ -1369,7 +1383,7 @@ gen_design = function(candidateset, model, trials,
 
   if (!splitplot && !blocking) {
     tryCatch({
-      if(advancedoptions$g_efficiency_method == "none") {
+      if(advancedoptions$g_efficiency_method == "none" && optimality != "G") {
         attr(design, "G") = "Not Computed"
       } else if(advancedoptions$g_efficiency_method != "custom") {
         attr(design, "G") = calculate_gefficiency(design, calculation_type = advancedoptions$g_efficiency_method,

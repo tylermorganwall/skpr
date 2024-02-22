@@ -15,7 +15,7 @@
 #'
 # nocov start
 skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progress = TRUE) {
-  check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs"))
+  check_for_suggest_packages(c("shiny","shinythemes","shinyjs","gt","rintrojs", "ggplot2"))
   skpr_progress = getOption("skpr_progress",  progress)
 
   oplan = future::plan()
@@ -97,6 +97,29 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
   invalidateLater = shiny::invalidateLater
   observe = shiny::observe
   Progress = shiny::Progress
+  ggplot = ggplot2::ggplot
+  geom_point = ggplot2::geom_point
+  geom_errorbar = ggplot2::geom_errorbar
+  theme = ggplot2::theme
+  theme_light = ggplot2::theme_light
+  element_blank = ggplot2::element_blank
+  element_text = ggplot2::element_text
+  scale_x_continuous = ggplot2::scale_x_continuous
+  scale_y_continuous = ggplot2::scale_y_continuous
+  scale_x_discrete = ggplot2::scale_x_discrete
+  scale_y_discrete = ggplot2::scale_y_discrete
+  scale_color_manual = ggplot2::scale_color_manual
+  labs = ggplot2::labs
+  aes = ggplot2::aes
+  geom_hline = ggplot2::geom_hline
+
+  if(!getOption("in_skpr_test_environment", TRUE)) {
+    est_plot_width = "auto"
+    pvalue_plot_width = "auto"
+  } else {
+    est_plot_width = 922
+    pvalue_plot_width = 952
+  }
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
   border-radius: 15px;
@@ -786,6 +809,16 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                   )
                 )
               )
+            ),
+            conditionalPanel(condition = "input.evaltype == \'surv\'",
+                             fluidRow(
+                               hr(),
+                               column(
+                                 width = 12,
+                                 h3("Simulated Estimates"),
+                                 plotOutput(outputId = "parameterestimatessurv")
+                               )
+                             )
             ),
             conditionalPanel(
               condition = "input.advanceddiagnostics",
@@ -2531,11 +2564,12 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         powerresultssurv() %>%
           plot_pvalue_histogram()
       }
-    }) |>
+    }, width = pvalue_plot_width) |>
       bindEvent(powerresultsglm(), powerresultssurv())
 
     output$parameterestimates = renderPlot({
       plot_parameter_estimates = function(powerresults) {
+        ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates")
         if (!is.null(attr(powerresults, "estimates"))) {
           ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
           truth = attr(powerresults, "anticoef")
@@ -2551,26 +2585,29 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             ests = exp(ests)
             truth = exp(truth)
           }
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          plot(x = 1:length(colnames(ests)), y = ests[2, ],
-               xaxt = "n",
-               xlab = "Parameters",
-               ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-               ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
-               xlim = c(0.5, length(colnames(ests)) + 0.5),
-               type = "p", pch = 16, col = "red", cex = 1)
-          axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          arrows(x0 = 1:length(colnames(ests)), y0 = ests[1, ], x1 = 1:length(colnames(ests)), y1 = ests[3, ], length = 0.05, angle = 90, code = 3)
-          points(x = 1:length(colnames(ests)), y = truth, pch = 16, col = "blue", cex = 1)
-          title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
+          ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2),
+                        c(0, 1),
+                        c(min(as.vector(ests)), max(as.vector(ests))))
+          truth_df = data.frame(vals=c(truth,ests[2,]),x=colnames(ests),
+                                type=c(rep("Truth",length(truth)), rep("Estimate",length(ests[2,]))))
+          ests_ci_df = data.frame(lcb=ests[1,],ucb=ests[3,],x=colnames(ests))
+
+          ggplot() +
+            geom_errorbar(data=ests_ci_df, aes(x=x,ymin=lcb,ymax=ucb), color="black", width=0.2) +
+            geom_point(data=truth_df, aes(x=x,y=vals,color=type)) +
+            scale_color_manual("Type", values = c("red", "blue")) +
+            scale_y_continuous(ylab, limits=ylim) +
+            scale_x_discrete("Parameters", labels = colnames(ests)) +
+            theme_light() +
+            theme(panel.grid.minor = element_blank(),
+                  panel.grid.major.x = element_blank(),
+                  text = element_text(size = 16)) +
+            labs(title = "Simulated Parameter Estimates (5%-95% Confidence Intervals)")
         }
       }
       powerresultsglm() %>%
         plot_parameter_estimates()
-    }) |>
+    }, width = est_plot_width) |>
       bindEvent(powerresultsglm())
 
     output$parameterestimatessurv = renderPlot({
@@ -2578,30 +2615,44 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         if (!is.null(attr(powerresults, "estimates"))) {
           ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
           truth = attr(powerresults, "anticoef")
-          if (isolate(input$distibution) == "exponential") {
+          if (isolate(input$distribution) == "exponential") {
             ests = exp(ests)
             truth = exp(truth)
           }
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-          plot(x = 1:length(colnames(ests)), y = ests[2, ],
-               xaxt = "n",
-               xlab = "Parameters",
-               ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates"),
-               ylim = ifelse(rep(isolate(input$glmfamily) == "binomial", 2), c(0, 1), c(min(as.vector(ests)), max(as.vector(ests)))),
-               xlim = c(0.5, length(colnames(ests)) + 0.5),
-               type = "p", pch = 16, col = "red", cex = 1)
-          axis(1, at = 1:length(colnames(ests)), labels = colnames(ests), las = 2)
-          legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-          par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-          grid(nx = NA, ny = NULL)
-          arrows(x0 = 1:length(colnames(ests)), y0 = ests[1, ], x1 = 1:length(colnames(ests)), y1 = ests[3, ], length = 0.05, angle = 90, code = 3)
-          points(x = 1:length(colnames(ests)), y = truth, pch = 16, col = "blue", cex = 1)
-          title("Simulated Parameter Estimates (5%-95% Confidence Intervals)")
+          censorpt = isolate(input$censorpoint)
+          extra_gg = list()
+          if(!is.na(censorpt)) {
+            extra_gg[[1]] = geom_hline(yintercept = censorpt, linetype = "dashed", color="black", alpha=0.5, size=1)
+          }
+          ylim = c(min(as.vector(ests)), max(as.vector(ests)))
+
+          truth_df = data.frame(vals=c(truth,ests[2,]),x=colnames(ests),
+                                type=c(rep("Truth",length(truth)), rep("Estimate",length(ests[2,]))))
+          ests_ci_df = data.frame(lcb=ests[1,],ucb=ests[3,],x=colnames(ests))
+          break_vals = c(seq(ylim[1],ylim[2],length.out=5),censorpt)
+          nchar_max = max(nchar(sprintf("%0.2f",seq(ylim[1],ylim[2],length.out=5))))
+          break_labels = c(sprintf("%0.2f",seq(ylim[1],ylim[2],length.out=5)),"Censored")
+          break_vals_order = order(break_vals, na.last = NA)
+          break_vals = break_vals[break_vals_order]
+          break_labels = break_labels[break_vals_order]
+
+          ggplot() +
+            extra_gg +
+            geom_errorbar(data=ests_ci_df, aes(x=x,ymin=lcb,ymax=ucb), color="black", width=0.2) +
+            geom_point(data=truth_df, aes(x=x,y=vals,color=type)) +
+            scale_color_manual("Type", values = c("red", "blue")) +
+            scale_y_continuous(ylab, limits=range(break_vals), breaks = break_vals, labels =  break_labels) +
+            scale_x_discrete("Parameters", labels = colnames(ests)) +
+            theme_light() +
+            theme(panel.grid.minor = element_blank(),
+                  panel.grid.major.x = element_blank(),
+                  text = element_text(size = 16)) +
+            labs(title = "Simulated Parameter Estimates (5%-95% Confidence Intervals)")
         }
       }
       powerresultssurv() %>%
         plot_parameter_estimates()
-    }) |>
+    }, width = est_plot_width) |>
       bindEvent(powerresultssurv())
 
     output$responsehistogram = renderPlot({
@@ -2663,7 +2714,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       }
       powerresultsglm() %>%
         plot_response_histogram()
-    }) |>
+    }, width = est_plot_width) |>
       bindEvent(powerresultsglm())
 
     output$responsehistogramsurv = renderPlot({
@@ -2709,7 +2760,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       }
       powerresultssurv() %>%
         plot_response_histogram()
-    }) |>
+    }, width = est_plot_width) |>
       bindEvent(powerresultssurv())
 
     output$separationwarning = renderText({

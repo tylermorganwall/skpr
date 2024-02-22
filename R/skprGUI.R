@@ -2569,6 +2569,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
 
     output$parameterestimates = renderPlot({
       plot_parameter_estimates = function(powerresults) {
+        x = lcb = ucb = vals = type = ylab = NULL
         ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates")
         if (!is.null(attr(powerresults, "estimates"))) {
           ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
@@ -2612,6 +2613,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
 
     output$parameterestimatessurv = renderPlot({
       plot_parameter_estimates = function(powerresults) {
+        x = lcb = ucb = vals = type = ylab = NULL
         if (!is.null(attr(powerresults, "estimates"))) {
           ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
           truth = attr(powerresults, "anticoef")

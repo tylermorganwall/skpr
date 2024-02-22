@@ -7,7 +7,7 @@
 calculate_gefficiency(
   design,
   calculation_type = "random",
-  randsearches = 1000,
+  randsearches = 10000,
   design_space_mm = NULL
 )
 }

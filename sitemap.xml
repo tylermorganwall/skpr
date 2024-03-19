@@ -37,6 +37,9 @@
     <loc>https://tylermorganwall.github.io/skpr/reference/calcnoncentralparam.html</loc>
   </url>
   <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_block_nesting.html</loc>
+  </url>
+  <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/calculate_degrees_of_freedom.html</loc>
   </url>
   <url>
@@ -50,6 +53,9 @@
   </url>
   <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/calculate_split_columns.html</loc>
+  </url>
+  <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_v_from_blocks.html</loc>
   </url>
   <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/calculatepower.html</loc>
@@ -137,6 +143,9 @@
   </url>
   <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/get_attribute.html</loc>
+  </url>
+  <url>
+    <loc>https://tylermorganwall.github.io/skpr/reference/get_block_groups.html</loc>
   </url>
   <url>
     <loc>https://tylermorganwall.github.io/skpr/reference/get_optimality.html</loc>

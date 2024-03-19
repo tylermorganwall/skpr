@@ -9,12 +9,12 @@ test_that("providing anticoef and effectsize to eval_design produces a warning",
 
 test_that("providing anticoef and effectsize to eval_design_mc produces a warning", {
   des = expand.grid(x = c(-1, 1), y = 10:11)
-  expect_warning(eval_design_mc(des, ~., effectsize = 2, anticoef = c(1, 1, 1), alpha = 0.2, nsim = 1))
+  expect_warning(eval_design_mc(des, ~., effectsize = 2, anticoef = c(1, 1, 1), alpha = 0.2, nsim = 100))
 })
 
 test_that("providing anticoef and effectsize to eval_design_survival_mc produces a warning", {
   des = expand.grid(x = c(-1, 1), y = 10:11)
-  expect_warning(eval_design_survival_mc(des, ~., effectsize = 2, anticoef = c(1, 1, 1), alpha = 0.2, nsim = 1))
+  expect_warning(eval_design_survival_mc(des, ~., effectsize = 2, anticoef = c(1, 1, 1), alpha = 0.2, nsim = 100))
 })
 
 
@@ -176,9 +176,9 @@ test_that("eval_design_mc processes effectsize properly for glm without effect p
   des = gen_design(cand, ~., trials = 100)
 
   #length = 1 effectsize, warning except for gaussian:
-  expect_silent(
+  expect_silent({
     res1 <- eval_design_mc(des, ~., glmfamily = "gaussian", effectsize = 5,
-                           alpha = 0.2, nsim = 1, detailedoutput = TRUE, calceffect = FALSE))
+                           alpha = 0.2, nsim = 100, detailedoutput = TRUE, calceffect = FALSE)})
   expect_equal(res1$anticoef, c(2.5, 2.5, 2.5), tolerance = 1e-8)
 
   expect_warning(res2 <- eval_design_mc(des, ~., glmfamily = "exponential", effectsize = 3,

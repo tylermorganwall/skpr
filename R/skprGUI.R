@@ -112,13 +112,19 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
   labs = ggplot2::labs
   aes = ggplot2::aes
   geom_hline = ggplot2::geom_hline
+  geom_histogram = ggplot2::geom_histogram
+  geom_vline = ggplot2::geom_vline
 
   if(!getOption("in_skpr_test_environment", TRUE)) {
     est_plot_width = "auto"
     pvalue_plot_width = "auto"
+    fdsplot_width = "auto"
+    optimalsearch_plot_width = "auto"
   } else {
     est_plot_width = 922
     pvalue_plot_width = 952
+    fdsplot_width = 446
+    optimalsearch_plot_width = 446
   }
 
   panelstyle = "background-color: rgba(86, 96, 133, 0.3);
@@ -455,6 +461,13 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
               data.step = 15,
               data.intro = "Specify the acceptable Type-I error (false positive rate)"
             ),
+            sliderInput(
+              inputId = "desired_power",
+              min = 0,
+              max = 1,
+              value = 0.80,
+              label = "Desired Power"
+            ),
             conditionalPanel(
               condition = "input.evaltype == \'lm\' || (input.evaltype == \'glm\' && input.glmfamily == \'gaussian\') || (input.evaltype == \'surv\' && (input.distribution == \'gaussian\' || input.distribution == \'lognormal\'))",
               rintrojs::introBox(
@@ -630,10 +643,10 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
           column(
             width = 2,
             rintrojs::introBox(
-              bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."),
+              bookmarkButton(label = "Save State", title = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a  (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."),
               class = "bookmark",
               data.step = 33,
-              data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a browser (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."
+              data.intro = "Generates a URL that encodes the current state of the application for easy sharing and saving of analyses. Paste this URL into a  (possible changing the port and address if locally different) to restore the state of the application. Be sure to set a random seed before bookmarking to recover the same results."
             )
           ),
           column(
@@ -747,25 +760,6 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                     data.step = 30,
                     data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue). "
                   )
-                ),
-                conditionalPanel(
-                  condition = "input.glmfamily != \'binomial\'",
-                  column(
-                    width = 6,
-                    numericInput(
-                      inputId = "estimatesxminglm",
-                      value = NA,
-                      label = "x-min"
-                    )
-                  ),
-                  column(
-                    width = 6,
-                    numericInput(
-                      inputId = "estimatesxmaxglm",
-                      value = NA,
-                      label = "x-max"
-                    )
-                  )
                 )
               )
             ),
@@ -777,22 +771,6 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                   width = 12,
                   h3("Simulated Response Estimates"),
                   plotOutput(outputId = "responsehistogramsurv")
-                ),
-                column(
-                  width = 6,
-                  numericInput(
-                    inputId = "estimatesxminsurv",
-                    value = NA,
-                    label = "x-min"
-                  )
-                ),
-                column(
-                  width = 6,
-                  numericInput(
-                    inputId = "estimatesxmaxsurv",
-                    value = NA,
-                    label = "x-max"
-                  )
                 )
               )
             ),
@@ -1092,7 +1070,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
           # }
           # print("11")
           # print(current_design_valid())
-          # browser()
+          # ()
           # print(class(powerresultsglm))
           # print(class(powerresultsglm()))
           # print(powerresultsglm())
@@ -2052,15 +2030,37 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         color_bad = "purple"
         color_maybe = "orange"
       }
+      desired_power_level = input$desired_power
+      get_lcbs = function(power) {
+        if(evaluationtype() == "lm") {
+          return(power)
+        } else {
+          return(unlist(lapply(power, \(x) (binom.test(x*nsim, n = nsim)[["conf.int"]][1]))))
+        }
+      }
+      get_ucbs = function(power) {
+        if(evaluationtype() == "lm") {
+          return(power)
+        } else {
+          return(unlist(lapply(power, \(x) (binom.test(x*nsim, n = nsim)[["conf.int"]][2]))))
+        }
+      }
       display_table = display_table %>%
         gt::data_color(columns = "power",
                    palette = scales::col_numeric(palette =colorRampPalette(c("white", "darkgreen"))(100),
                                                 domain =c(0,1)),
+                   domain = c(0,1),
                    alpha = 0.3,
                    autocolor_text = FALSE) %>%
         gt::tab_options(table.width = gt::pct(100))
-      if(any(powerval$power <= alpha + 1/sqrt(nsim) &
-             powerval$power >= alpha - 1/sqrt(nsim))) {
+      if(evaluationtype() != "lm") {
+        nsim_digits = floor(log10(nsim))
+        format_string = sprintf("%%0.%if-%%0.%if",nsim_digits,nsim_digits)
+        display_table = display_table %>%
+          gt::cols_add(Error = sprintf(format_string, get_lcbs(powerval$power), get_ucbs(powerval$power)))
+      }
+      if(any(get_lcbs(powerval$power) <= desired_power_level &
+             get_ucbs(powerval$power) >= desired_power_level)) {
         display_table = display_table %>%
           gt::tab_style(
             style = list(
@@ -2068,14 +2068,14 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             ),
             locations = gt::cells_body(
               columns = "power",
-              rows = power <= alpha + 1/sqrt(nsim))
+              rows = get_lcbs(powerval$power) <= desired_power_level)
           ) %>%
           gt::tab_source_note(
             source_note = sprintf("Note: Power values marked in %s are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)",
                                   color_maybe)
           )
       }
-      if(any(powerval$power < alpha - 1/sqrt(nsim))) {
+      if(any(get_ucbs(powerval$power) < desired_power_level)) {
         display_table = display_table %>%
           gt::tab_style(
             style = list(
@@ -2083,7 +2083,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             ),
             locations = gt::cells_body(
               columns = "power",
-              rows = (power < alpha - 1/sqrt(nsim)))
+              rows = get_ucbs(powerval$power) < desired_power_level)
           ) %>%
           gt::tab_source_note(
             source_note = sprintf("Note: Power values marked in %s fall below the user-specified Type-I error (%0.2f)",
@@ -2471,7 +2471,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     output$fdsplot = renderPlot({
       runmatrix() %>%
         plot_fds()
-    }) |>
+    }, width = fdsplot_width) |>
       bindEvent(input$submitbutton)
 
     output$code = renderUI({
@@ -2541,7 +2541,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       }
       runmatrix() %>%
         optimal_design_plot()
-    }) |>
+    }, width = optimalsearch_plot_width) |>
       bindEvent(runmatrix())
 
     output$simulatedpvalues = renderPlot({
@@ -2572,7 +2572,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         x = lcb = ucb = vals = type = ylab = NULL
         ylab = ifelse(isolate(input$glmfamily) == "binomial", "Parameter Estimates (Probability)", "Parameter Estimates")
         if (!is.null(attr(powerresults, "estimates"))) {
-          ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
+          ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95), na.rm = TRUE)
           truth = attr(powerresults, "anticoef")
           if (isolate(input$glmfamily) == "binomial") {
             ests = exp(ests) / (1 + exp(ests))
@@ -2662,54 +2662,102 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         if (!is.null(attr(powerresults, "estimates"))) {
           responses = as.vector(attr(powerresults, "estimates") %*% t(attr(powerresults, "modelmatrix")))
           trueresponses = as.vector(attr(powerresults, "anticoef") %*% t(attr(powerresults, "modelmatrix")))
+          filtered_string = ""
+          if(isolate(input$glmfamily) == "exponential") {
+            #Filter out extreme values
+            mad_trueresp = 20*max(exp(trueresponses))
+            num_filtered = sum(exp(responses) > mad_trueresp, na.rm = TRUE) + sum(is.na(exp(responses)))
+            responses = responses[exp(responses) < mad_trueresp]
+            trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
+            filtered_string = sprintf(" (%g extreme outliers/NA values removed)",num_filtered)
+          }
           widths = hist(trueresponses, plot = FALSE)$counts
           widths = widths[widths != 0]
           widths = sqrt(widths)
           uniquevalues = length(table(responses))
-          breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim) * isolate(input$trials) / 10)
+          breakvalues = ifelse(uniquevalues < isolate(input$nsim) * isolate(input$trials) / 10,
+                               uniquevalues,
+                               isolate(input$nsim) * isolate(input$trials) / 10)
+          bin_values = 100
           if (isolate(input$glmfamily) == "binomial") {
             responses = exp(responses) / (1 + exp(responses))
             trueresponses = exp(trueresponses) / (1 + exp(trueresponses))
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response (Probability)", main = "Distribution of Simulated Response Estimates", xlim = c(0, 1))
-            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-            grid(nx = NA, ny = NULL)
-            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses Estimates", xlab = "Response", ylab = "Count", col = "red", border = "red")
-            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-          }
-          if (isolate(input$glmfamily) == "poisson") {
+            data_response = data.frame(responses = responses)
+            data_trueresponse = data.frame(trueresponses = trueresponses)
+            ggplot() +
+              geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
+              geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
+              scale_x_continuous("Response Estimates (Probability)", limits = c(0,1)) +
+              scale_y_continuous(expand=c(0,0)) +
+              theme_light() +
+              theme(text = element_text(size = 24))
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            # hist(responses, breaks = breakvalues, xlab = "Response (Probability)", main = "Distribution of Simulated Response Estimates", xlim = c(0, 1))
+            # legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            # grid(nx = NA, ny = NULL)
+            # hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses Estimates", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          } else if (isolate(input$glmfamily) == "poisson") {
             responses = exp(responses)
             trueresponses = exp(trueresponses)
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
-            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-            grid(nx = NA, ny = NULL)
-            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses ", xlab = "Response", ylab = "Count", col = "red", border = "red")
-            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-          }
-          if (isolate(input$glmfamily) == "exponential") {
+            data_response = data.frame(responses = responses)
+            data_trueresponse = data.frame(trueresponses = unique(trueresponses))
+            ggplot() +
+              geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
+              geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
+              scale_x_continuous("Response Estimates") +
+              scale_y_continuous(expand=c(0,0)) +
+              theme_light() +
+              theme(text = element_text(size = 24))
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            # hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates",
+            # xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm),
+            #          ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
+            # legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            # grid(nx = NA, ny = NULL)
+            # hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses ", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          } else if (isolate(input$glmfamily) == "exponential") {
             responses = exp(responses)
             trueresponses = exp(trueresponses)
+            data_response = data.frame(responses = responses)
+            data_trueresponse = data.frame(trueresponses = unique(trueresponses))
+            ggplot() +
+              geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
+              geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
+              scale_x_continuous(sprintf("Response Estimates%s", filtered_string)) +
+              scale_y_continuous(expand=c(0,0)) +
+              theme_light() +
+              theme(text = element_text(size = 24))
 
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates",
-                 xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
-            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-            grid(nx = NA, ny = NULL)
-            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
-          }
-          if (isolate(input$glmfamily) == "gaussian") {
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
-            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-            grid(nx = NA, ny = NULL)
-            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            # hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates",
+            #      xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
+            # legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            # grid(nx = NA, ny = NULL)
+            # hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+          } else if (isolate(input$glmfamily) == "gaussian") {
+            data_response = data.frame(responses = responses)
+            data_trueresponse = data.frame(trueresponses = unique(trueresponses))
+            ggplot() +
+              geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
+              geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
+              scale_x_continuous("Response Estimates") +
+              scale_y_continuous(expand=c(0,0)) +
+              theme_light() +
+              theme(text = element_text(size = 24))
+
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            # hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates", xlim = c(ifelse(is.na(input$estimatesxminglm), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminglm), ifelse(is.na(input$estimatesxmaxglm), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxglm)), col = "red", border = "red")
+            # legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            # grid(nx = NA, ny = NULL)
+            # hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
 
           }
         }
@@ -2725,6 +2773,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
           responses = as.vector(attr(powerresults, "estimates") %*% t(attr(powerresults, "modelmatrix")))
           trueresponses = as.vector(attr(powerresults, "anticoef") %*% t(attr(powerresults, "modelmatrix")))
           filtered_string = ""
+          bin_values = 100
           if(isolate(input$distribution) == "exponential") {
             #Filter out extreme values
             mad_trueresp = 20*max(exp(trueresponses))
@@ -2733,30 +2782,44 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
             filtered_string = sprintf(" (%g extreme outliers removed)",num_filtered)
           }
-          widths = hist(trueresponses, plot = FALSE)$counts
-          widths = widths[widths != 0]
-          widths = sqrt(widths)
-          uniquevalues = length(table(responses))
-          breakvalues = ifelse(uniquevalues < isolate(input$nsim_surv) * isolate(input$trials) / 10, uniquevalues, isolate(input$nsim_surv) * isolate(input$trials) / 10)
           if (isolate(input$distribution) == "exponential") {
             responses = exp(responses)
             trueresponses = exp(trueresponses)
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response", main = sprintf("Distribution of Simulated Response Estimates%s", filtered_string), xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
-            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-            grid(nx = NA, ny = NULL)
-            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+            data_response = data.frame(responses = responses)
+            data_trueresponse = data.frame(trueresponses = unique(trueresponses))
+            ggplot() +
+              geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
+              geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
+              scale_x_continuous(sprintf("Simulated Response Estimates%s", filtered_string)) +
+              scale_y_continuous(expand=c(0,0)) +
+              theme_light() +
+              theme(text = element_text(size = 24))
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            # hist(responses, breaks = breakvalues, xlab = "Response", main = sprintf("Distribution of Simulated Response Estimates%s", filtered_string),
+            # xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
+            # legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            # grid(nx = NA, ny = NULL)
+            # hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
           }
           if (isolate(input$distribution) %in% c("gaussian", "lognormal")) {
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
-            hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates (from survival analysis)", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
-            legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
-            par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
-            grid(nx = NA, ny = NULL)
-            hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
-            abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
+            data_response = data.frame(responses = responses)
+            data_trueresponse = data.frame(trueresponses = unique(trueresponses))
+            ggplot() +
+              geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
+              geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
+              scale_x_continuous("Simulated Response Estimates") +
+              scale_y_continuous(expand=c(0,0)) +
+              theme_light() +
+              theme(text = element_text(size = 24))
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = TRUE)
+            # hist(responses, breaks = breakvalues, xlab = "Response", main = "Distribution of Simulated Response Estimates (from survival analysis)", xlim = c(ifelse(is.na(input$estimatesxminsurv), min(hist(responses, plot = FALSE)$breaks), input$estimatesxminsurv), ifelse(is.na(input$estimatesxmaxsurv), max(hist(responses, plot = FALSE)$breaks), input$estimatesxmaxsurv)), col = "red", border = "red")
+            # legend("topright", inset = c(-0.2, 0), legend = c("Truth", "Simulated"), pch = c(16, 16), col = c("blue", "red"), title = "Estimates")
+            # par(mar = c(5.1, 4.1, 4.1, 8.1), xpd = FALSE)
+            # grid(nx = NA, ny = NULL)
+            # hist(responses, breaks = breakvalues, add = TRUE, main = "Distribution of Simulated Responses", xlab = "Response", ylab = "Count", col = "red", border = "red")
+            # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
           }
         }
       }

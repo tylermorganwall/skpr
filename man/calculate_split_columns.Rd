@@ -4,7 +4,7 @@
 \alias{calculate_split_columns}
 \title{Calculate Split Plot Columns}
 \usage{
-calculate_split_columns(run_matrix_processed, blockgroups)
+calculate_split_columns(run_matrix_processed, blockgroups, blockstructure)
 }
 \arguments{
 \item{run_matrix_processed}{The design}

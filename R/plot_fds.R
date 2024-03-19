@@ -62,8 +62,11 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
       allattr = attributes(genoutput)
-      genoutput = genoutput[, -1:-length(allattr$splitcolumns)]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      remove_cols = which(colnames(genoutput) %in% allattr$splitcolumns)
+      if(length(remove_cols) > 0) {
+        genoutput = genoutput[, -remove_cols, drop = FALSE]
+        allattr$names = allattr$names[-remove_cols]
+      }
       attributes(genoutput) = allattr
     }
   }

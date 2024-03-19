@@ -4,7 +4,7 @@
 \alias{generate_noise_block}
 \title{Generate Noise Block}
 \usage{
-generate_noise_block(noise, groups)
+generate_noise_block(noise, groups, blockstructure)
 }
 \value{
 Noise vector

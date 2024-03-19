@@ -8,8 +8,11 @@ remove_skpr_blockcols = function(RunMatrix) {
   if (!is.null(attr(RunMatrix, "splitanalyzable"))) {
     if (attr(RunMatrix, "splitanalyzable")) {
       allattr = attributes(RunMatrix)
-      RunMatrix = RunMatrix[, -1:-length(allattr$splitcolumns)]
-      allattr$names = allattr$names[-1:-length(allattr$splitcolumns)]
+      remove_cols = which(colnames(RunMatrix) %in% allattr$splitcolumns)
+      if(length(remove_cols) > 0) {
+        RunMatrix = RunMatrix[, -remove_cols, drop = FALSE]
+        allattr$names = allattr$names[-remove_cols]
+      }
       attributes(RunMatrix) = allattr
     }
   }

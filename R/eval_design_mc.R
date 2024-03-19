@@ -460,20 +460,18 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   if (length(anticoef) != dim(ModelMatrix)[2]) {
     stop("skpr: Wrong number of anticipated coefficients")
   }
-
   #-------------- Blocking errors --------------#
-  #Variables used later: blockgroups, varianceratios, V
+  #Variables used later: blockgroups, varianceratios, V, blockstructure
   blocknames = rownames(run_matrix_processed)
   blocklist = strsplit(blocknames, ".", fixed = TRUE)
   if (any(lapply(blocklist, length) > 1)) {
     if (blocking) {
 
       blockstructure = do.call(rbind, blocklist)
-      blockgroups = apply(blockstructure, 2, blockingstructure)
+      blockgroups = get_block_groups(blockstructure)
 
 
       blockMatrixSize = nrow(run_matrix_processed)
-      V = diag(blockMatrixSize)
       if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
         stop("skpr: No blocking detected. Specify block structure in row names or set blocking = FALSE")
       }
@@ -488,19 +486,8 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
         stop("skpr: Wrong number of variance ratios specified. ", length(varianceratios),
              " variance ratios given c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups), " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
       }
-
-      blockcounter = 1
-
-      blockgroups2 = blockgroups[-length(blockgroups)]
-      for (block in blockgroups2) {
-        V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceratios[blockcounter]
-        placeholder = block[1]
-        for (i in 2:length(block)) {
-          V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] = V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] + varianceratios[blockcounter]
-          placeholder = placeholder + block[i]
-        }
-        blockcounter = blockcounter + 1
-      }
+      V = calculate_v_from_blocks(nrow(run_matrix_processed),
+                                  blockgroups, blockstructure, varianceratios)
     }
   } else {
     if (blocking) {
@@ -514,7 +501,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   responses = matrix(ncol = nsim, nrow = nrow(ModelMatrix))
   if (blocking) {
     for (i in 1:nsim) {
-      responses[, i] = rfunction(ModelMatrix, anticoef, generate_noise_block(noise = varianceratios, groups = blockgroups))
+      responses[, i] = rfunction(ModelMatrix, anticoef, generate_noise_block(noise = varianceratios, groups = blockgroups, blockstructure))
     }
   } else {
     responses = replicate(nsim, rfunction(ModelMatrix, anticoef, rep(0, nrow(ModelMatrix))))
@@ -659,12 +646,13 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                                          contrastslist = contrastslist, effect_anova = effect_anova)
           }
         } else {
+          fiterror = FALSE
           tryCatch({
             fit = suppressWarnings(suppressMessages({
               glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist, method = method)
             }))
           }, error = function(e) {
-            fiterror = TRUE
+            fiterror <<- TRUE
           })
           if (calceffect && !fiterror) {
             effect_pvals = effectpowermc(fit, type = anovatype, test = pvalstring, test.statistic = anovatest,
@@ -719,6 +707,11 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       if(interactive() && progress && !advancedoptions$GUI) {
         pb$tick()
       }
+    }
+    #Remove NULL values
+    effectpvallist = effectpvallist[lengths(effectpvallist) != 0]
+    if(length(effectpvallist) == 0 && calceffect) {
+      stop("skpr: All fits failed in the simulation.")
     }
     #We are going to output a tidy data.frame with the results.
     attr(power_values, "pvals") = do.call(rbind, pvallist)

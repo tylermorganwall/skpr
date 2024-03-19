@@ -22,44 +22,11 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios,
       block_order = do.call(order, lapply(blockmatrix,`[`))
       blockmatrix = blockmatrix[block_order, order(unlist(lapply(lapply(blockmatrix, unique), length))), drop = FALSE]
       blockvals = lapply(blockmatrix, unique)
-      rownamematrix = matrix(nrow = nrow(RunMatrix), ncol = ncol(blockmatrix) + 1)
-      for (col in 1:ncol(blockmatrix)) {
-        uniquevals = blockvals[[col]]
-        blockcounter = 1
-        wholeblockcounter = 1
-        for (block in uniquevals) {
-          if (col == 1) {
-            rownamematrix[blockmatrix[, col] == block, col] = blockcounter
-            blockcounter = blockcounter + 1
-          }
-          if (col != 1) {
-            superblock = rownamematrix[blockmatrix[, col] == block, col - 1][1]
-            modop = length(unique(blockmatrix[blockmatrix[, col - 1] == superblock, col]))
-            if (modop == 1) {
-              rownamematrix[blockmatrix[, col] == block, col] = wholeblockcounter
-              wholeblockcounter = wholeblockcounter + 1
-            } else {
-              wholeblockcounter = 1
-              if (blockcounter %% modop == 0) {
-                rownamematrix[blockmatrix[, col] == block, col] = modop
-              } else {
-                rownamematrix[blockmatrix[, col] == block, col] = blockcounter %% modop
-              }
-            }
-            blockcounter = blockcounter + 1
-          }
-          if (col == ncol(blockmatrix)) {
-            rownamematrix[blockmatrix[, col] == block, col + 1] = 1:sum(blockmatrix[, col] == block)
-          }
-        }
-        blockcounter = blockcounter + 1
-      }
+      rownamematrix = cbind(do.call("cbind", lapply(blockmatrix,as.character)),
+                            matrix(as.character(seq_len(nrow(blockmatrix))), ncol=1,nrow=nrow(blockmatrix)))
       blockgroups = lapply(blockmatrix, table)
       names(blockgroups) = NULL
       if (length(blockgroups) != length(varianceratios) && length(varianceratios) == 1) {
-        # if(user_specified_varianceratio) {
-        #   warning("Single varianceratio entered for multiple layers. Setting all but the run-to-run varianceratio to that level.")
-        # }
         varianceratios = c(rep(varianceratios,length(blockgroups)-1),1)
       }
       if (length(blockgroups) - 1 == length(varianceratios)) {
@@ -73,13 +40,16 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios,
              " variance ratios given: c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups) , " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
       }
       zlist = list()
-      for (i in seq_along(1:length(blockgroups))) {
+      for (i in seq_len(length(blockgroups))) {
         tempblocks = blockgroups[[i]]
+        block_column = blockmatrix[,i,drop = TRUE]
         tempnumberblocks = length(tempblocks)
         ztemp = matrix(0, nrow=nrow(RunMatrix), ncol=tempnumberblocks)
         currentrow = 1
-        for (j in 1:tempnumberblocks) {
-          ztemp[currentrow:(currentrow + tempblocks[j] - 1), j] = varianceratios[i]
+        for (j in seq_len(tempnumberblocks)) {
+          blockname = names(tempblocks)[j]
+          current_block = block_column == blockname
+          ztemp[current_block, j] = varianceratios[i]
           currentrow = currentrow + tempblocks[j]
         }
         zlist[[i]] = ztemp
@@ -100,6 +70,19 @@ convert_blockcolumn_rownames = function(RunMatrix, blocking, varianceratios,
       allattr$names = allattr$names[!blockcols]
       RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
       attributes(RunMatrix) = allattr
+    }
+  } else {
+    if(any(grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE)) ||
+       any(grepl("(Whole Plots|Whole\\.Plots|Subplots)", colnames(RunMatrix), perl = TRUE))) {
+      added_cols = colnames(RunMatrix)[grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) |
+                                         grepl("(Whole Plots|Whole\\.Plots|Subplots)", colnames(RunMatrix), perl = TRUE) ]
+      extra_cols = paste0(sprintf("`%s`",added_cols),collapse=", ")
+      blockcols = grepl("(Block|block)(\\s?)+[0-9]+$", colnames(RunMatrix), perl = TRUE) | grepl("(Whole Plots|Whole\\.Plots|Subplots)", colnames(RunMatrix), perl = TRUE)
+      allattr = attributes(RunMatrix)
+      allattr$names = allattr$names[!blockcols]
+      RunMatrix = RunMatrix[, !blockcols, drop = FALSE]
+      attributes(RunMatrix) = allattr
+      warning(sprintf("skpr: Externally added block columns detected: extra block columns (%s) ignored.", extra_cols))
     }
   }
   attr(RunMatrix,"tempvar") = varianceratios

@@ -18,7 +18,7 @@ reduceRunMatrix = function(RunMatrix, model, first_run = TRUE) {
   #This removes I(x^n) terms from the basic
   nohighorder = rownames(factor_matrix)[!unlist(lapply(pattern = "^", FUN = grepl, X = rownames(factor_matrix), fixed = TRUE))]
   nohighorder = gsub("`", "", nohighorder, fixed = TRUE)
-  reducerm = RunMatrix[nohighorder]
+  reducerm = RunMatrix[,nohighorder, drop = FALSE]
 
   if (length(as.character(model)) == 2 && (as.character(model)[2] == "." || as.character(model)[2] == "quad(.)") || model == as.formula("~.*.")) {
     return(reducerm)
@@ -26,5 +26,5 @@ reduceRunMatrix = function(RunMatrix, model, first_run = TRUE) {
   for (var in colnames(reducerm)) {
     if (!(var %in% all.vars(model))) reducerm[var] = NULL
   }
-  reducerm
+  return(reducerm)
 }

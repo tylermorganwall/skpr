@@ -6,13 +6,8 @@
 #'@keywords internal
 convert_rownames_to_covariance = function(run_matrix_processed,varianceratios, user_specified_varianceratio) {
   blocklist = strsplit(rownames(run_matrix_processed), ".", fixed = TRUE)
-
-  existingBlockStructure = do.call(rbind, blocklist)
-  blockgroups = apply(existingBlockStructure, 2, blockingstructure)
-
-  blockMatrixSize = nrow(run_matrix_processed)
-  V = diag(blockMatrixSize)
-  blockcounter = 1
+  blockstructure = do.call(rbind, blocklist)
+  blockgroups = get_block_groups(blockstructure)
   if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
     stop("skpr: No blocking detected. Specify block structure in row names or set blocking = FALSE")
   }
@@ -29,17 +24,8 @@ convert_rownames_to_covariance = function(run_matrix_processed,varianceratios, u
     stop("skpr: Wrong number of variance ratios specified. ", length(varianceratios),
 " variance ratios given c(",paste(varianceratios,collapse=", "), "), ", length(blockgroups), " expected. Either specify value for all blocking levels or one ratio for all blocks other than then run-to-run variance.")
   }
-  blockgroups = blockgroups[-length(blockgroups)]
-  for (block in blockgroups) {
-    V[1:block[1], 1:block[1]] =  V[1:block[1], 1:block[1]] + varianceratios[blockcounter]
-    placeholder = block[1]
-    for (i in 2:length(block)) {
-      V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] =
-        V[(placeholder + 1):(placeholder + block[i]), (placeholder + 1):(placeholder + block[i])] + varianceratios[blockcounter]
-      placeholder = placeholder + block[i]
-    }
-    blockcounter = blockcounter + 1
-  }
+  V = calculate_v_from_blocks(nrow(run_matrix_processed),
+                              blockgroups, blockstructure, varianceratios)
   attr(V,"tempvar") = varianceratios
   return(V)
 }

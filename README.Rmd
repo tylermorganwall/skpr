@@ -51,7 +51,8 @@ devtools::install_github("tylermorganwall/skpr")
 * `eval_design_mc()` evaluates power with a Monte Carlo simulation, for linear and generalized linear models. This function also supports calculating power for split-plot designs using REML. 
 * `eval_design_survival_mc()` evaluates power with a Monte Carlo simulation, allowing the user to specify a point at which the data is censored.
 * `eval_design_custom_mc()` allows the user to import their own libraries and use the Monte Carlo framework provided by skpr to calculate power.
-* `skprGUI()` and `skprGUIbrowser()` opens up the GUI in either R Studio or an external browser.
+* `calculate_power_curves()` provides an interface to automate the generation and evaluation of designs to create power versus sample size and effect size curves.
+* `skprGUI()` opens up the GUI in either RStudio or an external browser.
 
 If addition, the package offers two functions to generate common plots related to designs:
 
@@ -60,7 +61,7 @@ If addition, the package offers two functions to generate common plots related t
 
 ##skprGUI
  
-skprGUI provides an graphical user interface to access all of the main features of skpr. An interactive tutorial is provided to familiarize the user with the available functionality. Type `skprGUI()` or `skprGUIbrowser()` to begin. Screenshots:
+`skprGUI()` provides an graphical user interface to access all of the main features of skpr. An interactive tutorial is provided to familiarize the user with the available functionality. Type `skprGUI()` to begin. Screenshots:
 
 <img src="man/figures/skprGUIcomp.png" align="center"></img>
 
@@ -98,11 +99,11 @@ eval_design_mc(design, effectsize=1.5)
 #Here, we also increase the number of simululations to improve the precision of the results.
 eval_design_mc(design, nsim=5000, glmfamily = "poisson", effectsize=c(2,6))
 
-#skpr was designed to operate with the pipe (%>%) in mind. 
+#skpr was designed to operate with the pipe (|>) in mind. 
 #Here is an example of an entire design of experiments analysis in three lines:
 
-expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","Medium","Small")) %>%
-  gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") %>%
-  eval_design_mc()
+expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","Medium","Small")) |>
+  gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") |>
+  eval_design_mc(detailedoutput = TRUE)
 
 ```

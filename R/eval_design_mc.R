@@ -49,7 +49,8 @@
 #'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 #'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 #'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-#'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.
+#'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
+#'set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
 #'@param parallel Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param ... Additional arguments.
@@ -321,6 +322,9 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       stop("skpr: advancedoptions$aliaspower must be a positive integer")
     }
     aliaspower = advancedoptions$aliaspower
+  }
+  if(is.null(advancedoptions$ci_error_conf)) {
+    advancedoptions$ci_error_conf = 0.95
   }
   alpha_adjust = FALSE
   if (adjust_alpha_inflation) {
@@ -966,6 +970,8 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
     } else {
       retval$error_adjusted_alpha = alpha_parameter
     }
+    retval = add_ci_bounds_mc_power(retval, nsim = nsim, conf =  advancedoptions$ci_error_conf)
+    attr(retval, "mc.conf.int") = advancedoptions$ci_error_conf
   }
 
   colnames(estimates) = parameter_names

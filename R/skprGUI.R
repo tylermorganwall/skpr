@@ -2428,7 +2428,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
 
     filter_power_results = function(results) {
       col_results = colnames(results)
-      results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking")]
+      results[, !col_results %in% c("glmfamily",	"trials",	"nsim",	"blocking" ,"power_ucb", "power_lcb")]
     }
 
     output$powerresults = gt::render_gt( {

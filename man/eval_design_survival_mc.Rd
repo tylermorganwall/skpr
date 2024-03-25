@@ -68,7 +68,8 @@ NOTE: If you have installed BLAS libraries that include multicore support (e.g. 
 
 \item{progress}{Default `TRUE`. Whether to include a progress bar.}
 
-\item{advancedoptions}{Default NULL. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.}
+\item{advancedoptions}{Default `NULL`. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
+`advancedoptions$ci_error_conf` will set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }

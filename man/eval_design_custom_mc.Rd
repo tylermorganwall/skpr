@@ -17,6 +17,7 @@ eval_design_custom_mc(
   contrasts = contr.sum,
   coef_function = coef,
   calceffect = FALSE,
+  detailedoutput = FALSE,
   parameternames = NULL,
   advancedoptions = NULL,
   progress = TRUE,
@@ -65,13 +66,16 @@ for a categorical factor using the contrasts function, those will be used. Other
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata. To work, the
 fit returned by `fitfunction` must have a method compatable with the car package.}
 
+\item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
+
 \item{parameternames}{Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 (e.g. coefficients from an MLE fit).}
 
 \item{advancedoptions}{Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 `advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.}
+If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
+set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.}
 
 \item{progress}{Default `TRUE`. Whether to include a progress bar.}
 

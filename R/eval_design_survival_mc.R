@@ -34,7 +34,8 @@
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param detailedoutput Default `FALSE`. If `TRUE`, return additional information about evaluation in results.
 #'@param progress Default `TRUE`. Whether to include a progress bar.
-#'@param advancedoptions Default NULL. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
+#'@param advancedoptions Default `NULL`. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
+#'`advancedoptions$ci_error_conf` will set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
@@ -160,6 +161,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     advancedoptions = list()
     advancedoptions$GUI = FALSE
     progressBarUpdater = NULL
+  }
+  if(is.null(advancedoptions$ci_error_conf)) {
+    advancedoptions$ci_error_conf = 0.95
   }
   if (attr(terms.formula(model, data = design), "intercept") == 1) {
     nointercept = FALSE
@@ -304,7 +308,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       )
 
       #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
+      pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
       pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
       pvals[is.na(pvals)] = 1
       stopifnot(all(names(pvals) == parameter_names))
@@ -360,7 +364,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
         )
 
         #determine whether beta[i] is significant. If so, increment nsignificant
-        pvals = extractPvalues(fit)[1:ncol(ModelMatrix)]
+        pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
         pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
         stopifnot(all(names(pvals) == parameter_names))
         pvals[is.na(pvals)] = 1
@@ -386,13 +390,17 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   attr(retval, "alpha") = alpha
   attr(retval, "runmatrix") = RunMatrixReduced
 
-
   if (detailedoutput) {
-    retval$anticoef = anticoef
+    if (nrow(retval) != length(anticoef)){
+      retval$anticoef = c(rep(NA, nrow(retval) - length(anticoef)), anticoef)
+    } else {
+      retval$anticoef = anticoef
+    }
     retval$alpha = alpha
-    retval$distribution = distribution
     retval$trials = nrow(run_matrix_processed)
     retval$nsim = nsim
+    retval = add_ci_bounds_mc_power(retval, nsim = nsim, conf =  advancedoptions$ci_error_conf)
+    attr(retval, "mc.conf.int") = advancedoptions$ci_error_conf
   }
   if(!inherits(retval,"skpr_eval_output")) {
     class(retval) = c("skpr_eval_output", class(retval))

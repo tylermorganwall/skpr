@@ -80,13 +80,13 @@ print.skpr_eval_output = function(x, ...) {
   }
   if (!is.null(attr(x,"z.matrix.list")) && blocking) {
     number_blocks = unlist(lapply(attr(x,"z.matrix.list"),ncol))
-    block_str = paste(paste("Level ", 1:length(number_blocks), ": ", number_blocks, sep = ""),
+    block_str = paste(paste("Level ", seq_len(length(number_blocks)), ": ", number_blocks, sep = ""),
                       collapse=", ")
     cat(generate_text("Number of Blocks",block_str), sep = "\n")
   }
   if (!is.null(attr(x,"varianceratios")) && blocking) {
     vr = attr(x,"varianceratios")
-    vr_str =  paste(paste("Level ", 1:length(vr), ": ",as.character(vr), sep="", collapse=", "))
+    vr_str =  paste(paste("Level ", seq_len(length(vr)), ": ",as.character(vr), sep="", collapse=", "))
     cat(generate_text("Variance Ratios ",vr_str), sep = "\n")
   }
   if(!is.null(attr(x, "contrast_string"))) {
@@ -101,6 +101,9 @@ print.skpr_eval_output = function(x, ...) {
     if(nchar(attr(x, "effect_analysis_method_string")) > 0) {
       cat(generate_text("Effect Analysis Method", attr(x, "effect_analysis_method_string")),sep="\n")
     }
+  }
+  if(!is.null(attr(x, "mc.conf.int"))) {
+    cat(generate_text("MC Power CI Confidence", sprintf("%0.0f%%",100*attr(x, "mc.conf.int"))),sep="\n")
   }
 }
 

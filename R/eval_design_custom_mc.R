@@ -25,10 +25,12 @@
 #'fit returned by `fitfunction` must have a method compatable with the car package.
 #'@param parameternames Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 #'(e.g. coefficients from an MLE fit).
+#'@param detailedoutput Default `FALSE`. If `TRUE`, return additional information about evaluation in results.
 #'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 #'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 #'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-#'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.
+#'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
+#'set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
 #'@param anticoef The anticipated coefficients for calculating the power. If missing, coefficients will be
 #'automatically generated based on \code{effectsize}.
 #'@param effectsize The signal-to-noise ratio. Default 2. For a gaussian model, and for
@@ -102,7 +104,7 @@
 eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
                                  nsim, rfunction, fitfunction, pvalfunction,
                                  anticoef, effectsize = 2, contrasts = contr.sum,
-                                 coef_function = coef, calceffect = FALSE,
+                                 coef_function = coef, calceffect = FALSE, detailedoutput = FALSE,
                                  parameternames = NULL, advancedoptions = NULL, progress = TRUE,
                                  parallel = FALSE, parallel_pkgs = NULL, ...) {
   if (!is.null(advancedoptions)) {
@@ -135,6 +137,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     progress = getOption("skpr_progress")
   }
 
+  if(is.null(advancedoptions$ci_error_conf)) {
+    advancedoptions$ci_error_conf = 0.95
+  }
   if (!is.null(advancedoptions$anovatype)) {
     anovatype = advancedoptions$anovatype
   } else {
@@ -350,6 +355,19 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   attr(power_final, "alpha") = alpha
   attr(power_final, "runmatrix") = RunMatrixReduced
   attr(power_final, "anticoef") = anticoef
+
+  if (detailedoutput) {
+    if (nrow(power_final) != length(anticoef)){
+      power_final$anticoef = c(rep(NA, nrow(power_final) - length(anticoef)), anticoef)
+    } else {
+      power_final$anticoef = anticoef
+    }
+    power_final$alpha = alpha
+    power_final$trials = nrow(run_matrix_processed)
+    power_final$nsim = nsim
+    power_final = add_ci_bounds_mc_power(power_final, nsim = nsim, conf =  advancedoptions$ci_error_conf)
+    attr(power_final, "mc.conf.int") = advancedoptions$ci_error_conf
+  }
 
   if(!inherits(power_final,"skpr_eval_output")) {
     class(power_final) = c("skpr_eval_output", class(power_final))

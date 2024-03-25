@@ -197,6 +197,13 @@ if(skpr:::run_documentation()) {
 eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian")
 }
 if(skpr:::run_documentation()) {
+#We can also add error bars on the Monte Carlo power values by setting
+#`detailedoutput = TRUE` (which will print out other information as well).
+#We can set the confidence via the `advancedoptions` argument.
+eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian",
+              detailedoutput = TRUE, advancedoptions = list(ci_error_conf  = 0.8))
+}
+if(skpr:::run_documentation()) {
 #We see here we generate approximately the same parameter powers as we do
 #using the normal approximation in eval_design. Like eval_design, we can also change
 #effectsize to produce a different signal-to-noise ratio:

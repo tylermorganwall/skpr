@@ -34,12 +34,14 @@
 #'                       altitude = c(0, 2000, 4000),
 #'                       bean_sun = c("low", "partial", "high"))
 #'#Plot power for a linear model with all interactions
-#'calculate_power_curves(trials=seq(10,60,by=1),
+#'calculate_power_curves(trials=seq(10,60,by=5),
 #'                       candidateset = cand_set,
 #'                       model = ~.*.,
 #'                       alpha = 0.05,
 #'                       effectsize = 1,
-#'                       eval_function = "eval_design")
+#'                       eval_function = "eval_design") |>
+#'  head(30)
+#'
 #'}
 #'if(skpr:::run_documentation()) {
 #'#Add multiple effect sizes
@@ -48,7 +50,8 @@
 #'                       model = ~.*.,
 #'                       alpha = 0.05,
 #'                       effectsize = c(1,2),
-#'                       eval_function = "eval_design")
+#'                       eval_function = "eval_design") |>
+#'  head(30)
 #'}
 #'if(skpr:::run_documentation()) {
 #'#Generate power curve for a binomial model
@@ -57,7 +60,8 @@
 #'                       model = ~.,
 #'                       effectsize = c(0.6,0.9),
 #'                       eval_function = "eval_design_mc",
-#'                       eval_args = list(nsim = 100, glmfamily = "binomial"))
+#'                       eval_args = list(nsim = 100, glmfamily = "binomial")) |>
+#'  head(30)
 #'}
 #'if(skpr:::run_documentation()) {
 #'#Generate power curve for a binomial model and multiple effect sizes
@@ -66,7 +70,8 @@
 #'                       model = ~.,
 #'                       effectsize = list(c(0.5,0.9),c(0.6,0.9)),
 #'                       eval_function = "eval_design_mc",
-#'                       eval_args = list(nsim = 100, glmfamily = "binomial"))
+#'                       eval_args = list(nsim = 100, glmfamily = "binomial")) |>
+#'  head(30)
 #'}
 calculate_power_curves = function(trials,
                                   effectsize = 1,

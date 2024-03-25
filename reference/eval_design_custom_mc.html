@@ -16,7 +16,7 @@ a data frame of parameter powers."><!-- mathjax --><script src="https://cdnjs.cl
     
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,6 +70,7 @@ a data frame of parameter powers.</p>
 <span>  contrasts <span class="op">=</span> <span class="va">contr.sum</span>,</span>
 <span>  coef_function <span class="op">=</span> <span class="va">coef</span>,</span>
 <span>  calceffect <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  parameternames <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -144,6 +145,10 @@ this ratio can be a vector specifying the variance ratio for each subplot. Other
 fit returned by `fitfunction` must have a method compatable with the car package.</p></dd>
 
 
+<dt>detailedoutput</dt>
+<dd><p>Default `FALSE`. If `TRUE`, return additional information about evaluation in results.</p></dd>
+
+
 <dt>parameternames</dt>
 <dd><p>Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 (e.g. coefficients from an MLE fit).</p></dd>
@@ -153,7 +158,8 @@ fit returned by `fitfunction` must have a method compatable with the car package
 <dd><p>Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
 user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
 `advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation.</p></dd>
+If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
+set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.</p></dd>
 
 
 <dt>progress</dt>

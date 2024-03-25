@@ -101,7 +101,9 @@
 <li>
 <code><a href="reference/eval_design_custom_mc.html">eval_design_custom_mc()</a></code> allows the user to import their own libraries and use the Monte Carlo framework provided by skpr to calculate power.</li>
 <li>
-<code><a href="reference/skprGUI.html">skprGUI()</a></code> and <code>skprGUIbrowser()</code> opens up the GUI in either R Studio or an external browser.</li>
+<code><a href="reference/calculate_power_curves.html">calculate_power_curves()</a></code> provides an interface to automate the generation and evaluation of designs to create power versus sample size and effect size curves.</li>
+<li>
+<code><a href="reference/skprGUI.html">skprGUI()</a></code> opens up the GUI in either RStudio or an external browser.</li>
 </ul>
 <p>If addition, the package offers two functions to generate common plots related to designs:</p>
 <ul>
@@ -111,7 +113,7 @@
 <code><a href="reference/plot_fds.html">plot_fds()</a></code> generates the fraction of design space plot for a given design.</li>
 </ul>
 <p>##skprGUI</p>
-<p>skprGUI provides an graphical user interface to access all of the main features of skpr. An interactive tutorial is provided to familiarize the user with the available functionality. Type <code><a href="reference/skprGUI.html">skprGUI()</a></code> or <code>skprGUIbrowser()</code> to begin. Screenshots:</p>
+<p><code><a href="reference/skprGUI.html">skprGUI()</a></code> provides an graphical user interface to access all of the main features of skpr. An interactive tutorial is provided to familiarize the user with the available functionality. Type <code><a href="reference/skprGUI.html">skprGUI()</a></code> to begin. Screenshots:</p>
 <p><img src="reference/figures/skprGUIcomp.png" align="center"></p>
 </div>
 <div class="section level2">
@@ -178,9 +180,12 @@
 <span><span class="co">#&gt; 8   beansize1 parameter.power 0.5593966</span></span>
 <span><span class="co">#&gt; 9   beansize2 parameter.power 0.5593966</span></span>
 <span><span class="co">#&gt; ============Evaluation Info============</span></span>
-<span><span class="co">#&gt; [1m• Alpha = [0m0.05 [1m• Trials = [0m12 [1m• Blocked = [0mFALSE</span></span>
-<span><span class="co">#&gt; [1m• Evaluating Model = [0m~temp + type + beansize</span></span>
-<span><span class="co">#&gt; [1m• Anticipated Coefficients = [0mc(1, 1, 1, 1, -1)</span></span>
+<span><span class="co">#&gt; * Alpha = 0.05 * Trials = 12 * Blocked = FALSE </span></span>
+<span><span class="co">#&gt; * Evaluating Model = ~temp + type + beansize </span></span>
+<span><span class="co">#&gt; * Anticipated Coefficients = c(1, 1, 1, 1, -1) </span></span>
+<span><span class="co">#&gt; * Contrasts = `contr.sum` </span></span>
+<span><span class="co">#&gt; * Parameter Analysis Method = `lm(...)` </span></span>
+<span><span class="co">#&gt; * Effect Analysis Method = `car::Anova(fit, type = "III")`</span></span>
 <span></span>
 <span><span class="co">#Evaluate power for the design using a Monte Carlo simulation. </span></span>
 <span><span class="co">#Here, we set the effect size (here, the signal-to-noise ratio) to 1.5.</span></span>
@@ -196,9 +201,12 @@
 <span><span class="co">#&gt; 8   beansize1 parameter.power.mc 0.359</span></span>
 <span><span class="co">#&gt; 9   beansize2 parameter.power.mc 0.354</span></span>
 <span><span class="co">#&gt; ===========Evaluation Info============</span></span>
-<span><span class="co">#&gt; [1m• Alpha = [0m0.05 [1m• Trials = [0m12 [1m• Blocked = [0mFALSE</span></span>
-<span><span class="co">#&gt; [1m• Evaluating Model = [0m~temp + type + beansize</span></span>
-<span><span class="co">#&gt; [1m• Anticipated Coefficients = [0mc(0.750, 0.750, 0.750, 0.750, -0.750)</span></span>
+<span><span class="co">#&gt; * Alpha = 0.05 * Trials = 12 * Blocked = FALSE </span></span>
+<span><span class="co">#&gt; * Evaluating Model = ~temp + type + beansize </span></span>
+<span><span class="co">#&gt; * Anticipated Coefficients = c(0.750, 0.750, 0.750, 0.750, -0.750) </span></span>
+<span><span class="co">#&gt; * Contrasts = `contr.sum` </span></span>
+<span><span class="co">#&gt; * Parameter Analysis Method = `lm(...)` </span></span>
+<span><span class="co">#&gt; * Effect Analysis Method = `car::Anova(fit, type = "III")`</span></span>
 <span></span>
 <span><span class="co">#Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. </span></span>
 <span><span class="co">#Here, we also increase the number of simululations to improve the precision of the results.</span></span>
@@ -214,35 +222,57 @@
 <span><span class="co">#&gt; 8   beansize1 parameter.power.mc 0.8842</span></span>
 <span><span class="co">#&gt; 9   beansize2 parameter.power.mc 0.7052</span></span>
 <span><span class="co">#&gt; ============Evaluation Info============</span></span>
-<span><span class="co">#&gt; [1m• Alpha = [0m0.05 [1m• Trials = [0m12 [1m• Blocked = [0mFALSE</span></span>
-<span><span class="co">#&gt; [1m• Evaluating Model = [0m~temp + type + beansize</span></span>
-<span><span class="co">#&gt; [1m• Anticipated Coefficients = [0mc(1.242, 0.549, 0.549, 0.549, -0.549)</span></span>
+<span><span class="co">#&gt; * Alpha = 0.05 * Trials = 12 * Blocked = FALSE </span></span>
+<span><span class="co">#&gt; * Evaluating Model = ~temp + type + beansize </span></span>
+<span><span class="co">#&gt; * Anticipated Coefficients = c(1.242, 0.549, 0.549, 0.549, -0.549) </span></span>
+<span><span class="co">#&gt; * Contrasts = `contr.sum` </span></span>
+<span><span class="co">#&gt; * Parameter Analysis Method = `glm(..., family = "poisson")` </span></span>
+<span><span class="co">#&gt; * Effect Analysis Method = `car::Anova(fit, type = "III")`</span></span>
 <span></span>
-<span><span class="co">#skpr was designed to operate with the pipe (%&gt;%) in mind. </span></span>
+<span><span class="co">#skpr was designed to operate with the pipe (|&gt;) in mind. </span></span>
 <span><span class="co">#Here is an example of an entire design of experiments analysis in three lines:</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>temp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">80</span>,<span class="fl">90</span>,<span class="fl">100</span><span class="op">)</span>, type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Kona"</span>,<span class="st">"Java"</span><span class="op">)</span>, beansize <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Large"</span>,<span class="st">"Medium"</span>,<span class="st">"Small"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="reference/gen_design.html">gen_design</a></span><span class="op">(</span>model <span class="op">=</span> <span class="op">~</span><span class="va">temp</span> <span class="op">+</span> <span class="va">type</span> <span class="op">+</span> <span class="va">beansize</span> <span class="op">+</span> <span class="va">beansize</span><span class="op">:</span><span class="va">type</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="va">temp</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span>, trials<span class="op">=</span><span class="fl">24</span>, optimality<span class="op">=</span><span class="st">"I"</span><span class="op">)</span> <span class="op"><a href="reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="reference/eval_design_mc.html">eval_design_mc</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          parameter               type power</span></span>
-<span><span class="co">#&gt; 1      (Intercept)    effect.power.mc 0.912</span></span>
-<span><span class="co">#&gt; 2             temp    effect.power.mc 0.927</span></span>
-<span><span class="co">#&gt; 3             type    effect.power.mc 0.997</span></span>
-<span><span class="co">#&gt; 4         beansize    effect.power.mc 0.935</span></span>
-<span><span class="co">#&gt; 5        I(temp^2)    effect.power.mc 0.637</span></span>
-<span><span class="co">#&gt; 6    type:beansize    effect.power.mc 0.913</span></span>
-<span><span class="co">#&gt; 7      (Intercept) parameter.power.mc 0.912</span></span>
-<span><span class="co">#&gt; 8             temp parameter.power.mc 0.927</span></span>
-<span><span class="co">#&gt; 9            type1 parameter.power.mc 0.997</span></span>
-<span><span class="co">#&gt; 10       beansize1 parameter.power.mc 0.917</span></span>
-<span><span class="co">#&gt; 11       beansize2 parameter.power.mc 0.913</span></span>
-<span><span class="co">#&gt; 12       I(temp^2) parameter.power.mc 0.637</span></span>
-<span><span class="co">#&gt; 13 type1:beansize1 parameter.power.mc 0.899</span></span>
-<span><span class="co">#&gt; 14 type1:beansize2 parameter.power.mc 0.902</span></span>
-<span><span class="co">#&gt; ==============Evaluation Info==============</span></span>
-<span><span class="co">#&gt; [1m• Alpha = [0m0.05 [1m• Trials = [0m24 [1m• Blocked = [0mFALSE</span></span>
-<span><span class="co">#&gt; [1m• Evaluating Model = [0m~temp + type + beansize + type:beansize + I(temp^2)</span></span>
-<span><span class="co">#&gt; [1m• Anticipated Coefficients = [0mc(1, 1, 1, 1, -1, 1, 1, -1)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>temp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">80</span>,<span class="fl">90</span>,<span class="fl">100</span><span class="op">)</span>, type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Kona"</span>,<span class="st">"Java"</span><span class="op">)</span>, beansize <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Large"</span>,<span class="st">"Medium"</span>,<span class="st">"Small"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/gen_design.html">gen_design</a></span><span class="op">(</span>model <span class="op">=</span> <span class="op">~</span><span class="va">temp</span> <span class="op">+</span> <span class="va">type</span> <span class="op">+</span> <span class="va">beansize</span> <span class="op">+</span> <span class="va">beansize</span><span class="op">:</span><span class="va">type</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="va">temp</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span>, trials<span class="op">=</span><span class="fl">24</span>, optimality<span class="op">=</span><span class="st">"I"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/eval_design_mc.html">eval_design_mc</a></span><span class="op">(</span>detailedoutput <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          parameter               type power anticoef alpha glmfamily trials</span></span>
+<span><span class="co">#&gt; 1      (Intercept)    effect.power.mc 0.912       NA  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 2             temp    effect.power.mc 0.927       NA  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 3             type    effect.power.mc 0.997       NA  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 4         beansize    effect.power.mc 0.935       NA  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 5        I(temp^2)    effect.power.mc 0.637       NA  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 6    type:beansize    effect.power.mc 0.913       NA  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 7      (Intercept) parameter.power.mc 0.912        1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 8             temp parameter.power.mc 0.927        1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 9            type1 parameter.power.mc 0.997        1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 10       beansize1 parameter.power.mc 0.917        1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 11       beansize2 parameter.power.mc 0.913       -1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 12       I(temp^2) parameter.power.mc 0.637        1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 13 type1:beansize1 parameter.power.mc 0.899        1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt; 14 type1:beansize2 parameter.power.mc 0.902       -1  0.05  gaussian     24</span></span>
+<span><span class="co">#&gt;    nsim blocking error_adjusted_alpha power_lcb power_ucb</span></span>
+<span><span class="co">#&gt; 1  1000    FALSE                 0.05 0.8927052 0.9288249</span></span>
+<span><span class="co">#&gt; 2  1000    FALSE                 0.05 0.9090858 0.9423464</span></span>
+<span><span class="co">#&gt; 3  1000    FALSE                 0.05 0.9912580 0.9993809</span></span>
+<span><span class="co">#&gt; 4  1000    FALSE                 0.05 0.9178989 0.9494797</span></span>
+<span><span class="co">#&gt; 5  1000    FALSE                 0.05 0.6063275 0.6668632</span></span>
+<span><span class="co">#&gt; 6  1000    FALSE                 0.05 0.8937921 0.9297315</span></span>
+<span><span class="co">#&gt; 7  1000    FALSE                 0.05 0.8927052 0.9288249</span></span>
+<span><span class="co">#&gt; 8  1000    FALSE                 0.05 0.9090858 0.9423464</span></span>
+<span><span class="co">#&gt; 9  1000    FALSE                 0.05 0.9912580 0.9993809</span></span>
+<span><span class="co">#&gt; 10 1000    FALSE                 0.05 0.8981467 0.9333511</span></span>
+<span><span class="co">#&gt; 11 1000    FALSE                 0.05 0.8937921 0.9297315</span></span>
+<span><span class="co">#&gt; 12 1000    FALSE                 0.05 0.6063275 0.6668632</span></span>
+<span><span class="co">#&gt; 13 1000    FALSE                 0.05 0.8786332 0.9169799</span></span>
+<span><span class="co">#&gt; 14 1000    FALSE                 0.05 0.8818715 0.9197225</span></span>
+<span><span class="co">#&gt; =========================================================Evaluation Info==========================================================</span></span>
+<span><span class="co">#&gt; * Alpha = 0.05 * Trials = 24 * Blocked = FALSE </span></span>
+<span><span class="co">#&gt; * Evaluating Model = ~temp + type + beansize + type:beansize + I(temp^2) </span></span>
+<span><span class="co">#&gt; * Anticipated Coefficients = c(1, 1, 1, 1, -1, 1, 1, -1) </span></span>
+<span><span class="co">#&gt; * Contrasts = `contr.sum` </span></span>
+<span><span class="co">#&gt; * Parameter Analysis Method = `lm(...)` </span></span>
+<span><span class="co">#&gt; * Effect Analysis Method = `car::Anova(fit, type = "III")` </span></span>
+<span><span class="co">#&gt; * MC Power CI Confidence = 95%</span></span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

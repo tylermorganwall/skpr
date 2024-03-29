@@ -7,7 +7,7 @@
 #'Equivalently, solves this set of equations for beta0 and beta1:
 #'mean_low = exp(beta0 - beta1)
 #'mean_high = exp(beta0 + beta1)
-#'@param anticoef input anticipated coefficeints
+#'@param anticoef input anticipated coefficients
 #'@param mean_low The low value of the mean value (= 1/rate)
 #'@param mean_high The high value of the mean value (= 1/rate)
 #'@return Anticipated coefficients.

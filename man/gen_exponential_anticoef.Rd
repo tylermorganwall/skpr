@@ -7,7 +7,7 @@
 gen_exponential_anticoef(anticoef, mean_low, mean_high)
 }
 \arguments{
-\item{anticoef}{input anticipated coefficeints}
+\item{anticoef}{input anticipated coefficients}
 
 \item{mean_low}{The low value of the mean value (= 1/rate)}
 

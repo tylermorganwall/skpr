@@ -581,6 +581,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
   progresscurrent = 1
   estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
   effect_terms = c(1,rownames(attr(terms(model_formula), "factors"))[-1])
+  issued_non_convergence_warning = FALSE
   if (!parallel) {
     pvallist = list()
     effectpvallist = list()
@@ -605,12 +606,15 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       RunMatrixReduced$Y = responses[, j]
       if (blocking) {
         if (glmfamilyname == "gaussian") {
-          fit = suppressWarnings(
-            suppressMessages(
-              lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
-            )
-          )
-          if (calceffect) {
+          tryCatch({
+            fit = suppressWarnings(
+              suppressMessages(
+                lmerTest::lmer(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+              )
+            )}, error = function(e) {
+              fiterror <<- TRUE
+          })
+          if (calceffect && !fiterror) {
             effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)",
                                          model_formula = model_formula, firth = firth,
                                          glmfamily = glmfamilyname, effect_terms = effect_terms,
@@ -647,9 +651,17 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
           estimates[j, ] = NA
         }
       } else {
+        fiterror = FALSE
         if (glmfamilyname == "gaussian") {
-          fit = lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
-          if (calceffect) {
+          tryCatch({
+            fit = suppressWarnings(
+              suppressMessages(
+                lm(model_formula, data = RunMatrixReduced, contrasts = contrastslist)
+              )
+            )}, error = function(e) {
+              fiterror = TRUE
+            })
+          if (calceffect && !fiterror) {
             effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>F)", test.statistic = anovatest,
                                          model_formula = model_formula, firth = firth,
                                          glmfamily = glmfamilyname, effect_terms = effect_terms,
@@ -657,7 +669,6 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                                          contrastslist = contrastslist, effect_anova = effect_anova)
           }
         } else {
-          fiterror = FALSE
           tryCatch({
             fit = suppressWarnings(suppressMessages({
               glm(model_formula, family = glmfamily, data = RunMatrixReduced, contrasts = contrastslist, method = method)
@@ -712,6 +723,14 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
           effectpvallist[[j]] = effect_pvals
           effect_pvals[is.na(effect_pvals)] = 1
           effect_power_values[effect_pvals < alpha_effect] = effect_power_values[effect_pvals < alpha_effect] + 1
+        }
+        if(any(is.na(pvals))) {
+          pvals[is.na(pvals)] = 1
+          if(!issued_non_convergence_warning) {
+            warning("skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
+                    "Reduce the model or increase the number of runs to resolve.")
+            issued_non_convergence_warning = TRUE
+          }
         }
         power_values[pvals < alpha_parameter] = power_values[pvals < alpha_parameter] + 1
       }
@@ -870,6 +889,14 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
             effect_power_values[effect_pvals < alpha_effect] = 1
           }
           stderrval = coef(summary(fit))[, 2]
+          if(any(is.na(pvals))) {
+            pvals[is.na(pvals)] = 1
+            if(!issued_non_convergence_warning) {
+              warning("skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
+                      "Reduce the model or increase the number of runs to resolve.")
+              issued_non_convergence_warning = TRUE
+            }
+          }
           power_values[pvals < alpha_parameter] = 1
           if (!blocking && !is.null(fit$iter)) {
             iterval = fit$iter

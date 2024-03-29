@@ -278,7 +278,6 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   progresscurrent = 1
   pvallist = list()
   estimates = matrix(0, nrow = nsim, ncol = nparam)
-
   if (!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
     if(interactive() && progress) {
@@ -299,22 +298,40 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef_adjusted)
 
       model_formula = update.formula(model, Y ~ .)
-
       #fit a model to the simulated data.
-      fit = suppressWarnings(
-        suppressMessages(
-          survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
-        )
-      )
+      surv_mat = as.matrix(RunMatrixReduced$Y)
+      number_censored = sum(surv_mat[,2] == 0)
+      if(number_censored == nrow(RunMatrixReduced)) {
+        pvals = rep(1,length(parameter_names))
+        names(pvals) = parameter_names
+        estimates[j, ] = NA
+      } else {
+        fiterror = FALSE
+        tryCatch({
+          fit = survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
+        }, error = function(e) {
+          fiterror <<- TRUE
+        }, warning = function(w) {
+          if(grepl("Ran out of iterations and did not converge",as.character(w))) {
+            fiterror <<- TRUE
+          }
+        })
 
-      #determine whether beta[i] is significant. If so, increment nsignificant
-      pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
-      pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
-      pvals[is.na(pvals)] = 1
-      stopifnot(all(names(pvals) == parameter_names))
+        #determine whether beta[i] is significant. If so, increment nsignificant
+        if(!fiterror && exists("fit")) {
+          pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
+          vals = pvals[order(factor(names(pvals), levels = parameter_names))]
+          pvals[is.na(pvals)] = 1
+          stopifnot(all(names(pvals) == parameter_names))
+          estimates[j, ] = coef(fit)
+        } else {
+          pvals = rep(1,length(parameter_names))
+          names(pvals) = parameter_names
+          estimates[j, ] = NA
+        }
+      }
       pvallist[[j]] = pvals
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
-      estimates[j, ] = coef(fit)
     }
     power_values = power_values / nsim
     pvals = do.call(rbind, pvallist)
@@ -356,20 +373,39 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
         surv_args$data = RunMatrixReduced
         surv_args$dist = distribution
 
-        # fit a model to the simulated data.
-        fit = suppressWarnings(
-          suppressMessages(
-            do.call("survreg", args = surv_args)
-          )
-        )
+        surv_mat = as.matrix(RunMatrixReduced$Y)
+        number_censored = sum(surv_mat[,2] == 0)
+        if(number_censored == nrow(RunMatrixReduced)) {
+          pvals = rep(1,length(parameter_names))
+          names(pvals) = parameter_names
+          estimates = rep(NA, length(parameter_names))
+        } else {
+          fiterror = FALSE
+          tryCatch({
+            fit = do.call("survreg", args = surv_args)
+          }, error = function(e) {
+            fiterror <<- TRUE
+          }, warning = function(w) {
+            if(grepl("Ran out of iterations and did not converge",as.character(w))) {
+              fiterror <<- TRUE
+            }
+          })
 
-        #determine whether beta[i] is significant. If so, increment nsignificant
-        pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
-        pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
-        stopifnot(all(names(pvals) == parameter_names))
-        pvals[is.na(pvals)] = 1
+          #determine whether beta[i] is significant. If so, increment nsignificant
+          if(!fiterror && exists("fit")) {
+            pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
+            vals = pvals[order(factor(names(pvals), levels = parameter_names))]
+            pvals[is.na(pvals)] = 1
+            stopifnot(all(names(pvals) == parameter_names))
+            estimates = coef(fit)
+          } else {
+            pvals = rep(1,length(parameter_names))
+            names(pvals) = parameter_names
+            estimates = rep(NA, length(parameter_names))
+          }
+        }
+
         power_values[pvals < alpha] = 1
-        estimates = coef(fit)
         list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals)
       }
     }

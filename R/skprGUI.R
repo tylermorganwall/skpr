@@ -115,7 +115,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
   geom_histogram = ggplot2::geom_histogram
   geom_vline = ggplot2::geom_vline
 
-  if(!getOption("in_skpr_test_environment", TRUE)) {
+  if(!getOption("in_skpr_test_environment", FALSE)) {
     est_plot_width = "auto"
     pvalue_plot_width = "auto"
     fdsplot_width = "auto"
@@ -718,7 +718,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                 rintrojs::introBox(
                   conditionalPanel(
                     "output.displayed_design_number_factors != 1",
-                    plotOutput(outputId = "aliasplot")
+                    plotOutput(outputId = "aliasplot", wdith = fdsplot_width)
                   ),
                   data.step = 28,
                   data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."
@@ -742,7 +742,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                 width = 6,
                 h3("Fraction of Design Space"),
                 rintrojs::introBox(
-                  plotOutput(outputId = "fdsplot"),
+                  plotOutput(outputId = "fdsplot", width = fdsplot_width),
                   data.step = 29,
                   data.intro = "Fraction of design space plot. The horizontal line corresponds to the average prediction variance for the design."
                 )
@@ -756,7 +756,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                   width = 12,
                   h3("Simulated Response Estimates"),
                   rintrojs::introBox(
-                    plotOutput(outputId = "responsehistogram"),
+                    plotOutput(outputId = "responsehistogram", width = est_plot_width),
                     data.step = 30,
                     data.intro = "Distribution of response estimates for Monte Carlo simulations. For a given design and distributional family, this plot shows the model's estimates of the overall response of the experiment (red) with the actual values on top (blue). "
                   )
@@ -770,7 +770,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                 column(
                   width = 12,
                   h3("Simulated Response Estimates"),
-                  plotOutput(outputId = "responsehistogramsurv")
+                  plotOutput(outputId = "responsehistogramsurv", width = est_plot_width)
                 )
               )
             ),
@@ -781,7 +781,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                   width = 12,
                   h3("Simulated Estimates"),
                   rintrojs::introBox(
-                    plotOutput(outputId = "parameterestimates"),
+                    plotOutput(outputId = "parameterestimates", width = est_plot_width),
                     data.step = 31,
                     data.intro = "Individual parameter estimates for each of the design factors. The 95% confidence intervals are extracted from the actual simulated values."
                   )
@@ -794,7 +794,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                                column(
                                  width = 12,
                                  h3("Simulated Estimates"),
-                                 plotOutput(outputId = "parameterestimatessurv")
+                                 plotOutput(outputId = "parameterestimatessurv", width = est_plot_width)
                                )
                              )
             ),
@@ -807,7 +807,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                 column(
                   width = 6,
                   h3("Optimal Search Values"),
-                  plotOutput(outputId = "optimalsearch")
+                  plotOutput(outputId = "optimalsearch", width = optimalsearch_plot_width)
                 ),
                 hr(),
                 fluidRow(
@@ -816,7 +816,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                     column(
                       width = 12,
                       h3("Simulated P-Values"),
-                      plotOutput(outputId = "simulatedpvalues")
+                      plotOutput(outputId = "simulatedpvalues", width = pvalue_plot_width)
                     )
                   )
                 )
@@ -2251,6 +2251,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     ###### Power Results Survival ######
     powerresultssurv_container = reactive({
       req(runmatrix())
+
       if(!multiuser && (!as.logical(input$parallel_eval_surv) && skpr_progress)) {
         pb = inc_progress_session
       } else {
@@ -2270,69 +2271,74 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         }
       }
       if (evaluationtype() == "surv") {
-        if (input$setseed) {
-          set.seed(input$seed)
-        }
-        if (isblocking()) {
-          print("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.")
-        }
-        model = as.formula(input$model)
-        alpha = input$alpha
-        nsim = input$nsim_surv
-        censorpoint = input$censorpoint
-        censortype = input$censortype
-        distribution = input$distribution
-        parallel = input$parallel_eval_surv
-        effectsize_val = effectsize()
-        detailedoutput = input$detailedoutput
-        advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
-        runmat = runmatrix()
-        if(!multiuser) {
-          progress_wrapper({
-            eval_design_survival_mc(runmatrix(),
-                                    model = model,
-                                    alpha = alpha,
-                                    nsim = nsim,
-                                    censorpoint = censorpoint,
-                                    censortype = censortype,
-                                    distribution = distribution,
-                                    parallel = parallel,
-                                    effectsize = effectsize_val,
-                                    detailedoutput = detailedoutput,
-                                    advancedoptions = advancedoptions)
-          })
+        if(input$distribution == "lognormal" && input$censorpoint <= 0) {
+          showNotification(sprintf("When calculating power for a lognormal survival model, the censor point must be greater than 0 (currently set to %0.2f).", input$censorpoint), type = "warning", duration = 10)
+          req(input$distribution == "lognormal" && input$censorpoint > 0)
         } else {
-          prog_env$previouspercent = 0
-          prog_env$percentdone = 0
-          prog_env$need_to_initialize_progress_bar = TRUE
-          prog_env$progress = Progress$new()
-          prog_env$progress_type = "surv"
-          prog_env$progress$set(message = "Setting up simulation...", value = 0)
           if (input$setseed) {
-            seed_val = input$seed
-          } else {
-            seed_val = NULL
+            set.seed(input$seed)
           }
-          advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
-          shinyjs::disable("submitbutton")
-          shinyjs::disable("evalbutton")
-          run_matrix = runmatrix()
+          if (isblocking()) {
+            showNotification("Hard-to-change factors are not supported for survival designs. Evaluating design with no blocking.", type = "Warning", duration = 10)
+          }
+          model = as.formula(input$model)
+          alpha = input$alpha
+          nsim = input$nsim_surv
+          censorpoint = input$censorpoint
+          censortype = input$censortype
+          distribution = input$distribution
+          parallel = input$parallel_eval_surv
+          effectsize_val = effectsize()
+          detailedoutput = input$detailedoutput
+          advancedoptions = list(GUI = TRUE, progressBarUpdater = pb)
+          runmat = runmatrix()
+          if(!multiuser) {
+            progress_wrapper({
+              eval_design_survival_mc(runmatrix(),
+                                      model = model,
+                                      alpha = alpha,
+                                      nsim = nsim,
+                                      censorpoint = censorpoint,
+                                      censortype = censortype,
+                                      distribution = distribution,
+                                      parallel = parallel,
+                                      effectsize = effectsize_val,
+                                      detailedoutput = detailedoutput,
+                                      advancedoptions = advancedoptions)
+            })
+          } else {
+            prog_env$previouspercent = 0
+            prog_env$percentdone = 0
+            prog_env$need_to_initialize_progress_bar = TRUE
+            prog_env$progress = Progress$new()
+            prog_env$progress_type = "surv"
+            prog_env$progress$set(message = "Setting up simulation...", value = 0)
+            if (input$setseed) {
+              seed_val = input$seed
+            } else {
+              seed_val = NULL
+            }
+            advancedoptions = list(GUI = TRUE, progressBarUpdater = multiuser_progress_bar_updater)
+            shinyjs::disable("submitbutton")
+            shinyjs::disable("evalbutton")
+            run_matrix = runmatrix()
 
-          future::future({
-            temp_power = eval_design_survival_mc(run_matrix,
-                                    model = model,
-                                    alpha = alpha,
-                                    nsim = nsim,
-                                    censorpoint = censorpoint,
-                                    censortype = censortype,
-                                    distribution = distribution,
-                                    parallel = parallel,
-                                    effectsize = effectsize_val,
-                                    detailedoutput = detailedoutput,
-                                    advancedoptions = advancedoptions)
-            attr(temp_power, "generating.model") = NULL
-            saveRDS(temp_power, file = file.path(power_file_name))
-            }, seed = seed_val)
+            future::future({
+              temp_power = eval_design_survival_mc(run_matrix,
+                                      model = model,
+                                      alpha = alpha,
+                                      nsim = nsim,
+                                      censorpoint = censorpoint,
+                                      censortype = censortype,
+                                      distribution = distribution,
+                                      parallel = parallel,
+                                      effectsize = effectsize_val,
+                                      detailedoutput = detailedoutput,
+                                      advancedoptions = advancedoptions)
+              attr(temp_power, "generating.model") = NULL
+              saveRDS(temp_power, file = file.path(power_file_name))
+              }, seed = seed_val)
+          }
         }
       }
     }) |>
@@ -2615,7 +2621,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       plot_parameter_estimates = function(powerresults) {
         x = lcb = ucb = vals = type = ylab = NULL
         if (!is.null(attr(powerresults, "estimates"))) {
-          ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95))
+          ests = apply(attr(powerresults, "estimates"), 2, quantile, c(0.05, 0.5, 0.95), na.rm = TRUE)
           truth = attr(powerresults, "anticoef")
           if (isolate(input$distribution) == "exponential") {
             ests = exp(ests)
@@ -2776,13 +2782,12 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
           bin_values = 100
           if(isolate(input$distribution) == "exponential") {
             #Filter out extreme values
-            mad_trueresp = 20*max(exp(trueresponses))
-            num_filtered = sum(exp(responses) > mad_trueresp)
+            mad_trueresp = 10*max(exp(trueresponses), na.rm=TRUE)
+            num_filtered = sum(exp(responses) > mad_trueresp, na.rm=TRUE)
             responses = responses[exp(responses) < mad_trueresp]
             trueresponses = trueresponses[exp(trueresponses) < mad_trueresp]
             filtered_string = sprintf(" (%g extreme outliers removed)",num_filtered)
-          }
-          if (isolate(input$distribution) == "exponential") {
+
             responses = exp(responses)
             trueresponses = exp(trueresponses)
             data_response = data.frame(responses = responses)
@@ -2804,12 +2809,17 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             # abline(v = unique(trueresponses)[order(unique(trueresponses))], col = adjustcolor("blue", alpha.f = 0.40), lwd = widths)
           }
           if (isolate(input$distribution) %in% c("gaussian", "lognormal")) {
+            mad_trueresp = 10*max(abs(trueresponses), na.rm=TRUE)
+            num_filtered = sum(abs(responses) > mad_trueresp, na.rm=TRUE)
+            responses = responses[abs(responses) < mad_trueresp]
+            filtered_string = sprintf(" (%g extreme outliers removed)",num_filtered)
+
             data_response = data.frame(responses = responses)
             data_trueresponse = data.frame(trueresponses = unique(trueresponses))
             ggplot() +
               geom_histogram(data=data_response, aes(x=responses), bins = bin_values,fill="red") +
               geom_vline(data=data_trueresponse, aes(xintercept=trueresponses),color="blue",alpha=0.4, linewidth=2) +
-              scale_x_continuous("Simulated Response Estimates") +
+              scale_x_continuous(sprintf("Simulated Response Estimates%s", filtered_string)) +
               scale_y_continuous(expand=c(0,0)) +
               theme_light() +
               theme(text = element_text(size = 24))
@@ -3022,7 +3032,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
   if(browser) {
     runGadget(shinyApp(ui, server, enableBookmarking = "url"), viewer = browserViewer())
   } else {
-    runGadget(shinyApp(ui, server, enableBookmarking = "url"), viewer = dialogViewer(dialogName = "skprGUI", width = 1200, height = 1200))
+    runGadget(shinyApp(ui, server, enableBookmarking = "url"), viewer = dialogViewer(dialogName = "skprGUI", width = 1400, height = 1200))
   }
 }
 # nocov end

@@ -241,7 +241,7 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   model_formula = update.formula(model, Y ~ .)
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
-
+  issued_non_convergence_warning = FALSE
   if (!parallel) {
     power_values = rep(0, length(parameter_names))
     effect_pvals_list = list()
@@ -260,6 +260,14 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
+      if(any(is.na(pvals))) {
+        pvals[is.na(pvals)] = 1
+        if(!issued_non_convergence_warning) {
+          warning("skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
+                  "Reduce the model or increase the number of runs to resolve.")
+          issued_non_convergence_warning = TRUE
+        }
+      }
       power_values[pvals < alpha] = power_values[pvals < alpha] + 1
       if (calceffect) {
         effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
@@ -310,6 +318,14 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         pvals = pvalfunction(fit)
+        if(any(is.na(pvals))) {
+          pvals[is.na(pvals)] = 1
+          if(!issued_non_convergence_warning) {
+            warning("skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
+                    "Reduce the model or increase the number of runs to resolve.")
+            issued_non_convergence_warning = TRUE
+          }
+        }
         pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
         pvals[is.na(pvals)] = 1
         stopifnot(all(names(pvals) == parameter_names))

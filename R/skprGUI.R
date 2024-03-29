@@ -718,7 +718,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
                 rintrojs::introBox(
                   conditionalPanel(
                     "output.displayed_design_number_factors != 1",
-                    plotOutput(outputId = "aliasplot", wdith = fdsplot_width)
+                    plotOutput(outputId = "aliasplot", width = fdsplot_width)
                   ),
                   data.step = 28,
                   data.intro = "Correlation map of the design. This shows the correlation structure between main effects and their interactions. Ideal correlation structures will be diagonal (top left to bottom right). Alias-optimal designs minimize the elements of this matrix that correspond to a main effects term interacting with an interaction term."

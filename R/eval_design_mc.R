@@ -768,10 +768,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
       set_up_progressr_handler(sprintf("Evaluating %s",progress_message), "sims")
     }
     modelmat = model.matrix(model_formula, data=RunMatrixReduced,contrasts = contrastslist)
-    packagelist = c()
-    if(firth) {
-      packagelist = "mbest"
-    }
+    packagelist = c("mbest", "lmerTest", "skpr", "lme4", "lmtest", "car" )
     nc =  future::nbrOfWorkers()
     run_search = function(iterations, is_shiny) {
       prog = progressr::progressor(steps = nsim)
@@ -782,7 +779,7 @@ eval_design_mc = function(design, model = NULL, alpha = 0.05,
                                                            "responses", "contrastslist", "model_formula", "glmfamily", "glmfamilyname", "calceffect",
                                                            "anovatype", "pvalstring", "anovatest", "firth", "effect_terms", "effect_anova", "method",
                                                            "modelmat", "aliasing_checked", "parameter_names", "progressbarupdates",
-                                                           "alpha_parameter", "alpha_effect", "prog", "nsim", "num_updates", "nc"),
+                                                           "alpha_parameter", "alpha_effect", "prog", "nsim", "num_updates", "nc", "_skpr_genOptimalDesign"),
                                                seed = TRUE)) %dofuture% {
         if(j %in% progressbarupdates) {
           if(is_shiny) {

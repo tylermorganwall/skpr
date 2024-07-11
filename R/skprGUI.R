@@ -1214,7 +1214,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     }, label = "multiuser_observer_runmatrix", priority = 2)
 
     multiuser_helper_glm = observe({
-      req(powerresultsglm_container())
+      req(powerresultsglm_container(), cancelOutput = TRUE)
       if(multiuser && evaluationtype() == "glm") {
         invalidateLater(500)
         power_results_glm_resolved = future::resolved(powerresultsglm_container())
@@ -1269,7 +1269,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     }, label = "multiuser_observer_glm", priority = 1)
 
     multiuser_helper_surv = observe({
-      req(powerresultssurv_container())
+      req(powerresultssurv_container(), cancelOutput = TRUE)
       if(multiuser && evaluationtype() == "surv") {
         invalidateLater(500)
         power_results_surv_resolved = future::resolved(powerresultssurv_container())
@@ -1448,7 +1448,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         disclevels_n = sprintf("disclevels%i",i)
         levels_n = sprintf("levels%i",i)
         blockdepth_n = sprintf("blockdepth%i",i)
-
+        req(input[[factortype_n]], cancelOutput = TRUE)
         if (input[[factortype_n]] == "numeric") {
           candidateset1[[ input[[factorname_n]] ]] = seq(input[[numericlow_n]], input[[numerichigh_n]], length.out = input[[numericlength_n]])
         }
@@ -1463,7 +1463,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     })
 
     inputstring = reactive({
-      req(update)
+      req(update, cancelOutput = TRUE)
       updatevector = list()
       finalstring = c()
       commacount = input$numberfactors - 1
@@ -1477,7 +1477,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
         levels_n = sprintf("levels%i",i)
         blockdepth_n = sprintf("blockdepth%i",i)
         finalstring = c(finalstring, input[[factorname_n]], " = ")
-        req(input[[factortype_n]])
+        req(input[[factortype_n]], cancelOutput = TRUE)
         if (input[[factortype_n]] == "numeric") {
           finalstring = c(finalstring, "seq(", input[[numericlow_n]], ",", input[[numerichigh_n]], ", length.out = ", input[[numericlength_n]], ")")
         }
@@ -2115,7 +2115,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
 
     ###### Power Results GLM ######
     powerresultsglm_container = reactive({
-      req(runmatrix())
+      req(runmatrix(), cancelOutput = TRUE)
       if (evaluationtype() == "glm") {
         if(!multiuser) {
           if(!as.logical(input$parallel_eval_glm) && skpr_progress) {
@@ -2250,7 +2250,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
 
     ###### Power Results Survival ######
     powerresultssurv_container = reactive({
-      req(runmatrix())
+      req(runmatrix(), cancelOutput = TRUE)
 
       if(!multiuser && (!as.logical(input$parallel_eval_surv) && skpr_progress)) {
         pb = inc_progress_session
@@ -2273,7 +2273,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       if (evaluationtype() == "surv") {
         if(input$distribution == "lognormal" && input$censorpoint <= 0) {
           showNotification(sprintf("When calculating power for a lognormal survival model, the censor point must be greater than 0 (currently set to %0.2f).", input$censorpoint), type = "warning", duration = 10)
-          req(input$distribution == "lognormal" && input$censorpoint > 0)
+          req(input$distribution == "lognormal" && input$censorpoint > 0, cancelOutput = TRUE)
         } else {
           if (input$setseed) {
             set.seed(input$seed)
@@ -2420,7 +2420,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     }
 
     output$runmatrix = gt::render_gt({
-      req(runmatrix())
+      req(runmatrix(), cancelOutput = TRUE)
       ord_design = input$orderdesign
       trials =  isolate(input$trials)
       opt = isolate(input$optimality)
@@ -2438,7 +2438,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     }
 
     output$powerresults = gt::render_gt( {
-      req(powerresults())
+      req(powerresults(), cancelOutput = TRUE)
       alpha = isolate(input$alpha)
       colorblind = isolate(input$colorblind)
       pwr_results = filter_power_results(powerresults())
@@ -2446,7 +2446,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
     }, align = "left")
 
     output$powerresultsglm = gt::render_gt({
-      req(powerresultsglm())
+      req(powerresultsglm(), cancelOutput = TRUE)
       alpha = isolate(input$alpha)
       nsim = isolate(input$nsim)
       colorblind = isolate(input$colorblind)
@@ -2456,7 +2456,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       bindEvent(powerresultsglm())
 
     output$powerresultssurv = gt::render_gt({
-      req(powerresultssurv())
+      req(powerresultssurv(), cancelOutput = TRUE)
       alpha = isolate(input$alpha)
       nsim_surv = isolate(input$nsim_surv)
       colorblind = isolate(input$colorblind)
@@ -2466,7 +2466,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       bindEvent(powerresultssurv())
 
     output$aliasplot = renderPlot({
-      req(runmatrix())
+      req(runmatrix(), cancelOutput = TRUE)
       if(displayed_design_number_factors() > 1) {
         runmatrix() %>%
           plot_correlations()
@@ -2522,7 +2522,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
       bindEvent(runmatrix())
 
     output$optimalsearch = renderPlot({
-      req(runmatrix())
+      req(runmatrix(), cancelOutput = TRUE)
       optimal_design_plot = function(runmat) {
         if (isolate(optimality()) %in% c("D", "G", "A")) {
           if(attr(runmat, "blocking") || attr(runmat, "splitplot")) {

@@ -1,4 +1,5 @@
 library(lme4)
+library(skpr)
 
 context("Run Examples")
 
@@ -78,6 +79,7 @@ test_that("eval_design example code runs without errors", {
 test_that("gen_design parallel example code runs without errors", {
   prev_options = options()
   options("skpr_progress" = FALSE)
+  options(cores = 2)
   on.exit(options(prev_options), add = TRUE)
   skip_on_cran()
   set.seed(1)
@@ -86,19 +88,19 @@ test_that("gen_design parallel example code runs without errors", {
                           Vineyard = as.factor(c("A", "B", "C", "D")),
                           Age = c(1, -1))
 
-  options(cores = 2)
   gen_design(candlist3, ~Location, trials = 6, parallel = TRUE, progress = FALSE)
   expect_silent(gen_design(candlist3, ~Location, trials = 6, parallel = TRUE, progress = FALSE) -> temp)
   expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE, progress = FALSE) -> temp)
   expect_silent(gen_design(candlist3, ~Location, trials = 6, parallel = TRUE, progress = FALSE) -> temp)
   expect_silent(gen_design(candlist3, ~Location + Climate, trials = 12, splitplotdesign = temp, blocksizes = rep(2, 6), parallel = TRUE, progress = FALSE) -> temp2)
+  #Evaluate once to remove package load warnings
+  eval_design_mc(temp, ~., 0.2, nsim = 10, parallel = TRUE, progress = FALSE)
   expect_silent(eval_design_mc(temp, ~., 0.2, nsim = 10, parallel = TRUE, progress = FALSE))
+
   expect_silent(eval_design_mc(temp2, ~., 0.2, nsim = 10, parallel = TRUE, progress = FALSE))
   expect_silent(eval_design_mc(temp, ~., 0.2, nsim = 10, glmfamily = "poisson", effectsize = c(1, 10), parallel = TRUE))
   expect_silent(eval_design_mc(temp2, ~., 0.2, nsim = 10, glmfamily = "poisson", effectsize = c(1, 10), parallel = TRUE))
   expect_warning(eval_design_mc(temp, ~., 0.2, nsim = 10, glmfamily = "poisson"), " This can lead to unrealistic effect sizes")
-
-
 })
 
 

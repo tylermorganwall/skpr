@@ -1,219 +1,75 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/404.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/LICENSE-text.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/authors.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/index.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/add_ci_bounds_mc_power.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/aliasmodel.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/anticoef_from_delta.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/anticoef_from_delta_surv.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/blockingstructure.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calc_conservative_anticoef.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calc_interaction_degrees.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calcblocksizes.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calcnoncentralparam.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_block_nesting.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_degrees_of_freedom.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_gefficiency.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_level_vector.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_power_curves.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_split_columns.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculate_v_from_blocks.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/calculatepower.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/check_for_suggest_packages.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/check_model_validity.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/constructRunMatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/contr.simplex.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/convert_blockcolumn_rownames.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/convert_model_dots.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/convert_rownames_to_covariance.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/disallowed_combinations.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/effectpower.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/effectpowermc.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/eval_design.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/eval_design_custom_mc.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/eval_design_mc.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/eval_design_survival_mc.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/extractPvalues.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/gen_anticoef.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/gen_binomial_anticoef.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/gen_design.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/gen_exponential_anticoef.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/gen_momentsmatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/gen_poisson_anticoef.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/generate_block_panel.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/generate_factor_input_panel.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/generate_noise_block.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/generate_optimality_results.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/genhypmatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/genparammatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/get_attribute.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/get_block_groups.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/get_optimality.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/get_power_curve_output.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/is_intralayer_interaction.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/is_rendering_in_knitr.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/normalize_design.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/parameterpower.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/permutations.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/pipe.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/plot_correlations.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/plot_fds.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/potential_permuted_factors.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/print.skpr_eval_output.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/print.skpr_power_curve_output.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/priorlevels.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/quad.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/rearrange_formula_by_order.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/reduceRunMatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/remove_skpr_blockcols.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/run_documentation.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/set_up_progressr_handler.html</loc>
-  </url>
-  <url>
-    <loc>https://tylermorganwall.github.io/skpr/reference/skprGUI.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://tylermorganwall.github.io/skpr/404.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/LICENSE-text.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/authors.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/index.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/add_ci_bounds_mc_power.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/aliasmodel.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/anticoef_from_delta.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/anticoef_from_delta_surv.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/blockingstructure.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calc_conservative_anticoef.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calc_interaction_degrees.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calcblocksizes.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calcnoncentralparam.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_block_nesting.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_degrees_of_freedom.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_gefficiency.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_level_vector.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_power_curves.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_split_columns.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculate_v_from_blocks.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/calculatepower.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/check_for_suggest_packages.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/check_model_validity.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/constructRunMatrix.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/contr.simplex.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/convert_blockcolumn_rownames.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/convert_model_dots.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/convert_rownames_to_covariance.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/disallowed_combinations.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/effectpower.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/effectpowermc.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/eval_design.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/eval_design_custom_mc.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/eval_design_mc.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/eval_design_survival_mc.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/extractPvalues.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_anticoef.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_binomial_anticoef.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_design.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_exponential_anticoef.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_momentsmatrix.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_poisson_anticoef.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/generate_block_panel.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/generate_factor_input_panel.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/generate_noise_block.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/generate_optimality_results.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/genhypmatrix.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/genparammatrix.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/get_attribute.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/get_block_groups.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/get_optimality.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/get_power_curve_output.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/index.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/is_intralayer_interaction.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/is_rendering_in_knitr.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/normalize_design.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/parameterpower.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/permutations.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/pipe.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/plot_correlations.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/plot_fds.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/potential_permuted_factors.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/print.skpr_eval_output.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/print.skpr_power_curve_output.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/priorlevels.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/quad.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/rearrange_formula_by_order.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/reduceRunMatrix.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/remove_skpr_blockcols.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/run_documentation.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/set_up_progressr_handler.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/skprGUI.html</loc></url>
 </urlset>
+

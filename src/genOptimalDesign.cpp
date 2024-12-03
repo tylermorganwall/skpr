@@ -1,6 +1,8 @@
+#include <Rcpp.h>
 #include <RcppEigen.h>
 // [[Rcpp::depends(RcppEigen)]]
 #include <queue>
+#include <string>
 
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
@@ -21,12 +23,12 @@ using namespace Rcpp;
 //`@param augmentedrows The rows that are fixed during the design search.
 //`@return List of design information.
 // [[Rcpp::export]]
-List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
-                      const std::string condition,
-                      const Eigen::MatrixXd& momentsmatrix, Eigen::VectorXd initialRows,
-                      Eigen::MatrixXd aliasdesign,
-                      const Eigen::MatrixXd& aliascandidatelist,
-                      double minDopt, double tolerance, int augmentedrows, int kexchange) {
+Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd& candidatelist,
+                            const std::string condition,
+                            const Eigen::MatrixXd& momentsmatrix, Eigen::VectorXd initialRows,
+                            Eigen::MatrixXd aliasdesign,
+                            const Eigen::MatrixXd& aliascandidatelist,
+                            double minDopt, double tolerance, int augmentedrows, int kexchange) {
   RNGScope rngScope;
   int nTrials = initialdesign.rows();
   double numberrows = initialdesign.rows();

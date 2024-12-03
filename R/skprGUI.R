@@ -1807,7 +1807,7 @@ skprGUI = function(browser = FALSE, return_app = FALSE, multiuser = FALSE, progr
             regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)|(:", term, ":)")
             regularmodel = regularmodel | grepl(regex, modelsplit, perl = TRUE)
           }
-          paste0("~", paste(modelsplit[!regularmodel], collapse = " + "))
+          as.formula(paste0("~", paste(modelsplit[!regularmodel], collapse = " + ")))
         }
       }
     })

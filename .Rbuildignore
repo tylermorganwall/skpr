@@ -18,3 +18,5 @@
 ^pkgdown$
 ^tests/.*$
 _\.new\.png$
+^compile_commands\.json$
+^\.cache$

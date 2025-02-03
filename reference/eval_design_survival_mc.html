@@ -11,7 +11,7 @@ using the survival package and survreg to fit the data. Split-plot designs are n
 
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,8 @@ in the documentation for <code>survreg</code>. <em>Supported</em> options are
 <dd><p>The point after/before (for right-censored or left-censored data, respectively)
 which data should be labelled as censored. Default NA for no censoring. This argument is
 used only by the internal random number generators; if you supply your own function to
-the <code>rfunctionsurv</code> parameter, then this parameter will be ignored.</p></dd>
+the <code>rfunctionsurv</code> parameter, then this parameter will be ignored. For `"lognormal"` and `"exponential"` distributions,
+this should be the actual value, not the `log()`/`exp()` transformed censorpoint, as this transformation will be applied automatically.</p></dd>
 
 
 <dt id="arg-censortype">censortype<a class="anchor" aria-label="anchor" href="#arg-censortype"></a></dt>
@@ -204,7 +205,7 @@ and the other coefficients will be
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>default or length 1 delta used with distribution == 'exponential'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter               type power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept) parameter.power.mc  0.91</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           a parameter.power.mc  0.89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2           a parameter.power.mc  0.95</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>15 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span> </span>

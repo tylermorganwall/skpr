@@ -73,34 +73,48 @@
 #'                       eval_args = list(nsim = 100, glmfamily = "binomial")) |>
 #'  head(30)
 #'}
-calculate_power_curves = function(trials,
-                                  effectsize = 1,
-                                  candidateset = NULL,
-                                  model = NULL,
-                                  alpha = 0.05,
-                                  gen_args = list(),
-                                  eval_function = "eval_design",
-                                  eval_args = list(),
-                                  random_seed = 123,
-                                  iterate_seed = FALSE,
-                                  plot_results = TRUE,
-                                  auto_scale = TRUE,
-                                  x_breaks = NULL,
-                                  y_breaks = seq(0,1,by=0.1),
-                                  ggplot_elements = list()) {
-  if(!inherits(ggplot_elements, "list")) {
+calculate_power_curves = function(
+  trials,
+  effectsize = 1,
+  candidateset = NULL,
+  model = NULL,
+  alpha = 0.05,
+  gen_args = list(),
+  eval_function = "eval_design",
+  eval_args = list(),
+  random_seed = 123,
+  iterate_seed = FALSE,
+  plot_results = TRUE,
+  auto_scale = TRUE,
+  x_breaks = NULL,
+  y_breaks = seq(0, 1, by = 0.1),
+  ggplot_elements = list()
+) {
+  if (!inherits(ggplot_elements, "list")) {
     stop("`ggplot_elements` must be a list of ggplot2 objects")
   }
   eval_function = as.character(substitute(eval_function))
 
-  if(!eval_function %in% c("eval_design", "eval_design_mc", "eval_design_survival_mc", "eval_design_custom_mc")) {
-    stop("skpr: eval_function `",eval_function,"` not recognized as one of `eval_design`, `eval_design_mc`, `eval_design_survival_mc`, or `eval_design_custom_mc`")
+  if (
+    !eval_function %in%
+      c(
+        "eval_design",
+        "eval_design_mc",
+        "eval_design_survival_mc",
+        "eval_design_custom_mc"
+      )
+  ) {
+    stop(
+      "skpr: eval_function `",
+      eval_function,
+      "` not recognized as one of `eval_design`, `eval_design_mc`, `eval_design_survival_mc`, or `eval_design_custom_mc`"
+    )
   }
-  if(!inherits(eval_args,"list") || !inherits(gen_args, "list")) {
+  if (!inherits(eval_args, "list") || !inherits(gen_args, "list")) {
     stop("skpr: Both `eval_args` and `gen_args` must be of class `list`")
   }
-  if(!is.null(eval_args[["glmfamily"]])) {
-    if(eval_args[["glmfamily"]] == "gaussian") {
+  if (!is.null(eval_args[["glmfamily"]])) {
+    if (eval_args[["glmfamily"]] == "gaussian") {
       length_2_effect = FALSE
     } else {
       length_2_effect = TRUE
@@ -109,70 +123,84 @@ calculate_power_curves = function(trials,
     length_2_effect = FALSE
   }
   calc_effect = TRUE
-  if(!is.null(eval_args[["calceffect"]])) {
+  if (!is.null(eval_args[["calceffect"]])) {
     calc_effect = eval_args[["calceffect"]]
   }
 
-  if(length_2_effect && inherits(effectsize,"list") && !all(unlist(lapply(effectsize, length)) == 2)) {
-    stop("skpr: If passing in a list of effectsizes for evaluation functions that require two values, all effect sizes must be length-2 vectors in the list")
+  if (
+    length_2_effect &&
+      inherits(effectsize, "list") &&
+      !all(unlist(lapply(effectsize, length)) == 2)
+  ) {
+    stop(
+      "skpr: If passing in a list of effectsizes for evaluation functions that require two values, all effect sizes must be length-2 vectors in the list"
+    )
   }
-  if(length_2_effect && length(effectsize) == 2 && is.numeric(effectsize) ) {
+  if (length_2_effect && length(effectsize) == 2 && is.numeric(effectsize)) {
     effectsize = list(effectsize)
   }
-  if(length(effectsize) == 1) {
+  if (length(effectsize) == 1) {
     only_trials = TRUE
   } else {
     only_trials = FALSE
   }
-  if(length(trials) == 1) {
+  if (length(trials) == 1) {
     only_effect = TRUE
   } else {
     only_effect = FALSE
   }
-  if(length(trials) > 1 && length(effectsize) > 1) {
+  if (length(trials) > 1 && length(effectsize) > 1) {
     grid_plot = TRUE
   } else {
     grid_plot = FALSE
   }
   n_designs = length(trials) * length(effectsize)
-  pb = progress::progress_bar$new(format = "Calculating Power Curve :current/:total [:bar] ETA::eta",
-                                  total = n_designs, width=120)
-  if(any(trials < 2)) {
+  pb = progress::progress_bar$new(
+    format = "Calculating Power Curve :current/:total [:bar] ETA::eta",
+    total = n_designs,
+    width = 120
+  )
+  if (any(trials < 2)) {
     trials = trials[trials > 1]
-    warning("skpr: removing trials less than 2 runs--those values can never result in a valid design.")
+    warning(
+      "skpr: removing trials less than 2 runs--those values can never result in a valid design."
+    )
   }
-  if(!is.null(candidateset)) {
-    if(!is.null(gen_args[["candidateset"]])) {
+  if (!is.null(candidateset)) {
+    if (!is.null(gen_args[["candidateset"]])) {
       gen_args[["candidateset"]] = NULL
     }
     gen_args = append(gen_args, list(candidateset = candidateset))
   }
-  if(!is.null(model)) {
-    if(!is.null(gen_args[["model"]])) {
+  if (!is.null(model)) {
+    if (!is.null(gen_args[["model"]])) {
       gen_args[["model"]] = NULL
     }
     gen_args = append(gen_args, list(model = model))
   }
-  if(!is.null(model)) {
-    if(!is.null(eval_args[["model"]])) {
+  if (!is.null(model)) {
+    if (!is.null(eval_args[["model"]])) {
       eval_args[["model"]] = NULL
     }
     eval_args = append(eval_args, list(model = model))
   }
-  if(!is.null(alpha)) {
-    if(!is.null(eval_args[["alpha"]])) {
+  if (!is.null(alpha)) {
+    if (!is.null(eval_args[["alpha"]])) {
       eval_args[["alpha"]] = NULL
     }
     eval_args = append(eval_args, list(alpha = alpha))
   }
-  if(!is.null(effectsize)) {
-    if(!is.null(eval_args[["effectsize"]])) {
+  if (!is.null(effectsize)) {
+    if (!is.null(eval_args[["effectsize"]])) {
       eval_args[["effectsize"]] = NULL
     }
     eval_args = append(eval_args, list(effectsize = effectsize))
   }
   gen_args$progress = FALSE
-  if(eval_function %in% c("eval_design_mc", "eval_design_survival_mc", "eval_design_custom_mc")) {
+  if (
+    eval_function %in%
+      c("eval_design_mc", "eval_design_survival_mc", "eval_design_custom_mc")
+  ) {
     eval_args$progress = FALSE
   }
   #Capture the output from the simulation to provide a table of errors
@@ -180,13 +208,15 @@ calculate_power_curves = function(trials,
     function(...) {
       warn = err = ""
       res = withCallingHandlers(
-        tryCatch(fun(...), error=function(e) {
+        tryCatch(fun(...), error = function(e) {
           err <<- conditionMessage(e)
           NA
-        }), warning=function(w) {
+        }),
+        warning = function(w) {
           warn <<- append(warn, conditionMessage(w))
           invokeRestart("muffleWarning")
-        })
+        }
+      )
       attr(res, "warn") = warn
       attr(res, "err") = err
       return(res)
@@ -198,10 +228,10 @@ calculate_power_curves = function(trials,
   gen_warnings = list()
   eval_errors = list()
   eval_warnings = list()
-  for(ef in effectsize) {
-    for(trial in trials) {
+  for (ef in effectsize) {
+    for (trial in trials) {
       pb$tick()
-      if(iterate_seed) {
+      if (iterate_seed) {
         recorded_seed = random_seed + counter
       } else {
         recorded_seed = random_seed
@@ -212,15 +242,23 @@ calculate_power_curves = function(trials,
       gen_fun = function() {
         do.call("gen_design", gen_args)
       }
-      temp_design =  capture_output(gen_fun)()
+      temp_design = capture_output(gen_fun)()
 
-      gen_errors[[counter]] = data.frame(trials=trial, seed = recorded_seed,err=attr(temp_design,"err"))
-      gen_warnings[[counter]] = data.frame(trials=trial, seed = recorded_seed,warn=attr(temp_design,"warn"))
-      if(all(!is.na(temp_design))) {
-        attr(temp_design,"err") = NULL
-        attr(temp_design,"warn") = NULL
+      gen_errors[[counter]] = data.frame(
+        trials = trial,
+        seed = recorded_seed,
+        err = attr(temp_design, "err")
+      )
+      gen_warnings[[counter]] = data.frame(
+        trials = trial,
+        seed = recorded_seed,
+        warn = attr(temp_design, "warn")
+      )
+      if (all(!is.na(temp_design))) {
+        attr(temp_design, "err") = NULL
+        attr(temp_design, "warn") = NULL
 
-        if(!is.null(eval_args[["design"]])) {
+        if (!is.null(eval_args[["design"]])) {
           eval_args[["design"]] = NULL
         }
 
@@ -230,26 +268,56 @@ calculate_power_curves = function(trials,
         eval_fun = function() {
           do.call(eval_function, eval_args)
         }
-        power_output =  capture_output(eval_fun)()
-        if(!length_2_effect) {
-          eval_errors[[counter]] = data.frame(effect=ef, trials = trial, seed = recorded_seed, err=attr(power_output,"err"))
-          eval_warnings[[counter]] = data.frame(effect=ef, trials = trial, seed = recorded_seed, warn=attr(power_output,"warn"))
+        power_output = capture_output(eval_fun)()
+        if (!length_2_effect) {
+          eval_errors[[counter]] = data.frame(
+            effect = ef,
+            trials = trial,
+            seed = recorded_seed,
+            err = attr(power_output, "err")
+          )
+          eval_warnings[[counter]] = data.frame(
+            effect = ef,
+            trials = trial,
+            seed = recorded_seed,
+            warn = attr(power_output, "warn")
+          )
         } else {
-          eval_errors[[counter]] = data.frame(effect_low=ef[1],effect_high=ef[2], trials = trial, seed = recorded_seed, err=attr(power_output,"err"))
-          eval_warnings[[counter]] = data.frame(effect_low=ef[1],effect_high=ef[2], trials = trial, seed = recorded_seed, warn=attr(power_output,"warn"))
+          eval_errors[[counter]] = data.frame(
+            effect_low = ef[1],
+            effect_high = ef[2],
+            trials = trial,
+            seed = recorded_seed,
+            err = attr(power_output, "err")
+          )
+          eval_warnings[[counter]] = data.frame(
+            effect_low = ef[1],
+            effect_high = ef[2],
+            trials = trial,
+            seed = recorded_seed,
+            warn = attr(power_output, "warn")
+          )
         }
-        attr(power_output,"err") = NULL
-        attr(power_output,"warn") = NULL
-        if(all(is.na(power_output))) {
-          power_output = data.frame(parameter = NA_character_, type = NA_character_, power = NA_real_)
+        attr(power_output, "err") = NULL
+        attr(power_output, "warn") = NULL
+        if (all(is.na(power_output))) {
+          power_output = data.frame(
+            parameter = NA_character_,
+            type = NA_character_,
+            power = NA_real_
+          )
         }
       } else {
-        power_output = data.frame(parameter = NA_character_, type = NA_character_, power = NA_real_)
+        power_output = data.frame(
+          parameter = NA_character_,
+          type = NA_character_,
+          power = NA_real_
+        )
       }
       result_dataframe[[counter]] = power_output
       result_dataframe[[counter]]$trials = trial
-      if(!"anticoef" %in% names(eval_args)) {
-        if(length(ef) == 1) {
+      if (!"anticoef" %in% names(eval_args)) {
+        if (length(ef) == 1) {
           result_dataframe[[counter]]$effectsize = ef
         } else {
           result_dataframe[[counter]]$effectsize_low = ef[1]
@@ -260,8 +328,8 @@ calculate_power_curves = function(trials,
       counter = counter + 1
     }
   }
-  all_results = do.call("rbind",result_dataframe)
-  all_results = all_results[!is.na(all_results$power),]
+  all_results = do.call("rbind", result_dataframe)
+  all_results = all_results[!is.na(all_results$power), ]
   attr(all_results, "gen_args") = gen_args
   attr(all_results, "eval_args") = eval_args
   attr(all_results, "gen_errors") = do.call("rbind", gen_errors)
@@ -269,154 +337,325 @@ calculate_power_curves = function(trials,
   attr(all_results, "eval_errors") = do.call("rbind", eval_errors)
   attr(all_results, "eval_warnings") = do.call("rbind", eval_warnings)
   class(all_results) = "data.frame"
-  if(!(length(find.package("ggplot2", quiet = TRUE)) > 0) &&
-     !(length(find.package("gridExtra", quiet = TRUE)) > 0) &&
-     plot_results) {
+  if (
+    !(length(find.package("ggplot2", quiet = TRUE)) > 0) &&
+      !(length(find.package("gridExtra", quiet = TRUE)) > 0) &&
+      plot_results
+  ) {
     warning("{ggplot2} and {gridExtra} package required for plotting results")
     plot_results = FALSE
   }
-  if(plot_results) {
-    if(auto_scale) {
-      if(!is.null(x_breaks)) {
+  if (plot_results) {
+    if (auto_scale) {
+      if (!is.null(x_breaks)) {
         x_breaks_gg = x_breaks
       } else {
         x_breaks_gg = ggplot2::waiver()
       }
-      ggscale_element = list(ggplot2::scale_y_continuous("Power", limits=c(0,1), breaks = y_breaks),
-                             ggplot2::scale_x_continuous("Trials", breaks = x_breaks_gg, expand=c(0,0)))
+      ggscale_element = list(
+        ggplot2::scale_y_continuous(
+          "Power",
+          limits = c(0, 1),
+          breaks = y_breaks
+        ),
+        ggplot2::scale_x_continuous(
+          "Trials",
+          breaks = x_breaks_gg,
+          expand = c(0, 0)
+        )
+      )
     } else {
       ggscale_element = list()
     }
-    effect_results = all_results[all_results$type %in% c("effect.power","effect.power.mc"),]
-    parameter_results = all_results[all_results$type %in% c("parameter.power","parameter.power.mc"),]
+    effect_results = all_results[
+      all_results$type %in% c("effect.power", "effect.power.mc"),
+    ]
+    parameter_results = all_results[
+      all_results$type %in% c("parameter.power", "parameter.power.mc"),
+    ]
     effect_title = list(ggplot2::labs(title = "Effect Power"))
     parameter_title = list(ggplot2::labs(title = "Parameter Power"))
     color_scale_name = list(ggplot2::scale_color_discrete("Model Term"))
 
-    if(grid_plot) {
-      if(!length_2_effect) {
-        effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-                ggplot2::facet_grid(effectsize~.,
-                                    labeller = ggplot2::labeller(effectsize = ggplot2::label_both)) +
-               ggscale_element + color_scale_name + effect_title
+    if (grid_plot) {
+      if (!length_2_effect) {
+        effect_plot = ggplot2::ggplot(effect_results) +
+          ggplot_elements +
+          ggplot2::geom_line(ggplot2::aes(
+            x = trials,
+            y = power,
+            color = parameter
+          )) +
+          ggplot2::facet_grid(
+            effectsize ~ .,
+            labeller = ggplot2::labeller(effectsize = ggplot2::label_both)
+          ) +
+          ggscale_element +
+          color_scale_name +
+          effect_title
 
-        parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-          ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-          ggplot2::facet_grid(effectsize~.,
-                              labeller = ggplot2::labeller(effectsize = ggplot2::label_both)) +
-          ggscale_element + color_scale_name + parameter_title
-
+        parameter_plot = ggplot2::ggplot(parameter_results) +
+          ggplot_elements +
+          ggplot2::geom_line(ggplot2::aes(
+            x = trials,
+            y = power,
+            color = parameter
+          )) +
+          ggplot2::facet_grid(
+            effectsize ~ .,
+            labeller = ggplot2::labeller(effectsize = ggplot2::label_both)
+          ) +
+          ggscale_element +
+          color_scale_name +
+          parameter_title
       } else {
-        if(length(unique(all_results$effectsize_low)) == 1) {
-          effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                  ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-                  ggplot2::facet_grid(effectsize_high~.,
-                             labeller = ggplot2::labeller(effectsize_high = ggplot2::label_both,
-                                                          type = ggplot2::label_value)) +
-                 ggscale_element + color_scale_name + effect_title
+        if (length(unique(all_results$effectsize_low)) == 1) {
+          effect_plot = ggplot2::ggplot(effect_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = trials,
+              y = power,
+              color = parameter
+            )) +
+            ggplot2::facet_grid(
+              effectsize_high ~ .,
+              labeller = ggplot2::labeller(
+                effectsize_high = ggplot2::label_both,
+                type = ggplot2::label_value
+              )
+            ) +
+            ggscale_element +
+            color_scale_name +
+            effect_title
 
-          parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-            ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-            ggplot2::facet_grid(effectsize_high~.,
-                                labeller = ggplot2::labeller(effectsize_high = ggplot2::label_both,
-                                                             type = ggplot2::label_value)) +
-            ggscale_element + color_scale_name + parameter_title
-
+          parameter_plot = ggplot2::ggplot(parameter_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = trials,
+              y = power,
+              color = parameter
+            )) +
+            ggplot2::facet_grid(
+              effectsize_high ~ .,
+              labeller = ggplot2::labeller(
+                effectsize_high = ggplot2::label_both,
+                type = ggplot2::label_value
+              )
+            ) +
+            ggscale_element +
+            color_scale_name +
+            parameter_title
         } else if (length(unique(all_results$effectsize_low)) == 1) {
-          effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                  ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-                  ggplot2::facet_grid(effectsize_low~.,
-                             labeller = ggplot2::labeller(effectsize_low = ggplot2::label_both)) +
-                 ggscale_element + color_scale_name + effect_title
+          effect_plot = ggplot2::ggplot(effect_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = trials,
+              y = power,
+              color = parameter
+            )) +
+            ggplot2::facet_grid(
+              effectsize_low ~ .,
+              labeller = ggplot2::labeller(effectsize_low = ggplot2::label_both)
+            ) +
+            ggscale_element +
+            color_scale_name +
+            effect_title
 
-          parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-            ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-            ggplot2::facet_grid(effectsize_low~.,
-                                labeller = ggplot2::labeller(effectsize_low = ggplot2::label_both)) +
-            ggscale_element + color_scale_name + parameter_title
-
+          parameter_plot = ggplot2::ggplot(parameter_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = trials,
+              y = power,
+              color = parameter
+            )) +
+            ggplot2::facet_grid(
+              effectsize_low ~ .,
+              labeller = ggplot2::labeller(effectsize_low = ggplot2::label_both)
+            ) +
+            ggscale_element +
+            color_scale_name +
+            parameter_title
         } else {
-          effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                  ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-                  ggplot2::facet_grid(effectsize_low + effectsize_high~.,
-                             labeller = ggplot2::labeller(effectsize_low = ggplot2::label_both,
-                                                          effectsize_high = ggplot2::label_both)) +
-                 ggscale_element + color_scale_name + effect_title
+          effect_plot = ggplot2::ggplot(effect_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = trials,
+              y = power,
+              color = parameter
+            )) +
+            ggplot2::facet_grid(
+              effectsize_low + effectsize_high ~ .,
+              labeller = ggplot2::labeller(
+                effectsize_low = ggplot2::label_both,
+                effectsize_high = ggplot2::label_both
+              )
+            ) +
+            ggscale_element +
+            color_scale_name +
+            effect_title
 
-          parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-            ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-            ggplot2::facet_grid(effectsize_low + effectsize_high~.,
-                                labeller = ggplot2::labeller(effectsize_low = ggplot2::label_both,
-                                                             effectsize_high = ggplot2::label_both)) +
-            ggscale_element + color_scale_name + parameter_title
-
+          parameter_plot = ggplot2::ggplot(parameter_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = trials,
+              y = power,
+              color = parameter
+            )) +
+            ggplot2::facet_grid(
+              effectsize_low + effectsize_high ~ .,
+              labeller = ggplot2::labeller(
+                effectsize_low = ggplot2::label_both,
+                effectsize_high = ggplot2::label_both
+              )
+            ) +
+            ggscale_element +
+            color_scale_name +
+            parameter_title
         }
       }
     } else {
-      if(only_effect) {
-        if(!length_2_effect) {
-          effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                  ggplot2::geom_line(ggplot2::aes(x=effectsize, y = power, color=parameter)) +
-                 ggscale_element + color_scale_name + effect_title
+      if (only_effect) {
+        if (!length_2_effect) {
+          effect_plot = ggplot2::ggplot(effect_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = effectsize,
+              y = power,
+              color = parameter
+            )) +
+            ggscale_element +
+            color_scale_name +
+            effect_title
 
-          parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-            ggplot2::geom_line(ggplot2::aes(x=effectsize, y = power, color=parameter)) +
-            ggscale_element + color_scale_name + parameter_title
+          parameter_plot = ggplot2::ggplot(parameter_results) +
+            ggplot_elements +
+            ggplot2::geom_line(ggplot2::aes(
+              x = effectsize,
+              y = power,
+              color = parameter
+            )) +
+            ggscale_element +
+            color_scale_name +
+            parameter_title
         } else {
-          if(length(unique(all_results$effectsize_low)) == 1) {
-            effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                    ggplot2::geom_line(ggplot2::aes(x=effectsize_high, y = power, color=parameter)) +
-                   ggscale_element + color_scale_name + effect_title
+          if (length(unique(all_results$effectsize_low)) == 1) {
+            effect_plot = ggplot2::ggplot(effect_results) +
+              ggplot_elements +
+              ggplot2::geom_line(ggplot2::aes(
+                x = effectsize_high,
+                y = power,
+                color = parameter
+              )) +
+              ggscale_element +
+              color_scale_name +
+              effect_title
 
-            parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-              ggplot2::geom_line(ggplot2::aes(x=effectsize_high, y = power, color=parameter)) +
-              ggscale_element + color_scale_name + parameter_title
-
+            parameter_plot = ggplot2::ggplot(parameter_results) +
+              ggplot_elements +
+              ggplot2::geom_line(ggplot2::aes(
+                x = effectsize_high,
+                y = power,
+                color = parameter
+              )) +
+              ggscale_element +
+              color_scale_name +
+              parameter_title
           } else if (length(unique(all_results$effectsize_high)) == 1) {
-            effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                    ggplot2::geom_line(ggplot2::aes(x=effectsize_low, y = power, color=parameter)) +
-                   ggscale_element + color_scale_name + effect_title
+            effect_plot = ggplot2::ggplot(effect_results) +
+              ggplot_elements +
+              ggplot2::geom_line(ggplot2::aes(
+                x = effectsize_low,
+                y = power,
+                color = parameter
+              )) +
+              ggscale_element +
+              color_scale_name +
+              effect_title
 
-            parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-              ggplot2::geom_line(ggplot2::aes(x=effectsize_low, y = power, color=parameter)) +
-              ggscale_element + color_scale_name + parameter_title
+            parameter_plot = ggplot2::ggplot(parameter_results) +
+              ggplot_elements +
+              ggplot2::geom_line(ggplot2::aes(
+                x = effectsize_low,
+                y = power,
+                color = parameter
+              )) +
+              ggscale_element +
+              color_scale_name +
+              parameter_title
           } else {
-            effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                    ggplot2::geom_line(ggplot2::aes(x=effectsize_high, y = power, color=parameter)) +
-                    ggplot2::facet_grid(effectsize_low~.,
-                               labeller = ggplot2::labeller(effectsize_low = ggplot2::label_value)) +
-                   ggscale_element + color_scale_name + effect_title
+            effect_plot = ggplot2::ggplot(effect_results) +
+              ggplot_elements +
+              ggplot2::geom_line(ggplot2::aes(
+                x = effectsize_high,
+                y = power,
+                color = parameter
+              )) +
+              ggplot2::facet_grid(
+                effectsize_low ~ .,
+                labeller = ggplot2::labeller(
+                  effectsize_low = ggplot2::label_value
+                )
+              ) +
+              ggscale_element +
+              color_scale_name +
+              effect_title
 
-            parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-              ggplot2::geom_line(ggplot2::aes(x=effectsize_high, y = power, color=parameter)) +
-              ggplot2::facet_grid(effectsize_low~.,
-                                  labeller = ggplot2::labeller(effectsize_low = ggplot2::label_value)) +
-              ggscale_element + color_scale_name + parameter_title
+            parameter_plot = ggplot2::ggplot(parameter_results) +
+              ggplot_elements +
+              ggplot2::geom_line(ggplot2::aes(
+                x = effectsize_high,
+                y = power,
+                color = parameter
+              )) +
+              ggplot2::facet_grid(
+                effectsize_low ~ .,
+                labeller = ggplot2::labeller(
+                  effectsize_low = ggplot2::label_value
+                )
+              ) +
+              ggscale_element +
+              color_scale_name +
+              parameter_title
           }
         }
       } else {
-        effect_plot = ggplot2::ggplot(effect_results) + ggplot_elements +
-                ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-               ggscale_element + color_scale_name + effect_title
+        effect_plot = ggplot2::ggplot(effect_results) +
+          ggplot_elements +
+          ggplot2::geom_line(ggplot2::aes(
+            x = trials,
+            y = power,
+            color = parameter
+          )) +
+          ggscale_element +
+          color_scale_name +
+          effect_title
 
-        parameter_plot = ggplot2::ggplot(parameter_results) + ggplot_elements +
-          ggplot2::geom_line(ggplot2::aes(x=trials, y = power, color=parameter)) +
-          ggscale_element + color_scale_name + parameter_title
+        parameter_plot = ggplot2::ggplot(parameter_results) +
+          ggplot_elements +
+          ggplot2::geom_line(ggplot2::aes(
+            x = trials,
+            y = power,
+            color = parameter
+          )) +
+          ggscale_element +
+          color_scale_name +
+          parameter_title
       }
     }
-    if(calc_effect) {
-      gridExtra::grid.arrange(effect_plot, parameter_plot, nrow=1)
+    if (calc_effect) {
+      gridExtra::grid.arrange(effect_plot, parameter_plot, nrow = 1)
     } else {
-      gridExtra::grid.arrange(parameter_plot,nrow=1)
+      gridExtra::grid.arrange(parameter_plot, nrow = 1)
     }
   }
 
   class(all_results) = c("skpr_power_curve_output", "data.frame")
-  attr(all_results,"output") = list("gen_errors"=attr(all_results, "gen_errors"),
-                                    "gen_warnings"=attr(all_results, "gen_warnings"),
-                                    "eval_errors"=attr(all_results, "eval_errors"),
-                                    "eval_warnings"=attr(all_results, "eval_warnings"))
+  attr(all_results, "output") = list(
+    "gen_errors" = attr(all_results, "gen_errors"),
+    "gen_warnings" = attr(all_results, "gen_warnings"),
+    "eval_errors" = attr(all_results, "eval_errors"),
+    "eval_warnings" = attr(all_results, "eval_warnings")
+  )
 
   return(all_results)
 }
@@ -442,11 +681,19 @@ globalVariables(c("parameter", "effectsize_high", "effectsize_low"))
 #'                       eval_args = list(nsim = 100, glmfamily = "binomial"))
 #'}
 get_power_curve_output = function(power_curve) {
-  stopifnot(inherits(power_curve,"skpr_power_curve_output"))
-  curve_warn_error = attr(power_curve,"output")
-  curve_warn_error$gen_errors    = curve_warn_error$gen_errors[curve_warn_error$gen_errors$err        != "",]
-  curve_warn_error$gen_warnings  = curve_warn_error$gen_warnings[curve_warn_error$gen_warnings$warn   != "",]
-  curve_warn_error$eval_errors   = curve_warn_error$eval_errors[curve_warn_error$eval_errors$err      != "",]
-  curve_warn_error$eval_warnings = curve_warn_error$eval_warnings[curve_warn_error$eval_warnings$warn != "",]
+  stopifnot(inherits(power_curve, "skpr_power_curve_output"))
+  curve_warn_error = attr(power_curve, "output")
+  curve_warn_error$gen_errors = curve_warn_error$gen_errors[
+    curve_warn_error$gen_errors$err != "",
+  ]
+  curve_warn_error$gen_warnings = curve_warn_error$gen_warnings[
+    curve_warn_error$gen_warnings$warn != "",
+  ]
+  curve_warn_error$eval_errors = curve_warn_error$eval_errors[
+    curve_warn_error$eval_errors$err != "",
+  ]
+  curve_warn_error$eval_warnings = curve_warn_error$eval_warnings[
+    curve_warn_error$eval_warnings$warn != "",
+  ]
   return(curve_warn_error)
 }

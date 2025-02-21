@@ -9,8 +9,15 @@
 #'@keywords internal
 #'
 is_intralayer_interaction = function(design, model, split_layers) {
-  model = as.formula(paste0("~", paste(attr(terms.formula(model), "term.labels"), collapse = " + ")))
-  splitterms = unlist(strsplit(as.character(model)[-1], split = " + ", fixed = TRUE))
+  model = as.formula(paste0(
+    "~",
+    paste(attr(terms.formula(model), "term.labels"), collapse = " + ")
+  ))
+  splitterms = unlist(strsplit(
+    as.character(model)[-1],
+    split = " + ",
+    fixed = TRUE
+  ))
   ismaineffect = rep(FALSE, length(splitterms))
   ismaineffect[1:length(split_layers)] = TRUE
   interactions = list()
@@ -22,17 +29,45 @@ is_intralayer_interaction = function(design, model, split_layers) {
       higherplotinteraction = rep(FALSE, length(splitterms))
 
       for (term in wholeplotterms) {
-        regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)")
-        wholeorwholeinteraction = wholeorwholeinteraction | grepl(regex, splitterms, perl = TRUE)
+        regex = paste0(
+          "(\\b",
+          term,
+          "\\b)|(\\b",
+          term,
+          ":)|(:",
+          term,
+          "\\b)|(\\b",
+          term,
+          "\\s\\*)|(\\*\\s",
+          term,
+          "\\b)"
+        )
+        wholeorwholeinteraction = wholeorwholeinteraction |
+          grepl(regex, splitterms, perl = TRUE)
       }
       for (term in higherplotterms) {
-        regex = paste0("(\\b", term, "\\b)|(\\b", term, ":)|(:", term, "\\b)|(\\b", term, "\\s\\*)|(\\*\\s", term, "\\b)")
-        higherplotinteraction = higherplotinteraction | grepl(regex, splitterms, perl = TRUE)
+        regex = paste0(
+          "(\\b",
+          term,
+          "\\b)|(\\b",
+          term,
+          ":)|(:",
+          term,
+          "\\b)|(\\b",
+          term,
+          "\\s\\*)|(\\*\\s",
+          term,
+          "\\b)"
+        )
+        higherplotinteraction = higherplotinteraction |
+          grepl(regex, splitterms, perl = TRUE)
       }
-      interactions[[i]] = wholeorwholeinteraction & !ismaineffect & !higherplotinteraction
+      interactions[[i]] = wholeorwholeinteraction &
+        !ismaineffect &
+        !higherplotinteraction
     }
   } else {
-    for(i in seq_along(1:max(split_layers, na.rm=TRUE))) {
+    for (i in seq_along(1:max(split_layers, na.rm = TRUE))) {
       interactions[[i]] = FALSE
     }
   }

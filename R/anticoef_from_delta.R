@@ -20,46 +20,45 @@ anticoef_from_delta = function(default_coef, delta, glmfamily) {
   if (glmfamily == "gaussian") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-    }
-    else {
+    } else {
       anticoef = default_coef * (delta[2] - delta[1]) / 2
     }
-  }
-  else if (glmfamily == "exponential") {
+  } else if (glmfamily == "exponential") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-      warning("default or length 1 delta used with glmfamily == 'exponential'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.")
-    }
-    else {
+      warning(
+        "default or length 1 delta used with glmfamily == 'exponential'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate."
+      )
+    } else {
       anticoef = gen_exponential_anticoef(default_coef, delta[1], delta[2])
     }
-  }
-  else if (glmfamily == "poisson") {
+  } else if (glmfamily == "poisson") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-      warning("default or length 1 delta used with glmfamily == 'poisson'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.")
-    }
-    else {
+      warning(
+        "default or length 1 delta used with glmfamily == 'poisson'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate."
+      )
+    } else {
       anticoef = gen_exponential_anticoef(default_coef, delta[1], delta[2])
     }
-  }
-  else if (glmfamily == "binomial") {
+  } else if (glmfamily == "binomial") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-      warning("default or length 1 delta used with glmfamily == 'binomial'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.")
-    }
-    else {
+      warning(
+        "default or length 1 delta used with glmfamily == 'binomial'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate."
+      )
+    } else {
       anticoef = gen_binomial_anticoef(default_coef, delta[1], delta[2])
     }
-  }
-  else {
+  } else {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-    }
-    else {
+    } else {
       anticoef = gen_exponential_anticoef(default_coef, delta[1], delta[2])
     }
-    warning("delta parameter used with unsupported glmfamily. Make sure the generated anticipated coefficients are appropriate.")
+    warning(
+      "delta parameter used with unsupported glmfamily. Make sure the generated anticipated coefficients are appropriate."
+    )
   }
   anticoef
 }

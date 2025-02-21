@@ -25,22 +25,32 @@
 #'normalize_design(design)
 #'}
 normalize_design = function(design, augmented = NULL) {
-  if(!is.null(augmented)) {
-    all_equal_classes = all(identical(lapply(design,class), unlist(lapply(augmented,class))))
-    if(!all_equal_classes) {
-      stop("Design to be augmented and new design must have identical column classes")
+  if (!is.null(augmented)) {
+    all_equal_classes = all(identical(
+      lapply(design, class),
+      unlist(lapply(augmented, class))
+    ))
+    if (!all_equal_classes) {
+      stop(
+        "Design to be augmented and new design must have identical column classes"
+      )
     }
     for (column in 1:ncol(design)) {
       if (is.numeric(design[, column])) {
-        midvalue = mean(c(max(c(design[, column],augmented[,column])), min(c(design[, column],augmented[,column]))))
-        design[, column] = (design[, column] - midvalue) / (max(c(design[, column],augmented[,column])) - midvalue)
+        midvalue = mean(c(
+          max(c(design[, column], augmented[, column])),
+          min(c(design[, column], augmented[, column]))
+        ))
+        design[, column] = (design[, column] - midvalue) /
+          (max(c(design[, column], augmented[, column])) - midvalue)
       }
     }
   } else {
     for (column in 1:ncol(design)) {
       if (is.numeric(design[, column])) {
         midvalue = mean(c(max(design[, column]), min(design[, column])))
-        design[, column] = (design[, column] - midvalue) / (max(design[, column]) - midvalue)
+        design[, column] = (design[, column] - midvalue) /
+          (max(design[, column]) - midvalue)
       }
     }
   }

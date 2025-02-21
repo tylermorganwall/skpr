@@ -14,10 +14,12 @@
 #'@keywords internal
 gen_poisson_anticoef = function(anticoef, mean_low, mean_high) {
   if (mean_low <= 0 || mean_high <= 0) {
-    stop("skpr: Exponential anticipated coefficients generation error: mean values must be positive.")
+    stop(
+      "skpr: Exponential anticipated coefficients generation error: mean values must be positive."
+    )
   }
   b0 = 1 / 2 * (log(mean_high) + log(mean_low))
-  b  = 1 / 2 * (log(mean_high) - log(mean_low))
+  b = 1 / 2 * (log(mean_high) - log(mean_low))
   newanticoef = anticoef * b
   newanticoef[1] = b0
   return(newanticoef)

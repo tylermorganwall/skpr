@@ -8,18 +8,23 @@
 #'@return Normalized run matrix
 #'@keywords internal
 normalize_design = function(design, augmented = NULL) {
-  if(!is.null(augmented)) {
+  if (!is.null(augmented)) {
     for (column in 1:ncol(design)) {
       if (is.numeric(design[, column])) {
-        midvalue = mean(c(max(c(design[, column],augmented[,column])), min(c(design[, column],augmented[,column]))))
-        design[, column] = (design[, column] - midvalue) / (max(c(design[, column],augmented[,column])) - midvalue)
+        midvalue = mean(c(
+          max(c(design[, column], augmented[, column])),
+          min(c(design[, column], augmented[, column]))
+        ))
+        design[, column] = (design[, column] - midvalue) /
+          (max(c(design[, column], augmented[, column])) - midvalue)
       }
     }
   } else {
     for (column in 1:ncol(design)) {
       if (is.numeric(design[, column])) {
         midvalue = mean(c(max(design[, column]), min(design[, column])))
-        design[, column] = (design[, column] - midvalue) / (max(design[, column]) - midvalue)
+        design[, column] = (design[, column] - midvalue) /
+          (max(design[, column]) - midvalue)
       }
     }
   }

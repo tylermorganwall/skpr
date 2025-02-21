@@ -10,6 +10,13 @@
 #'@return The power for a given parameter L, given the
 #'@keywords internal
 calculatepower = function(X, L, lambda, alpha, degrees_of_freedom) {
-  return(1 - pf(qf(1 - alpha, dim(L)[1], degrees_of_freedom), dim(L)[1],
-                degrees_of_freedom, lambda))
+  return(
+    1 -
+      pf(
+        qf(1 - alpha, dim(L)[1], degrees_of_freedom),
+        dim(L)[1],
+        degrees_of_freedom,
+        lambda
+      )
+  )
 }

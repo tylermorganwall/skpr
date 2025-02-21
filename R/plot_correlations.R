@@ -34,14 +34,21 @@
 #'#You can also pass in a custom color map.
 #'plot_correlations(cardesign, customcolors = c("blue", "grey", "red"))
 #'plot_correlations(cardesign, customcolors = c("blue", "green", "yellow", "orange", "red"))
-plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow = 2, custompar = NULL,
-                             standardize = TRUE, plot = TRUE) {
+plot_correlations = function(
+  genoutput,
+  model = NULL,
+  customcolors = NULL,
+  pow = 2,
+  custompar = NULL,
+  standardize = TRUE,
+  plot = TRUE
+) {
   #Remove skpr-generated REML blocking indicators if present
   if (!is.null(attr(genoutput, "splitanalyzable"))) {
     if (attr(genoutput, "splitanalyzable")) {
       allattr = attributes(genoutput)
       remove_cols = which(colnames(genoutput) %in% allattr$splitcolumns)
-      if(length(remove_cols) > 0) {
+      if (length(remove_cols) > 0) {
         genoutput = genoutput[, -remove_cols, drop = FALSE]
         allattr$names = allattr$names[-remove_cols]
       }
@@ -50,19 +57,27 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   }
   if (!is.null(attr(genoutput, "splitcolumns"))) {
     allattr = attributes(genoutput)
-    genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
-    allattr$names = allattr$names[!allattr$names %in% attr(genoutput, "splitcolumns")]
+    genoutput = genoutput[,
+      !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")),
+      drop = FALSE
+    ]
+    allattr$names = allattr$names[
+      !allattr$names %in% attr(genoutput, "splitcolumns")
+    ]
     attributes(genoutput) = allattr
   }
   if (!is.null(attr(genoutput, "augmented"))) {
     if (attr(genoutput, "augmented")) {
       allattr = attributes(genoutput)
-      genoutput = genoutput[, !(colnames(genoutput) %in% "Block1"), drop = FALSE]
+      genoutput = genoutput[,
+        !(colnames(genoutput) %in% "Block1"),
+        drop = FALSE
+      ]
       allattr$names = allattr$names[!allattr$names %in% "Block1"]
       attributes(genoutput) = allattr
     }
   }
-  if (is.null(attr(genoutput, "variance.matrix") )) {
+  if (is.null(attr(genoutput, "variance.matrix"))) {
     genoutput = eval_design(genoutput, model, 0.2)
   }
   V = attr(genoutput, "variance.matrix")
@@ -70,18 +85,28 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
     if (!is.null(attr(genoutput, "runmatrix"))) {
       variables = paste0("`", colnames(attr(genoutput, "runmatrix")), "`")
     } else {
-      variables =  paste0("`", colnames(genoutput), "`")
+      variables = paste0("`", colnames(genoutput), "`")
     }
     linearterms = paste(variables, collapse = " + ")
     linearmodel = paste0(c("~", linearterms), collapse = "")
-    model1 = as.formula(paste(c(linearmodel,
-                                as.character(aliasmodel(as.formula(linearmodel), power = pow)[2])
-                                ), collapse = " + "))
-    if(!is.null(attr(genoutput, "generating.model"))) {
-      modelfactors = colnames(attr(terms.formula(attr(genoutput, "generating.model")),"factors"))
-      quadmodelfactors = colnames(attr(terms.formula(model1,"factors"),"factors"))
+    model1 = as.formula(paste(
+      c(
+        linearmodel,
+        as.character(aliasmodel(as.formula(linearmodel), power = pow)[2])
+      ),
+      collapse = " + "
+    ))
+    if (!is.null(attr(genoutput, "generating.model"))) {
+      modelfactors = colnames(attr(
+        terms.formula(attr(genoutput, "generating.model")),
+        "factors"
+      ))
+      quadmodelfactors = colnames(attr(
+        terms.formula(model1, "factors"),
+        "factors"
+      ))
       otherterms = modelfactors[!modelfactors %in% quadmodelfactors]
-      model = as.formula(paste(c(model1,otherterms), collapse = " + "))
+      model = as.formula(paste(c(model1, otherterms), collapse = " + "))
     } else {
       model = model1
     }
@@ -89,7 +114,9 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   if (!is.null(attr(genoutput, "runmatrix"))) {
     genoutput = attr(genoutput, "runmatrix")
   }
-  factornames = colnames(genoutput)[unlist(lapply(genoutput, class)) %in% c("factor", "character")]
+  factornames = colnames(genoutput)[
+    unlist(lapply(genoutput, class)) %in% c("factor", "character")
+  ]
   if (length(factornames) > 0) {
     contrastlist = list()
     for (name in 1:length(factornames)) {
@@ -99,11 +126,12 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
     contrastlist = NULL
   }
   #------Normalize/Center numeric columns ------#
-  if(standardize) {
+  if (standardize) {
     for (column in 1:ncol(genoutput)) {
       if (is.numeric(genoutput[, column])) {
         midvalue = mean(c(max(genoutput[, column]), min(genoutput[, column])))
-        genoutput[, column] = (genoutput[, column] - midvalue) / (max(genoutput[, column]) - midvalue)
+        genoutput[, column] = (genoutput[, column] - midvalue) /
+          (max(genoutput[, column]) - midvalue)
       }
     }
   }
@@ -111,7 +139,7 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   mm = model.matrix(model, genoutput, contrasts.arg = contrastlist)
   #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
   cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1, -1])
-  if(!plot) {
+  if (!plot) {
     return(cormat)
   }
 
@@ -125,19 +153,53 @@ plot_correlations = function(genoutput, model = NULL, customcolors = NULL, pow =
   } else {
     do.call(par, custompar)
   }
-  image(t(cormat[ncol(cormat):1,, drop = FALSE]), x = 1:ncol(cormat), y = 1:ncol(cormat), zlim = c(0, 1), asp = 1, axes = F,
-        col = imagecolors, xlab = "", ylab = "")
-  axis(3, at = 1:ncol(cormat), labels = colnames(mm)[-1], pos = ncol(cormat) + 1, las = 2, hadj = 0, cex.axis = 0.8)
-  axis(2, at = ncol(cormat):1, labels = colnames(mm)[-1], pos = 0, las = 2, hadj = 1, cex.axis = 0.8)
+  image(
+    t(cormat[ncol(cormat):1, , drop = FALSE]),
+    x = 1:ncol(cormat),
+    y = 1:ncol(cormat),
+    zlim = c(0, 1),
+    asp = 1,
+    axes = F,
+    col = imagecolors,
+    xlab = "",
+    ylab = ""
+  )
+  axis(
+    3,
+    at = 1:ncol(cormat),
+    labels = colnames(mm)[-1],
+    pos = ncol(cormat) + 1,
+    las = 2,
+    hadj = 0,
+    cex.axis = 0.8
+  )
+  axis(
+    2,
+    at = ncol(cormat):1,
+    labels = colnames(mm)[-1],
+    pos = 0,
+    las = 2,
+    hadj = 1,
+    cex.axis = 0.8
+  )
 
-  legend(length(colnames(mm)[-1]) + 1, length(colnames(mm)[-1]),
-         c("0", "", "", "", "", "0.5", "", "", "", "", "1.0"), title = "|r|\n",
-         fill = imagecolors[c(seq(1, 101, 10))], xpd = TRUE, bty = "n", border = NA, y.intersp = 0.3, x.intersp = 0.1, cex = 1)
+  legend(
+    length(colnames(mm)[-1]) + 1,
+    length(colnames(mm)[-1]),
+    c("0", "", "", "", "", "0.5", "", "", "", "", "1.0"),
+    title = "|r|\n",
+    fill = imagecolors[c(seq(1, 101, 10))],
+    xpd = TRUE,
+    bty = "n",
+    border = NA,
+    y.intersp = 0.3,
+    x.intersp = 0.1,
+    cex = 1
+  )
   par(mar = c(5.1, 4.1, 4.1, 2.1))
 
-  retval = t(cormat[ncol(cormat):1,, drop = FALSE])
+  retval = t(cormat[ncol(cormat):1, , drop = FALSE])
   colnames(retval) = rev(colnames(mm)[-1])
   rownames(retval) = colnames(mm)[-1]
   invisible(retval)
-
 }

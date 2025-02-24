@@ -921,8 +921,13 @@ gen_design = function(candidateset, model, trials,
     factors = colnames(candidatesetmm)
     levelvector = sapply(lapply(candidateset, unique), length)
     classvector = sapply(candidateset, inherits, c("factor", "character"))
-
-    mm = gen_momentsmatrix(factors, levelvector, classvector)
+    if(all(classvector)) {
+      mm = gen_momentsmatrix(factors, levelvector, classvector)
+    } else {
+      mm = gen_momentsmatrix_continuous(formula = model,
+                                        data = candidatesetnormalized,
+                                        n_samples_per_dimension = 100)
+    }
     if (!parallel) {
       if(!is.null(getOption("skpr_progress"))) {
         progress = getOption("skpr_progress")

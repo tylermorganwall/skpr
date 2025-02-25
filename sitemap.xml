@@ -27,6 +27,7 @@
 <url><loc>https://tylermorganwall.github.io/skpr/reference/convert_blockcolumn_rownames.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/convert_model_dots.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/convert_rownames_to_covariance.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/convhull_halfspace.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/disallowed_combinations.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/effectpower.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/effectpowermc.html</loc></url>
@@ -40,6 +41,7 @@
 <url><loc>https://tylermorganwall.github.io/skpr/reference/gen_design.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/gen_exponential_anticoef.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/gen_momentsmatrix.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/gen_momentsmatrix_continuous.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/gen_poisson_anticoef.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/generate_block_panel.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/generate_factor_input_panel.html</loc></url>
@@ -52,6 +54,7 @@
 <url><loc>https://tylermorganwall.github.io/skpr/reference/get_optimality.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/get_power_curve_output.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/index.html</loc></url>
+<url><loc>https://tylermorganwall.github.io/skpr/reference/interpolate_convex_hull.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/is_intralayer_interaction.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/is_rendering_in_knitr.html</loc></url>
 <url><loc>https://tylermorganwall.github.io/skpr/reference/normalize_design.html</loc></url>

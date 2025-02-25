@@ -153,40 +153,11 @@ Can also be `"eval_design_mc"`, `"eval_design_survival_mc"`, and `"eval_design_c
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-plt img"><img src="calculate_power_curves-1.png" alt="" width="700" height="433"></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              parameter            type     power trials effectsize random_seed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18         (Intercept)    effect.power 0.3297088     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19           brew_temp    effect.power 0.3297088     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20            altitude    effect.power 0.3297088     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21            bean_sun    effect.power 0.1599775     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22  brew_temp:altitude    effect.power 0.3248373     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23  brew_temp:bean_sun    effect.power 0.1615894     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24   altitude:bean_sun    effect.power 0.1599775     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25         (Intercept) parameter.power 0.3297088     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26           brew_temp parameter.power 0.3297088     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27            altitude parameter.power 0.3297088     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28           bean_sun1 parameter.power 0.1904301     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29           bean_sun2 parameter.power 0.1884952     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30  brew_temp:altitude parameter.power 0.3248373     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31 brew_temp:bean_sun1 parameter.power 0.1904301     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32 brew_temp:bean_sun2 parameter.power 0.1904301     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 33  altitude:bean_sun1 parameter.power 0.1884952     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 34  altitude:bean_sun2 parameter.power 0.1904301     15          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 35         (Intercept)    effect.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36           brew_temp    effect.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 37            altitude    effect.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 38            bean_sun    effect.power 0.2447062     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 39  brew_temp:altitude    effect.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 40  brew_temp:bean_sun    effect.power 0.2447062     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 41   altitude:bean_sun    effect.power 0.2583789     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 42         (Intercept) parameter.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 43           brew_temp parameter.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 44            altitude parameter.power 0.4856389     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 45           bean_sun1 parameter.power 0.2615680     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 46           bean_sun2 parameter.power 0.2883561     20          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 47  brew_temp:altitude parameter.power 0.4856389     20          1         123</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] parameter   type        power       trials      effectsize  random_seed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;0 rows&gt; (or 0-length row.names)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000; font-weight: bold;">Power curve generation captured the following warning/error messages:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB; font-weight: bold;">Function   | Type | N | Message</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Evaluation | Warn | 1 | Message:</span> '<span style="color: #BB00BB;">skpr: NA indicates not enough degrees of freedom to estimate power for those terms.</span>'</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB; font-weight: bold;">Function   | Type | N  | Message</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Generation | Err  | 11 | Message:</span> '<span style="color: #BB0000;">there is no package called ‘geometry’</span>'</span>
 <span class="r-in"><span><span class="kw">if</span><span class="op">(</span><span class="fu">skpr</span><span class="fu">:::</span><span class="fu"><a href="run_documentation.html">run_documentation</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span><span class="co">#Add multiple effect sizes</span></span></span>
 <span class="r-in"><span><span class="fu">calculate_power_curves</span><span class="op">(</span>trials<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">10</span>,<span class="fl">60</span>,by<span class="op">=</span><span class="fl">1</span><span class="op">)</span>,</span></span>
@@ -197,41 +168,7 @@ Can also be `"eval_design_mc"`, `"eval_design_survival_mc"`, and `"eval_design_c
 <span class="r-in"><span>                      eval_function <span class="op">=</span> <span class="st">"eval_design"</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-plt img"><img src="calculate_power_curves-2.png" alt="" width="700" height="433"></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              parameter            type      power trials effectsize random_seed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18         (Intercept)    effect.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19           brew_temp    effect.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20            altitude    effect.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21            bean_sun    effect.power 0.06447520     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22  brew_temp:altitude    effect.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23  brew_temp:bean_sun    effect.power 0.06447520     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24   altitude:bean_sun    effect.power 0.06447520     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25         (Intercept) parameter.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26           brew_temp parameter.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27            altitude parameter.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28           bean_sun1 parameter.power 0.06757424     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29           bean_sun2 parameter.power 0.07717846     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30  brew_temp:altitude parameter.power 0.09280916     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31 brew_temp:bean_sun1 parameter.power 0.06757424     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32 brew_temp:bean_sun2 parameter.power 0.07717846     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 33  altitude:bean_sun1 parameter.power 0.06757424     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 34  altitude:bean_sun2 parameter.power 0.07717846     11          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 35         (Intercept)    effect.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36           brew_temp    effect.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 37            altitude    effect.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 38            bean_sun    effect.power 0.09633205     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 39  brew_temp:altitude    effect.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 40  brew_temp:bean_sun    effect.power 0.09633205     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 41   altitude:bean_sun    effect.power 0.09633205     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 42         (Intercept) parameter.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 43           brew_temp parameter.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 44            altitude parameter.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 45           bean_sun1 parameter.power 0.11698959     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 46           bean_sun2 parameter.power 0.11698959     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 47  brew_temp:altitude parameter.power 0.17925539     12          1         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000; font-weight: bold;">Power curve generation captured the following warning/error messages:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB; font-weight: bold;">Function   | Type | N | Message</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Evaluation | Warn | 2 | Message:</span> '<span style="color: #BB00BB;">skpr: NA indicates not enough degrees of freedom to estimate power for those terms.</span>'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in combine_vars(data, params$plot_env, rows, drop = params$drop):</span> Faceting variables must have at least one value.</span>
 <span class="r-in"><span><span class="kw">if</span><span class="op">(</span><span class="fu">skpr</span><span class="fu">:::</span><span class="fu"><a href="run_documentation.html">run_documentation</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span><span class="co">#Generate power curve for a binomial model</span></span></span>
 <span class="r-in"><span><span class="fu">calculate_power_curves</span><span class="op">(</span>trials<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">50</span>,<span class="fl">150</span>,by<span class="op">=</span><span class="fl">10</span><span class="op">)</span>,</span></span>
@@ -242,72 +179,13 @@ Can also be `"eval_design_mc"`, `"eval_design_survival_mc"`, and `"eval_design_c
 <span class="r-in"><span>                      eval_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nsim <span class="op">=</span> <span class="fl">100</span>, glmfamily <span class="op">=</span> <span class="st">"binomial"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-plt img"><img src="calculate_power_curves-3.png" alt="" width="700" height="433"></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power trials effectsize_low effectsize_high</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.84     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    brew_temp    effect.power.mc  0.57     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     altitude    effect.power.mc  0.72     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4     bean_sun    effect.power.mc  0.21     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc  0.84     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6    brew_temp parameter.power.mc  0.57     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     altitude parameter.power.mc  0.72     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8    bean_sun1 parameter.power.mc  0.19     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9    bean_sun2 parameter.power.mc  0.36     50            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10 (Intercept)    effect.power.mc  0.93     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11   brew_temp    effect.power.mc  0.74     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12    altitude    effect.power.mc  0.73     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13    bean_sun    effect.power.mc  0.41     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14 (Intercept) parameter.power.mc  0.93     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15   brew_temp parameter.power.mc  0.74     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16    altitude parameter.power.mc  0.73     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17   bean_sun1 parameter.power.mc  0.36     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18   bean_sun2 parameter.power.mc  0.42     60            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 (Intercept)    effect.power.mc  0.98     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20   brew_temp    effect.power.mc  0.83     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21    altitude    effect.power.mc  0.84     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22    bean_sun    effect.power.mc  0.44     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23 (Intercept) parameter.power.mc  0.98     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24   brew_temp parameter.power.mc  0.83     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25    altitude parameter.power.mc  0.84     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26   bean_sun1 parameter.power.mc  0.41     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27   bean_sun2 parameter.power.mc  0.54     70            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28 (Intercept)    effect.power.mc  1.00     80            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29   brew_temp    effect.power.mc  0.92     80            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30    altitude    effect.power.mc  0.86     80            0.6             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    random_seed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30         123</span>
+<span class="r-plt img"><img src="calculate_power_curves-2.png" alt="" width="700" height="433"></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] parameter       type            power           trials         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5] effectsize_low  effectsize_high random_seed    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;0 rows&gt; (or 0-length row.names)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000; font-weight: bold;">Power curve generation captured the following warning/error messages:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB; font-weight: bold;">Function   | Type | N | Message</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Evaluation | Warn | 1 | Message:</span> '<span style="color: #BB00BB;">skpr: Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.</span>'</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB; font-weight: bold;">Function   | Type | N  | Message</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Generation | Err  | 11 | Message:</span> '<span style="color: #BB0000;">there is no package called ‘geometry’</span>'</span>
 <span class="r-in"><span><span class="kw">if</span><span class="op">(</span><span class="fu">skpr</span><span class="fu">:::</span><span class="fu"><a href="run_documentation.html">run_documentation</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span><span class="co">#Generate power curve for a binomial model and multiple effect sizes</span></span></span>
 <span class="r-in"><span><span class="fu">calculate_power_curves</span><span class="op">(</span>trials<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">50</span>,<span class="fl">150</span>,by<span class="op">=</span><span class="fl">10</span><span class="op">)</span>,</span></span>
@@ -318,72 +196,7 @@ Can also be `"eval_design_mc"`, `"eval_design_survival_mc"`, and `"eval_design_c
 <span class="r-in"><span>                      eval_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nsim <span class="op">=</span> <span class="fl">100</span>, glmfamily <span class="op">=</span> <span class="st">"binomial"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-plt img"><img src="calculate_power_curves-4.png" alt="" width="700" height="433"></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power trials effectsize_low effectsize_high</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.80     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    brew_temp    effect.power.mc  0.78     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     altitude    effect.power.mc  0.81     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4     bean_sun    effect.power.mc  0.35     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc  0.80     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6    brew_temp parameter.power.mc  0.78     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     altitude parameter.power.mc  0.81     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8    bean_sun1 parameter.power.mc  0.37     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9    bean_sun2 parameter.power.mc  0.47     50            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10 (Intercept)    effect.power.mc  0.80     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11   brew_temp    effect.power.mc  0.89     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12    altitude    effect.power.mc  0.87     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13    bean_sun    effect.power.mc  0.46     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14 (Intercept) parameter.power.mc  0.80     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15   brew_temp parameter.power.mc  0.89     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16    altitude parameter.power.mc  0.87     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17   bean_sun1 parameter.power.mc  0.54     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18   bean_sun2 parameter.power.mc  0.51     60            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 (Intercept)    effect.power.mc  0.91     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20   brew_temp    effect.power.mc  0.90     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21    altitude    effect.power.mc  0.94     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22    bean_sun    effect.power.mc  0.70     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23 (Intercept) parameter.power.mc  0.91     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24   brew_temp parameter.power.mc  0.90     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25    altitude parameter.power.mc  0.94     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26   bean_sun1 parameter.power.mc  0.62     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27   bean_sun2 parameter.power.mc  0.74     70            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28 (Intercept)    effect.power.mc  0.97     80            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29   brew_temp    effect.power.mc  0.97     80            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30    altitude    effect.power.mc  0.99     80            0.5             0.9</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    random_seed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9          123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30         123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000; font-weight: bold;">Power curve generation captured the following warning/error messages:</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB; font-weight: bold;">Function   | Type | N | Message</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Evaluation | Warn | 2 | Message:</span> '<span style="color: #BB00BB;">skpr: Partial or complete separation likely detected in the binomial Monte Carlo simulation. Increase the number of runs in the design or decrease the number of model parameters to improve power.</span>'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in combine_vars(data, params$plot_env, rows, drop = params$drop):</span> Faceting variables must have at least one value.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

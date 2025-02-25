@@ -188,82 +188,25 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">optdesign</span> <span class="op">=</span> <span class="fu"><a href="gen_design.html">gen_design</a></span><span class="op">(</span>candidateset <span class="op">=</span> <span class="va">factorial</span>,</span></span>
 <span class="r-in"><span>                      model<span class="op">=</span> <span class="op">~</span><span class="va">A</span> <span class="op">+</span> <span class="va">B</span> <span class="op">+</span> <span class="va">C</span>, trials <span class="op">=</span> <span class="fl">11</span>, optimality <span class="op">=</span> <span class="st">"D"</span>, repeats <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in loadNamespace(x):</span> there is no package called ‘geometry’</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Now evaluating that design (with default anticipated coefficients and a effectsize of 2):</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span>design <span class="op">=</span> <span class="va">optdesign</span>, model<span class="op">=</span> <span class="op">~</span><span class="va">A</span> <span class="op">+</span> <span class="va">B</span> <span class="op">+</span> <span class="va">C</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           A    effect.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3           B    effect.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4           C    effect.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (Intercept) parameter.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6           A parameter.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7           B parameter.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8           C parameter.power 0.9622638</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>11 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~A + B + C </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1, 1) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lm(...)` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Effect Analysis Method = </span>`car::Anova(fit, type = "III")` </span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'optdesign' not found</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Evaluating a subset of the design (which changes the power due to a different number of</span></span></span>
 <span class="r-in"><span><span class="co">#degrees of freedom)</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span>design <span class="op">=</span> <span class="va">optdesign</span>, model<span class="op">=</span> <span class="op">~</span><span class="va">A</span> <span class="op">+</span> <span class="va">C</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.9659328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           A    effect.power 0.9659328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3           C    effect.power 0.9659328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (Intercept) parameter.power 0.9659328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5           A parameter.power 0.9659328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6           C parameter.power 0.9659328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>11 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~A + C </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lm(...)` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Effect Analysis Method = </span>`car::Anova(fit, type = "III")` </span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'optdesign' not found</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#We do not have to input the model if it's the same as the model used</span></span></span>
 <span class="r-in"><span><span class="co">#During design generation. Here, we also use the default value for alpha (`0.05`)</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">optdesign</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           A    effect.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3           B    effect.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4           C    effect.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (Intercept) parameter.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6           A parameter.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7           B parameter.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8           C parameter.power 0.7991116</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>11 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~A + B + C </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1, 1) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lm(...)` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Effect Analysis Method = </span>`car::Anova(fit, type = "III")` </span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'optdesign' not found</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Halving the signal-to-noise ratio by setting a different effectsize (default is 2):</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span>design <span class="op">=</span> <span class="va">optdesign</span>, model<span class="op">=</span> <span class="op">~</span><span class="va">A</span> <span class="op">+</span> <span class="va">B</span> <span class="op">+</span> <span class="va">C</span>, alpha <span class="op">=</span> <span class="fl">0.2</span>, effectsize <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           A    effect.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3           B    effect.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4           C    effect.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (Intercept) parameter.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6           A parameter.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7           B parameter.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8           C parameter.power 0.6021367</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>11 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~A + B + C </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(0.500, 0.500, 0.500, 0.500) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lm(...)` </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Effect Analysis Method = </span>`car::Anova(fit, type = "III")` </span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'optdesign' not found</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#With 3+ level categorical factors, the choice of anticipated coefficients directly changes the</span></span></span>
 <span class="r-in"><span><span class="co">#final power calculation. For the most conservative power calculation, that involves</span></span></span>
@@ -386,18 +329,18 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">coffeefinaldesign</span>, <span class="fl">0.2</span>, blocking <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power 0.9453423</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.9448020</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.9448035</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power 0.9999931</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power 0.9990524</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998370</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998385</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power 0.9453423</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.9448020</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.9448035</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999931</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        size1 parameter.power 0.9980496</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10       size2 parameter.power 0.9980496</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9758438</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9758438</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9756156</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9758444</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9756162</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9758444</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>36 <span style="font-weight: bold;">• Blocked = </span>TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine + cost + size + type </span>
@@ -421,9 +364,9 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999978</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        size1 parameter.power 0.9981168</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10       size2 parameter.power 0.9981168</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9828414</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9828414</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9828414</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9828490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9828490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9828490</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>36 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine + cost + size + type </span>
@@ -437,18 +380,18 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">coffeefinaldesign</span>, <span class="fl">0.2</span>, varianceratios <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power 0.8158743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.8153089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.8153097</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power 0.9999919</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power 0.9990524</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998136</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998159</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power 0.8158743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.8153089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.8153097</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999919</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        size1 parameter.power 0.9980496</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10       size2 parameter.power 0.9980496</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9746798</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9746798</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9744428</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9746799</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9744430</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9746799</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>36 <span style="font-weight: bold;">• Blocked = </span>TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine + cost + size + type </span>
@@ -474,10 +417,10 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="co">#By default, skpr will throw out the blocking columns unless the user specifies `blocking = TRUE`.</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">coffeeblockdesign</span>, blocking<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.2314776</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    caffeine    effect.power 0.2314776</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (Intercept) parameter.power 0.2314776</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4    caffeine parameter.power 0.2314776</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.3326126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    caffeine    effect.power 0.8267272</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (Intercept) parameter.power 0.3326126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4    caffeine parameter.power 0.8267272</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>12 <span style="font-weight: bold;">• Blocked = </span>TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine </span>

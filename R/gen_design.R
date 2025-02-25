@@ -924,8 +924,11 @@ gen_design = function(candidateset, model, trials,
     if(all(classvector)) {
       mm = gen_momentsmatrix(factors, levelvector, classvector)
     } else {
+      model_terms_cs = rownames(attr(terms.formula(model),"factors"))
+      col_in_model = colnames(candidateset) %in% model_terms_cs
+      candidate_set_mm = candidatesetnormalized[,col_in_model,drop=FALSE]
       mm = gen_momentsmatrix_continuous(formula = model,
-                                        data = candidatesetnormalized,
+                                        candidate_set = candidate_set_mm,
                                         n_samples_per_dimension = 100)
     }
     if (!parallel) {

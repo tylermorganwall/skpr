@@ -74,7 +74,7 @@ interpolate_convex_hull = function(points, ch_halfspace, n_samples_per_dimension
 #' the model terms, weighted by whether the point
 #' is on the edge.
 #'
-#' @param data Candidate set
+#' @param candidate_set_full Candidate set
 #' @param formula Default `~ .`. Model formula specifying the terms.
 #' @param n_samples_per_dimension Default `100`. Number of samples to take per dimension when interpolating inside
 #' the convex hull.
@@ -99,17 +99,28 @@ gen_momentsmatrix_continuous = function(
   # Detect any disallowed combinations
   unique_vals = prod(vapply(candidate_set, \(x) {length(unique(x))}, FUN.VALUE = integer(1)))
   any_disallowed = unique_vals != nrow(candidate_set)
+  M_acc = NA
+  total_weight = 0
 
   # Simple if all numeric: just integrate over the region.
   if(length(factor_cols) == 0) {
     sub_candidate_set = as.matrix(candidate_set)
-    ch = convhull_halfspace(sub_candidate_set)
-    if (ch$volume <= 0) {
-      next
+    if(ncol(sub_candidate_set) == 1) {
+      new_pts_ch = matrix(seq(min(sub_candidate_set),
+                       max(sub_candidate_set),
+                       length.out = n_samples_per_dimension),ncol=1)
+      interp_ch = list()
+      interp_ch$on_edge = rep(FALSE, nrow(new_pts_ch))
+      vol = max(sub_candidate_set) - min(sub_candidate_set)
+      } else {
+      ch = convhull_halfspace(sub_candidate_set)
+      if (ch$volume <= 0) {
+        next
+      }
+      vol = ch$volume
+      interp_ch = interpolate_convex_hull(as.matrix(sub_candidate_set), ch, n_samples_per_dimension = n_samples_per_dimension)
+      new_pts_ch = interp_ch$data
     }
-    vol = ch$volume
-    interp_ch = interpolate_convex_hull(as.matrix(sub_candidate_set), ch, n_samples_per_dimension = n_samples_per_dimension)
-    new_pts_ch = interp_ch$data
 
     colnames(new_pts_ch) = numeric_cols
     interp_df = as.data.frame(new_pts_ch)
@@ -121,23 +132,16 @@ gen_momentsmatrix_continuous = function(
     w[interp_ch$on_edge] = 0.5
     # average subregion moment
     Xsub_w =  apply(Xsub,2,\(x) x*sqrt(w))
-    # M_sub = crossprod(Xsub) / sum(w)
 
-    M_sub = crossprod(Xsub_w) / sum(w)
+    M = crossprod(Xsub_w) / sum(w)
 
-    # Weighted accumulation
-    if (is.null(M_acc)) {
-      M_acc = vol * M_sub
-    } else {
-      M_acc = M_acc + vol * M_sub
-    }
-    total_weight = total_weight + vol
     #Scale by the intercept
     if(colnames(M)[1] == "(Intercept)") {
       M = M / M[1,1]
     }
     return(M)
   } else {
+    M_acc = NA
     # For categorical factors with disallowed combinations, we need to account for the
     # reduced domain of the integral. We'll calculate a moment matrix as above for each
     # factor level combination, weigh it by the total number of points, and sum it. That
@@ -155,7 +159,6 @@ gen_momentsmatrix_continuous = function(
     }
 
     # We'll accumulate a weighted sum of sub-matrices
-    M_acc = NULL
     total_weight = 0
 
     for (r in seq_len(nrow(unique_combos))) {
@@ -167,20 +170,28 @@ gen_momentsmatrix_continuous = function(
         is_match = is_match & (candidate_set[[fc]] == combo_row[[fc]])
       }
       sub_candidate_set = candidate_set[is_match, , drop=FALSE]
-      sub_candidate_set = sub_candidate_set[,is_numeric_col]
+      sub_candidate_set = sub_candidate_set[,is_numeric_col, drop = FALSE]
       # If no rows => disallowed or doesn't appear => skip
-      if (!nrow(sub_candidate_set)) {
+      if (nrow(sub_candidate_set) == 0) {
         next
       }
-
-      # Calculate the convex hull and sample points
-      ch = convhull_halfspace(sub_candidate_set)
-      if (ch$volume <= 0) {
-        next
+      if(ncol(sub_candidate_set) == 1) {
+        new_pts_ch = matrix(seq(min(sub_candidate_set),
+                                max(sub_candidate_set),
+                                length.out = n_samples_per_dimension),ncol=1)
+        interp_ch = list()
+        interp_ch$on_edge = rep(FALSE, nrow(new_pts_ch))
+        vol = max(sub_candidate_set) - min(sub_candidate_set)
+      } else {
+        ch = convhull_halfspace(sub_candidate_set)
+        if (ch$volume <= 0) {
+          next
+        }
+        vol = ch$volume
+        interp_ch = interpolate_convex_hull(as.matrix(sub_candidate_set), ch,
+                                            n_samples_per_dimension = n_samples_per_dimension)
+        new_pts_ch = interp_ch$data
       }
-      vol = ch$volume
-      interp_ch = interpolate_convex_hull(as.matrix(sub_candidate_set), ch, n_samples_per_dimension = n_samples_per_dimension)
-      new_pts_ch = interp_ch$data
 
       colnames(new_pts_ch) = numeric_cols
       interp_df = as.data.frame(new_pts_ch)
@@ -191,7 +202,8 @@ gen_momentsmatrix_continuous = function(
       }
 
       # Now build model matrix
-      Xsub = model.matrix(formula, data = interp_df, contrasts.arg = get_contrasts_from_candset(candidate_set))
+      Xsub = model.matrix(formula, data = interp_df,
+                          contrasts.arg = get_contrasts_from_candset(candidate_set))
 
       w = rep(1, nrow(Xsub))
       w[interp_ch$on_edge] = 0.5
@@ -202,7 +214,7 @@ gen_momentsmatrix_continuous = function(
       M_sub = crossprod(Xsub_w) / sum(w)
 
       # Weighted accumulation
-      if (is.null(M_acc)) {
+      if (all(is.na(M_acc))) {
         M_acc = vol * M_sub
       } else {
         M_acc = M_acc + vol * M_sub

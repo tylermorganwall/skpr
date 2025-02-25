@@ -8,8 +8,10 @@
 #'@return Returns a vector of p-values. If model_fit is not a supported model type, returns NULL.
 extractPvalues = function(model_fit, glmfamily = "gaussian") {
   model_type = class(model_fit)
-  if ("lm" %in% model_type || "glm" %in% model_type || "glmerMod" %in% model_type) {
-    if(glmfamily != "exponential") {
+  if (
+    "lm" %in% model_type || "glm" %in% model_type || "glmerMod" %in% model_type
+  ) {
+    if (glmfamily != "exponential") {
       return(coef(summary(model_fit))[, 4])
     } else {
       return(coef(summary(model_fit, dispersion = 1))[, 4])

@@ -5,7 +5,7 @@
 #'@keywords internal
 #'@return Returns a vector consisting of the number
 #'of levels preceeding each parameter (including the intercept)
-constructRunMatrix = function(rowIndices, candidateList, augment=NULL) {
+constructRunMatrix = function(rowIndices, candidateList, augment = NULL) {
   trials = length(rowIndices)
   run_matrix = as.data.frame(candidateList[1:trials, ])
   colnames(run_matrix) = colnames(candidateList)

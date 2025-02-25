@@ -101,14 +101,29 @@
 #'                          rfunction = rsurvival, effectsize = 1,
 #'                          parallel = TRUE, parallel_pkgs = "survival")
 #'}
-eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
-                                 nsim, rfunction, fitfunction, pvalfunction,
-                                 anticoef, effectsize = 2, contrasts = contr.sum,
-                                 coef_function = coef, calceffect = FALSE, detailedoutput = FALSE,
-                                 parameternames = NULL, advancedoptions = NULL, progress = TRUE,
-                                 parallel = FALSE, parallel_pkgs = NULL, ...) {
+eval_design_custom_mc = function(
+  design,
+  model = NULL,
+  alpha = 0.05,
+  nsim,
+  rfunction,
+  fitfunction,
+  pvalfunction,
+  anticoef,
+  effectsize = 2,
+  contrasts = contr.sum,
+  coef_function = coef,
+  calceffect = FALSE,
+  detailedoutput = FALSE,
+  parameternames = NULL,
+  advancedoptions = NULL,
+  progress = TRUE,
+  parallel = FALSE,
+  parallel_pkgs = NULL,
+  ...
+) {
   if (!is.null(advancedoptions)) {
-    if(is.null(advancedoptions$save_simulated_responses)) {
+    if (is.null(advancedoptions$save_simulated_responses)) {
       advancedoptions$save_simulated_responses = FALSE
     }
     if (is.null(advancedoptions$GUI)) {
@@ -119,10 +134,10 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     } else {
       progressBarUpdater = NULL
     }
-    if(is.null(advancedoptions$alphacorrection)) {
+    if (is.null(advancedoptions$alphacorrection)) {
       advancedoptions$alphacorrection = TRUE
     } else {
-      if(!advancedoptions$alphacorrection) {
+      if (!advancedoptions$alphacorrection) {
         advancedoptions$alphacorrection = FALSE
       }
     }
@@ -133,11 +148,11 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     progressBarUpdater = NULL
     advancedoptions$save_simulated_responses = FALSE
   }
-  if(!is.null(getOption("skpr_progress"))) {
+  if (!is.null(getOption("skpr_progress"))) {
     progress = getOption("skpr_progress")
   }
 
-  if(is.null(advancedoptions$ci_error_conf)) {
+  if (is.null(advancedoptions$ci_error_conf)) {
     advancedoptions$ci_error_conf = 0.95
   }
   if (!is.null(advancedoptions$anovatype)) {
@@ -145,17 +160,17 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   } else {
     anovatype = "III"
   }
-  if(missing(design)) {
+  if (missing(design)) {
     stop("skpr: No design detected in arguments.")
   }
-  if(missing(model) || (is.numeric(model) && missing(alpha))) {
-    if(is.numeric(model) && missing(alpha)) {
+  if (missing(model) || (is.numeric(model) && missing(alpha))) {
+    if (is.numeric(model) && missing(alpha)) {
       alpha = model
     }
-    if(is.null(attr(design,"generating.model"))) {
+    if (is.null(attr(design, "generating.model"))) {
       stop("skpr: No model detected in arguments or in design attributes.")
     } else {
-      model = attr(design,"generating.model")
+      model = attr(design, "generating.model")
     }
   }
   args = list(...)
@@ -164,7 +179,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   }
   #detect pre-set contrasts
   presetcontrasts = list()
-  for (x in names(design)[lapply(design, class) %in% c("character", "factor")]) {
+  for (x in names(design)[
+    lapply(design, class) %in% c("character", "factor")
+  ]) {
     if (!is.null(attr(design[[x]], "contrasts"))) {
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
@@ -195,7 +212,9 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   RunMatrixReduced = reduceRunMatrix(run_matrix_processed, model)
 
   contrastslist = list()
-  for (x in names(RunMatrixReduced[lapply(RunMatrixReduced, class) %in% c("character", "factor")])) {
+  for (x in names(RunMatrixReduced[
+    lapply(RunMatrixReduced, class) %in% c("character", "factor")
+  ])) {
     if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
       stats::contrasts(RunMatrixReduced[[x]]) = contrasts
@@ -208,7 +227,11 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     contrastslist = NULL
   }
 
-  ModelMatrix = model.matrix(model, RunMatrixReduced, contrasts.arg = contrastslist)
+  ModelMatrix = model.matrix(
+    model,
+    RunMatrixReduced,
+    contrasts.arg = contrastslist
+  )
   #We'll need the parameter and effect names for output
 
   #saving model for return attribute
@@ -222,10 +245,14 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
   # autogenerate anticipated coefficients
   if (!missing(effectsize) && !missing(anticoef)) {
-    warning("User defined anticipated coefficnets (anticoef) detected; ignoring effectsize argument.")
+    warning(
+      "User defined anticipated coefficnets (anticoef) detected; ignoring effectsize argument."
+    )
   }
   if (missing(anticoef)) {
-    anticoef = gen_anticoef(RunMatrixReduced, model, nointercept) * effectsize / 2
+    anticoef = gen_anticoef(RunMatrixReduced, model, nointercept) *
+      effectsize /
+      2
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
     }
@@ -247,9 +274,15 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
     effect_pvals_list = list()
     effect_power_values = list()
     estimates = list()
-    if(interactive() && progress) {
-      pb = progress::progress_bar$new(format = sprintf("  Evaluating [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"),
-                                      total = nsim, clear = TRUE, width= 100)
+    if (interactive() && progress) {
+      pb = progress::progress_bar$new(
+        format = sprintf(
+          "  Evaluating [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"
+        ),
+        total = nsim,
+        clear = TRUE,
+        width = 100
+      )
     }
     for (j in seq_len(nsim)) {
       #simulate the data.
@@ -260,11 +293,13 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
 
       #determine whether beta[i] is significant. If so, increment nsignificant
       pvals = pvalfunction(fit)
-      if(any(is.na(pvals))) {
+      if (any(is.na(pvals))) {
         pvals[is.na(pvals)] = 1
-        if(!issued_non_convergence_warning) {
-          warning("skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
-                  "Reduce the model or increase the number of runs to resolve.")
+        if (!issued_non_convergence_warning) {
+          warning(
+            "skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
+            "Reduce the model or increase the number of runs to resolve."
+          )
           issued_non_convergence_warning = TRUE
         }
       }
@@ -274,94 +309,147 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
         effect_pvals_list[[j]] = effect_pvals
       }
       estimates[[j]] = coef_function(fit)
-      if(interactive() && progress && !advancedoptions$GUI) {
+      if (interactive() && progress && !advancedoptions$GUI) {
         pb$tick()
       }
     }
     if (calceffect) {
-      effect_results= do.call(rbind,effect_pvals_list)
+      effect_results = do.call(rbind, effect_pvals_list)
       effect_power_names = colnames(effect_results)
-      effect_power_matrix = matrix(0,nrow(effect_results),ncol(effect_results))
+      effect_power_matrix = matrix(
+        0,
+        nrow(effect_results),
+        ncol(effect_results)
+      )
       effect_power_matrix[effect_results < alpha] = 1
-      effect_power_results = apply(effect_power_matrix,2,sum)/nsim
+      effect_power_results = apply(effect_power_matrix, 2, sum) / nsim
     }
     power_values = power_values / nsim
-
   } else {
-    if(!getOption("skpr_progress", TRUE)) {
+    if (!getOption("skpr_progress", TRUE)) {
       progressbarupdates = c()
     }
-    if(!advancedoptions$GUI && progress) {
+    if (!advancedoptions$GUI && progress) {
       set_up_progressr_handler("Evaluating", "sims")
     }
     run_search = function(iterations) {
-       prog = progressr::progressor(steps = nsim)
-       foreach::foreach(i = iterations,
-                        .errorhandling = "remove",
-                        .options.future = list(packages = parallel_pkgs,
-                                               globals = c("extractPvalues", "pvalfunction",
-                                                           "parameter_names", "progress", "progressbarupdates",
-                                                           "model_formula", "rfunction", "RunMatrixReduced",
-                                                           "ModelMatrix", "anticoef" ,"prog", "fitfunction",
-                                                           "contrastslist", "effectpowermc", "anovatype", "calceffect",
-                                                           "alpha", "coef_function", "nsim", "num_updates"),
-                                               seed = TRUE)) %dofuture% {
-        if(i %in% progressbarupdates) {
-          prog(amount = nsim/num_updates)
-        }
-        power_values = rep(0, ncol(ModelMatrix))
-        #simulate the data.
-        RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
+      prog = progressr::progressor(steps = nsim)
+      foreach::foreach(
+        i = iterations,
+        .errorhandling = "remove",
+        .options.future = list(
+          packages = parallel_pkgs,
+          globals = c(
+            "extractPvalues",
+            "pvalfunction",
+            "parameter_names",
+            "progress",
+            "progressbarupdates",
+            "model_formula",
+            "rfunction",
+            "RunMatrixReduced",
+            "ModelMatrix",
+            "anticoef",
+            "prog",
+            "fitfunction",
+            "contrastslist",
+            "effectpowermc",
+            "anovatype",
+            "calceffect",
+            "alpha",
+            "coef_function",
+            "nsim",
+            "num_updates"
+          ),
+          seed = TRUE
+        )
+      ) %dofuture%
+        {
+          if (i %in% progressbarupdates) {
+            prog(amount = nsim / num_updates)
+          }
+          power_values = rep(0, ncol(ModelMatrix))
+          #simulate the data.
+          RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
 
-        #fit a model to the simulated data.
-        fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
+          #fit a model to the simulated data.
+          fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
 
-        #determine whether beta[i] is significant. If so, increment nsignificant
-        pvals = pvalfunction(fit)
-        if(any(is.na(pvals))) {
+          #determine whether beta[i] is significant. If so, increment nsignificant
+          pvals = pvalfunction(fit)
+          if (any(is.na(pvals))) {
+            pvals[is.na(pvals)] = 1
+            if (!issued_non_convergence_warning) {
+              warning(
+                "skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
+                "Reduce the model or increase the number of runs to resolve."
+              )
+              issued_non_convergence_warning = TRUE
+            }
+          }
+          pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
           pvals[is.na(pvals)] = 1
-          if(!issued_non_convergence_warning) {
-            warning("skpr: NaN or NA values found in calculating p values, it is likely the design does not support the model. ",
-                    "Reduce the model or increase the number of runs to resolve.")
-            issued_non_convergence_warning = TRUE
+          stopifnot(all(names(pvals) == parameter_names))
+
+          if (calceffect) {
+            effect_pvals = effectpowermc(
+              fit,
+              type = anovatype,
+              test = "Pr(>Chisq)"
+            )
+            effect_pvals[is.na(effect_pvals)] = 1
+          }
+
+          power_values[pvals < alpha] = 1
+          estimates = coef_function(fit)
+
+          if (!calceffect) {
+            list(
+              "parameter_power" = power_values,
+              "estimates" = estimates,
+              "pvals" = pvals
+            )
+          } else {
+            list(
+              "parameter_power" = power_values,
+              "effect_power" = effect_pvals,
+              "estimates" = estimates,
+              "pvals" = pvals
+            )
           }
         }
-        pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
-        pvals[is.na(pvals)] = 1
-        stopifnot(all(names(pvals) == parameter_names))
-
-        if (calceffect) {
-          effect_pvals = effectpowermc(fit, type = anovatype, test = "Pr(>Chisq)")
-          effect_pvals[is.na(effect_pvals)] = 1
-        }
-
-        power_values[pvals < alpha] = 1
-        estimates = coef_function(fit)
-
-        if(!calceffect) {
-          list("parameter_power" = power_values, "estimates" = estimates, "pvals" = pvals)
-        } else {
-          list("parameter_power" = power_values, "effect_power" = effect_pvals, "estimates" = estimates, "pvals" = pvals)
-        }
-      };
     }
     power_estimates = run_search(seq_len(nsim))
-    power_values = apply(do.call("rbind",lapply(power_estimates,\(x) x$parameter_power)), 2, sum) / nsim
-    pvals = do.call("rbind",lapply(power_estimates,\(x) x$pvals))
-    estimates = do.call("rbind",lapply(power_estimates,\(x) x$estimates))
-    if(calceffect) {
-      effect_power_results = apply(do.call("rbind",lapply(power_estimates,\(x) x$effect_power)), 2, sum) / nsim
+    power_values = apply(
+      do.call("rbind", lapply(power_estimates, \(x) x$parameter_power)),
+      2,
+      sum
+    ) /
+      nsim
+    pvals = do.call("rbind", lapply(power_estimates, \(x) x$pvals))
+    estimates = do.call("rbind", lapply(power_estimates, \(x) x$estimates))
+    if (calceffect) {
+      effect_power_results = apply(
+        do.call("rbind", lapply(power_estimates, \(x) x$effect_power)),
+        2,
+        sum
+      ) /
+        nsim
       effect_power_names = colnames(effect_power_values)
     }
   }
   #output the results (tidy data format)
-  power_final = data.frame(parameter = parameter_names,
-                      type = "custom.parameter.power.mc",
-                      power = power_values)
-  if(calceffect) {
-    effect_power_final = data.frame(parameter = effect_power_names,
-                        type = "custom.effect.power.mc",
-                        power = effect_power_results)
+  power_final = data.frame(
+    parameter = parameter_names,
+    type = "custom.parameter.power.mc",
+    power = power_values
+  )
+  if (calceffect) {
+    effect_power_final = data.frame(
+      parameter = effect_power_names,
+      type = "custom.effect.power.mc",
+      power = effect_power_results
+    )
     power_final = rbind(effect_power_final, power_final)
   }
   attr(power_final, "generating.model") = generatingmodel
@@ -373,19 +461,26 @@ eval_design_custom_mc = function(design, model = NULL, alpha = 0.05,
   attr(power_final, "anticoef") = anticoef
 
   if (detailedoutput) {
-    if (nrow(power_final) != length(anticoef)){
-      power_final$anticoef = c(rep(NA, nrow(power_final) - length(anticoef)), anticoef)
+    if (nrow(power_final) != length(anticoef)) {
+      power_final$anticoef = c(
+        rep(NA, nrow(power_final) - length(anticoef)),
+        anticoef
+      )
     } else {
       power_final$anticoef = anticoef
     }
     power_final$alpha = alpha
     power_final$trials = nrow(run_matrix_processed)
     power_final$nsim = nsim
-    power_final = add_ci_bounds_mc_power(power_final, nsim = nsim, conf =  advancedoptions$ci_error_conf)
+    power_final = add_ci_bounds_mc_power(
+      power_final,
+      nsim = nsim,
+      conf = advancedoptions$ci_error_conf
+    )
     attr(power_final, "mc.conf.int") = advancedoptions$ci_error_conf
   }
 
-  if(!inherits(power_final,"skpr_eval_output")) {
+  if (!inherits(power_final, "skpr_eval_output")) {
     class(power_final) = c("skpr_eval_output", class(power_final))
   }
   return(power_final)

@@ -27,33 +27,50 @@
 #'design = gen_design(candidatelist, ~(X1 + X2), 15)
 #'
 #'plot_fds(design)
-plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
-                    sample_size = 10000,
-                    yaxis_max = NULL, description="Fraction of Design Space") {
-  if(inherits(genoutput,"list") && length(genoutput) > 1) {
+plot_fds = function(
+  genoutput,
+  model = NULL,
+  continuouslength = 1001,
+  plot = TRUE,
+  sample_size = 10000,
+  yaxis_max = NULL,
+  description = "Fraction of Design Space"
+) {
+  if (inherits(genoutput, "list") && length(genoutput) > 1) {
     old.par = par(no.readonly = TRUE)
     on.exit(par(old.par), add = TRUE)
-    par(mfrow = c(1,length(genoutput)))
+    par(mfrow = c(1, length(genoutput)))
     fds_values = list()
-    if(!plot && !is.null(yaxis_max)) {
-      warning("`plot = FALSE` but `yaxis_max` non-NULL. Setting `yaxis_max` to NULL")
+    if (!plot && !is.null(yaxis_max)) {
+      warning(
+        "`plot = FALSE` but `yaxis_max` non-NULL. Setting `yaxis_max` to NULL"
+      )
       yaxis_max = NULL
     }
-    if(is.null(yaxis_max)) {
-      for(i in 1:length(genoutput)) {
-        fds_values[[i]] = plot_fds(genoutput[[i]], model=model,
-                                   continuouslength = continuouslength, plot=FALSE)
+    if (is.null(yaxis_max)) {
+      for (i in 1:length(genoutput)) {
+        fds_values[[i]] = plot_fds(
+          genoutput[[i]],
+          model = model,
+          continuouslength = continuouslength,
+          plot = FALSE
+        )
       }
       yaxis_max = max(unlist(fds_values)) + max(unlist(fds_values)) / 20
     }
-    if(length(description) == 1) {
+    if (length(description) == 1) {
       description = rep(description, length(genoutput))
     }
-    if(plot) {
-      for(i in 1:length(genoutput)) {
-        fds_values[[i]] = plot_fds(genoutput[[i]], model=model, continuouslength = continuouslength,
-                                   plot=plot, yaxis_max=yaxis_max,
-                                   description = description[i])
+    if (plot) {
+      for (i in 1:length(genoutput)) {
+        fds_values[[i]] = plot_fds(
+          genoutput[[i]],
+          model = model,
+          continuouslength = continuouslength,
+          plot = plot,
+          yaxis_max = yaxis_max,
+          description = description[i]
+        )
       }
     }
     return(invisible(fds_values))
@@ -63,7 +80,7 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
     if (attr(genoutput, "splitanalyzable")) {
       allattr = attributes(genoutput)
       remove_cols = which(colnames(genoutput) %in% allattr$splitcolumns)
-      if(length(remove_cols) > 0) {
+      if (length(remove_cols) > 0) {
         genoutput = genoutput[, -remove_cols, drop = FALSE]
         allattr$names = allattr$names[-remove_cols]
       }
@@ -72,16 +89,21 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
   }
   if (!is.null(attr(genoutput, "splitcolumns"))) {
     allattr = attributes(genoutput)
-    genoutput = genoutput[, !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")), drop = FALSE]
-    allattr$names = allattr$names[!allattr$names %in% attr(genoutput, "splitcolumns")]
+    genoutput = genoutput[,
+      !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")),
+      drop = FALSE
+    ]
+    allattr$names = allattr$names[
+      !allattr$names %in% attr(genoutput, "splitcolumns")
+    ]
     attributes(genoutput) = allattr
   }
 
   Iopt = attr(genoutput, "I")
   V = attr(genoutput, "variance.matrix")
 
-  if(is.null(model)) {
-    if(!is.null(attr(genoutput, "generating.model"))) {
+  if (is.null(model)) {
+    if (!is.null(attr(genoutput, "generating.model"))) {
       model = attr(genoutput, "generating.model")
     } else {
       model = ~.
@@ -91,7 +113,9 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
     genoutput = attr(genoutput, "runmatrix")
   }
 
-  factornames = colnames(genoutput)[unlist(lapply(genoutput, class)) %in% c("factor", "character")]
+  factornames = colnames(genoutput)[
+    unlist(lapply(genoutput, class)) %in% c("factor", "character")
+  ]
   if (length(factornames) > 0) {
     contrastlist = list()
     for (name in 1:length(factornames)) {
@@ -109,7 +133,11 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
     if (is.numeric(genoutput[, col])) {
       vals = seq(-1, 1, length.out = continuouslength)
     }
-    sample_list[[colnames(genoutput)[col]]] = vals[sample(seq_len(length(vals)), size=sample_size, replace = TRUE)]
+    sample_list[[colnames(genoutput)[col]]] = vals[sample(
+      seq_len(length(vals)),
+      size = sample_size,
+      replace = TRUE
+    )]
   }
   samples = as.data.frame(sample_list)
 
@@ -117,7 +145,8 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
   for (column in 1:ncol(genoutput)) {
     if (is.numeric(genoutput[, column])) {
       midvalue = mean(c(max(genoutput[, column]), min(genoutput[, column])))
-      genoutput[, column] = (genoutput[, column] - midvalue) / (max(genoutput[, column]) - midvalue)
+      genoutput[, column] = (genoutput[, column] - midvalue) /
+        (max(genoutput[, column]) - midvalue)
     }
   }
   mm = model.matrix(model, genoutput, contrasts.arg = contrastlist)
@@ -134,26 +163,42 @@ plot_fds = function(genoutput, model = NULL, continuouslength = 1001, plot=TRUE,
 
   vars = do.call(rbind, v)
   varsordered = vars[order(vars)]
-  meanindex = which(abs(mean(varsordered) - varsordered) == min(abs(mean(varsordered) - varsordered)))
+  meanindex = which(
+    abs(mean(varsordered) - varsordered) ==
+      min(abs(mean(varsordered) - varsordered))
+  )
 
   scale = varsordered[meanindex]
   if (length(scale) > 1) {
     scale = scale[1]
   }
   varsorderedscaled = varsordered / scale * Iopt
-  midval = varsorderedscaled[sample_size/2]
-  if(is.null(yaxis_max)) {
+  midval = varsorderedscaled[sample_size / 2]
+  if (is.null(yaxis_max)) {
     maxyaxis = max(varsorderedscaled) + max(varsorderedscaled) / 20
   } else {
     maxyaxis = yaxis_max
   }
-  if(plot) {
-    plot(1:length(varsorderedscaled) / length(varsorderedscaled), varsorderedscaled, ylim = c(0, maxyaxis), type = "n",
-         xlab = description, ylab = "Prediction Variance",
-         xlim = c(0, 1), xaxs = "i", yaxs = "i")
+  if (plot) {
+    plot(
+      1:length(varsorderedscaled) / length(varsorderedscaled),
+      varsorderedscaled,
+      ylim = c(0, maxyaxis),
+      type = "n",
+      xlab = description,
+      ylab = "Prediction Variance",
+      xlim = c(0, 1),
+      xaxs = "i",
+      yaxs = "i"
+    )
     abline(v = 0.5, untf = FALSE, lty = 2, col = "red", lwd = 2)
     abline(h = midval, untf = FALSE, lty = 2, col = "red", lwd = 2)
-    lines(1:length(varsorderedscaled) / length(varsorderedscaled), varsorderedscaled, lwd = 2, col = "blue")
+    lines(
+      1:length(varsorderedscaled) / length(varsorderedscaled),
+      varsorderedscaled,
+      lwd = 2,
+      col = "blue"
+    )
     invisible(varsorderedscaled)
   } else {
     return(varsorderedscaled)

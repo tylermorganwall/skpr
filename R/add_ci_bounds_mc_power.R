@@ -5,10 +5,16 @@
 #'@keywords internal
 add_ci_bounds_mc_power = function(power_results, nsim, conf = 0.95) {
   get_lcbs = function(power) {
-    return(unlist(lapply(power, \(x) (binom.test(x*nsim, n = nsim, conf.level = conf)[["conf.int"]][1]))))
+    return(unlist(lapply(
+      power,
+      \(x) (binom.test(x * nsim, n = nsim, conf.level = conf)[["conf.int"]][1])
+    )))
   }
   get_ucbs = function(power) {
-    return(unlist(lapply(power, \(x) (binom.test(x*nsim, n = nsim, conf.level = conf)[["conf.int"]][2]))))
+    return(unlist(lapply(
+      power,
+      \(x) (binom.test(x * nsim, n = nsim, conf.level = conf)[["conf.int"]][2])
+    )))
   }
   lcb = get_lcbs(power_results[["power"]])
   ucb = get_ucbs(power_results[["power"]])

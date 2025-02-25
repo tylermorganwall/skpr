@@ -35,52 +35,66 @@
 #'
 #'get_optimality(power_output)
 get_optimality = function(output, optimality = NULL, calc_g = FALSE) {
-  if(is.null(attr(output, "D"))) attr(output, "D") = NA
-  if(is.null(attr(output, "A"))) attr(output, "A") = NA
-  if(!is.null(attr(output, "augmented"))) {
-    if(is.null(attr(output, "G"))) {
-      if(!attr(output, "augmented") && !attr(output, "splitplot") && calc_g) {
-        attr(output, "G") = calculate_gefficiency(output, calculation_type = "random",
-                                                  randsearches = 10000)
+  if (is.null(attr(output, "D"))) attr(output, "D") = NA
+  if (is.null(attr(output, "A"))) attr(output, "A") = NA
+  if (!is.null(attr(output, "augmented"))) {
+    if (is.null(attr(output, "G"))) {
+      if (!attr(output, "augmented") && !attr(output, "splitplot") && calc_g) {
+        attr(output, "G") = calculate_gefficiency(
+          output,
+          calculation_type = "random",
+          randsearches = 10000
+        )
       } else {
         attr(output, "G") = "Not Computed"
       }
     }
   } else {
-    if(is.null(attr(output,"G"))) {
-      if(!attr(output, "blocking")) {
-        attr(output, "G") = calculate_gefficiency(output, calculation_type = "random",
-                                                  randsearches = 10000)
+    if (is.null(attr(output, "G"))) {
+      if (!attr(output, "blocking")) {
+        attr(output, "G") = calculate_gefficiency(
+          output,
+          calculation_type = "random",
+          randsearches = 10000
+        )
       } else {
         attr(output, "G") = "Not Computed"
       }
     }
   }
-  if(is.null(attr(output, "G"))) attr(output, "G") = "Not Computed"
-  if(is.null(attr(output, "T"))) attr(output, "T") = NA
-  if(is.null(attr(output, "E"))) attr(output, "E") = NA
-  if(is.null(attr(output, "variance.matrix"))) attr(output, "variance.matrix") = NA
-  if(is.null(attr(output, "I"))) attr(output, "I") = NA
-  if(is.null(attr(output, "trA"))) attr(output, "trA") = NA
-  optimality_df = data.frame(D=attr(output, "D"),
-                             I=attr(output, "I"),
-                             A=attr(output, "A"),
-                             G=attr(output, "G"),
-                             T=attr(output, "T"),
-                             E=attr(output, "E"),
-                             Alias = attr(output, "trA"))
-  if(!is.null(optimality)) {
-    if(optimality == "alias") {
+  if (is.null(attr(output, "G"))) attr(output, "G") = "Not Computed"
+  if (is.null(attr(output, "T"))) attr(output, "T") = NA
+  if (is.null(attr(output, "E"))) attr(output, "E") = NA
+  if (is.null(attr(output, "variance.matrix")))
+    attr(output, "variance.matrix") = NA
+  if (is.null(attr(output, "I"))) attr(output, "I") = NA
+  if (is.null(attr(output, "trA"))) attr(output, "trA") = NA
+  optimality_df = data.frame(
+    D = attr(output, "D"),
+    I = attr(output, "I"),
+    A = attr(output, "A"),
+    G = attr(output, "G"),
+    T = attr(output, "T"),
+    E = attr(output, "E"),
+    Alias = attr(output, "trA")
+  )
+  if (!is.null(optimality)) {
+    if (optimality == "alias") {
       optimality = "Alias"
     }
-    if(optimality == "D-Efficiency") {
+    if (optimality == "D-Efficiency") {
       optimality = "D"
     }
-    if(optimality == "A-Efficiency") {
+    if (optimality == "A-Efficiency") {
       optimality = "A"
     }
-    if(!optimality %in% c("D","A","I","G","E","T","Alias")) {
-      stop("skpr: Optimality `",optimality,"` not in ", paste0(c("D","A","I","G","E","T","Alias"),collapse=", "))
+    if (!optimality %in% c("D", "A", "I", "G", "E", "T", "Alias")) {
+      stop(
+        "skpr: Optimality `",
+        optimality,
+        "` not in ",
+        paste0(c("D", "A", "I", "G", "E", "T", "Alias"), collapse = ", ")
+      )
     }
     return(optimality_df[optimality])
   }

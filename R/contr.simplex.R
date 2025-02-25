@@ -7,8 +7,8 @@
 #'@return A matrix of Orthonormal contrasts.
 #'@export
 #'@examples contr.simplex(4)
-contr.simplex = function(n, size=NULL) {
-  if(is.factor(n) || is.character(n)) {
+contr.simplex = function(n, size = NULL) {
+  if (is.factor(n) || is.character(n)) {
     n = length(n)
   }
   results = matrix(nrow = n - 1, ncol = n)
@@ -27,8 +27,8 @@ contr.simplex = function(n, size=NULL) {
   results[-1, 1] = 0
   for (i in 2:(n - 1)) {
     results[i:(n - 1), i] = 0
-    results[i, i] = sqrt(size ^ 2 - sum(results[1:(i - 1), i] ^ 2))
-    results[i, (i + 1):n] = -results[i, i] / length( (i + 1):n)
+    results[i, i] = sqrt(size^2 - sum(results[1:(i - 1), i]^2))
+    results[i, (i + 1):n] = -results[i, i] / length((i + 1):n)
   }
   return(t(results))
 }

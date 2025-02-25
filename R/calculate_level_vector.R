@@ -13,8 +13,10 @@ calculate_level_vector = function(design, model, nointercept) {
   factornames = attr(terms(model), "term.labels")
   factormatrix = attr(terms(model), "factors")
   interactionterms = factornames[apply(factormatrix, 2, sum) > 1]
-  higherorderterms = factornames[!(gsub("`", "", factornames, fixed = TRUE) %in% colnames(design)) &
-                                   !(apply(factormatrix, 2, sum) > 1)]
+  higherorderterms = factornames[
+    !(gsub("`", "", factornames, fixed = TRUE) %in% colnames(design)) &
+      !(apply(factormatrix, 2, sum) > 1)
+  ]
   levelvector = sapply(lapply(design, unique), length)
   levelvector[lapply(design, class) == "numeric"] = 2
   if (!nointercept) {
@@ -34,16 +36,21 @@ calculate_level_vector = function(design, model, nointercept) {
 
   for (interaction in interactionterms) {
     numberlevels = 1
-    for (term in unlist(strsplit(interaction, split = "(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"))) {
-      numberlevels = numberlevels * levelvector[gsub("`", "", term, fixed = TRUE)]
+    for (term in unlist(strsplit(
+      interaction,
+      split = "(\\s+)?:(\\s+)?|(\\s+)?\\*(\\s+)?"
+    ))) {
+      numberlevels = numberlevels *
+        levelvector[gsub("`", "", term, fixed = TRUE)]
     }
     levelvector = c(levelvector, numberlevels)
   }
   levelnames = names(levelvector)
-  if(length(interactionterms) > 0) {
-    levelnames[(length(levelnames)-length(interactionterms)+1):length(levelnames)] = interactionterms
+  if (length(interactionterms) > 0) {
+    levelnames[
+      (length(levelnames) - length(interactionterms) + 1):length(levelnames)
+    ] = interactionterms
   }
   levelvector = stats::setNames(levelvector, levelnames)
   levelvector
 }
-

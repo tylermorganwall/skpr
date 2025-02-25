@@ -10,7 +10,9 @@
 #'@keywords internal
 genparammatrix = function(parameters, levels, g) {
   if (parameters <= 0 | levels <= 0 | g < 0) {
-    stop("skpr: Number of parameters and levels must be non-zero, preceeding levels must be non-negative")
+    stop(
+      "skpr: Number of parameters and levels must be non-zero, preceeding levels must be non-negative"
+    )
   }
   if (parameters < levels) {
     stop("skpr: Number of parameters must be greater than number of levels")

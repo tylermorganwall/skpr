@@ -33,25 +33,51 @@
 #'get_attribute(power_output,"correlation.matrix")
 get_attribute = function(output, attr = NULL, round = TRUE) {
   attr_list = list()
-  attr_list[["model.matrix"]] = attr(output,"model.matrix")
-  attr_list[["moments.matrix"]] = attr(output,"moments.matrix")
-  attr_list[["variance.matrix"]] = attr(output,"variance.matrix")
-  if(!is.null(attr(output,"alias.matrix"))) {
-    attr_list[["alias.matrix"]] = attr(output,"alias.matrix")
+  attr_list[["model.matrix"]] = attr(output, "model.matrix")
+  attr_list[["moments.matrix"]] = attr(output, "moments.matrix")
+  attr_list[["variance.matrix"]] = attr(output, "variance.matrix")
+  if (!is.null(attr(output, "alias.matrix"))) {
+    attr_list[["alias.matrix"]] = attr(output, "alias.matrix")
   }
-  attr_list[["correlation.matrix"]] = attr(output,"correlation.matrix")
-  attr_list[["model"]] = attr(output,"generating.model")
-  if(round) {
-    attr_list[["correlation.matrix"]][abs(attr_list[["correlation.matrix"]]) < 1e-15] = 0
-    if(!is.null( attr_list[["alias.matrix"]])) {
+  attr_list[["correlation.matrix"]] = attr(output, "correlation.matrix")
+  attr_list[["model"]] = attr(output, "generating.model")
+  if (round) {
+    attr_list[["correlation.matrix"]][
+      abs(attr_list[["correlation.matrix"]]) < 1e-15
+    ] = 0
+    if (!is.null(attr_list[["alias.matrix"]])) {
       attr_list[["alias.matrix"]][abs(attr_list[["alias.matrix"]]) < 1e-15] = 0
     }
   }
 
-  if(!is.null(attr) && !is.null(attr_list[[attr]])) {
-    if(!attr %in% c("model.matrix","moments.matrix","variance.matrix","alias.matrix","correlation.matrix","model")) {
-      stop("skpr: attribute `",attr,"` not in ",
-           paste0(c("model.matrix","moments.matrix","variance.matrix","alias.matrix","correlation.matrix","model"),collapse=", "))
+  if (!is.null(attr) && !is.null(attr_list[[attr]])) {
+    if (
+      !attr %in%
+        c(
+          "model.matrix",
+          "moments.matrix",
+          "variance.matrix",
+          "alias.matrix",
+          "correlation.matrix",
+          "model"
+        )
+    ) {
+      stop(
+        "skpr: attribute `",
+        attr,
+        "` not in ",
+        paste0(
+          c(
+            "model.matrix",
+            "moments.matrix",
+            "variance.matrix",
+            "alias.matrix",
+            "correlation.matrix",
+            "model"
+          ),
+          collapse = ", "
+        )
+      )
     }
     return(attr_list[[attr]])
   }

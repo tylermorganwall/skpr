@@ -17,7 +17,12 @@ gen_anticoef = function(RunMatrix, model, nointercept) {
   levels = sapply(lapply(RunMatrix, unique), length) - 1
   type = sapply(RunMatrix, class)
   notlinear = attr(terms(model), "order") > 1
-  notlinear_notinteraction = grepl("^", attr(terms(model), "term.labels"), fixed = TRUE) & !grepl(":", attr(terms(model), "term.labels"), fixed = TRUE)
+  notlinear_notinteraction = grepl(
+    "^",
+    attr(terms(model), "term.labels"),
+    fixed = TRUE
+  ) &
+    !grepl(":", attr(terms(model), "term.labels"), fixed = TRUE)
   higherorder = attr(terms(model), "term.labels")[notlinear_notinteraction]
   levels = c(levels, rep(1, length(higherorder)))
   type = c(type, rep("numeric", length(higherorder)))

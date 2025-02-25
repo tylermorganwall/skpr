@@ -116,24 +116,38 @@
 #'eval_design_survival_mc(design = design, model = ~a, alpha = 0.2, nsim = 100,
 #'                         distribution = "lognormal", rfunctionsurv = rlognorm,
 #'                         anticoef = c(0.184, 0.101), scale = 0.4)
-eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
-                                   nsim = 1000, distribution = "gaussian", censorpoint = NA, censortype = "right",
-                                   rfunctionsurv = NULL, anticoef = NULL, effectsize = 2, contrasts = contr.sum,
-                                   parallel = FALSE, detailedoutput = FALSE, progress = TRUE, advancedoptions = NULL, ...) {
-  if(missing(design)) {
+eval_design_survival_mc = function(
+  design,
+  model = NULL,
+  alpha = 0.05,
+  nsim = 1000,
+  distribution = "gaussian",
+  censorpoint = NA,
+  censortype = "right",
+  rfunctionsurv = NULL,
+  anticoef = NULL,
+  effectsize = 2,
+  contrasts = contr.sum,
+  parallel = FALSE,
+  detailedoutput = FALSE,
+  progress = TRUE,
+  advancedoptions = NULL,
+  ...
+) {
+  if (missing(design)) {
     stop("skpr: No design detected in arguments.")
   }
-  if(!is.null(getOption("skpr_progress"))) {
+  if (!is.null(getOption("skpr_progress"))) {
     progress = getOption("skpr_progress")
   }
-  if(missing(model) || (is.numeric(model) && missing(alpha))) {
-    if(is.numeric(model) && missing(alpha)) {
+  if (missing(model) || (is.numeric(model) && missing(alpha))) {
+    if (is.numeric(model) && missing(alpha)) {
       alpha = model
     }
-    if(is.null(attr(design,"generating.model"))) {
+    if (is.null(attr(design, "generating.model"))) {
       stop("skpr: No model detected in arguments or in design attributes.")
     } else {
-      model = attr(design,"generating.model")
+      model = attr(design, "generating.model")
     }
   }
   args = list(...)
@@ -142,7 +156,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   }
   #detect pre-set contrasts
   presetcontrasts = list()
-  for (x in names(design)[lapply(design, class) %in% c("character", "factor")]) {
+  for (x in names(design)[
+    lapply(design, class) %in% c("character", "factor")
+  ]) {
     if (!is.null(attr(design[[x]], "contrasts"))) {
       presetcontrasts[[x]] = attr(design[[x]], "contrasts")
     }
@@ -162,7 +178,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     advancedoptions$GUI = FALSE
     progressBarUpdater = NULL
   }
-  if(is.null(advancedoptions$ci_error_conf)) {
+  if (is.null(advancedoptions$ci_error_conf)) {
     advancedoptions$ci_error_conf = 0.95
   }
   if (attr(terms.formula(model, data = design), "intercept") == 1) {
@@ -183,6 +199,34 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model, data = run_matrix_processed)
 
+  contains_transform = function(expr, transform) {
+    if (is.call(expr)) {
+      if (as.character(expr[[1]]) == transform) {
+        return(TRUE)
+      } else {
+        return(any(sapply(as.list(expr[-1]), contains_transform)))
+      }
+    } else {
+      return(FALSE)
+    }
+  }
+  #Check for pre-transformed censorpoints
+  if (is.null(rfunctionsurv)) {
+    if (distribution == "lognormal") {
+      if (contains_transform(substitute(censorpoint), "log")) {
+        warning(
+          "`log` transformation detected in the `censorpoint` input, but this value should be stated in units of the response variable."
+        )
+      }
+    } else if (distribution == "exp") {
+      if (contains_transform(substitute(censorpoint), "exp")) {
+        warning(
+          "`exp` transformation detected in the `censorpoint` input, but this value should be stated in units of the response variable."
+        )
+      }
+    }
+  }
+
   #Generating random generation function for survival. If no censorpoint specified, return all uncensored.
   if (is.na(censorpoint)) {
     censorfunction = function(data, point) rep(FALSE, length(data))
@@ -196,8 +240,10 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
 
   if (is.null(rfunctionsurv)) {
     if (distribution == "exponential") {
-      if(!is.na(censorpoint) && censorpoint <= 0) {
-        stop("For an exponential distribution, `censorpoint` must be greater than zero.")
+      if (!is.na(censorpoint) && censorpoint <= 0) {
+        stop(
+          "For an exponential distribution, `censorpoint` must be greater than zero."
+        )
       }
       rfunctionsurv = function(X, b) {
         Y = rexp(n = nrow(X), rate = exp(-(X %*% b)))
@@ -207,8 +253,10 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       }
     }
     if (distribution == "lognormal") {
-      if(!is.na(censorpoint) && censorpoint <= 0) {
-        stop("For an lognormal distribution, `censorpoint` must be greater than zero.")
+      if (!is.na(censorpoint) && censorpoint <= 0) {
+        stop(
+          "For an lognormal distribution, `censorpoint` must be greater than zero."
+        )
       }
       rfunctionsurv = function(X, b) {
         Y = rlnorm(n = nrow(X), meanlog = X %*% b, sdlog = 1)
@@ -227,7 +275,6 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     }
   }
 
-
   #------Normalize/Center numeric columns ------#
   run_matrix_processed = normalize_design(run_matrix_processed)
 
@@ -236,7 +283,9 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   RunMatrixReduced = reduceRunMatrix(run_matrix_processed, model)
 
   contrastslist = list()
-  for (x in names(RunMatrixReduced)[lapply(RunMatrixReduced, class) %in% c("character", "factor")]) {
+  for (x in names(RunMatrixReduced)[
+    lapply(RunMatrixReduced, class) %in% c("character", "factor")
+  ]) {
     if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
       stats::contrasts(RunMatrixReduced[[x]]) = contrasts
@@ -248,13 +297,19 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     contrastslist = NULL
   }
 
-  ModelMatrix = model.matrix(model, RunMatrixReduced, contrasts.arg = contrastslist)
+  ModelMatrix = model.matrix(
+    model,
+    RunMatrixReduced,
+    contrasts.arg = contrastslist
+  )
   #We'll need the parameter and effect names for output
   parameter_names = colnames(ModelMatrix)
 
   # autogenerate anticipated coefficients
   if (!missing(anticoef) && !missing(effectsize)) {
-    warning("User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument.")
+    warning(
+      "User defined anticipated coefficients (anticoef) detected; ignoring effectsize argument."
+    )
   }
   if (missing(anticoef)) {
     default_coef = gen_anticoef(RunMatrixReduced, model, nointercept)
@@ -266,7 +321,6 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   if (length(anticoef) != dim(ModelMatrix)[2]) {
     stop("skpr: Wrong number of anticipated coefficients")
   }
-
 
   nparam = ncol(ModelMatrix)
   RunMatrixReduced$Y = 1
@@ -280,14 +334,20 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   estimates = matrix(0, nrow = nsim, ncol = nparam)
   if (!parallel) {
     power_values = rep(0, ncol(ModelMatrix))
-    if(interactive() && progress) {
-      pb = progress::progress_bar$new(format = sprintf("  Calculating Power [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"),
-                                      total = nsim, clear = TRUE, width= 100)
+    if (interactive() && progress) {
+      pb = progress::progress_bar$new(
+        format = sprintf(
+          "  Calculating Power [:bar] (:current/:total, :tick_rate sim/s) ETA: :eta"
+        ),
+        total = nsim,
+        clear = TRUE,
+        width = 100
+      )
     }
     for (j in seq_len(nsim)) {
       if (advancedoptions$GUI && !is.null(progressBarUpdater)) {
-          #This code is to slow down the number of updates in the Shiny app--if there
-          #are too many updates, the progress bar will lag behind the actual computation
+        #This code is to slow down the number of updates in the Shiny app--if there
+        #are too many updates, the progress bar will lag behind the actual computation
         if (j %in% progressbarupdates) {
           progressBarUpdater(1 / num_updates)
         }
@@ -300,32 +360,46 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
       model_formula = update.formula(model, Y ~ .)
       #fit a model to the simulated data.
       surv_mat = as.matrix(RunMatrixReduced$Y)
-      number_censored = sum(surv_mat[,2] == 0)
-      if(number_censored == nrow(RunMatrixReduced)) {
-        pvals = rep(1,length(parameter_names))
+      number_censored = sum(surv_mat[, 2] == 0)
+      if (number_censored == nrow(RunMatrixReduced)) {
+        pvals = rep(1, length(parameter_names))
         names(pvals) = parameter_names
         estimates[j, ] = NA
       } else {
         fiterror = FALSE
-        tryCatch({
-          fit = survival::survreg(model_formula, data = RunMatrixReduced, dist = distribution, ...)
-        }, error = function(e) {
-          fiterror <<- TRUE
-        }, warning = function(w) {
-          if(grepl("Ran out of iterations and did not converge",as.character(w))) {
+        tryCatch(
+          {
+            fit = survival::survreg(
+              model_formula,
+              data = RunMatrixReduced,
+              dist = distribution,
+              ...
+            )
+          },
+          error = function(e) {
             fiterror <<- TRUE
+          },
+          warning = function(w) {
+            if (
+              grepl(
+                "Ran out of iterations and did not converge",
+                as.character(w)
+              )
+            ) {
+              fiterror <<- TRUE
+            }
           }
-        })
+        )
 
         #determine whether beta[i] is significant. If so, increment nsignificant
-        if(!fiterror && exists("fit")) {
+        if (!fiterror && exists("fit")) {
           pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
           vals = pvals[order(factor(names(pvals), levels = parameter_names))]
           pvals[is.na(pvals)] = 1
           stopifnot(all(names(pvals) == parameter_names))
           estimates[j, ] = coef(fit)
         } else {
-          pvals = rep(1,length(parameter_names))
+          pvals = rep(1, length(parameter_names))
           names(pvals) = parameter_names
           estimates[j, ] = NA
         }
@@ -335,89 +409,133 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     }
     power_values = power_values / nsim
     pvals = do.call(rbind, pvallist)
-    if(interactive() && progress && !advancedoptions$GUI) {
+    if (interactive() && progress && !advancedoptions$GUI) {
       pb$tick()
     }
   } else {
-    if(!getOption("skpr_progress", TRUE)) {
+    if (!getOption("skpr_progress", TRUE)) {
       progressbarupdates = c()
     }
-    if(!advancedoptions$GUI && progress) {
+    if (!advancedoptions$GUI && progress) {
       set_up_progressr_handler("Evaluating", "sims")
     }
-    nc =  future::nbrOfWorkers()
+    nc = future::nbrOfWorkers()
     run_search = function(iterations, is_shiny, surv_args) {
       prog = progressr::progressor(steps = nsim)
-      foreach::foreach(i = iterations,
-                       .errorhandling = "remove",
-                       .options.future = list(packages = "survival",
-                                              globals  = c("extractPvalues", "rfunctionsurv", "parameter_names", "progress", "progressbarupdates",
-                                                            "model", "distribution", "RunMatrixReduced", "ModelMatrix", "anticoef" ,"nc", "prog",
-                                                            "is_shiny", "num_updates", "nsim", "alpha", "surv_args"),
-                                              seed = TRUE)) %dofuture% {
-        if(i %in% progressbarupdates) {
-          if(is_shiny) {
-            prog(sprintf(" (%i workers) ", nc), amount = nsim/num_updates)
-          } else {
-            prog(amount = nsim/num_updates)
-          }
-        }
-        power_values = rep(0, ncol(ModelMatrix))
-        #simulate the data.
-
-        RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef)
-
-        model_formula = update.formula(model, Y ~ .)
-
-        surv_args$formula = model_formula
-        surv_args$data = RunMatrixReduced
-        surv_args$dist = distribution
-
-        surv_mat = as.matrix(RunMatrixReduced$Y)
-        number_censored = sum(surv_mat[,2] == 0)
-        if(number_censored == nrow(RunMatrixReduced)) {
-          pvals = rep(1,length(parameter_names))
-          names(pvals) = parameter_names
-          estimates = rep(NA, length(parameter_names))
-        } else {
-          fiterror = FALSE
-          tryCatch({
-            fit = do.call("survreg", args = surv_args)
-          }, error = function(e) {
-            fiterror <<- TRUE
-          }, warning = function(w) {
-            if(grepl("Ran out of iterations and did not converge",as.character(w))) {
-              fiterror <<- TRUE
+      foreach::foreach(
+        i = iterations,
+        .errorhandling = "remove",
+        .options.future = list(
+          packages = "survival",
+          globals = c(
+            "extractPvalues",
+            "rfunctionsurv",
+            "parameter_names",
+            "progress",
+            "progressbarupdates",
+            "model",
+            "distribution",
+            "RunMatrixReduced",
+            "ModelMatrix",
+            "anticoef",
+            "nc",
+            "prog",
+            "is_shiny",
+            "num_updates",
+            "nsim",
+            "alpha",
+            "surv_args"
+          ),
+          seed = TRUE
+        )
+      ) %dofuture%
+        {
+          if (i %in% progressbarupdates) {
+            if (is_shiny) {
+              prog(sprintf(" (%i workers) ", nc), amount = nsim / num_updates)
+            } else {
+              prog(amount = nsim / num_updates)
             }
-          })
+          }
+          power_values = rep(0, ncol(ModelMatrix))
+          #simulate the data.
 
-          #determine whether beta[i] is significant. If so, increment nsignificant
-          if(!fiterror && exists("fit")) {
-            pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
-            vals = pvals[order(factor(names(pvals), levels = parameter_names))]
-            pvals[is.na(pvals)] = 1
-            stopifnot(all(names(pvals) == parameter_names))
-            estimates = coef(fit)
-          } else {
-            pvals = rep(1,length(parameter_names))
+          RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef)
+
+          model_formula = update.formula(model, Y ~ .)
+
+          surv_args$formula = model_formula
+          surv_args$data = RunMatrixReduced
+          surv_args$dist = distribution
+
+          surv_mat = as.matrix(RunMatrixReduced$Y)
+          number_censored = sum(surv_mat[, 2] == 0)
+          if (number_censored == nrow(RunMatrixReduced)) {
+            pvals = rep(1, length(parameter_names))
             names(pvals) = parameter_names
             estimates = rep(NA, length(parameter_names))
-          }
-        }
+          } else {
+            fiterror = FALSE
+            tryCatch(
+              {
+                fit = do.call("survreg", args = surv_args)
+              },
+              error = function(e) {
+                fiterror <<- TRUE
+              },
+              warning = function(w) {
+                if (
+                  grepl(
+                    "Ran out of iterations and did not converge",
+                    as.character(w)
+                  )
+                ) {
+                  fiterror <<- TRUE
+                }
+              }
+            )
 
-        power_values[pvals < alpha] = 1
-        list("parameterpower" = power_values, "estimates" = estimates, "pvals" = pvals)
-      }
+            #determine whether beta[i] is significant. If so, increment nsignificant
+            if (!fiterror && exists("fit")) {
+              pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
+              vals = pvals[order(factor(
+                names(pvals),
+                levels = parameter_names
+              ))]
+              pvals[is.na(pvals)] = 1
+              stopifnot(all(names(pvals) == parameter_names))
+              estimates = coef(fit)
+            } else {
+              pvals = rep(1, length(parameter_names))
+              names(pvals) = parameter_names
+              estimates = rep(NA, length(parameter_names))
+            }
+          }
+
+          power_values[pvals < alpha] = 1
+          list(
+            "parameterpower" = power_values,
+            "estimates" = estimates,
+            "pvals" = pvals
+          )
+        }
     }
     power_estimates = run_search(seq_len(nsim), advancedoptions$GUI, args)
-    power_values = apply(do.call("rbind",lapply(power_estimates,\(x) x$parameterpower)), 2, sum) / nsim
-    pvals = do.call("rbind",lapply(power_estimates,\(x) x$pvals))
-    estimates = do.call("rbind",lapply(power_estimates,\(x) x$estimates))
+    power_values = apply(
+      do.call("rbind", lapply(power_estimates, \(x) x$parameterpower)),
+      2,
+      sum
+    ) /
+      nsim
+    pvals = do.call("rbind", lapply(power_estimates, \(x) x$pvals))
+    estimates = do.call("rbind", lapply(power_estimates, \(x) x$estimates))
   }
   #output the results (tidy data format)
-  retval = data.frame(parameter = parameter_names,
-                      type = "parameter.power.mc",
-                      power = power_values)
+  retval = data.frame(
+    parameter = parameter_names,
+    type = "parameter.power.mc",
+    power = power_values
+  )
   colnames(estimates) = parameter_names
   attr(retval, "estimates") = estimates
   attr(retval, "modelmatrix") = ModelMatrix
@@ -427,7 +545,7 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
   attr(retval, "runmatrix") = RunMatrixReduced
 
   if (detailedoutput) {
-    if (nrow(retval) != length(anticoef)){
+    if (nrow(retval) != length(anticoef)) {
       retval$anticoef = c(rep(NA, nrow(retval) - length(anticoef)), anticoef)
     } else {
       retval$anticoef = anticoef
@@ -435,10 +553,14 @@ eval_design_survival_mc = function(design, model = NULL, alpha = 0.05,
     retval$alpha = alpha
     retval$trials = nrow(run_matrix_processed)
     retval$nsim = nsim
-    retval = add_ci_bounds_mc_power(retval, nsim = nsim, conf =  advancedoptions$ci_error_conf)
+    retval = add_ci_bounds_mc_power(
+      retval,
+      nsim = nsim,
+      conf = advancedoptions$ci_error_conf
+    )
     attr(retval, "mc.conf.int") = advancedoptions$ci_error_conf
   }
-  if(!inherits(retval,"skpr_eval_output")) {
+  if (!inherits(retval, "skpr_eval_output")) {
     class(retval) = c("skpr_eval_output", class(retval))
   }
   return(retval)

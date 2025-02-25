@@ -20,37 +20,36 @@ anticoef_from_delta_surv = function(default_coef, delta, distribution) {
   if (distribution == "gaussian") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-    }
-    else {
+    } else {
       anticoef = default_coef * (delta[2] - delta[1]) / 2
     }
-  }
-  else if (distribution == "exponential") {
+  } else if (distribution == "exponential") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-      warning("default or length 1 delta used with distribution == 'exponential'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.")
-    }
-    else {
+      warning(
+        "default or length 1 delta used with distribution == 'exponential'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate."
+      )
+    } else {
       anticoef = gen_exponential_anticoef(default_coef, delta[1], delta[2])
     }
-  }
-  else if (distribution == "lognormal") {
+  } else if (distribution == "lognormal") {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-      warning("default or length 1 delta used with distribution == 'lognormal'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.")
-    }
-    else {
+      warning(
+        "default or length 1 delta used with distribution == 'lognormal'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate."
+      )
+    } else {
       anticoef = gen_exponential_anticoef(default_coef, delta[1], delta[2])
     }
-  }
-  else {
+  } else {
     if (length(delta) == 1) {
       anticoef = default_coef * delta / 2
-    }
-    else {
+    } else {
       anticoef = gen_exponential_anticoef(default_coef, delta[1], delta[2])
     }
-    warning("delta parameter used with unsupported distribution. Make sure the generated anticipated coefficients are appropriate.")
+    warning(
+      "delta parameter used with unsupported distribution. Make sure the generated anticipated coefficients are appropriate."
+    )
   }
   anticoef
 }

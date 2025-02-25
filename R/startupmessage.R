@@ -1,5 +1,7 @@
 .onAttach <- function(...) {
-  if (!interactive()) {return()}
+  if (!interactive()) {
+    return()
+  }
 
   startupmessage <- c(
     "Developed at the Institute for Defense Analyses (IDA). Type skprGUI() and click tutorial for an introduction.",

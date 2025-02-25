@@ -29,7 +29,8 @@ Imports:
     scales,
     doRNG,
     doFuture,
-    progressr
+    progressr,
+    geometry
 LinkingTo: Rcpp, RcppEigen
 Suggests: testthat, mbest, ggplot2, lmtest, cli, gridExtra, rintrojs, shinythemes, shiny, shinyjs, gt, shinytest2
 Encoding: UTF-8

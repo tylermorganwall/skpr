@@ -211,6 +211,8 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="co">#Evaluating a subset of the design (which changes the power due to a different number of</span></span></span>
 <span class="r-in"><span><span class="co">#degrees of freedom)</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span>design <span class="op">=</span> <span class="va">optdesign</span>, model<span class="op">=</span> <span class="op">~</span><span class="va">A</span> <span class="op">+</span> <span class="va">C</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>longer object length is not a multiple of shorter object length</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>longer object length is not a multiple of shorter object length</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.9659328</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2           A    effect.power 0.9659328</span>
@@ -346,6 +348,7 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="co">#You can also evaluate the design with higher order effects, even if they were not</span></span></span>
 <span class="r-in"><span><span class="co">#used in design generation:</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">designcoffee</span>, model <span class="op">=</span> <span class="op">~</span><span class="va">cost</span> <span class="op">+</span> <span class="va">size</span> <span class="op">+</span> <span class="va">type</span> <span class="op">+</span> <span class="va">cost</span> <span class="op">*</span> <span class="va">type</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>longer object length is not a multiple of shorter object length</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power 0.9989226</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power 0.9989944</span>

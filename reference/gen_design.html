@@ -555,8 +555,8 @@ information in its attributes, which can be accessed with the `get_attributes()`
 <span class="r-in"><span><span class="co">#A design's diagnostics can be accessed via the `get_optimality()` function:</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="get_optimality.html">get_optimality</a></span><span class="op">(</span><span class="va">augmented_design</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     D         I   A            G  T  E    Alias</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 100 0.1250383 100 Not Computed 64 16 58318.89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     D     I   A            G  T  E    Alias</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 100 0.125 100 Not Computed 64 16 58318.89</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#And design attributes can be accessed with the `get_attribute()` function:</span></span></span>
 <span class="r-in"><span></span></span>
@@ -576,10 +576,10 @@ information in its attributes, which can be accessed with the `get_attributes()`
 <span class="r-out co"><span class="r-pr">#&gt;</span> [11,]           1  1  1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $moments.matrix</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              (Intercept)           x1           x2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) 1.000000e+00 7.828873e-17 2.653118e-16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x1          7.828873e-17 3.334694e-01 2.537135e-18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x2          2.653118e-16 2.537135e-18 3.334694e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             (Intercept)        x1        x2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           1 0.0000000 0.0000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x1                    0 0.3333333 0.0000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x2                    0 0.0000000 0.3333333</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $variance.matrix</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11]</span>
@@ -608,7 +608,7 @@ information in its attributes, which can be accessed with the `get_attributes()`
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ~x1 + x2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55a5d365d5a8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55cfd2b06ee0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#A correlation color map can be produced by calling the plot_correlation command with the output</span></span></span>

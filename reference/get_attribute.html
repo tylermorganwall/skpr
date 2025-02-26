@@ -111,22 +111,14 @@ Potential values are `model.matrix` for model used, `moments.matrix`, `variance.
 <span class="r-out co"><span class="r-pr">#&gt;</span> [29,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $moments.matrix</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               (Intercept)          cost         size1         size2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.000000e+00  6.439294e-17  1.850372e-17 -3.700743e-17</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost         6.439294e-17  3.400673e-01  2.054325e-33 -2.054325e-33</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1        1.850372e-17  2.054325e-33  1.000000e+00 -1.850372e-17</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2       -3.700743e-17 -2.054325e-33 -1.850372e-17  1.000000e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1        6.476301e-16 -3.996803e-17  9.251859e-18  0.000000e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2        0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3        0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     type1 type2 type3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  6.476301e-16     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost        -3.996803e-17     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1        9.251859e-18     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2        0.000000e+00     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1        1.000000e+00     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2        0.000000e+00     1     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3        0.000000e+00     0     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             (Intercept)      cost size1 size2 type1 type2 type3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           1 0.0000000     0     0     0     0     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> cost                  0 0.3333333     0     0     0     0     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size1                 0 0.0000000     1     0     0     0     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size2                 0 0.0000000     0     1     0     0     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type1                 0 0.0000000     0     0     1     0     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type2                 0 0.0000000     0     0     0     1     0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type3                 0 0.0000000     0     0     0     0     1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $variance.matrix</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13]</span>
@@ -257,7 +249,7 @@ Potential values are `model.matrix` for model used, `moments.matrix`, `variance.
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ~cost + size + type</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55a5d20376a8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55cfd54f2900&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Get just one attribute</span></span></span>

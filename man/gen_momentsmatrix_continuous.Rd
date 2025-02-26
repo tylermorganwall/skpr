@@ -13,10 +13,10 @@ gen_momentsmatrix_continuous(
 \arguments{
 \item{formula}{Default `~ .`. Model formula specifying the terms.}
 
-\item{n_samples_per_dimension}{Default `100`. Number of samples to take per dimension when interpolating inside
-the convex hull.}
+\item{candidate_set}{Candidate set}
 
-\item{data}{Candidate set}
+\item{n_samples_per_dimension}{Default `20`. Number of samples to take per dimension when interpolating inside
+the convex hull.}
 }
 \value{
 A matrix of size `p x p` (where `p` is the number of columns in the model matrix),

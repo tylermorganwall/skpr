@@ -495,13 +495,35 @@ eval_design = function(
 
   levelvector = sapply(lapply(run_matrix_processed, unique), length)
   classvector = sapply(lapply(run_matrix_processed, unique), class) == "factor"
-  mm = gen_momentsmatrix(
-    colnames(attr(run_matrix_processed, "modelmatrix")),
-    levelvector,
-    classvector
-  )
+  #Compare generating model with new model
 
-  attr(results, "moment.matrix") = mm
+  imported_mm = FALSE
+  if(!is.null(attr(input_design, "generating.model"))) {
+    og_design_factors = attr(terms.formula(attr(input_design, "generating.model")),"factors")
+    new_model_factors = attr(terms.formula(model),"factors")
+    identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
+    identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
+    if(identical_interactions && identical_main_effects) {
+      mm = attr(input_design, "moments.matrix")
+      imported_mm = TRUE
+    }
+  }
+  if(!imported_mm) {
+    if(all(classvector)) {
+      mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
+    } else {
+      if(!is.null(attr(design, "candidate_set"))) {
+        mm = gen_momentsmatrix_continuous(formula = model,
+                                          candidate_set = attr(input_design, "candidate_set"),
+                                          n_samples_per_dimension = 20)
+      } else {
+        warning("Candidate set not included with design: assuming no disallowed combinations when calculating moment matrix.")
+        mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
+      }
+    }
+  }
+
+  attr(results, "moments.matrix") = mm
   attr(results, "A") = AOptimality(modelmatrix_cor)
 
   if (!blocking) {

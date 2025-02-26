@@ -1290,7 +1290,32 @@ eval_design_mc = function(
 
   levelvector = sapply(lapply(RunMatrixReduced, unique), length)
   classvector = sapply(lapply(RunMatrixReduced, unique), class) == "factor"
-  mm = gen_momentsmatrix(colnames(ModelMatrix), levelvector, classvector)
+
+  imported_mm = FALSE
+  if(!is.null(attr(design, "generating.model"))) {
+    og_design_factors = attr(terms.formula(attr(design, "generating.model")),"factors")
+    new_model_factors = attr(terms.formula(model),"factors")
+    identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
+    identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
+    if(identical_interactions && identical_main_effects) {
+      mm = attr(design, "moments.matrix")
+      imported_mm = TRUE
+    }
+  }
+  if(!imported_mm) {
+    if(all(classvector)) {
+      mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
+    } else {
+      if(!is.null(attr(design, "candidate_set"))) {
+        mm = gen_momentsmatrix_continuous(formula = model,
+                                          candidate_set = attr(design, "candidate_set"),
+                                          n_samples_per_dimension = 20)
+      } else {
+        warning("Candidate set not included with design: assuming no disallowed combinations when calculating moment matrix.")
+        mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
+      }
+    }
+  }
 
   if (glmfamilyname == "binomial") {
     pvalmat = attr(power_values, "pvals")

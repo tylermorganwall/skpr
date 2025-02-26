@@ -444,6 +444,7 @@ gen_design = function(
 
   #covert tibbles
   candidateset = as.data.frame(candidateset)
+  og_candidate_set = candidateset
   if (!is.null(splitplotdesign)) {
     splitplotdesign = as.data.frame(splitplotdesign)
   }
@@ -813,6 +814,10 @@ gen_design = function(
   if (!is.null(splitplotdesign)) {
     spdnormalized = normalize_design(splitplotdesign)
   }
+
+  #------Detect any disallowed combinations-----#
+  unique_vals = prod(vapply(candidateset, \(x) {length(unique(x))}, FUN.VALUE = integer(1)))
+  any_disallowed = unique_vals != nrow(candidateset)
 
   splitplot = FALSE
   blocking = FALSE
@@ -1236,15 +1241,15 @@ gen_design = function(
     factors = colnames(candidatesetmm)
     levelvector = sapply(lapply(candidateset, unique), length)
     classvector = sapply(candidateset, inherits, c("factor", "character"))
-    if(all(classvector)) {
+    if(all(classvector) || !any_disallowed) {
       mm = gen_momentsmatrix(factors, levelvector, classvector)
     } else {
       model_terms_cs = rownames(attr(terms.formula(model),"factors"))
-      col_in_model = colnames(candidateset) %in% model_terms_cs
+      col_in_model = colnames(candidatesetnormalized) %in% model_terms_cs
       candidate_set_mm = candidatesetnormalized[,col_in_model,drop=FALSE]
       mm = gen_momentsmatrix_continuous(formula = model,
-                                        candidate_set = candidate_set_mm,
-                                        n_samples_per_dimension = 100)
+                                        candidate_set = candidatesetnormalized,
+                                        n_samples_per_dimension = 20)
     }
     if (!parallel) {
       if (!is.null(getOption("skpr_progress"))) {
@@ -1436,7 +1441,16 @@ gen_design = function(
         colnames(blockedmodelmatrix),
         colnames(candidatesetmm)[-1]
       )
-      blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
+      if(all(classvector) || !any_disallowed) {
+        blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
+      } else {
+        model_terms_cs = rownames(attr(terms.formula(model),"factors"))
+        col_in_model = colnames(candidatesetnormalized) %in% model_terms_cs
+        candidate_set_mm_cs = candidatesetnormalized[,col_in_model,drop=FALSE]
+        blockedmm = gen_momentsmatrix_continuous(formula = model,
+                                          candidate_set = candidatesetnormalized,
+                                          n_samples_per_dimension = 20)
+      }
     } else {
       blocked_interactions = colnames(blockedmodelmatrix)[grepl(
         ":",
@@ -1461,7 +1475,16 @@ gen_design = function(
         colnames(candidatesetmm)[-1],
         interactionnames
       )
-      blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
+      if(all(classvector) || !any_disallowed) {
+        blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
+      } else {
+        model_terms_cs = rownames(attr(terms.formula(model),"factors"))
+        col_in_model = colnames(candidatesetnormalized) %in% model_terms_cs
+        candidate_set_mm = candidatesetnormalized[,col_in_model,drop=FALSE]
+        blockedmm = gen_momentsmatrix_continuous(formula = model,
+                                          candidate_set = candidatesetnormalized,
+                                          n_samples_per_dimension = 20)
+      }
     }
     disallowedcombdf = disallowed_combinations(fullcandidatesetnorm)
     if (nrow(disallowedcombdf) > 0) {
@@ -2249,6 +2272,7 @@ gen_design = function(
   } else {
     attr(design, "augmented") = FALSE
   }
+  attr(design, "candidate_set") = og_candidate_set
   return(design)
 }
 

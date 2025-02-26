@@ -74,9 +74,9 @@ interpolate_convex_hull = function(points, ch_halfspace, n_samples_per_dimension
 #' the model terms, weighted by whether the point
 #' is on the edge.
 #'
-#' @param candidate_set_full Candidate set
+#' @param candidate_set Candidate set
 #' @param formula Default `~ .`. Model formula specifying the terms.
-#' @param n_samples_per_dimension Default `100`. Number of samples to take per dimension when interpolating inside
+#' @param n_samples_per_dimension Default `20`. Number of samples to take per dimension when interpolating inside
 #' the convex hull.
 #'
 #' @keywords internal
@@ -112,11 +112,8 @@ gen_momentsmatrix_continuous = function(
       interp_ch = list()
       interp_ch$on_edge = rep(FALSE, nrow(new_pts_ch))
       vol = max(sub_candidate_set) - min(sub_candidate_set)
-      } else {
+    } else {
       ch = convhull_halfspace(sub_candidate_set)
-      if (ch$volume <= 0) {
-        next
-      }
       vol = ch$volume
       interp_ch = interpolate_convex_hull(as.matrix(sub_candidate_set), ch, n_samples_per_dimension = n_samples_per_dimension)
       new_pts_ch = interp_ch$data

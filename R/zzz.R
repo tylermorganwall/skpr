@@ -46,3 +46,6 @@ assign(
   detect_multicore_support(),
   envir = skpr_system_setup_env
 )
+
+skpr_moment_matrix_cache = new.env(parent = emptyenv())
+

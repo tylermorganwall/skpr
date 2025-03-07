@@ -37,6 +37,12 @@
 #'The reordering will be presenting in the output when `detailedoutput = TRUE`.
 #'@param advancedoptions Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
 #'gives the degree at which the Alias matrix should be calculated.
+#'@param candidate_set Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
+#'the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
+#'skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
+#'convex constraints.
+#'@param mm_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+#'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power. Several
 #'design diagnostics are stored as attributes of the data frame. In particular,
@@ -173,6 +179,8 @@ eval_design = function(
   reorder_factors = FALSE,
   detailedoutput = FALSE,
   advancedoptions = NULL,
+  candidate_set = NA,
+  mm_sample_density = 20,
   ...
 ) {
   if (missing(design)) {
@@ -501,24 +509,30 @@ eval_design = function(
   if(!is.null(attr(input_design, "generating.model"))) {
     og_design_factors = attr(terms.formula(attr(input_design, "generating.model")),"factors")
     new_model_factors = attr(terms.formula(model),"factors")
-    identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
-    identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
-    if(identical_interactions && identical_main_effects) {
-      mm = attr(input_design, "moments.matrix")
-      imported_mm = TRUE
+    if(all(dim(og_design_factors) == dim(new_model_factors))) {
+      identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
+      identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
+      if(identical_interactions && identical_main_effects) {
+        mm = attr(input_design, "moments.matrix")
+        imported_mm = TRUE
+      }
     }
   }
   if(!imported_mm) {
-    if(all(classvector)) {
-      mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
-    } else {
-      if(!is.null(attr(design, "candidate_set"))) {
-        mm = gen_momentsmatrix_continuous(formula = model,
-                                          candidate_set = attr(input_design, "candidate_set"),
-                                          n_samples_per_dimension = 20)
+    mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix") ), levelvector, classvector)
+    if(!is.na(candidate_set)) {
+      if(!all(classvector)) {
+        hash_mm = digest::digest(list(model, candidate_set, mm_sample_density))
+        if(!exists(hash_mm, envir = skpr_moment_matrix_cache)) {
+          mm = gen_momentsmatrix_continuous(formula = model,
+                                            candidate_set = candidate_set,
+                                            n_samples_per_dimension = mm_sample_density)
+          assign(hash_mm, mm, envir = skpr_moment_matrix_cache)
+        } else {
+          mm = get(hash_mm,envir = skpr_moment_matrix_cache)
+        }
       } else {
-        warning("Candidate set not included with design: assuming no disallowed combinations when calculating moment matrix.")
-        mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
+        mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix") ), levelvector, classvector)
       }
     }
   }

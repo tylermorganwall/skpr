@@ -4,7 +4,8 @@ library(shiny)
 test_that("{shinytest2} recording: apps", {
   options("in_skpr_test_environment" = TRUE)
   on.exit(options("in_skpr_test_environment" = NULL), add = TRUE)
-  app <- AppDriver$new(app_dir = testthat::test_path("apps"),
+  app <- AppDriver$new(app_dir = testthat::test_path("apps"), screenshot_args = FALSE,
+                       expect_values_screenshot_args  = FALSE,
     variant = platform_variant(), name = "apps", height = 923,
       width = 1619, timeout = 10*1000, wait = TRUE)
   app$set_inputs(setseed = TRUE)

@@ -17,6 +17,8 @@ eval_design(
   reorder_factors = FALSE,
   detailedoutput = FALSE,
   advancedoptions = NULL,
+  candidate_set = NA,
+  mm_sample_density = 20,
   ...
 )
 }
@@ -62,6 +64,14 @@ The reordering will be presenting in the output when `detailedoutput = TRUE`.}
 
 \item{advancedoptions}{Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
 gives the degree at which the Alias matrix should be calculated.}
+
+\item{candidate_set}{Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
+the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
+skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
+convex constraints.}
+
+\item{mm_sample_density}{Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+required if the design was generated outside of skpr and there are disallowed combinations.}
 
 \item{...}{Additional arguments.}
 }

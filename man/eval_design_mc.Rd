@@ -24,6 +24,8 @@ eval_design_mc(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
+  candidate_set = NA,
+  mm_sample_density = 20,
   ...
 )
 }
@@ -93,6 +95,14 @@ user can change to type `II`). `advancedoptions$anovatest` specifies the test st
 `advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
 set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.}
+
+\item{candidate_set}{Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
+the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
+skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
+convex constraints.}
+
+\item{mm_sample_density}{Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+required if the design was generated outside of skpr and there are disallowed combinations.}
 
 \item{...}{Additional arguments.}
 }

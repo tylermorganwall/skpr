@@ -53,6 +53,12 @@
 #'set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
 #'@param parallel Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
+#'@param candidate_set Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
+#'the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
+#'skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
+#'convex constraints.
+#'@param mm_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+#'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
@@ -254,6 +260,8 @@ eval_design_mc = function(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
+  candidate_set = NA,
+  mm_sample_density = 20,
   ...
 ) {
   if (!firth || glmfamily != "binomial") {
@@ -1294,25 +1302,31 @@ eval_design_mc = function(
   imported_mm = FALSE
   if(!is.null(attr(design, "generating.model"))) {
     og_design_factors = attr(terms.formula(attr(design, "generating.model")),"factors")
-    new_model_factors = attr(terms.formula(model),"factors")
-    identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
-    identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
-    if(identical_interactions && identical_main_effects) {
-      mm = attr(design, "moments.matrix")
-      imported_mm = TRUE
+    new_model_factors = attr(terms.formula(model_formula),"factors")
+    if(all(dim(og_design_factors) == dim(new_model_factors))) {
+      identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
+      identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
+      if(identical_interactions && identical_main_effects) {
+        mm = attr(design, "moments.matrix")
+        imported_mm = TRUE
+      }
     }
   }
   if(!imported_mm) {
-    if(all(classvector)) {
-      mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
-    } else {
-      if(!is.null(attr(design, "candidate_set"))) {
-        mm = gen_momentsmatrix_continuous(formula = model,
-                                          candidate_set = attr(design, "candidate_set"),
-                                          n_samples_per_dimension = 20)
+    mm = gen_momentsmatrix(colnames(ModelMatrix), levelvector, classvector)
+    if(!is.na(candidate_set)) {
+      if(!all(classvector)) {
+        hash_mm = digest::digest(list(model_formula, candidate_set, mm_sample_density))
+        if(!exists(hash_mm, envir = skpr_moment_matrix_cache)) {
+          mm = gen_momentsmatrix_continuous(formula = model_formula,
+                                            candidate_set = candidate_set,
+                                            n_samples_per_dimension = mm_sample_density)
+          assign(hash_mm, mm, envir = skpr_moment_matrix_cache)
+        } else {
+          mm = get(hash_mm,envir = skpr_moment_matrix_cache)
+        }
       } else {
-        warning("Candidate set not included with design: assuming no disallowed combinations when calculating moment matrix.")
-        mm = gen_momentsmatrix(colnames(attr(run_matrix_processed, "modelmatrix")), levelvector, classvector)
+        mm = gen_momentsmatrix(colnames(ModelMatrix), levelvector, classvector)
       }
     }
   }

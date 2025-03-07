@@ -2727,10 +2727,7 @@ skprGUI = function(
       display_table = display_table %>%
         gt::data_color(
           columns = "power",
-          palette = scales::col_numeric(
-            palette = colorRampPalette(c("white", "darkgreen"))(100),
-            domain = c(0, 1)
-          ),
+          palette = colorRampPalette(c("white", "darkgreen"))(100),
           domain = c(0, 1),
           alpha = 0.3,
           autocolor_text = FALSE
@@ -2766,7 +2763,7 @@ skprGUI = function(
           ) %>%
           gt::tab_source_note(
             source_note = sprintf(
-              "Note: Power values marked in %s are within the simulation uncertainty for user-specified Type-I error (increase the number of simulations)",
+              "Note: Power values marked in %s are within the simulation uncertainty for user-specified minimum power: increase the number of simulations.",
               color_maybe
             )
           )
@@ -2784,9 +2781,9 @@ skprGUI = function(
           ) %>%
           gt::tab_source_note(
             source_note = sprintf(
-              "Note: Power values marked in %s fall below the user-specified Type-I error (%0.2f)",
+              "Note: Power values marked in %s fall below the user-specified minimum power (%0.2f)",
               color_bad,
-              alpha
+              desired_power_level
             )
           )
       }

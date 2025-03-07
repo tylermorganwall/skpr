@@ -17,7 +17,7 @@ effectsize or anticoef parameters."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,6 +66,8 @@ assumes a signal-to-noise ratio of 2, but this can be changed with the
 <span>  reorder_factors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  candidate_set <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  mm_sample_density <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -140,6 +142,18 @@ The reordering will be presenting in the output when `detailedoutput = TRUE`.</p
 gives the degree at which the Alias matrix should be calculated.</p></dd>
 
 
+<dt id="arg-candidate-set">candidate_set<a class="anchor" aria-label="anchor" href="#arg-candidate-set"></a></dt>
+<dd><p>Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
+the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
+skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
+convex constraints.</p></dd>
+
+
+<dt id="arg-mm-sample-density">mm_sample_density<a class="anchor" aria-label="anchor" href="#arg-mm-sample-density"></a></dt>
+<dd><p>Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+required if the design was generated outside of skpr and there are disallowed combinations.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments.</p></dd>
 
@@ -211,8 +225,6 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="co">#Evaluating a subset of the design (which changes the power due to a different number of</span></span></span>
 <span class="r-in"><span><span class="co">#degrees of freedom)</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span>design <span class="op">=</span> <span class="va">optdesign</span>, model<span class="op">=</span> <span class="op">~</span><span class="va">A</span> <span class="op">+</span> <span class="va">C</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>longer object length is not a multiple of shorter object length</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>longer object length is not a multiple of shorter object length</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.9659328</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2           A    effect.power 0.9659328</span>
@@ -348,7 +360,6 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="co">#You can also evaluate the design with higher order effects, even if they were not</span></span></span>
 <span class="r-in"><span><span class="co">#used in design generation:</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">designcoffee</span>, model <span class="op">=</span> <span class="op">~</span><span class="va">cost</span> <span class="op">+</span> <span class="va">size</span> <span class="op">+</span> <span class="va">type</span> <span class="op">+</span> <span class="va">cost</span> <span class="op">*</span> <span class="va">type</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>longer object length is not a multiple of shorter object length</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power 0.9989226</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power 0.9989944</span>

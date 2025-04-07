@@ -53,16 +53,18 @@
 #'set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
 #'@param parallel Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
-#'@param candidate_set Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
-#'the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
-#'skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
-#'convex constraints.
-#'@param mm_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+#'@param high_resolution_candidate_set Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+#' cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+#' a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+#' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+#' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
+#' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.
+#'@param moment_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 #'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
-#' attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
+#' attribute. The "model.matrix" attribute contains the model matrix that was used for power evaluation, and
 #' also provides the encoding used for categorical factors. If you want to specify the anticipated
 #' coefficients manually, do so in the order the parameters appear in the model matrix.
 #'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
@@ -255,13 +257,13 @@ eval_design_mc = function(
   firth = FALSE,
   effectsize = 2,
   contrasts = contr.sum,
+  high_resolution_candidate_set = NA,
+  moment_sample_density = 20,
   parallel = FALSE,
   adjust_alpha_inflation = FALSE,
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  candidate_set = NA,
-  mm_sample_density = 20,
   ...
 ) {
   if (!firth || glmfamily != "binomial") {
@@ -459,24 +461,26 @@ eval_design_mc = function(
     }
   }
 
-  #covert tibbles
-  run_matrix_processed = as.data.frame(design)
+  #convert tibbles
+  all_attr_design = attributes(design)
+  run_matrix_df = as.data.frame(design)
+
   #Detect externally generated blocking columns and convert to rownames
-  run_matrix_processed = convert_blockcolumn_rownames(
-    run_matrix_processed,
+  run_matrix_rownames = convert_blockcolumn_rownames(
+    run_matrix_df,
     blocking,
     varianceratios
   )
-  zlist = attr(run_matrix_processed, "z.matrix.list")
+  zlist = attr(run_matrix_rownames, "z.matrix.list")
 
   #Remove skpr-generated REML blocking indicators if present
-  run_matrix_processed = remove_skpr_blockcols(run_matrix_processed)
+  run_matrix_no_block_cols = remove_skpr_blockcols(run_matrix_rownames)
 
   #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_processed, model)
+  model = convert_model_dots(run_matrix_no_block_cols, model)
 
   #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model, data = run_matrix_processed)
+  model = rearrange_formula_by_order(model, data = run_matrix_no_block_cols)
   if (nointercept) {
     model = update.formula(model, ~ -1 + .)
   }
@@ -509,17 +513,37 @@ eval_design_mc = function(
   }
 
   #------Normalize/Center numeric columns ------#
-  run_matrix_processed = normalize_design(run_matrix_processed)
+  run_matrix_normalized = normalize_design(run_matrix_no_block_cols)
+
+  candidate_set = attr(design, "candidate_set")
+
+  if(!is.null(candidate_set)) {
+    normalized_candidate_set = normalize_design(candidate_set)
+  }
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
   #Variables used later: contrastslist, contrastslist_cormat
-  RunMatrixReduced = reduceRunMatrix(run_matrix_processed, model)
+  run_matrix_reduced = reduceRunMatrix(run_matrix_normalized, model)
+  run_matrix_monte_carlo = run_matrix_reduced
+
+  # Add back original attributes
+  new_attributes = attributes(run_matrix_reduced)
+  new_attribute_names = names(new_attributes)
+  old_attribute_names = names(all_attr_design)
+  for(i in seq_along(old_attribute_names)) {
+    if(!old_attribute_names[i] %in% new_attribute_names) {
+      new_attributes[[ old_attribute_names[i] ]] = all_attr_design[[i]]
+    }
+  }
+  run_matrix_fully_processed = run_matrix_reduced
+  attributes(run_matrix_fully_processed) = new_attributes
+
 
   contrastslist_cormat = list()
   contrastslist = list()
-  for (x in names(RunMatrixReduced)[
-    lapply(RunMatrixReduced, class) %in% c("character", "factor")
+  for (x in names(run_matrix_monte_carlo)[
+    lapply(run_matrix_monte_carlo, class) %in% c("character", "factor")
   ]) {
     if (!(x %in% names(presetcontrasts))) {
       contrastslist[[x]] = contrasts
@@ -534,7 +558,7 @@ eval_design_mc = function(
   }
   ModelMatrix = model.matrix(
     model,
-    RunMatrixReduced,
+    run_matrix_monte_carlo,
     contrasts.arg = contrastslist
   )
 
@@ -554,7 +578,7 @@ eval_design_mc = function(
     }
   }
   if (missing(anticoef) || is.null(anticoef)) {
-    default_coef = gen_anticoef(RunMatrixReduced, model, nointercept)
+    default_coef = gen_anticoef(run_matrix_monte_carlo, model, nointercept)
     anticoef = anticoef_from_delta(default_coef, effectsize, glmfamilyname)
     if (!("(Intercept)" %in% colnames(ModelMatrix))) {
       anticoef = anticoef[-1]
@@ -565,14 +589,14 @@ eval_design_mc = function(
   }
   #-------------- Blocking errors --------------#
   #Variables used later: blockgroups, varianceratios, V, blockstructure
-  blocknames = rownames(run_matrix_processed)
+  blocknames = rownames(run_matrix_fully_processed)
   blocklist = strsplit(blocknames, ".", fixed = TRUE)
   if (any(lapply(blocklist, length) > 1)) {
     if (blocking) {
       blockstructure = do.call(rbind, blocklist)
       blockgroups = get_block_groups(blockstructure)
 
-      blockMatrixSize = nrow(run_matrix_processed)
+      blockMatrixSize = nrow(run_matrix_fully_processed)
       if (length(blockgroups) == 1 | is.matrix(blockgroups)) {
         stop(
           "skpr: No blocking detected. Specify block structure in row names or set blocking = FALSE"
@@ -600,7 +624,7 @@ eval_design_mc = function(
         )
       }
       V = calculate_v_from_blocks(
-        nrow(run_matrix_processed),
+        nrow(run_matrix_fully_processed),
         blockgroups,
         blockstructure,
         varianceratios
@@ -645,7 +669,7 @@ eval_design_mc = function(
     blockindicators = lapply(blockgroups, genBlockIndicators)
     randomeffects = c()
     for (i in 1:(length(blockgroups) - 1)) {
-      RunMatrixReduced[paste("skprBlock", i, sep = "")] = blockindicators[[i]]
+      run_matrix_monte_carlo[paste("skprBlock", i, sep = "")] = blockindicators[[i]]
       randomeffects = c(
         randomeffects,
         paste("( 1 | skprBlock", i, " )", sep = "")
@@ -659,11 +683,11 @@ eval_design_mc = function(
       model = update.formula(model, ~ -1 + .)
     }
   } else {
-    V = diag(nrow(run_matrix_processed))
+    V = diag(nrow(run_matrix_fully_processed))
   }
 
   model_formula = update.formula(model, Y ~ .)
-  RunMatrixReduced$Y = 1
+  run_matrix_monte_carlo$Y = 1
   #------------- Effect Power Settings ------------#
 
   if (!is.null(advancedoptions$anovatest)) {
@@ -737,7 +761,7 @@ eval_design_mc = function(
       }
       fiterror = FALSE
       #simulate the data.
-      RunMatrixReduced$Y = responses[, j]
+      run_matrix_monte_carlo$Y = responses[, j]
       if (blocking) {
         if (glmfamilyname == "gaussian") {
           tryCatch(
@@ -746,7 +770,7 @@ eval_design_mc = function(
                 suppressMessages(
                   lmerTest::lmer(
                     model_formula,
-                    data = RunMatrixReduced,
+                    data = run_matrix_monte_carlo,
                     contrasts = contrastslist
                   )
                 )
@@ -765,7 +789,7 @@ eval_design_mc = function(
               firth = firth,
               glmfamily = glmfamilyname,
               effect_terms = effect_terms,
-              RunMatrixReduced = RunMatrixReduced,
+              RunMatrixReduced = run_matrix_monte_carlo,
               method = method,
               contrastslist = contrastslist,
               effect_anova = effect_anova
@@ -778,7 +802,7 @@ eval_design_mc = function(
                 suppressMessages(
                   lme4::glmer(
                     model_formula,
-                    data = RunMatrixReduced,
+                    data = run_matrix_monte_carlo,
                     family = glmfamily,
                     contrasts = contrastslist
                   )
@@ -799,7 +823,7 @@ eval_design_mc = function(
               firth = firth,
               glmfamily = glmfamilyname,
               effect_terms = effect_terms,
-              RunMatrixReduced = RunMatrixReduced,
+              RunMatrixReduced = run_matrix_monte_carlo,
               method = method,
               contrastslist = contrastslist,
               effect_anova = effect_anova
@@ -824,7 +848,7 @@ eval_design_mc = function(
                 suppressMessages(
                   lm(
                     model_formula,
-                    data = RunMatrixReduced,
+                    data = run_matrix_monte_carlo,
                     contrasts = contrastslist
                   )
                 )
@@ -844,7 +868,7 @@ eval_design_mc = function(
               firth = firth,
               glmfamily = glmfamilyname,
               effect_terms = effect_terms,
-              RunMatrixReduced = RunMatrixReduced,
+              RunMatrixReduced = run_matrix_monte_carlo,
               method = method,
               contrastslist = contrastslist,
               effect_anova = effect_anova
@@ -857,7 +881,7 @@ eval_design_mc = function(
                 glm(
                   model_formula,
                   family = glmfamily,
-                  data = RunMatrixReduced,
+                  data = run_matrix_monte_carlo,
                   contrasts = contrastslist,
                   method = method
                 )
@@ -877,7 +901,7 @@ eval_design_mc = function(
               firth = firth,
               glmfamily = glmfamilyname,
               effect_terms = effect_terms,
-              RunMatrixReduced = RunMatrixReduced,
+              RunMatrixReduced = run_matrix_monte_carlo,
               method = method,
               contrastslist = contrastslist,
               effect_anova = effect_anova,
@@ -992,7 +1016,7 @@ eval_design_mc = function(
     }
     modelmat = model.matrix(
       model_formula,
-      data = RunMatrixReduced,
+      data = run_matrix_monte_carlo,
       contrasts = contrastslist
     )
     packagelist = c("mbest", "lmerTest", "skpr", "lme4", "lmtest", "car")
@@ -1008,7 +1032,7 @@ eval_design_mc = function(
           globals = c(
             "extractPvalues",
             "effectpowermc",
-            "RunMatrixReduced",
+            "run_matrix_monte_carlo",
             "is_shiny",
             "blocking",
             "responses",
@@ -1033,8 +1057,7 @@ eval_design_mc = function(
             "prog",
             "nsim",
             "num_updates",
-            "nc",
-            "_skpr_genOptimalDesign"
+            "nc"
           ),
           seed = TRUE
         )
@@ -1049,14 +1072,14 @@ eval_design_mc = function(
           }
           #simulate the data.
           fiterror = FALSE
-          RunMatrixReduced$Y = responses[, j]
+          run_matrix_monte_carlo$Y = responses[, j]
           if (blocking) {
             if (glmfamilyname == "gaussian") {
               fit = suppressWarnings(
                 suppressMessages(
                   lmerTest::lmer(
                     model_formula,
-                    data = RunMatrixReduced,
+                    data = run_matrix_monte_carlo,
                     contrasts = contrastslist
                   )
                 )
@@ -1075,7 +1098,7 @@ eval_design_mc = function(
                     suppressMessages(
                       lme4::glmer(
                         model_formula,
-                        data = RunMatrixReduced,
+                        data = run_matrix_monte_carlo,
                         family = glmfamily,
                         contrasts = contrastslist
                       )
@@ -1096,7 +1119,7 @@ eval_design_mc = function(
                   firth = firth,
                   glmfamily = glmfamilyname,
                   effect_terms = effect_terms,
-                  RunMatrixReduced = RunMatrixReduced,
+                  RunMatrixReduced = run_matrix_monte_carlo,
                   method = method,
                   contrastslist = contrastslist,
                   effect_anova = effect_anova
@@ -1110,7 +1133,7 @@ eval_design_mc = function(
             if (glmfamilyname == "gaussian") {
               fit = lm(
                 model_formula,
-                data = RunMatrixReduced,
+                data = run_matrix_monte_carlo,
                 contrasts = contrastslist
               )
               if (calceffect) {
@@ -1123,7 +1146,7 @@ eval_design_mc = function(
                   firth = firth,
                   glmfamily = glmfamilyname,
                   effect_terms = effect_terms,
-                  RunMatrixReduced = RunMatrixReduced,
+                  RunMatrixReduced = run_matrix_monte_carlo,
                   method = method,
                   contrastslist = contrastslist,
                   effect_anova = effect_anova
@@ -1137,7 +1160,7 @@ eval_design_mc = function(
                       glm(
                         model_formula,
                         family = glmfamily,
-                        data = RunMatrixReduced,
+                        data = run_matrix_monte_carlo,
                         contrasts = contrastslist,
                         method = method
                       )
@@ -1158,7 +1181,7 @@ eval_design_mc = function(
                   firth = firth,
                   glmfamily = glmfamilyname,
                   effect_terms = effect_terms,
-                  RunMatrixReduced = RunMatrixReduced,
+                  RunMatrixReduced = run_matrix_monte_carlo,
                   method = method,
                   contrastslist = contrastslist,
                   effect_anova = effect_anova
@@ -1277,7 +1300,7 @@ eval_design_mc = function(
   }
   #output the results (tidy data format)
   if (calceffect) {
-    retval = data.frame(
+    results = data.frame(
       parameter = c(names(effect_power_values), parameter_names),
       type = c(
         rep("effect.power.mc", length(effect_power_values)),
@@ -1286,49 +1309,30 @@ eval_design_mc = function(
       power = c(effect_power_values, power_values)
     )
   } else {
-    retval = data.frame(
+    results = data.frame(
       parameter = parameter_names,
       type = rep("parameter.power.mc", length(parameter_names)),
       power = power_values
     )
   }
-  attr(retval, "modelmatrix") = ModelMatrix
-  attr(retval, "anticoef") = anticoef
-  attr(retval, "z.matrix.list") = zlist
+  attr(results, "model.matrix") = ModelMatrix
+  attr(results, "anticoef") = anticoef
+  attr(results, "z.matrix.list") = zlist
 
-  levelvector = sapply(lapply(RunMatrixReduced, unique), length)
-  classvector = sapply(lapply(RunMatrixReduced, unique), class) == "factor"
+  factors = colnames(ModelMatrix)
+  classvector = sapply(lapply(run_matrix_fully_processed, unique), class) == "factor"
 
-  imported_mm = FALSE
-  if(!is.null(attr(design, "generating.model"))) {
-    og_design_factors = attr(terms.formula(attr(design, "generating.model")),"factors")
-    new_model_factors = attr(terms.formula(model_formula),"factors")
-    if(all(dim(og_design_factors) == dim(new_model_factors))) {
-      identical_main_effects = all(rownames(og_design_factors) == rownames(new_model_factors))
-      identical_interactions = all(colnames(og_design_factors) == colnames(new_model_factors))
-      if(identical_interactions && identical_main_effects) {
-        mm = attr(design, "moments.matrix")
-        imported_mm = TRUE
-      }
-    }
-  }
-  if(!imported_mm) {
-    mm = gen_momentsmatrix(colnames(ModelMatrix), levelvector, classvector)
-    if(!is.na(candidate_set)) {
-      if(!all(classvector)) {
-        hash_mm = digest::digest(list(model_formula, candidate_set, mm_sample_density))
-        if(!exists(hash_mm, envir = skpr_moment_matrix_cache)) {
-          mm = gen_momentsmatrix_continuous(formula = model_formula,
-                                            candidate_set = candidate_set,
-                                            n_samples_per_dimension = mm_sample_density)
-          assign(hash_mm, mm, envir = skpr_moment_matrix_cache)
-        } else {
-          mm = get(hash_mm,envir = skpr_moment_matrix_cache)
-        }
-      } else {
-        mm = gen_momentsmatrix(colnames(ModelMatrix), levelvector, classvector)
-      }
-    }
+  moment_matrix = get_moment_matrix(
+    design = run_matrix_fully_processed,
+    candidate_set_normalized = normalized_candidate_set,
+    factors = factors,
+    classvector = classvector,
+    model = model,
+    moment_sample_density = moment_sample_density,
+    high_resolution_candidate_set = high_resolution_candidate_set
+  )
+  if(all(!is.na(moment_matrix))) {
+    attr(results, "moments.matrix") = moment_matrix
   }
 
   if (glmfamilyname == "binomial") {
@@ -1349,7 +1353,7 @@ eval_design_mc = function(
 
   modelmatrix_cor = model.matrix(
     generatingmodel,
-    RunMatrixReduced,
+    run_matrix_fully_processed,
     contrasts.arg = contrastslist_cormat
   )
   if (ncol(modelmatrix_cor) > 2) {
@@ -1368,14 +1372,14 @@ eval_design_mc = function(
           colnames(correlation.matrix) = colnames(modelmatrix_cor)
           rownames(correlation.matrix) = colnames(modelmatrix_cor)
         }
-        attr(retval, "correlation.matrix") = round(correlation.matrix, 8)
+        attr(results, "correlation.matrix") = round(correlation.matrix, 8)
       },
       error = function(e) {
       }
     )
     tryCatch(
       {
-        if (ncol(attr(run_matrix_processed, "modelmatrix")) > 2) {
+        if (ncol(attr(run_matrix_fully_processed, "model.matrix")) > 2) {
           amodel = aliasmodel(model, aliaspower)
           if (amodel != model) {
             aliasmatrix = suppressWarnings({
@@ -1407,88 +1411,92 @@ eval_design_mc = function(
     )
   }
   if (detailedoutput) {
-    if (nrow(retval) != length(anticoef)) {
-      retval$anticoef = c(rep(NA, nrow(retval) - length(anticoef)), anticoef)
+    if (nrow(results) != length(anticoef)) {
+      results$anticoef = c(rep(NA, nrow(results) - length(anticoef)), anticoef)
     } else {
-      retval$anticoef = anticoef
+      results$anticoef = anticoef
     }
-    retval$alpha = alpha
+    results$alpha = alpha
     if (is.character(glmfamilyname)) {
-      retval$glmfamily = glmfamilyname
+      results$glmfamily = glmfamilyname
     } else {
       #user supplied a glm family object
-      retval$glmfamily = paste(glmfamilyname, collapse = " ")
+      results$glmfamily = paste(glmfamilyname, collapse = " ")
     }
-    retval$trials = nrow(run_matrix_processed)
-    retval$nsim = nsim
-    retval$blocking = blocking
+    results$trials = nrow(run_matrix_fully_processed)
+    results$nsim = nsim
+    results$blocking = blocking
     if (calceffect && alpha_adjust) {
-      retval$error_adjusted_alpha = c(alpha_effect, alpha_parameter)
+      results$error_adjusted_alpha = c(alpha_effect, alpha_parameter)
     } else {
-      retval$error_adjusted_alpha = alpha_parameter
+      results$error_adjusted_alpha = alpha_parameter
     }
-    retval = add_ci_bounds_mc_power(
-      retval,
+    results = add_ci_bounds_mc_power(
+      results,
       nsim = nsim,
       conf = advancedoptions$ci_error_conf
     )
-    attr(retval, "mc.conf.int") = advancedoptions$ci_error_conf
+    attr(results, "mc.conf.int") = advancedoptions$ci_error_conf
   }
 
   colnames(estimates) = parameter_names
   if (!blocking) {
-    attr(retval, "variance.matrix") = diag(nrow(modelmatrix_cor))
-    attr(retval, "I") = IOptimality(
-      modelmatrix_cor,
-      momentsMatrix = mm,
-      blockedVar = diag(nrow(modelmatrix_cor))
-    )
-    attr(retval, "D") = 100 * DOptimalityLog(modelmatrix_cor)
+    attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor))
+    if(all(!is.na(moment_matrix))) {
+      attr(results, "I") = IOptimality(
+        modelmatrix_cor,
+        momentsMatrix = moment_matrix,
+        blockedVar = diag(nrow(modelmatrix_cor))
+      )
+    }
+    attr(results, "D") = 100 * DOptimalityLog(modelmatrix_cor)
   } else {
-    attr(retval, "variance.matrix") = V
-    attr(retval, "I") = IOptimality(
-      modelmatrix_cor,
-      momentsMatrix = mm,
-      blockedVar = V
-    )
+    attr(results, "variance.matrix") = V
+    if(all(!is.na(moment_matrix))) {
+      attr(results, "I") = IOptimality(
+        modelmatrix_cor,
+        momentsMatrix = moment_matrix,
+        blockedVar = V
+      )
+    }
     deffic = DOptimalityBlocked(modelmatrix_cor, blockedVar = V)
     if (!is.infinite(deffic)) {
-      attr(retval, "D") = 100 *
+      attr(results, "D") = 100 *
         DOptimalityBlocked(modelmatrix_cor, blockedVar = V)^(1 /
           ncol(modelmatrix_cor)) /
         nrow(modelmatrix_cor)
     } else {
-      attr(retval, "D") = 100 *
+      attr(results, "D") = 100 *
         DOptimalityBlockedLog(modelmatrix_cor, blockedVar = V)^(1 /
           ncol(modelmatrix_cor)) /
         nrow(modelmatrix_cor)
     }
   }
   if (alpha_adjust) {
-    attr(retval, "null_pvals") = attr(nullresults, "pvals")
-    attr(retval, "null_effect_pvals") = attr(nullresults, "effect_pvals")
+    attr(results, "null_pvals") = attr(nullresults, "pvals")
+    attr(results, "null_effect_pvals") = attr(nullresults, "effect_pvals")
   }
-  attr(retval, "generating.model") = generatingmodel
-  attr(retval, "runmatrix") = RunMatrixReduced
-  attr(retval, "variance.matrix") = V
-  attr(retval, "estimates") = estimates
-  attr(retval, "pvals") = attr(power_values, "pvals")
-  attr(retval, "effect_pvals") = attr(power_values, "effect_pvals")
-  attr(retval, "stderrors") = attr(power_values, "stderrors")
-  attr(retval, "fisheriterations") = attr(power_values, "fisheriterations")
-  attr(retval, "alpha") = alpha
-  attr(retval, "blocking") = blocking
-  attr(retval, "varianceratios") = varianceratios
+  attr(results, "generating.model") = generatingmodel
+  attr(results, "runmatrix") = design
+  attr(results, "variance.matrix") = V
+  attr(results, "estimates") = estimates
+  attr(results, "pvals") = attr(power_values, "pvals")
+  attr(results, "effect_pvals") = attr(power_values, "effect_pvals")
+  attr(results, "stderrors") = attr(power_values, "stderrors")
+  attr(results, "fisheriterations") = attr(power_values, "fisheriterations")
+  attr(results, "alpha") = alpha
+  attr(results, "blocking") = blocking
+  attr(results, "varianceratios") = varianceratios
 
   if (advancedoptions$save_simulated_responses) {
-    attr(retval, "simulated_responses") = responses
+    attr(results, "simulated_responses") = responses
   }
-  if (!inherits(retval, "skpr_eval_output")) {
-    class(retval) = c("skpr_eval_output", class(retval))
+  if (!inherits(results, "skpr_eval_output")) {
+    class(results) = c("skpr_eval_output", class(results))
   }
   #Add recommended analysis method
   contrast_string = deparse(substitute(contrasts))
-  attr(retval, "contrast_string") = sprintf("`%s`", contrast_string)
+  attr(results, "contrast_string") = sprintf("`%s`", contrast_string)
   if (calceffect) {
     if (effect_anova) {
       effect_string = sprintf(r"{`car::Anova(fit, type = "III")`}")
@@ -1500,77 +1508,77 @@ eval_design_mc = function(
   }
   if (glmfamilyname == "gaussian") {
     if (!blocking) {
-      attr(retval, "parameter_analysis_method_string") = "`lm(...)`"
-      attr(retval, "effect_analysis_method_string") = effect_string
+      attr(results, "parameter_analysis_method_string") = "`lm(...)`"
+      attr(results, "effect_analysis_method_string") = effect_string
     } else {
-      attr(retval, "parameter_analysis_method_string") = "`lmerTest::lmer(...)`"
-      attr(retval, "effect_analysis_method_string") = effect_string
+      attr(results, "parameter_analysis_method_string") = "`lmerTest::lmer(...)`"
+      attr(results, "effect_analysis_method_string") = effect_string
     }
   } else if (glmfamilyname == "binomial") {
     if (!blocking) {
       if (!firth) {
         attr(
-          retval,
+          results,
           "parameter_analysis_method_string"
         ) = r"{glm(..., family = "binomial")`}"
-        attr(retval, "effect_analysis_method_string") = effect_string
+        attr(results, "effect_analysis_method_string") = effect_string
       } else {
         attr(
-          retval,
+          results,
           "parameter_analysis_method_string"
         ) = r"{glm(..., family = "binomial", method = mbest::firthglm.fit)`}" #"
         if (calceffect) {
           attr(
-            retval,
+            results,
             "effect_analysis_method_string"
           ) = r"{lmtest::lrtest(fit, fit_without_effect)`}"
         } else {
-          attr(retval, "effect_analysis_method_string") = ""
+          attr(results, "effect_analysis_method_string") = ""
         }
       }
     } else {
       attr(
-        retval,
+        results,
         "parameter_analysis_method_string"
       ) = r"{`lme4::glmer(..., family = "binomial")`}"
       if (calceffect) {
-        attr(retval, "effect_analysis_method_string") = effect_string
+        attr(results, "effect_analysis_method_string") = effect_string
       } else {
-        attr(retval, "effect_analysis_method_string") = ""
+        attr(results, "effect_analysis_method_string") = ""
       }
     }
   } else if (glmfamilyname == "poisson") {
     if (!blocking) {
       attr(
-        retval,
+        results,
         "parameter_analysis_method_string"
       ) = r"{`glm(..., family = "poisson")`}"
-      attr(retval, "effect_analysis_method_string") = effect_string
+      attr(results, "effect_analysis_method_string") = effect_string
     } else {
       attr(
-        retval,
+        results,
         "parameter_analysis_method_string"
       ) = r"{`lme4::glmer(..., family = "poisson")`}"
-      attr(retval, "effect_analysis_method_string") = effect_string
+      attr(results, "effect_analysis_method_string") = effect_string
     }
   } else if (glmfamilyname == "exponential") {
     if (!blocking) {
       attr(
-        retval,
+        results,
         "parameter_analysis_method_string"
       ) = r"{`glm(..., family = Gamma(link = "log")); summary(fit, dispersion = 1)`}"
-      attr(retval, "effect_analysis_method_string") = effect_string
+      attr(results, "effect_analysis_method_string") = effect_string
     } else {
       attr(
-        retval,
+        results,
         "parameter_analysis_method_string"
       ) = r"{`lme4::glmer(..., family = Gamma(link = "log")); summary(fit, dispersion = 1)`}"
-      attr(retval, "effect_analysis_method_string") = effect_string
+      attr(results, "effect_analysis_method_string") = effect_string
     }
   } else {
-    attr(retval, "parameter_analysis_method_string") = ""
-    attr(retval, "effect_analysis_method_string") = ""
+    attr(results, "parameter_analysis_method_string") = ""
+    attr(results, "effect_analysis_method_string") = ""
   }
-  return(retval)
+  return(results)
 }
 globalVariables("i")

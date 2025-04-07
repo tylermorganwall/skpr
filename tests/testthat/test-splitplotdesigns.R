@@ -87,11 +87,11 @@ test_that("Split-plot design categorical factors are retained", {
 test_that("JMP SPD import works", {
     jmp_design_htc = read.csv(testthat::test_path("JMP_design_htc.csv"))
     expect_error(eval_design(jmp_design_htc, ~., 0.2, blocking = TRUE))
-    expect_no_error(eval_design_mc(jmp_design_htc, ~., 0.2, blocking = TRUE, nsim=100))
+    expect_warning(eval_design_mc(jmp_design_htc, ~., 0.2, blocking = TRUE, nsim=100) ,"high_resolution_candidate_set")
 
     jmp_design_vhtc = read.csv(testthat::test_path("JMP_design_vhtc.csv"))
-    expect_no_error(eval_design(jmp_design_vhtc, ~., 0.2, blocking = TRUE))
-    expect_no_error(eval_design_mc(jmp_design_vhtc, ~., 0.2, blocking = TRUE, nsim=100))
+    expect_warning(eval_design(jmp_design_vhtc, ~., 0.2, blocking = TRUE) ,"high_resolution_candidate_set")
+    expect_warning(eval_design_mc(jmp_design_vhtc, ~., 0.2, blocking = TRUE, nsim=100),"high_resolution_candidate_set")
   }
 )
 

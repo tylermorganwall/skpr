@@ -47,6 +47,13 @@
 #' in a faster search, but are less likely tofind an optimal design. Values of `k >= n/4` have been shown empirically to generate similar designs to the full
 #' search. When `k == trials`, this results in the default modified Federov's algorithm.
 #' A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.
+#'@param moment_sample_density Default `20`. The density of points to sample when calculating the moment matrix to
+#' compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.
+#'@param high_resolution_candidate_set Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+#' cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+#' a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+#' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+#' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
 #'@param parallel Default `FALSE`. If `TRUE`, the optimal design search will use all but one of the available cores.
 #' This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
@@ -300,6 +307,8 @@ gen_design = function(
   aliaspower = 2,
   minDopt = 0.8,
   k = NA,
+  moment_sample_density = 20,
+  high_resolution_candidate_set = NA,
   parallel = FALSE,
   progress = TRUE,
   add_blocking_columns = FALSE,
@@ -816,8 +825,9 @@ gen_design = function(
   }
 
   #------Detect any disallowed combinations-----#
-  unique_vals = prod(vapply(candidateset, \(x) {length(unique(x))}, FUN.VALUE = integer(1)))
-  any_disallowed = unique_vals != nrow(candidateset)
+  # This is used to compute whether the closed-form moment matrix can be
+  # used, or whether the (much slower) convex hull approximation must be used.
+  any_disallowed = detect_disallowed_combinations(candidateset)
 
   splitplot = FALSE
   blocking = FALSE
@@ -1239,18 +1249,17 @@ gen_design = function(
   progressbarupdates = floor(seq(1, repeats, length.out = num_updates))
   if (!splitplot) {
     factors = colnames(candidatesetmm)
-    levelvector = sapply(lapply(candidateset, unique), length)
     classvector = sapply(candidateset, inherits, c("factor", "character"))
-    if(all(classvector) || !any_disallowed) {
-      mm = gen_momentsmatrix(factors, levelvector, classvector)
-    } else {
-      model_terms_cs = rownames(attr(terms.formula(model),"factors"))
-      col_in_model = colnames(candidatesetnormalized) %in% model_terms_cs
-      candidate_set_mm = candidatesetnormalized[,col_in_model,drop=FALSE]
-      mm = gen_momentsmatrix_continuous(formula = model,
-                                        candidate_set = candidatesetnormalized,
-                                        n_samples_per_dimension = 20)
-    }
+
+    moment_matrix = get_moment_matrix(
+      candidate_set_normalized = candidatesetnormalized,
+      factors = factors,
+      classvector = classvector,
+      model = model,
+      moment_sample_density = moment_sample_density,
+      high_resolution_candidate_set = high_resolution_candidate_set,
+    )
+
     if (!parallel) {
       if (!is.null(getOption("skpr_progress"))) {
         progress = getOption("skpr_progress")
@@ -1284,7 +1293,7 @@ gen_design = function(
             initialdesign = initialdesign,
             candidatelist = candidatesetmm,
             condition = optimality,
-            momentsmatrix = mm,
+            momentsmatrix = moment_matrix,
             initialRows = randomindices,
             aliasdesign = aliasmm[randomindices, ],
             aliascandidatelist = aliasmm,
@@ -1299,7 +1308,7 @@ gen_design = function(
             candidatelist = candidatesetmm,
             condition = optimality,
             V = V,
-            momentsmatrix = mm,
+            momentsmatrix = moment_matrix,
             initialRows = randomindices,
             aliasdesign = aliasmm[randomindices, ],
             aliascandidatelist = aliasmm,
@@ -1340,7 +1349,7 @@ gen_design = function(
               "num_updates",
               "initialdesign",
               "optimality",
-              "mm",
+              "moment_matrix",
               "aliasmm",
               "blocking",
               "minDopt",
@@ -1379,7 +1388,7 @@ gen_design = function(
                 initialdesign = initialdesign,
                 candidatelist = candidatesetmm,
                 condition = optimality,
-                momentsmatrix = mm,
+                momentsmatrix = moment_matrix,
                 initialRows = randomindices,
                 aliasdesign = aliasmm[randomindices, ],
                 aliascandidatelist = aliasmm,
@@ -1394,7 +1403,7 @@ gen_design = function(
                 candidatelist = candidatesetmm,
                 condition = optimality,
                 V = V,
-                momentsmatrix = mm,
+                momentsmatrix = moment_matrix,
                 initialRows = randomindices,
                 aliasdesign = aliasmm[randomindices, ],
                 aliascandidatelist = aliasmm,
@@ -1441,16 +1450,15 @@ gen_design = function(
         colnames(blockedmodelmatrix),
         colnames(candidatesetmm)[-1]
       )
-      if(all(classvector) || !any_disallowed) {
-        blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
-      } else {
-        model_terms_cs = rownames(attr(terms.formula(model),"factors"))
-        col_in_model = colnames(candidatesetnormalized) %in% model_terms_cs
-        candidate_set_mm_cs = candidatesetnormalized[,col_in_model,drop=FALSE]
-        blockedmm = gen_momentsmatrix_continuous(formula = model,
-                                          candidate_set = candidatesetnormalized,
-                                          n_samples_per_dimension = 20)
-      }
+
+      blocked_moment_matrix = get_moment_matrix(
+        candidate_set_normalized = candidatesetnormalized,
+        factors = blockedFactors,
+        classvector = classvector,
+        model = model,
+        moment_sample_density = moment_sample_density,
+        high_resolution_candidate_set = high_resolution_candidate_set
+      )
     } else {
       blocked_interactions = colnames(blockedmodelmatrix)[grepl(
         ":",
@@ -1475,16 +1483,14 @@ gen_design = function(
         colnames(candidatesetmm)[-1],
         interactionnames
       )
-      if(all(classvector) || !any_disallowed) {
-        blockedmm = gen_momentsmatrix(blockedFactors, levelvector, classvector)
-      } else {
-        model_terms_cs = rownames(attr(terms.formula(model),"factors"))
-        col_in_model = colnames(candidatesetnormalized) %in% model_terms_cs
-        candidate_set_mm = candidatesetnormalized[,col_in_model,drop=FALSE]
-        blockedmm = gen_momentsmatrix_continuous(formula = model,
-                                          candidate_set = candidatesetnormalized,
-                                          n_samples_per_dimension = 20)
-      }
+      blocked_moment_matrix = get_moment_matrix(
+        candidate_set_normalized = candidatesetnormalized,
+        factors = blockedFactors,
+        classvector = classvector,
+        model = model,
+        moment_sample_density = moment_sample_density,
+        high_resolution_candidate_set = high_resolution_candidate_set
+      )
     }
     disallowedcombdf = disallowed_combinations(fullcandidatesetnorm)
     if (nrow(disallowedcombdf) > 0) {
@@ -1550,7 +1556,7 @@ gen_design = function(
           candidatelist = candidatesetmm[, -1, drop = FALSE],
           blockeddesign = blockedmodelmatrix,
           condition = optimality,
-          momentsmatrix = blockedmm,
+          momentsmatrix = blocked_moment_matrix,
           initialRows = randomindices,
           blockedVar = V,
           aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -1583,7 +1589,7 @@ gen_design = function(
               "trials",
               "candidateset",
               "initialreplace",
-              "blockedmm",
+              "blocked_moment_matrix",
               "interactionlist",
               "disallowedcomb",
               "anydisallowed",
@@ -1594,7 +1600,7 @@ gen_design = function(
               "num_updates",
               "initialdesign",
               "optimality",
-              "mm",
+              "moment_matrix",
               "aliasmm",
               "blockedmodelmatrix",
               "minDopt",
@@ -1629,7 +1635,7 @@ gen_design = function(
               candidatelist = candidatesetmm[, -1, drop = FALSE],
               blockeddesign = blockedmodelmatrix,
               condition = optimality,
-              momentsmatrix = blockedmm,
+              momentsmatrix = blocked_moment_matrix,
               initialRows = randomindices,
               blockedVar = V,
               aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
@@ -1653,7 +1659,7 @@ gen_design = function(
 
   for (i in seq_len(length(genOutput))) {
     if (!is.na(genOutput[[i]]["criterion"])) {
-      designs[designcounter] = genOutput[[i]]["modelmatrix"]
+      designs[designcounter] = genOutput[[i]]["model.matrix"]
       rowindicies[designcounter] = genOutput[[i]]["indices"]
       criteria[designcounter] = genOutput[[i]]["criterion"]
       designcounter = designcounter + 1
@@ -1958,15 +1964,19 @@ gen_design = function(
     } else {
       rownames(design) = seq_len(nrow(design))
     }
-    colnames(mm) = colnames(designmm)
-    rownames(mm) = colnames(designmm)
-    attr(design, "moments.matrix") = mm
+    if(all(!is.na(moment_matrix))) {
+      colnames(moment_matrix) = colnames(designmm)
+      rownames(moment_matrix) = colnames(designmm)
+      attr(design, "moments.matrix") = moment_matrix
+    }
     attr(design, "varianceratios") = varianceratio
   } else {
     rownames(design) = rownames(splitPlotReplicateDesign)
-    colnames(blockedmm) = colnames(designmm)
-    rownames(blockedmm) = colnames(designmm)
-    attr(design, "moments.matrix") = blockedmm
+    if(all(!is.na(blocked_moment_matrix))) {
+      colnames(blocked_moment_matrix) = colnames(designmm)
+      rownames(blocked_moment_matrix) = colnames(designmm)
+      attr(design, "moments.matrix") = blocked_moment_matrix
+    }
     attr(design, "V") = V
     attr(design, "varianceratios") = varianceratios
     attr(design, "z.matrix.list") = zlist
@@ -2082,7 +2092,7 @@ gen_design = function(
         attr(design, "variance.matrix") = diag(nrow(designmm)) * varianceratio
         attr(design, "I") = IOptimality(
           as.matrix(designmm),
-          momentsMatrix = mm,
+          momentsMatrix = moment_matrix,
           blockedVar = diag(nrow(designmm))
         )
       },
@@ -2111,7 +2121,7 @@ gen_design = function(
             )))
         attr(design, "I") = IOptimality(
           as.matrix(designmm),
-          momentsMatrix = blockedmm,
+          momentsMatrix = blocked_moment_matrix,
           blockedVar = V
         )
       },
@@ -2134,7 +2144,7 @@ gen_design = function(
             )))
         attr(design, "I") = IOptimality(
           as.matrix(designmm),
-          momentsMatrix = mm,
+          momentsMatrix = moment_matrix,
           blockedVar = V
         )
       },

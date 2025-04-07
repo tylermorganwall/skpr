@@ -436,7 +436,7 @@ eval_design_survival_mc = function(
             "model",
             "distribution",
             "RunMatrixReduced",
-            "ModelMatrix",
+            "model.matrix",
             "anticoef",
             "nc",
             "prog",
@@ -531,38 +531,38 @@ eval_design_survival_mc = function(
     estimates = do.call("rbind", lapply(power_estimates, \(x) x$estimates))
   }
   #output the results (tidy data format)
-  retval = data.frame(
+  results = data.frame(
     parameter = parameter_names,
     type = "parameter.power.mc",
     power = power_values
   )
   colnames(estimates) = parameter_names
-  attr(retval, "estimates") = estimates
-  attr(retval, "modelmatrix") = ModelMatrix
-  attr(retval, "anticoef") = anticoef
-  attr(retval, "pvals") = pvals
-  attr(retval, "alpha") = alpha
-  attr(retval, "runmatrix") = RunMatrixReduced
+  attr(results, "estimates") = estimates
+  attr(results, "model.matrix") = ModelMatrix
+  attr(results, "anticoef") = anticoef
+  attr(results, "pvals") = pvals
+  attr(results, "alpha") = alpha
+  attr(results, "runmatrix") = RunMatrixReduced
 
   if (detailedoutput) {
-    if (nrow(retval) != length(anticoef)) {
-      retval$anticoef = c(rep(NA, nrow(retval) - length(anticoef)), anticoef)
+    if (nrow(results) != length(anticoef)) {
+      results$anticoef = c(rep(NA, nrow(results) - length(anticoef)), anticoef)
     } else {
-      retval$anticoef = anticoef
+      results$anticoef = anticoef
     }
-    retval$alpha = alpha
-    retval$trials = nrow(run_matrix_processed)
-    retval$nsim = nsim
-    retval = add_ci_bounds_mc_power(
-      retval,
+    results$alpha = alpha
+    results$trials = nrow(run_matrix_processed)
+    results$nsim = nsim
+    results = add_ci_bounds_mc_power(
+      results,
       nsim = nsim,
       conf = advancedoptions$ci_error_conf
     )
-    attr(retval, "mc.conf.int") = advancedoptions$ci_error_conf
+    attr(results, "mc.conf.int") = advancedoptions$ci_error_conf
   }
-  if (!inherits(retval, "skpr_eval_output")) {
-    class(retval) = c("skpr_eval_output", class(retval))
+  if (!inherits(results, "skpr_eval_output")) {
+    class(results) = c("skpr_eval_output", class(results))
   }
-  return(retval)
+  return(results)
 }
 globalVariables("i")

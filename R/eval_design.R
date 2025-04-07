@@ -37,12 +37,15 @@
 #'The reordering will be presenting in the output when `detailedoutput = TRUE`.
 #'@param advancedoptions Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
 #'gives the degree at which the Alias matrix should be calculated.
-#'@param candidate_set Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
-#'the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
-#'skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
-#'convex constraints.
-#'@param mm_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
-#'required if the design was generated outside of skpr and there are disallowed combinations.
+#'@param high_resolution_candidate_set Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+#' cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+#' a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+#' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+#' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
+#' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.
+#'@param moment_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+#'required if the design was generated outside of skpr and there are disallowed combinations. It is much faster and potentially more accurate to
+#' provide your own candidate set with higher resolution continuous factors to `high_resolution_candidate_set`.`
 #'@param ... Additional arguments.
 #'@return A data frame with the parameters of the model, the type of power analysis, and the power. Several
 #'design diagnostics are stored as attributes of the data frame. In particular,
@@ -179,8 +182,8 @@ eval_design = function(
     reorder_factors = FALSE,
     detailedoutput = FALSE,
     advancedoptions = NULL,
-    candidate_set = NA,
-    mm_sample_density = 20,
+    high_resolution_candidate_set = NA,
+    moment_sample_density = 20,
     ...
 ) {
     if (missing(design)) {
@@ -221,6 +224,11 @@ eval_design = function(
         }
     }
     input_design = design
+    candidate_set = attr(input_design, "candidate_set")
+
+    if(!is.null(candidate_set)) {
+      normalized_candidate_set = normalize_design(candidate_set)
+    }
     args = list(...)
     if ("RunMatrix" %in% names(args)) {
         stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
@@ -331,7 +339,7 @@ eval_design = function(
 
     #-Generate Model Matrix & Anticipated Coefficients-#
     #Variables used later: anticoef
-    attr(run_matrix_processed, "modelmatrix") = model.matrix(
+    attr(run_matrix_processed, "model.matrix") = model.matrix(
         model,
         run_matrix_processed,
         contrasts.arg = contrastslist
@@ -349,7 +357,7 @@ eval_design = function(
             anticoef = anticoef[-1]
         }
     }
-    if (length(anticoef) != dim(attr(run_matrix_processed, "modelmatrix"))[2]) {
+    if (length(anticoef) != dim(attr(run_matrix_processed, "model.matrix"))[2]) {
         stop("skpr: Wrong number of anticipated coefficients")
     }
 
@@ -432,7 +440,7 @@ eval_design = function(
     } else {
         effectnamevector = factornames
     }
-    parameternamevector = colnames(attr(run_matrix_processed, "modelmatrix"))
+    parameternamevector = colnames(attr(run_matrix_processed, "model.matrix"))
     namevector = c(effectnamevector, parameternamevector)
     powervector = c(effectresults, parameterresults)
 
@@ -446,7 +454,7 @@ eval_design = function(
         warning("Number of names does not equal number of power calculations")
     }
 
-    attr(results, "modelmatrix") = attr(run_matrix_processed, "modelmatrix")
+    attr(results, "model.matrix") = attr(run_matrix_processed, "model.matrix")
     attr(results, "anticoef") = anticoef
 
     modelmatrix_cor = model.matrix(
@@ -474,7 +482,7 @@ eval_design = function(
         attr(results, "correlation.matrix") = round(correlation.matrix, 8)
         tryCatch(
             {
-                if (ncol(attr(run_matrix_processed, "modelmatrix")) > 2) {
+                if (ncol(attr(run_matrix_processed, "model.matrix")) > 2) {
                     amodel = aliasmodel(model, aliaspower)
                     if (amodel != model) {
                         aliasmatrix = suppressWarnings({
@@ -513,75 +521,34 @@ eval_design = function(
     attr(results, "alpha") = alpha
     attr(results, "contrastslist") = contrastslist
 
-    levelvector = sapply(lapply(run_matrix_processed, unique), length)
+    factors = colnames(modelmatrix_cor)
     classvector = sapply(lapply(run_matrix_processed, unique), class) ==
         "factor"
-    #Compare generating model with new model
 
-    imported_mm = FALSE
-    if (!is.null(attr(input_design, "generating.model"))) {
-        og_design_factors = attr(
-            terms.formula(attr(input_design, "generating.model")),
-            "factors"
-        )
-        new_model_factors = attr(terms.formula(model), "factors")
-        if (all(dim(og_design_factors) == dim(new_model_factors))) {
-            identical_main_effects = all(
-                rownames(og_design_factors) == rownames(new_model_factors)
-            )
-            identical_interactions = all(
-                colnames(og_design_factors) == colnames(new_model_factors)
-            )
-            if (identical_interactions && identical_main_effects) {
-                mm = attr(input_design, "moments.matrix")
-                imported_mm = TRUE
-            }
-        }
+    moment_matrix = get_moment_matrix(
+      design = input_design,
+      candidate_set_normalized = normalized_candidate_set,
+      factors = factors,
+      classvector = classvector,
+      model = model,
+      moment_sample_density = moment_sample_density,
+      high_resolution_candidate_set = high_resolution_candidate_set
+    )
+    if(all(!is.na(moment_matrix))) {
+      attr(results, "moments.matrix") = moment_matrix
     }
-    if (!imported_mm) {
-        mm = gen_momentsmatrix(
-            colnames(attr(run_matrix_processed, "modelmatrix")),
-            levelvector,
-            classvector
-        )
-        if (!is.na(candidate_set)) {
-            if (!all(classvector)) {
-                hash_mm = digest::digest(list(
-                    model,
-                    candidate_set,
-                    mm_sample_density
-                ))
-                if (!exists(hash_mm, envir = skpr_moment_matrix_cache)) {
-                    mm = gen_momentsmatrix_continuous(
-                        formula = model,
-                        candidate_set = candidate_set,
-                        n_samples_per_dimension = mm_sample_density
-                    )
-                    assign(hash_mm, mm, envir = skpr_moment_matrix_cache)
-                } else {
-                    mm = get(hash_mm, envir = skpr_moment_matrix_cache)
-                }
-            } else {
-                mm = gen_momentsmatrix(
-                    colnames(attr(run_matrix_processed, "modelmatrix")),
-                    levelvector,
-                    classvector
-                )
-            }
-        }
-    }
-
-    attr(results, "moments.matrix") = mm
     attr(results, "A") = AOptimality(modelmatrix_cor)
 
     if (!blocking) {
         attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor)) *
             varianceratios
-        attr(results, "I") = IOptimality(
-            modelmatrix_cor,
-            momentsMatrix = mm,
-            blockedVar = diag(nrow(modelmatrix_cor))
-        )
+        if(all(!is.na(moment_matrix))) {
+          attr(results, "I") = IOptimality(
+              modelmatrix_cor,
+              momentsMatrix = moment_matrix,
+              blockedVar = diag(nrow(modelmatrix_cor))
+          )
+        }
         attr(results, "D") = 100 * DOptimalityLog(modelmatrix_cor)
         attr(results, "T") = sum(diag(t(modelmatrix_cor) %*% modelmatrix_cor))
         attr(results, "E") = min(unlist(eigen(
@@ -590,11 +557,13 @@ eval_design = function(
     } else {
         attr(results, "z.matrix.list") = zlist
         attr(results, "variance.matrix") = V
-        attr(results, "I") = IOptimality(
-            modelmatrix_cor,
-            momentsMatrix = mm,
-            blockedVar = V
-        )
+        if(all(!is.na(moment_matrix))) {
+          attr(results, "I") = IOptimality(
+              modelmatrix_cor,
+              momentsMatrix = moment_matrix, #Fix here maybe, need blocked moment matrix?
+              blockedVar = V
+          )
+        }
         deffic = DOptimalityBlocked(modelmatrix_cor, blockedVar = V)
         if (!is.infinite(deffic)) {
             attr(results, "D") = 100 *

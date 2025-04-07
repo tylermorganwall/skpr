@@ -348,7 +348,7 @@ eval_design_custom_mc = function(
             "model_formula",
             "rfunction",
             "RunMatrixReduced",
-            "ModelMatrix",
+            "model.matrix",
             "anticoef",
             "prog",
             "fitfunction",

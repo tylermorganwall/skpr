@@ -37,32 +37,35 @@
 get_optimality = function(output, optimality = NULL, calc_g = FALSE) {
   if (is.null(attr(output, "D"))) attr(output, "D") = NA
   if (is.null(attr(output, "A"))) attr(output, "A") = NA
-  if (!is.null(attr(output, "augmented"))) {
-    if (is.null(attr(output, "G"))) {
-      if (!attr(output, "augmented") && !attr(output, "splitplot") && calc_g) {
-        attr(output, "G") = calculate_gefficiency(
-          output,
-          calculation_type = "random",
-          randsearches = 10000
-        )
-      } else {
-        attr(output, "G") = "Not Computed"
+  if (calc_g) {
+    if (!is.null(attr(output, "augmented"))) {
+      if (is.null(attr(output, "G"))) {
+        if (!attr(output, "augmented") && !attr(output, "splitplot")) {
+          attr(output, "G") = calculate_gefficiency(
+            output,
+            calculation_type = "random",
+            randsearches = 10000
+          )
+        } else {
+          attr(output, "G") = "Not Computed"
+        }
+      }
+    } else {
+      if (is.null(attr(output, "G"))) {
+        if (!attr(output, "blocking")) {
+          attr(output, "G") = calculate_gefficiency(
+            output,
+            calculation_type = "random",
+            randsearches = 10000
+          )
+        } else {
+          attr(output, "G") = "Not Computed"
+        }
       }
     }
   } else {
-    if (is.null(attr(output, "G"))) {
-      if (!attr(output, "blocking")) {
-        attr(output, "G") = calculate_gefficiency(
-          output,
-          calculation_type = "random",
-          randsearches = 10000
-        )
-      } else {
-        attr(output, "G") = "Not Computed"
-      }
-    }
+    if (is.null(attr(output, "G"))) attr(output, "G") = "Not Computed"
   }
-  if (is.null(attr(output, "G"))) attr(output, "G") = "Not Computed"
   if (is.null(attr(output, "T"))) attr(output, "T") = NA
   if (is.null(attr(output, "E"))) attr(output, "E") = NA
   if (is.null(attr(output, "variance.matrix")))

@@ -19,6 +19,8 @@ gen_design(
   aliaspower = 2,
   minDopt = 0.8,
   k = NA,
+  moment_sample_density = 20,
+  high_resolution_candidate_set = NA,
   parallel = FALSE,
   progress = TRUE,
   add_blocking_columns = FALSE,
@@ -84,6 +86,15 @@ This exchanges only the k lowest variance runs in the design at each search iter
 in a faster search, but are less likely tofind an optimal design. Values of `k >= n/4` have been shown empirically to generate similar designs to the full
 search. When `k == trials`, this results in the default modified Federov's algorithm.
 A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.}
+
+\item{moment_sample_density}{Default `20`. The density of points to sample when calculating the moment matrix to
+compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.}
+
+\item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.}
 
 \item{parallel}{Default `FALSE`. If `TRUE`, the optimal design search will use all but one of the available cores.
 This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).

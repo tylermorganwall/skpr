@@ -93,7 +93,7 @@ interpolate_convex_hull = function(
 #' @return A matrix of size `p x p` (where `p` is the number of columns in the model matrix),
 #'   approximating the continuous moment matrix.
 #'
-gen_momentsmatrix_continuous = function(
+gen_momentsmatrix_constrained = function(
   candidate_set,
   formula = ~.,
   n_samples_per_dimension = 10,
@@ -109,15 +109,6 @@ gen_momentsmatrix_continuous = function(
       "No numeric columns found in data. Cannot compute continuous bounding box."
     )
   }
-  # Detect any disallowed combinations
-  unique_vals = prod(vapply(
-    candidate_set,
-    \(x) {
-      length(unique(x))
-    },
-    FUN.VALUE = integer(1)
-  ))
-  any_disallowed = unique_vals != nrow(candidate_set)
   M_acc = NA
   total_weight = 0
 
@@ -126,6 +117,7 @@ gen_momentsmatrix_continuous = function(
     sub_candidate_set = as.matrix(candidate_set)
     if (user_provided_high_res_candidateset) {
       mm_candidate_set = sub_candidate_set
+      vol = nrow(mm_candidate_set)
     } else {
       if (ncol(sub_candidate_set) == 1) {
         mm_candidate_set = matrix(
@@ -158,7 +150,9 @@ gen_momentsmatrix_continuous = function(
     Xsub = model.matrix(formula, data = interp_df)
 
     w = rep(1, nrow(Xsub))
-    w[interp_ch$on_edge] = 0.5
+    if(!user_provided_high_res_candidateset) {
+      w[interp_ch$on_edge] = 0.5
+    }
     # average subregion moment
     Xsub_w = apply(Xsub, 2, \(x) x * sqrt(w))
 
@@ -177,15 +171,21 @@ gen_momentsmatrix_continuous = function(
     # will give us the average prediction variance for the constrained region.
     unique_combos = unique(candidate_set[, factor_cols, drop = FALSE])
 
+    named_contrast = function() {
+      skpr::contr.simplex
+    }
+    skpr::contr.simplex
+
     get_contrasts_from_candset = function(candset) {
       csn = colnames(candset)[!unlist(lapply(candset, is.numeric))]
-      lapply(csn, \(x) {
-        setNames(
-          list(skpr::contr.simplex),
-          x[[1]]
-        )
-      }) |>
-        unlist()
+      contrasts_return = vector(mode = "list", length = length(csn))
+      for(i in seq_along(csn)) {
+        single_contrast = contr.simplex(unique(candset[[ csn[i] ]]))
+        colnames(single_contrast) = paste0("_skpr_FACTOR_",seq_len(ncol(single_contrast)))
+        contrasts_return[[i]] = single_contrast
+      }
+      names(contrasts_return) = csn
+      return(contrasts_return)
     }
 
     # We'll accumulate a weighted sum of sub-matrices
@@ -207,6 +207,7 @@ gen_momentsmatrix_continuous = function(
       }
       if (user_provided_high_res_candidateset) {
         mm_candidate_set = sub_candidate_set
+        vol = nrow(mm_candidate_set)
       } else {
         if (ncol(sub_candidate_set) == 1) {
           mm_candidate_set = matrix(
@@ -251,10 +252,11 @@ gen_momentsmatrix_continuous = function(
       )
 
       w = rep(1, nrow(Xsub))
-      w[interp_ch$on_edge] = 0.5
+      if(!user_provided_high_res_candidateset) {
+        w[interp_ch$on_edge] = 0.5
+      }
       # average subregion moment
       Xsub_w = apply(Xsub, 2, \(x) x * sqrt(w))
-      # M_sub = crossprod(Xsub) / sum(w)
 
       M_sub = crossprod(Xsub_w) / sum(w)
 
@@ -271,6 +273,24 @@ gen_momentsmatrix_continuous = function(
     #Scale by the intercept
     if (colnames(M)[1] == "(Intercept)") {
       M = M / M[1, 1]
+    }
+    #Now scan for categorical factors and set off-diagonals to zero
+    is_factor_term = grepl("_skpr_FACTOR_", colnames(model.matrix(
+      formula,
+      data = candidate_set,
+      contrasts.arg = get_contrasts_from_candset(candidate_set)
+    )))
+    colnames(M) = gsub("_skpr_FACTOR_",replacement = "",x = colnames(M))
+    rownames(M) = gsub("_skpr_FACTOR_",replacement = "",x = rownames(M))
+
+    for(col in seq_len(ncol(M))) {
+      for(row in seq_len(nrow(M))) {
+        if(col != row) {
+          if(is_factor_term[row] || is_factor_term[col]) {
+            M[row,col] = 0
+          }
+        }
+      }
     }
     return(M)
   }

@@ -19,16 +19,16 @@ parameterpower = function(
   parameter_names
 ) {
   #Generating the parameter isolating vectors
-  q = vector("list", dim(attr(RunMatrix, "modelmatrix"))[2])
+  q = vector("list", dim(attr(RunMatrix, "model.matrix"))[2])
   for (i in 1:length(q)) {
-    vec = rep(0, dim(attr(RunMatrix, "modelmatrix"))[2])
+    vec = rep(0, dim(attr(RunMatrix, "model.matrix"))[2])
     vec[i] = 1
     q[[i]] = t(vec)
   }
   if (is.null(degrees)) {
     degrees = rep(
-      dim(attr(RunMatrix, "modelmatrix"))[1] -
-        dim(attr(RunMatrix, "modelmatrix"))[2],
+      dim(attr(RunMatrix, "model.matrix"))[1] -
+        dim(attr(RunMatrix, "model.matrix"))[2],
       length(q)
     )
   } else {
@@ -36,12 +36,12 @@ parameterpower = function(
     for (i in 1:length(parameter_names)) {
       for (term in parameter_names[[i]]) {
         degrees_long[which(
-          term == colnames(attr(RunMatrix, "modelmatrix"))
+          term == colnames(attr(RunMatrix, "model.matrix"))
         )] = degrees[i]
       }
     }
-    degrees_long[is.na(degrees_long)] = dim(attr(RunMatrix, "modelmatrix"))[1] -
-      dim(attr(RunMatrix, "modelmatrix"))[2]
+    degrees_long[is.na(degrees_long)] = dim(attr(RunMatrix, "model.matrix"))[1] -
+      dim(attr(RunMatrix, "model.matrix"))[2]
     degrees = degrees_long
   }
 
@@ -49,10 +49,10 @@ parameterpower = function(
   for (j in 1:length(q)) {
     if (degrees[j] != 0) {
       power[j] = calculatepower(
-        attr(RunMatrix, "modelmatrix"),
+        attr(RunMatrix, "model.matrix"),
         q[[j]],
         calcnoncentralparam(
-          attr(RunMatrix, "modelmatrix"),
+          attr(RunMatrix, "model.matrix"),
           q[[j]],
           anticoef,
           vinv = vinv

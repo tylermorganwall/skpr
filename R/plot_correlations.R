@@ -198,8 +198,8 @@ plot_correlations = function(
   )
   par(mar = c(5.1, 4.1, 4.1, 2.1))
 
-  retval = t(cormat[ncol(cormat):1, , drop = FALSE])
-  colnames(retval) = rev(colnames(mm)[-1])
-  rownames(retval) = colnames(mm)[-1]
-  invisible(retval)
+  results = t(cormat[ncol(cormat):1, , drop = FALSE])
+  colnames(results) = rev(colnames(mm)[-1])
+  rownames(results) = colnames(mm)[-1]
+  invisible(results)
 }

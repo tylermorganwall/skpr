@@ -38,6 +38,7 @@ calculate_gefficiency = function(
     ))
     matrix(fulloutput, 1, length(fulloutput))
   }
+
   calculate_optimality_for_point = function(x, infval = FALSE) {
     for (i in seq_len(length(x))) {
       fulllist[[i]] = x[i]
@@ -49,6 +50,7 @@ calculate_gefficiency = function(
         numberlevels
       )[sample(seq_len(numberlevels), 1), , drop = TRUE]
     }
+
     mc_mm = rand_vector(fulllist, model_entries_mul)
     if (any(x > 1) || any(x < -1)) {
       if (infval) {
@@ -83,6 +85,7 @@ calculate_gefficiency = function(
     }
     return(min(unlist(vals)))
   }
+
   if (calculation_type == "optim") {
     vals = list()
     lowest = 100

@@ -3609,11 +3609,11 @@ skprGUI = function(
           if (!is.null(attr(powerresults, "estimates"))) {
             responses = as.vector(
               attr(powerresults, "estimates") %*%
-                t(attr(powerresults, "modelmatrix"))
+                t(attr(powerresults, "model.matrix"))
             )
             trueresponses = as.vector(
               attr(powerresults, "anticoef") %*%
-                t(attr(powerresults, "modelmatrix"))
+                t(attr(powerresults, "model.matrix"))
             )
             filtered_string = ""
             if (isolate(input$glmfamily) == "exponential") {
@@ -3789,11 +3789,11 @@ skprGUI = function(
           if (!is.null(attr(powerresults, "estimates"))) {
             responses = as.vector(
               attr(powerresults, "estimates") %*%
-                t(attr(powerresults, "modelmatrix"))
+                t(attr(powerresults, "model.matrix"))
             )
             trueresponses = as.vector(
               attr(powerresults, "anticoef") %*%
-                t(attr(powerresults, "modelmatrix"))
+                t(attr(powerresults, "model.matrix"))
             )
             filtered_string = ""
             bin_values = 100

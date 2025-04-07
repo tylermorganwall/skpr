@@ -72,7 +72,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     Eigen::VectorXi initrows = orthogonal_initial(candidatelist, nTrials);
     //If all elements are equal here, nullification algorithm was unable to find a design--return NA
     if(initrows.minCoeff() == initrows.maxCoeff()) {
-      return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
+      return(List::create(_["indices"] = NumericVector::get_na(), _["model.matrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
     }
 
     //Replace non-augmented rows with orthogonal design
@@ -92,7 +92,7 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
   }
   //If still no non-singular design, returns NA.
   if (isSingularBlocked(initialdesign,vInv)) {
-    return(List::create(_["indices"] = NumericVector::get_na(), _["modelmatrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
+    return(List::create(_["indices"] = NumericVector::get_na(), _["model.matrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
 
   bool found = true;
@@ -556,5 +556,5 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
-  return(List::create(_["indices"] = candidateRow, _["modelmatrix"] = initialdesign, _["criterion"] = newOptimum));
+  return(List::create(_["indices"] = candidateRow, _["model.matrix"] = initialdesign, _["criterion"] = newOptimum));
 }

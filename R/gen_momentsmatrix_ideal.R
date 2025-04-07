@@ -1,13 +1,11 @@
-#'@title Generates the moment matrix
+#'@title Generates the moment matrix, assuming no constraints
 #'
 #'@description Returns number of levels prior to each parameter
 #'
 #'@keywords internal
 #'@return Returns a vector consisting of the number
-#'of levels preceeding each parameter (including the intercept)
-gen_momentsmatrix = function(modelfactors, levelvector, classvector) {
-  #set numeric levels to one
-  levelvector[!classvector] = 1
+#'of levels preceding each parameter (including the intercept)
+gen_momentsmatrix_ideal = function(modelfactors, classvector) {
 
   #parse factor types
   isintercept = modelfactors == "(Intercept)"

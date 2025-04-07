@@ -100,6 +100,9 @@ plot_fds = function(
   }
 
   Iopt = attr(genoutput, "I")
+  if(is.null(Iopt)) {
+    stop("No I-optimality value found in design--was your design generated outside of skpr? If so, pass in a high resolution candidate set to `high_resolution_candidate_set` to ensure I-optimality is computed.")
+  }
   V = attr(genoutput, "variance.matrix")
 
   if (is.null(model)) {

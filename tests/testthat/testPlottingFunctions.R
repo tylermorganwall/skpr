@@ -19,7 +19,7 @@ test_that("plot_correlations works as intended", {
 
   expect_silent(plot_correlations(design, customcolors = c("black", "grey", "white")))
 
-  expect_silent(plot_correlations(eval_design(candlist, ~., 0.2), customcolors = c("black", "grey", "white")))
+  expect_warning({plot_correlations(eval_design(candlist, ~., 0.2), customcolors = c("black", "grey", "white"))}, "high_resolution_candidate_set")
 
   expect_silent(plot_correlations(eval_design(design, ~., 0.2), customcolors = c("black", "grey", "white")))
 
@@ -40,6 +40,7 @@ test_that("plot_fds works as intended", {
 
   expect_silent(plot_fds(eval_design(design, ~., 0.2)))
 
-  expect_silent(plot_fds(eval_design(candlist, ~., 0.2)))
+  expect_warning({cand_evaled = eval_design(candlist, ~., 0.2)})
+  expect_error(plot_fds(cand_evaled), "high_resolution_candidate_set")
 
 })

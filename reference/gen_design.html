@@ -11,7 +11,7 @@ statistical model."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,6 +59,8 @@ statistical model.</p>
 <span>  aliaspower <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  minDopt <span class="op">=</span> <span class="fl">0.8</span>,</span>
 <span>  k <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  moment_sample_density <span class="op">=</span> <span class="fl">20</span>,</span>
+<span>  high_resolution_candidate_set <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  add_blocking_columns <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -155,6 +157,19 @@ This exchanges only the k lowest variance runs in the design at each search iter
 in a faster search, but are less likely tofind an optimal design. Values of `k &gt;= n/4` have been shown empirically to generate similar designs to the full
 search. When `k == trials`, this results in the default modified Federov's algorithm.
 A `k` of 1 is a form of Wynn's algorithm <em>Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14</em>.</p></dd>
+
+
+<dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
+<dd><p>Default `20`. The density of points to sample when calculating the moment matrix to
+compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.</p></dd>
+
+
+<dt id="arg-high-resolution-candidate-set">high_resolution_candidate_set<a class="anchor" aria-label="anchor" href="#arg-high-resolution-candidate-set"></a></dt>
+<dd><p>Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.</p></dd>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
@@ -608,7 +623,7 @@ information in its attributes, which can be accessed with the `get_attributes()`
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ~x1 + x2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55f2316b89d8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x562225b36d60&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#A correlation color map can be produced by calling the plot_correlation command with the output</span></span></span>

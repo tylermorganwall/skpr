@@ -15,7 +15,7 @@ Returns a data frame of parameter powers."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,13 +65,13 @@ Returns a data frame of parameter powers.</p>
 <span>  firth <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  effectsize <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  contrasts <span class="op">=</span> <span class="va">contr.sum</span>,</span>
+<span>  high_resolution_candidate_set <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  moment_sample_density <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  adjust_alpha_inflation <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  candidate_set <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  mm_sample_density <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -156,6 +156,20 @@ If the user wants to set the number of cores manually, they can do this by setti
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
+<dt id="arg-high-resolution-candidate-set">high_resolution_candidate_set<a class="anchor" aria-label="anchor" href="#arg-high-resolution-candidate-set"></a></dt>
+<dd><p>Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
+If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.</p></dd>
+
+
+<dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
+<dd><p>Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+required if the design was generated outside of skpr and there are disallowed combinations.</p></dd>
+
+
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
 <dd><p>Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
@@ -184,18 +198,6 @@ If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an
 set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.</p></dd>
 
 
-<dt id="arg-candidate-set">candidate_set<a class="anchor" aria-label="anchor" href="#arg-candidate-set"></a></dt>
-<dd><p>Default `NA`. If you generated your design externally from skpr and there are disallowed combinations in your design,
-the calculated I-optimality values will not be correct, as it assumes an unconstrained unit hypercube. To calculate the restricted regions,
-skpr will find the convex hull of the point set and generate a higher density of points in that region. Note that this only supports
-convex constraints.</p></dd>
-
-
-<dt id="arg-mm-sample-density">mm_sample_density<a class="anchor" aria-label="anchor" href="#arg-mm-sample-density"></a></dt>
-<dd><p>Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
-required if the design was generated outside of skpr and there are disallowed combinations.</p></dd>
-
-
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments.</p></dd>
 
@@ -204,7 +206,7 @@ required if the design was generated outside of skpr and there are disallowed co
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame consisting of the parameters and their powers, with supplementary information
 stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
-attribute. The "modelmatrix" attribute contains the model matrix that was used for power evaluation, and
+attribute. The "model.matrix" attribute contains the model matrix that was used for power evaluation, and
 also provides the encoding used for categorical factors. If you want to specify the anticipated
 coefficients manually, do so in the order the parameters appear in the model matrix.</p>
     </div>

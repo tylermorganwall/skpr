@@ -31,8 +31,21 @@ of several designs, which will result in all of them being plotted in a row (for
 
 \item{yaxis_max}{Default `NULL`. Manually set the maximum value of the prediction variance.}
 
+\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to
+compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.}
+
 \item{description}{Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
 passed to skpr_output, it will be the description for each plot.}
+
+\item{candidate_set}{Default `NA`. If the original design did not come from skpr and has disallowed combinations, the average prediction variance
+over the design region needs the original candidate set to accurately compute the I-optimality value. Note that this will estimate the valid design region
+using the convex hull of the given points, which is slow computationally for large designs: pass a `high_resolution_candidate_set` for faster plotting.}
+
+\item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
+a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
+factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
+To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.}
 }
 \value{
 Plots design diagnostics, and invisibly returns the vector of values representing the fraction of design space plot. If multiple
@@ -48,9 +61,13 @@ Creates a fraction of design space plot
 
 #First generate the design:
 
-candidatelist = expand.grid(X1 = c(1, -1), X2 = c(1, -1))
+candidate_set = expand.grid(X1 = c(1, -1), X2 = c(1, -1))
 
-design = gen_design(candidatelist, ~(X1 + X2), 15)
+design = gen_design(candidate_set, ~(X1 + X2), 15)
 
 plot_fds(design)
+
+#We can also feed evaluation output
+power = eval_design(design)
+plot_fds(power)
 }

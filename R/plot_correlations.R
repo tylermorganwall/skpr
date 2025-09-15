@@ -112,6 +112,8 @@ plot_correlations = function(
     } else {
       model = model1
     }
+  } else {
+    model1 = model
   }
 
   factornames = colnames(design)[
@@ -136,9 +138,17 @@ plot_correlations = function(
     }
   }
 
-  mm = model.matrix(model, design, contrasts.arg = contrastlist)
-  #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
-  cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1, -1])
+  mm_main = model.matrix(model, design, contrasts.arg = contrastlist)
+  mm = model.matrix(model1, design, contrasts.arg = contrastlist)
+  X = mm_main[, -1, drop = FALSE]
+  int_nms = setdiff(colnames(mm_main), colnames(mm)) # just the interactions
+  Z = mm[, int_nms, drop = FALSE]
+  W = solve(V)
+
+  XZ = cbind(X, Z)
+  G = crossprod(XZ, W %*% XZ)
+  C = cov2cor(G)
+  cormat = abs(C)
   if (!plot) {
     return(cormat)
   }

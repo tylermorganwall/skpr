@@ -32,11 +32,15 @@
 #'
 #'#First generate the design:
 #'
-#'candidatelist = expand.grid(X1 = c(1, -1), X2 = c(1, -1))
+#'candidate_set = expand.grid(X1 = c(1, -1), X2 = c(1, -1))
 #'
-#'design = gen_design(candidatelist, ~(X1 + X2), 15)
+#'design = gen_design(candidate_set, ~(X1 + X2), 15)
 #'
 #'plot_fds(design)
+#'
+#'#We can also feed evaluation output
+#'power = eval_design(design)
+#'plot_fds(power)
 plot_fds = function(
   skpr_output,
   model = NULL,

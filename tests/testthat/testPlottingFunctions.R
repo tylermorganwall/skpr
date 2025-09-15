@@ -41,6 +41,19 @@ test_that("plot_correlations works as intended", {
     eval_design(design, ~., 0.2),
     customcolors = c("black", "grey", "white")
   ))
+  expect_silent(plot_correlations(
+    eval_design(design, ~., 0.2),
+    model = ~ . + Location:Climate,
+    customcolors = c("black", "grey", "white")
+  ))
+  expect_warning(
+    plot_correlations(
+      eval_design(design, ~., 0.2),
+      model = ~ . + Location:Climate:Vineyard,
+      customcolors = c("black", "grey", "white")
+    ),
+    "dubious"
+  )
 })
 
 test_that("plot_fds works as intended", {

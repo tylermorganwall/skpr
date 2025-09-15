@@ -17,7 +17,7 @@ effectsize or anticoef parameters."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,7 @@ assumes a signal-to-noise ratio of 2, but this can be changed with the
 <span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  high_resolution_candidate_set <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  moment_sample_density <span class="op">=</span> <span class="fl">20</span>,</span>
+<span>  moment_sample_density <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -152,7 +152,7 @@ If you generated your design externally from skpr, there are disallowed combinat
 
 
 <dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
-<dd><p>Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+<dd><p>Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations. It is much faster and potentially more accurate to
 provide your own candidate set with higher resolution continuous factors to `high_resolution_candidate_set`.`</p></dd>
 
@@ -381,7 +381,7 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 15  cost:type3 parameter.power 0.8185524</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>29 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + size + type + cost:type </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + size + type + cost * type </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1, -1, 1, -1, 1, 1, -1, 1) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lm(...)` </span>
@@ -403,23 +403,23 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">coffeefinaldesign</span>, <span class="fl">0.2</span>, blocking <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power 0.9453423</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.9448020</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power 0.9999931</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.9448040</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power 0.9999934</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power 0.9990524</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998370</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998385</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power 0.9453423</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.9448020</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999931</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.9448040</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999934</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        size1 parameter.power 0.9980496</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10       size2 parameter.power 0.9980496</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9758438</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9758438</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9756156</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9758443</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9758443</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9758443</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>36 <span style="font-weight: bold;">• Blocked = </span>TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine + cost + size + type </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1, 1, -1, 1, -1, 1) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Number of Blocks = </span>Level 1: 12 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Number of Blocks = </span>Level :  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Variance Ratios  = </span>Level 1: 1, Level 2: 1 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lmerTest::lmer(...)` </span>
@@ -438,9 +438,9 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999978</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        size1 parameter.power 0.9981168</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10       size2 parameter.power 0.9981168</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9828414</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9828414</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9828414</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9828490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9828490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9828490</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>36 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine + cost + size + type </span>
@@ -454,23 +454,23 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">coffeefinaldesign</span>, <span class="fl">0.2</span>, varianceratios <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter            type     power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power 0.8158743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.8153089</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power 0.9999919</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     caffeine    effect.power 0.8153104</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power 0.9999923</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power 0.9990524</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998136</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         type    effect.power 0.9998159</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power 0.8158743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.8153089</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999919</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7     caffeine parameter.power 0.8153104</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8         cost parameter.power 0.9999923</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        size1 parameter.power 0.9980496</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10       size2 parameter.power 0.9980496</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9746798</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9746798</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9744428</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type1 parameter.power 0.9746799</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       type2 parameter.power 0.9746799</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13       type3 parameter.power 0.9746799</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info=============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>36 <span style="font-weight: bold;">• Blocked = </span>TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine + cost + size + type </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Anticipated Coefficients = </span>c(1, 1, 1, 1, -1, 1, -1, 1) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Number of Blocks = </span>Level 1: 12 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Number of Blocks = </span>Level :  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Variance Ratios  = </span>Level 1: 2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Contrasts = </span>`contr.sum` </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Parameter Analysis Method = </span>`lmerTest::lmer(...)` </span>
@@ -491,10 +491,10 @@ and the rest (for that categorical factor) are set to zero.</p>
 <span class="r-in"><span><span class="co">#By default, skpr will throw out the blocking columns unless the user specifies `blocking = TRUE`.</span></span></span>
 <span class="r-in"><span><span class="fu">eval_design</span><span class="op">(</span><span class="va">coffeeblockdesign</span>, blocking<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter            type     power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.2314776</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    caffeine    effect.power 0.2314776</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (Intercept) parameter.power 0.2314776</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4    caffeine parameter.power 0.2314776</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power 0.3326126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    caffeine    effect.power 0.6412616</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (Intercept) parameter.power 0.3326126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4    caffeine parameter.power 0.6412616</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>12 <span style="font-weight: bold;">• Blocked = </span>TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~caffeine </span>
@@ -515,7 +515,7 @@ and the rest (for that categorical factor) are set to zero.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
     </footer></div>

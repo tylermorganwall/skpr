@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">skpr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,7 @@
 
 <dt id="arg-attr">attr<a class="anchor" aria-label="anchor" href="#arg-attr"></a></dt>
 <dd><p>Default `NULL`. Return just the specific value requested.
-Potential values are `model.matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
+Potential values are `model_matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
 `correlation.matrix`, and `model` for the model used in the evaluation/generation of the design.</p></dd>
 
 
@@ -78,47 +78,40 @@ Potential values are `model.matrix` for model used, `moments.matrix`, `variance.
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Extract a list of all attributes</span></span></span>
 <span class="r-in"><span><span class="fu">get_attribute</span><span class="op">(</span><span class="va">designcoffee</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $model.matrix</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $model_matrix</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       (Intercept) cost      size1     size2      type1      type2     type3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,]           1   -1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,]           1   -1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]           1   -1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]           1   -1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [11,]           1    1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [12,]           1   -1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [13,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [14,]           1    1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [15,]           1    1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [16,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [17,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20,]           1   -1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21,]           1   -1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23,]           1    1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [25,]           1    1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [26,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [28,]           1    1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [29,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]           1   -1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,]           1   -1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]           1   -1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]           1    1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [10,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [12,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13,]           1    1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [14,]           1    1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [15,]           1   -1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [16,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [17,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [18,]           1   -1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [20,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [21,]           1    1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [22,]           1   -1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [23,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [24,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [25,]           1    1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [26,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [27,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [28,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [29,]           1    1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $moments.matrix</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             (Intercept)      cost size1 size2 type1 type2 type3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           1 0.0000000     0     0     0     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost                  0 0.3333333     0     0     0     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1                 0 0.0000000     1     0     0     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2                 0 0.0000000     0     1     0     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1                 0 0.0000000     0     0     1     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2                 0 0.0000000     0     0     0     1     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3                 0 0.0000000     0     0     0     0     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $variance.matrix</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13]</span>
@@ -213,77 +206,77 @@ Potential values are `model.matrix` for model used, `moments.matrix`, `variance.
 <span class="r-out co"><span class="r-pr">#&gt;</span> [29,]     0     0     0     1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $alias.matrix</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             cost size1 size2 type1 type2 type3   cost:size1 cost:size2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)    0     0     0     0     0     0  0.005324599  0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost           1     0     0     0     0     0  0.078804069  0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1          0     1     0     0     0     0  0.048192771  0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2          0     0     1     0     0     0  0.000000000  0.1111111</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1          0     0     0     1     0     0 -0.304341723  0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2          0     0     0     0     1     0  0.000000000  0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3          0     0     0     0     0     1  0.000000000  0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              cost:type1 cost:type2 cost:type3 size1:type1 size2:type1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -0.03478014  0.0000000  0.0000000 -0.12173669   0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost         0.06260425  0.0000000  0.0000000 -0.33200915   0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1       -0.31479386  0.0000000  0.0000000 -0.06260425   0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2        0.00000000  0.0000000  0.0000000  0.00000000   0.1924501</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1       -0.01204819  0.0000000  0.0000000 -0.11288150   0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2        0.00000000  0.1428571  0.0000000  0.00000000   0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3        0.00000000  0.0000000  0.1428571  0.00000000   0.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             size1:type2 size2:type2 size1:type3 size2:type3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   0.0000000           0   0.0000000           0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost          0.0000000           0   0.0000000           0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1         0.0000000           0   0.0000000           0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2         0.0000000           0   0.0000000           0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1         0.0000000           0   0.0000000           0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2         0.2020305           0   0.0000000           0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3         0.0000000           0   0.2020305           0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             cost size1 size2 type1 type2 type3  cost:size1   cost:size2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)    0     0     0     0     0     0 -0.00266230  0.004611238</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> cost           1     0     0     0     0     0 -0.03940203  0.068246326</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size1          0     1     0     0     0     0  0.09538153  0.027244440</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size2          0     0     1     0     0     0  0.02724444  0.063922356</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type1          0     0     0     1     0     0 -0.05072362  0.087855888</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type2          0     0     0     0     1     0 -0.07173403  0.124246988</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type3          0     0     0     0     0     1  0.12424699 -0.215202096</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              cost:type1  cost:type2  cost:type3 size1:type1  size2:type1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  0.01159338  0.01639551 -0.02839786 -0.02028945  0.035142355</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> cost        -0.02086808 -0.02951192  0.05111615 -0.05533486  0.095842787</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size1       -0.05246564 -0.07419762  0.12851406 -0.04289550 -0.036813922</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size2        0.09087316  0.12851406 -0.22259287 -0.03681392 -0.000386446</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type1        0.12564544 -0.02434103  0.04215989 -0.08352014  0.144661130</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type2       -0.02434103  0.10843373  0.05962309  0.02474182 -0.042854097</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type3        0.04215989  0.05962309  0.03958692 -0.04285410  0.074225473</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             size1:type2   size2:type2  size1:type3   size2:type3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -0.02869361  0.0496987952  0.049698795 -0.0860808383</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> cost        -0.07825531  0.1355421687  0.135542169 -0.2347659227</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size1       -0.06066340 -0.0520627483  0.105072092  0.0901753252</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size2       -0.05206275 -0.0005465171  0.090175325  0.0009465954</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type1        0.02474182 -0.0428540970 -0.042854097  0.0742254733</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type2       -0.06602503  0.1143587079 -0.060604845  0.1049706710</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type3       -0.06060485  0.1049706710  0.003955417 -0.0068509825</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $correlation.matrix</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             cost     size1 size2      type1 type2 type3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> cost  1.00000000 0.0000000     0 0.05776713     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size1 0.00000000 1.0000000     0 0.15803160     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> size2 0.00000000 0.0000000     1 0.00000000     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type1 0.05776713 0.1580316     0 1.00000000     0     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type2 0.00000000 0.0000000     0 0.00000000     1     0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> type3 0.00000000 0.0000000     0 0.00000000     0     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             cost      size1      size2      type1      type2      type3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> cost  1.00000000 0.00000000 0.00000000 0.02014149 0.02831827 0.04794633</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size1 0.00000000 1.00000000 0.05976143 0.02898855 0.04075696 0.06900656</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> size2 0.00000000 0.05976143 1.00000000 0.04850713 0.06819943 0.11547005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type1 0.02014149 0.02898855 0.04850713 1.00000000 0.01654079 0.02800560</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type2 0.02831827 0.04075696 0.06819943 0.01654079 1.00000000 0.03937496</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> type3 0.04794633 0.06900656 0.11547005 0.02800560 0.03937496 1.00000000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ~cost + size + type</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x563cbd45dbf0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x5620e2e235a0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Get just one attribute</span></span></span>
-<span class="r-in"><span><span class="fu">get_attribute</span><span class="op">(</span><span class="va">designcoffee</span>,<span class="st">"model.matrix"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">get_attribute</span><span class="op">(</span><span class="va">designcoffee</span>,<span class="st">"model_matrix"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       (Intercept) cost      size1     size2      type1      type2     type3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,]           1   -1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,]           1   -1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]           1   -1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]           1   -1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [11,]           1    1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [12,]           1   -1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [13,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [14,]           1    1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [15,]           1    1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [16,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [17,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20,]           1   -1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21,]           1   -1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23,]           1    1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [25,]           1    1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [26,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [28,]           1    1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [29,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]           1   -1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,]           1   -1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]           1   -1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,]           1   -1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]           1   -1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]           1    1 -0.7071068 -1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [10,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [12,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13,]           1    1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [14,]           1    1 -0.7071068  1.224745 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [15,]           1   -1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [16,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [17,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [18,]           1   -1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [20,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [21,]           1    1 -0.7071068 -1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [22,]           1   -1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [23,]           1    1 -0.7071068  1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [24,]           1    1 -0.7071068 -1.224745 -0.5773503 -0.8164966 -1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [25,]           1    1  1.4142136  0.000000 -0.5773503  1.6329932  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [26,]           1    1 -0.7071068  1.224745  1.7320508  0.0000000  0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [27,]           1   -1 -0.7071068  1.224745 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [28,]           1    1  1.4142136  0.000000 -0.5773503 -0.8164966  1.414214</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [29,]           1    1  1.4142136  0.000000  1.7320508  0.0000000  0.000000</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract from `eval_design()` output</span></span></span>
 <span class="r-in"><span><span class="va">power_output</span> <span class="op">=</span> <span class="fu"><a href="eval_design.html">eval_design</a></span><span class="op">(</span><span class="va">designcoffee</span>, model <span class="op">=</span> <span class="op">~</span><span class="va">cost</span> <span class="op">+</span> <span class="va">size</span> <span class="op">+</span> <span class="va">type</span>,</span></span>
@@ -308,7 +301,7 @@ Potential values are `model.matrix` for model used, `moments.matrix`, `variance.
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
     </footer></div>

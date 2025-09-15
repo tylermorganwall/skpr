@@ -10,7 +10,7 @@ get_moment_matrix(
   classvector = NA,
   candidate_set_normalized = NA,
   model = ~.,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   high_resolution_candidate_set = NA
 )
 }

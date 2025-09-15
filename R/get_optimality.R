@@ -103,3 +103,17 @@ get_optimality = function(output, optimality = NULL, calc_g = FALSE) {
   }
   return(optimality_df)
 }
+
+#' @keywords internal
+calculate_i_optimality_safe = function(
+  model_matrix,
+  moment_matrix,
+  blockedVar
+) {
+  stopifnot(ncol(moment_matrix) == ncol(model_matrix))
+  IOptimality(
+    model_matrix,
+    moment_matrix,
+    blockedVar
+  )
+}

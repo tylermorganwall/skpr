@@ -4,13 +4,13 @@
 \alias{remove_skpr_blockcols}
 \title{Remove skpr-generated blocking columns}
 \usage{
-remove_skpr_blockcols(RunMatrix)
+remove_skpr_blockcols(design)
 }
 \arguments{
-\item{RunMatrix}{The run matrix}
+\item{design}{The run matrix}
 }
 \value{
-Run Matrix
+Data frame
 }
 \description{
 Remove skpr-generated REML blocking columns if present

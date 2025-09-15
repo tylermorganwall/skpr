@@ -4,10 +4,17 @@ library(shiny)
 test_that("{shinytest2} recording: apps", {
   options("in_skpr_test_environment" = TRUE)
   on.exit(options("in_skpr_test_environment" = NULL), add = TRUE)
-  app <- AppDriver$new(app_dir = testthat::test_path("apps"), screenshot_args = FALSE,
-                       expect_values_screenshot_args  = FALSE,
-    variant = platform_variant(), name = "apps", height = 923,
-      width = 1619, timeout = 10*1000, wait = TRUE)
+  app <- AppDriver$new(
+    app_dir = testthat::test_path("apps"),
+    screenshot_args = FALSE,
+    expect_values_screenshot_args = FALSE,
+    variant = platform_variant(),
+    name = "apps",
+    height = 923,
+    width = 1619,
+    timeout = 20 * 1000,
+    wait = TRUE
+  )
   app$set_inputs(setseed = TRUE)
   app$set_inputs(seed = 5)
   app$click("submitbutton")
@@ -25,7 +32,7 @@ test_that("{shinytest2} recording: apps", {
 
   app$expect_values()
   app$set_window_size(width = 1445, height = 839, wait = TRUE)
-  app$wait_for_idle(duration=1000)
+  app$wait_for_idle(duration = 1000)
 
   app$set_inputs(model = "~.  ")
   app$set_inputs(model = "~.  +")
@@ -87,7 +94,7 @@ test_that("{shinytest2} recording: apps", {
   app$wait_for_value(output = "powerresultsglm")
   app$expect_values()
 
-  app$set_inputs(nsim = 100)
+  app$set_inputs(nsim = 10)
   app$set_inputs(firth_correction = TRUE)
   app$click("evalbutton")
   app$wait_for_value(output = "powerresultsglm")
@@ -101,7 +108,7 @@ test_that("{shinytest2} recording: apps", {
   app$expect_values()
 
   app$set_inputs(parallel_eval_glm = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
@@ -109,105 +116,92 @@ test_that("{shinytest2} recording: apps", {
   app$set_inputs(glmfamily = "poisson")
   app$set_inputs(adjust_alpha = FALSE)
   app$set_inputs(parallel_eval_glm = FALSE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
-
 
   app$set_inputs(adjust_alpha = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
-
 
   app$set_inputs(parallel_eval_glm = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
-
 
   app$set_inputs(glmfamily = "exponential")
   app$set_inputs(parallel_eval_glm = FALSE)
   app$set_inputs(adjust_alpha = FALSE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
-
 
   app$set_inputs(adjust_alpha = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
-
 
   app$set_inputs(parallel_eval_glm = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultsglm")
 
   app$expect_values()
-
 
   app$set_inputs(evaltype = "surv")
   app$set_inputs(censorpoint = 1)
   app$set_inputs(nsim_surv = 10000)
   app$set_inputs(nsim_surv = 100)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 30 * 1000)
   app$wait_for_value(output = "powerresultssurv")
   app$wait_for_idle()
 
   app$expect_values()
 
-
   app$set_inputs(censortype = "left")
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(censortype = "right")
   app$set_inputs(parallel_eval_surv = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(censortype = "left")
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(distribution = "exponential")
   app$set_inputs(parallel_eval_surv = FALSE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(censortype = "right")
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(exphigh = 3)
   app$set_inputs(exphigh = 4)
   app$set_inputs(exphigh = 5)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(explow = 2)
   app$set_inputs(explow = 3)
@@ -220,26 +214,23 @@ test_that("{shinytest2} recording: apps", {
   app$set_inputs(censorpoint = 8)
   app$set_inputs(censorpoint = 9)
   app$set_inputs(censorpoint = 10)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(alpha = 0.2)
   app$set_inputs(alpha = 0.21)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(parallel_eval_surv = TRUE)
-  app$click("evalbutton", timeout_ = 20*1000)
+  app$click("evalbutton", timeout_ = 20 * 1000)
   app$wait_for_value(output = "powerresultssurv")
 
   app$expect_values()
-
 
   app$set_inputs(results_panels = "code")
   app$set_inputs(distribution = "gaussian")

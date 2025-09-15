@@ -20,7 +20,7 @@ eval_design_mc(
   effectsize = 2,
   contrasts = contr.sum,
   high_resolution_candidate_set = NA,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   parallel = FALSE,
   adjust_alpha_inflation = FALSE,
   detailedoutput = FALSE,
@@ -85,7 +85,7 @@ factors to generate a dense sampling of the space and cache that value internall
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
 If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.}
 
-\item{moment_sample_density}{Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations.}
 
 \item{parallel}{Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
@@ -111,7 +111,7 @@ set the confidence level for power intervals, which are printed when `detailedou
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information
 stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
-attribute. The "model.matrix" attribute contains the model matrix that was used for power evaluation, and
+attribute. The "model_matrix" attribute contains the model matrix that was used for power evaluation, and
 also provides the encoding used for categorical factors. If you want to specify the anticipated
 coefficients manually, do so in the order the parameters appear in the model matrix.
 }

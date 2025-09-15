@@ -20,3 +20,4 @@
 _\.new\.png$
 ^compile_commands\.json$
 ^\.cache$
+^todo.txt$

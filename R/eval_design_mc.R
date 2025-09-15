@@ -59,12 +59,12 @@
 #' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 #' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
 #' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.
-#'@param moment_sample_density Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+#'@param moment_sample_density Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 #'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
-#' attribute. The "model.matrix" attribute contains the model matrix that was used for power evaluation, and
+#' attribute. The "model_matrix" attribute contains the model matrix that was used for power evaluation, and
 #' also provides the encoding used for categorical factors. If you want to specify the anticipated
 #' coefficients manually, do so in the order the parameters appear in the model matrix.
 #'@details Evaluates the power of a design with Monte Carlo simulation. Data is simulated and then fit
@@ -258,7 +258,7 @@ eval_design_mc = function(
   effectsize = 2,
   contrasts = contr.sum,
   high_resolution_candidate_set = NA,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   parallel = FALSE,
   adjust_alpha_inflation = FALSE,
   detailedoutput = FALSE,
@@ -283,10 +283,10 @@ eval_design_mc = function(
     if (is.numeric(model) && missing(alpha)) {
       alpha = model
     }
-    if (is.null(attr(design, "generating.model"))) {
+    if (is.null(attr(design, "generating_model"))) {
       stop("skpr: No model detected in arguments or in design attributes.")
     } else {
-      model = attr(design, "generating.model")
+      model = attr(design, "generating_model")
     }
   }
   user_specified_varianceratio = TRUE
@@ -463,30 +463,21 @@ eval_design_mc = function(
 
   #convert tibbles
   all_attr_design = attributes(design)
-  run_matrix_df = as.data.frame(design)
-
-  #Detect externally generated blocking columns and convert to rownames
-  run_matrix_rownames = convert_blockcolumn_rownames(
-    run_matrix_df,
+  # run_matrix_df = as.data.frame(design)
+  processed_design_traits = design_df_to_processed_list(
+    design,
+    model,
     blocking,
-    varianceratios
+    varianceratios,
+    nointercept
   )
-  zlist = attr(run_matrix_rownames, "z.matrix.list")
 
-  #Remove skpr-generated REML blocking indicators if present
-  run_matrix_no_block_cols = remove_skpr_blockcols(run_matrix_rownames)
-
-  #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_no_block_cols, model)
-
-  #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model, data = run_matrix_no_block_cols)
-  if (nointercept) {
-    model = update.formula(model, ~ -1 + .)
-  }
+  run_matrix_processed = processed_design_traits$design_processed
+  model_processed = processed_design_traits$model_processed
+  varianceratios = processed_design_traits$varianceratios
+  zlist = processed_design_traits$zlist
 
   glmfamilyname = tolower(glmfamily)
-
   #------Auto-set random generating function----#
   if (is.null(rfunction)) {
     if (glmfamily == "gaussian") {
@@ -512,61 +503,48 @@ eval_design_mc = function(
     }
   }
 
-  #------Normalize/Center numeric columns ------#
-  run_matrix_normalized = normalize_design(run_matrix_no_block_cols)
-
   candidate_set = attr(design, "candidate_set")
 
-  if(!is.null(candidate_set)) {
+  if (!is.null(candidate_set)) {
     normalized_candidate_set = normalize_design(candidate_set)
   }
 
   #---------- Generating model matrix ----------#
   #Remove columns from variables not used in the model
   #Variables used later: contrastslist, contrastslist_cormat
-  run_matrix_reduced = reduceRunMatrix(run_matrix_normalized, model)
-  run_matrix_monte_carlo = run_matrix_reduced
+  run_matrix_monte_carlo = run_matrix_processed
 
   # Add back original attributes
-  new_attributes = attributes(run_matrix_reduced)
+  new_attributes = attributes(run_matrix_processed)
   new_attribute_names = names(new_attributes)
   old_attribute_names = names(all_attr_design)
-  for(i in seq_along(old_attribute_names)) {
-    if(!old_attribute_names[i] %in% new_attribute_names) {
-      new_attributes[[ old_attribute_names[i] ]] = all_attr_design[[i]]
+  for (i in seq_along(old_attribute_names)) {
+    if (!old_attribute_names[i] %in% new_attribute_names) {
+      new_attributes[[old_attribute_names[i]]] = all_attr_design[[i]]
     }
   }
-  run_matrix_fully_processed = run_matrix_reduced
+  run_matrix_fully_processed = run_matrix_processed
   attributes(run_matrix_fully_processed) = new_attributes
 
+  contrast_info = generate_contrast_list(
+    run_matrix_processed,
+    presetcontrasts,
+    contrasts
+  )
+  contrastslist = contrast_info$contrastslist
+  contrastslist_cormat = contrast_info$contrastslist_cormat
 
-  contrastslist_cormat = list()
-  contrastslist = list()
-  for (x in names(run_matrix_monte_carlo)[
-    lapply(run_matrix_monte_carlo, class) %in% c("character", "factor")
-  ]) {
-    if (!(x %in% names(presetcontrasts))) {
-      contrastslist[[x]] = contrasts
-    } else {
-      contrastslist[[x]] = presetcontrasts[[x]]
-    }
-    contrastslist_cormat[[x]] = contr.simplex
-  }
-  if (length(contrastslist) < 1) {
-    contrastslist = NULL
-    contrastslist_cormat = NULL
-  }
-  ModelMatrix = model.matrix(
-    model,
+  model_matrix = model.matrix(
+    model_processed,
     run_matrix_monte_carlo,
     contrasts.arg = contrastslist
   )
 
   #saving model for return attribute
-  generatingmodel = model
+  # generatingmodel = model
 
   #Parameter names for final output
-  parameter_names = colnames(ModelMatrix)
+  parameter_names = colnames(model_matrix)
 
   #-----Autogenerate Anticipated Coefficients---#
   #Variables used later: anticoef
@@ -578,13 +556,17 @@ eval_design_mc = function(
     }
   }
   if (missing(anticoef) || is.null(anticoef)) {
-    default_coef = gen_anticoef(run_matrix_monte_carlo, model, nointercept)
+    default_coef = gen_anticoef(
+      run_matrix_monte_carlo,
+      model_processed,
+      nointercept
+    )
     anticoef = anticoef_from_delta(default_coef, effectsize, glmfamilyname)
-    if (!("(Intercept)" %in% colnames(ModelMatrix))) {
+    if (!("(Intercept)" %in% colnames(model_matrix))) {
       anticoef = anticoef[-1]
     }
   }
-  if (length(anticoef) != dim(ModelMatrix)[2]) {
+  if (length(anticoef) != dim(model_matrix)[2]) {
     stop("skpr: Wrong number of anticipated coefficients")
   }
   #-------------- Blocking errors --------------#
@@ -641,11 +623,11 @@ eval_design_mc = function(
 
   #------------ Generate Responses -------------#
   #Variables used later: responses
-  responses = matrix(ncol = nsim, nrow = nrow(ModelMatrix))
+  responses = matrix(ncol = nsim, nrow = nrow(model_matrix))
   if (blocking) {
     for (i in 1:nsim) {
       responses[, i] = rfunction(
-        ModelMatrix,
+        model_matrix,
         anticoef,
         generate_noise_block(
           noise = varianceratios,
@@ -657,7 +639,7 @@ eval_design_mc = function(
   } else {
     responses = replicate(
       nsim,
-      rfunction(ModelMatrix, anticoef, rep(0, nrow(ModelMatrix)))
+      rfunction(model_matrix, anticoef, rep(0, nrow(model_matrix)))
     )
   }
 
@@ -669,7 +651,11 @@ eval_design_mc = function(
     blockindicators = lapply(blockgroups, genBlockIndicators)
     randomeffects = c()
     for (i in 1:(length(blockgroups) - 1)) {
-      run_matrix_monte_carlo[paste("skprBlock", i, sep = "")] = blockindicators[[i]]
+      run_matrix_monte_carlo[paste(
+        "skprBlock",
+        i,
+        sep = ""
+      )] = blockindicators[[i]]
       randomeffects = c(
         randomeffects,
         paste("( 1 | skprBlock", i, " )", sep = "")
@@ -678,15 +664,16 @@ eval_design_mc = function(
     randomeffects = paste(randomeffects, collapse = " + ")
     blockform = paste("~. + ", randomeffects, sep = "")
     #Adding random block variables to formula
-    model = update.formula(model, blockform)
+    model_processed_mc = update.formula(model_processed, blockform)
     if (nointercept) {
-      model = update.formula(model, ~ -1 + .)
+      model_processed_mc = update.formula(model_processed_mc, ~ -1 + .)
     }
   } else {
+    model_processed_mc = model_processed
     V = diag(nrow(run_matrix_fully_processed))
   }
 
-  model_formula = update.formula(model, Y ~ .)
+  model_formula = update.formula(model_processed_mc, Y ~ .)
   run_matrix_monte_carlo$Y = 1
   #------------- Effect Power Settings ------------#
 
@@ -730,7 +717,7 @@ eval_design_mc = function(
   num_updates = min(c(nsim, 200))
   progressbarupdates = floor(seq(1, nsim, length.out = num_updates))
   progresscurrent = 1
-  estimates = matrix(0, nrow = nsim, ncol = ncol(ModelMatrix))
+  estimates = matrix(0, nrow = nsim, ncol = ncol(model_matrix))
   effect_terms = c(1, rownames(attr(terms(model_formula), "factors"))[-1])
   issued_non_convergence_warning = FALSE
   if (!parallel) {
@@ -749,7 +736,7 @@ eval_design_mc = function(
         width = 100
       )
     }
-    power_values = rep(0, ncol(ModelMatrix))
+    power_values = rep(0, ncol(model_matrix))
     effect_power_values = c()
     for (j in seq_len(nsim)) {
       if (advancedoptions$GUI && !is.null(progressBarUpdater)) {
@@ -905,7 +892,7 @@ eval_design_mc = function(
               method = method,
               contrastslist = contrastslist,
               effect_anova = effect_anova,
-              model_matrix = ModelMatrix
+              model_matrix = model_matrix
             )
           }
         }
@@ -1315,23 +1302,31 @@ eval_design_mc = function(
       power = power_values
     )
   }
-  attr(results, "model.matrix") = ModelMatrix
+  attr(results, "model_matrix") = model_matrix
   attr(results, "anticoef") = anticoef
   attr(results, "z.matrix.list") = zlist
 
-  factors = colnames(ModelMatrix)
-  classvector = sapply(lapply(run_matrix_fully_processed, unique), class) == "factor"
+  factors = colnames(model_matrix)
+  classvector = sapply(lapply(run_matrix_fully_processed, unique), class) ==
+    "factor"
 
-  moment_matrix = get_moment_matrix(
-    design = run_matrix_fully_processed,
-    candidate_set_normalized = normalized_candidate_set,
-    factors = factors,
-    classvector = classvector,
-    model = model,
-    moment_sample_density = moment_sample_density,
-    high_resolution_candidate_set = high_resolution_candidate_set
-  )
-  if(all(!is.na(moment_matrix))) {
+  if (
+    all(!is.na(attr(design, "moments.matrix"))) &&
+      all(!is.null(attr(design, "moments.matrix")))
+  ) {
+    moment_matrix = attr(design, "moments.matrix")
+  } else {
+    moment_matrix = get_moment_matrix(
+      design = run_matrix_fully_processed,
+      candidate_set_normalized = normalized_candidate_set,
+      factors = factors,
+      classvector = classvector,
+      model = model_processed,
+      moment_sample_density = moment_sample_density,
+      high_resolution_candidate_set = high_resolution_candidate_set
+    )
+  }
+  if (all(!is.na(moment_matrix))) {
     attr(results, "moments.matrix") = moment_matrix
   }
 
@@ -1351,26 +1346,26 @@ eval_design_mc = function(
     }
   }
 
-  modelmatrix_cor = model.matrix(
-    generatingmodel,
+  model_matrix_cor = model.matrix(
+    model,
     run_matrix_fully_processed,
     contrasts.arg = contrastslist_cormat
   )
-  if (ncol(modelmatrix_cor) > 2) {
+  if (ncol(model_matrix_cor) > 2) {
     tryCatch(
       {
-        if ("(Intercept)" %in% colnames(modelmatrix_cor)) {
+        if ("(Intercept)" %in% colnames(model_matrix_cor)) {
           correlation.matrix = abs(cov2cor(solve(
-            t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor
+            t(model_matrix_cor) %*% solve(V) %*% model_matrix_cor
           ))[-1, -1])
-          colnames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
-          rownames(correlation.matrix) = colnames(modelmatrix_cor)[-1]
+          colnames(correlation.matrix) = colnames(model_matrix_cor)[-1]
+          rownames(correlation.matrix) = colnames(model_matrix_cor)[-1]
         } else {
           correlation.matrix = abs(cov2cor(solve(
-            t(modelmatrix_cor) %*% solve(V) %*% modelmatrix_cor
+            t(model_matrix_cor) %*% solve(V) %*% model_matrix_cor
           )))
-          colnames(correlation.matrix) = colnames(modelmatrix_cor)
-          rownames(correlation.matrix) = colnames(modelmatrix_cor)
+          colnames(correlation.matrix) = colnames(model_matrix_cor)
+          rownames(correlation.matrix) = colnames(model_matrix_cor)
         }
         attr(results, "correlation.matrix") = round(correlation.matrix, 8)
       },
@@ -1379,18 +1374,18 @@ eval_design_mc = function(
     )
     tryCatch(
       {
-        if (ncol(attr(run_matrix_fully_processed, "model.matrix")) > 2) {
-          amodel = aliasmodel(model, aliaspower)
-          if (amodel != model) {
+        if (ncol(attr(run_matrix_fully_processed, "model_matrix")) > 2) {
+          amodel = aliasmodel(model_processed, aliaspower)
+          if (amodel != model_processed) {
             aliasmatrix = suppressWarnings({
               model.matrix(
-                aliasmodel(model, aliaspower),
+                aliasmodel(model_processed, aliaspower),
                 design,
                 contrasts.arg = contrastslist_cormat
               )[, -1]
             })
-            A = solve(t(modelmatrix_cor) %*% modelmatrix_cor) %*%
-              t(modelmatrix_cor) %*%
+            A = solve(t(model_matrix_cor) %*% model_matrix_cor) %*%
+              t(model_matrix_cor) %*%
               aliasmatrix
             attr(results, "alias.matrix") = A
             attr(results, "trA") = sum(diag(t(A) %*% A))
@@ -1441,42 +1436,46 @@ eval_design_mc = function(
 
   colnames(estimates) = parameter_names
   if (!blocking) {
-    attr(results, "variance.matrix") = diag(nrow(modelmatrix_cor))
-    if(all(!is.na(moment_matrix))) {
+    attr(results, "variance.matrix") = diag(nrow(model_matrix_cor))
+    if (all(!is.na(moment_matrix))) {
       attr(results, "I") = IOptimality(
-        modelmatrix_cor,
+        model_matrix_cor,
         momentsMatrix = moment_matrix,
-        blockedVar = diag(nrow(modelmatrix_cor))
+        blockedVar = diag(nrow(model_matrix_cor))
       )
+    } else {
+      attr(results, "I") = NA_real_
     }
-    attr(results, "D") = 100 * DOptimalityLog(modelmatrix_cor)
+    attr(results, "D") = 100 * DOptimalityLog(model_matrix_cor)
   } else {
     attr(results, "variance.matrix") = V
-    if(all(!is.na(moment_matrix))) {
+    if (all(!is.na(moment_matrix))) {
       attr(results, "I") = IOptimality(
-        modelmatrix_cor,
+        model_matrix_cor,
         momentsMatrix = moment_matrix,
         blockedVar = V
       )
+    } else {
+      attr(results, "I") = NA_real_
     }
-    deffic = DOptimalityBlocked(modelmatrix_cor, blockedVar = V)
+    deffic = DOptimalityBlocked(model_matrix_cor, blockedVar = V)
     if (!is.infinite(deffic)) {
       attr(results, "D") = 100 *
-        DOptimalityBlocked(modelmatrix_cor, blockedVar = V)^(1 /
-          ncol(modelmatrix_cor)) /
-        nrow(modelmatrix_cor)
+        DOptimalityBlocked(model_matrix_cor, blockedVar = V)^(1 /
+          ncol(model_matrix_cor)) /
+        nrow(model_matrix_cor)
     } else {
       attr(results, "D") = 100 *
-        DOptimalityBlockedLog(modelmatrix_cor, blockedVar = V)^(1 /
-          ncol(modelmatrix_cor)) /
-        nrow(modelmatrix_cor)
+        DOptimalityBlockedLog(model_matrix_cor, blockedVar = V)^(1 /
+          ncol(model_matrix_cor)) /
+        nrow(model_matrix_cor)
     }
   }
   if (alpha_adjust) {
     attr(results, "null_pvals") = attr(nullresults, "pvals")
     attr(results, "null_effect_pvals") = attr(nullresults, "effect_pvals")
   }
-  attr(results, "generating.model") = generatingmodel
+  attr(results, "generating_model") = model
   attr(results, "runmatrix") = design
   attr(results, "variance.matrix") = V
   attr(results, "estimates") = estimates
@@ -1511,7 +1510,10 @@ eval_design_mc = function(
       attr(results, "parameter_analysis_method_string") = "`lm(...)`"
       attr(results, "effect_analysis_method_string") = effect_string
     } else {
-      attr(results, "parameter_analysis_method_string") = "`lmerTest::lmer(...)`"
+      attr(
+        results,
+        "parameter_analysis_method_string"
+      ) = "`lmerTest::lmer(...)`"
       attr(results, "effect_analysis_method_string") = effect_string
     }
   } else if (glmfamilyname == "binomial") {
@@ -1579,6 +1581,14 @@ eval_design_mc = function(
     attr(results, "parameter_analysis_method_string") = ""
     attr(results, "effect_analysis_method_string") = ""
   }
+  attr(results, "candidate_set") = candidate_set
+  modelmatrix_cor = model.matrix(
+    model_processed,
+    run_matrix_processed,
+    contrasts.arg = contrastslist_cormat
+  )
+  attr(results, "model_matrix_cor") = modelmatrix_cor
+  attr(results, "contrastslist") = contrastslist
   return(results)
 }
 globalVariables("i")

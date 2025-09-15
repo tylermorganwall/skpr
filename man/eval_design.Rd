@@ -18,7 +18,7 @@ eval_design(
   detailedoutput = FALSE,
   advancedoptions = NULL,
   high_resolution_candidate_set = NA,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   ...
 )
 }
@@ -72,7 +72,7 @@ factors to generate a dense sampling of the space and cache that value internall
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
 If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.}
 
-\item{moment_sample_density}{Default `20`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations. It is much faster and potentially more accurate to
 provide your own candidate set with higher resolution continuous factors to `high_resolution_candidate_set`.`}
 

@@ -2635,7 +2635,7 @@ skprGUI = function(
                   parallel = parallel,
                   advancedoptions = advancedoptions
                 )
-                attr(temp_design, "generating.model") = NULL
+                attr(temp_design, "generating_model") = NULL
                 saveRDS(temp_design, file = file.path(runmatrix_file_name))
               },
               seed = seed_val
@@ -2679,7 +2679,7 @@ skprGUI = function(
                   add_blocking_columns = add_blocking_columns,
                   advancedoptions = advancedoptions
                 )
-                attr(temp_design, "generating.model") = NULL
+                attr(temp_design, "generating_model") = NULL
                 saveRDS(temp_design, file = file.path(runmatrix_file_name))
               },
               seed = seed_val
@@ -2977,7 +2977,7 @@ skprGUI = function(
                   detailedoutput = detailedoutput,
                   advancedoptions = advancedoptions
                 )
-                attr(temp_power, "generating.model") = NULL
+                attr(temp_power, "generating_model") = NULL
                 saveRDS(temp_power, file = file.path(power_file_name))
               },
               seed = seed_val
@@ -3050,6 +3050,7 @@ skprGUI = function(
               duration = 10
             )
           }
+          message("here")
           model = as.formula(input$model)
           alpha = input$alpha
           nsim = input$nsim_surv
@@ -3115,7 +3116,7 @@ skprGUI = function(
                   detailedoutput = detailedoutput,
                   advancedoptions = advancedoptions
                 )
-                attr(temp_power, "generating.model") = NULL
+                attr(temp_power, "generating_model") = NULL
                 saveRDS(temp_power, file = file.path(power_file_name))
               },
               seed = seed_val
@@ -3609,11 +3610,11 @@ skprGUI = function(
           if (!is.null(attr(powerresults, "estimates"))) {
             responses = as.vector(
               attr(powerresults, "estimates") %*%
-                t(attr(powerresults, "model.matrix"))
+                t(attr(powerresults, "model_matrix"))
             )
             trueresponses = as.vector(
               attr(powerresults, "anticoef") %*%
-                t(attr(powerresults, "model.matrix"))
+                t(attr(powerresults, "model_matrix"))
             )
             filtered_string = ""
             if (isolate(input$glmfamily) == "exponential") {
@@ -3789,11 +3790,11 @@ skprGUI = function(
           if (!is.null(attr(powerresults, "estimates"))) {
             responses = as.vector(
               attr(powerresults, "estimates") %*%
-                t(attr(powerresults, "model.matrix"))
+                t(attr(powerresults, "model_matrix"))
             )
             trueresponses = as.vector(
               attr(powerresults, "anticoef") %*%
-                t(attr(powerresults, "model.matrix"))
+                t(attr(powerresults, "model_matrix"))
             )
             filtered_string = ""
             bin_values = 100

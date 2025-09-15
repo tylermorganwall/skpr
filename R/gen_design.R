@@ -38,7 +38,7 @@
 #'@param varianceratio Default `1`. The ratio between the block and run-to-run variance for a given stratum in
 #'a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
 #'if no split plot design is entered.
-#'@param contrast Default `contr.simplex`, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.
+#'@param contrasts Default `contr.simplex`, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.
 #'@param aliaspower Default `2`. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
 #'@param minDopt Default `0.8`. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
 #'@param k Default `NA`. For D-optimal designs, this changes the search to a k-exchange algorithm
@@ -47,7 +47,7 @@
 #' in a faster search, but are less likely tofind an optimal design. Values of `k >= n/4` have been shown empirically to generate similar designs to the full
 #' search. When `k == trials`, this results in the default modified Federov's algorithm.
 #' A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.
-#'@param moment_sample_density Default `20`. The density of points to sample when calculating the moment matrix to
+#'@param moment_sample_density Default `10`. The density of points to sample when calculating the moment matrix to
 #' compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.
 #'@param high_resolution_candidate_set Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 #' cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
@@ -303,11 +303,11 @@ gen_design = function(
   repeats = 20,
   custom_v = NULL,
   varianceratio = 1,
-  contrast = contr.simplex,
+  contrasts = contr.simplex,
   aliaspower = 2,
   minDopt = 0.8,
   k = NA,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   high_resolution_candidate_set = NA,
   parallel = FALSE,
   progress = TRUE,
@@ -397,7 +397,7 @@ gen_design = function(
           lapply(advancedoptions$g_efficiency_samples, class) %in%
             c("factor", "character")
         ])) {
-          contrastslisttemp[[x]] = contrast
+          contrastslisttemp[[x]] = contrasts
         }
         if (length(contrastslisttemp) == 0) {
           advancedoptions$g_efficiency_samples = model.matrix(
@@ -466,6 +466,15 @@ gen_design = function(
       "skpr: skpr does not support backticks in gen_design. Use variable names without backticks and try again."
     )
   }
+  #---- detect pre-set contrasts --- #
+  presetcontrasts = list()
+  for (x in names(candidateset)[
+    lapply(candidateset, class) %in% c("character", "factor")
+  ]) {
+    if (!is.null(attr(candidateset[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(candidateset[[x]], "contrasts")
+    }
+  }
 
   model = convert_model_dots(candidateset, model, splitplotdesign)
 
@@ -480,17 +489,16 @@ gen_design = function(
   #----- Rearrange formula terms by order -----#
   model = rearrange_formula_by_order(model, data = candidateset)
 
-  if (is.null(contrast)) {
-    contrast = function(n) contr.simplex(n, size = sqrt(n - 1))
+  if (is.null(contrasts)) {
+    contrasts = function(n) contr.simplex(n, size = sqrt(n - 1))
   }
 
   #---- generate contrast list-----#
-
   contrastslist = list()
   for (x in names(candidateset[
     lapply(candidateset, class) %in% c("factor", "character")
   ])) {
-    contrastslist[[x]] = contrast
+    contrastslist[[x]] = contrasts
   }
 
   if (length(contrastslist) == 0) {
@@ -502,7 +510,7 @@ gen_design = function(
     for (x in names(splitplotdesign[
       lapply(splitplotdesign, class) %in% c("factor", "character")
     ])) {
-      contrastslistspd[[x]] = contrast
+      contrastslistspd[[x]] = contrasts
     }
 
     if (length(contrastslistspd) == 0) {
@@ -512,7 +520,7 @@ gen_design = function(
     for (x in names(candidateset[
       lapply(candidateset, class) %in% c("factor", "character")
     ])) {
-      contrastslistsubplot[[x]] = contrast
+      contrastslistsubplot[[x]] = contrasts
     }
 
     if (length(contrastslistsubplot) == 0) {
@@ -691,8 +699,9 @@ gen_design = function(
       ))
     }
   }
-
+  # This needs to be passed to get_moment_matrix after being normalized
   fullcandidateset = unique(reduceRunMatrix(candidateset, model))
+
   if (is.null(splitplotdesign)) {
     candidateset = unique(reduceRunMatrix(candidateset, model, FALSE))
   } else {
@@ -702,6 +711,12 @@ gen_design = function(
       FALSE
     ))
   }
+  contrast_info = generate_contrast_list(
+    candidateset,
+    presetcontrasts,
+    contrasts
+  )
+  contrastslist_cormat = contrast_info$contrastslist_cormat
 
   #------Ensure the candidate set has no single-valued columns------#
   if (nrow(candidateset) == 0) {
@@ -1251,15 +1266,18 @@ gen_design = function(
     factors = colnames(candidatesetmm)
     classvector = sapply(candidateset, inherits, c("factor", "character"))
 
-    moment_matrix = get_moment_matrix(
-      candidate_set_normalized = candidatesetnormalized,
-      factors = factors,
-      classvector = classvector,
-      model = model,
-      moment_sample_density = moment_sample_density,
-      high_resolution_candidate_set = high_resolution_candidate_set,
-    )
-
+    if (optimality == "I") {
+      moment_matrix = get_moment_matrix(
+        candidate_set_normalized = fullcandidatesetnorm,
+        factors = factors,
+        classvector = classvector,
+        model = model,
+        moment_sample_density = moment_sample_density,
+        high_resolution_candidate_set = high_resolution_candidate_set,
+      )
+    } else {
+      moment_matrix = matrix(0, nrow = 0, ncol = 0)
+    }
     if (!parallel) {
       if (!is.null(getOption("skpr_progress"))) {
         progress = getOption("skpr_progress")
@@ -1423,7 +1441,7 @@ gen_design = function(
     for (x in names(splitPlotReplicateDesign[
       sapply(splitPlotReplicateDesign, class) == "factor"
     ])) {
-      blockedContrastsList[[x]] = contrast
+      blockedContrastsList[[x]] = contrasts
     }
     if (length(blockedContrastsList) == 0) {
       blockedmodelmatrix = model.matrix(
@@ -1450,15 +1468,18 @@ gen_design = function(
         colnames(blockedmodelmatrix),
         colnames(candidatesetmm)[-1]
       )
-
-      blocked_moment_matrix = get_moment_matrix(
-        candidate_set_normalized = candidatesetnormalized,
-        factors = blockedFactors,
-        classvector = classvector,
-        model = model,
-        moment_sample_density = moment_sample_density,
-        high_resolution_candidate_set = high_resolution_candidate_set
-      )
+      if (optimality == "I") {
+        blocked_moment_matrix = get_moment_matrix(
+          candidate_set_normalized = fullcandidatesetnorm,
+          factors = blockedFactors,
+          classvector = classvector,
+          model = model,
+          moment_sample_density = moment_sample_density,
+          high_resolution_candidate_set = high_resolution_candidate_set
+        )
+      } else {
+        blocked_moment_matrix = matrix(0, nrow = 0, ncol = 0)
+      }
     } else {
       blocked_interactions = colnames(blockedmodelmatrix)[grepl(
         ":",
@@ -1483,14 +1504,18 @@ gen_design = function(
         colnames(candidatesetmm)[-1],
         interactionnames
       )
-      blocked_moment_matrix = get_moment_matrix(
-        candidate_set_normalized = candidatesetnormalized,
-        factors = blockedFactors,
-        classvector = classvector,
-        model = model,
-        moment_sample_density = moment_sample_density,
-        high_resolution_candidate_set = high_resolution_candidate_set
-      )
+      if (optimality == "I") {
+        blocked_moment_matrix = get_moment_matrix(
+          candidate_set_normalized = fullcandidatesetnorm,
+          factors = blockedFactors,
+          classvector = classvector,
+          model = model,
+          moment_sample_density = moment_sample_density,
+          high_resolution_candidate_set = high_resolution_candidate_set
+        )
+      } else {
+        blocked_moment_matrix = matrix(0, nrow = 0, ncol = 0)
+      }
     }
     disallowedcombdf = disallowed_combinations(fullcandidatesetnorm)
     if (nrow(disallowedcombdf) > 0) {
@@ -1659,7 +1684,7 @@ gen_design = function(
 
   for (i in seq_len(length(genOutput))) {
     if (!is.na(genOutput[[i]]["criterion"])) {
-      designs[designcounter] = genOutput[[i]]["model.matrix"]
+      designs[designcounter] = genOutput[[i]]["model_matrix"]
       rowindicies[designcounter] = genOutput[[i]]["indices"]
       criteria[designcounter] = genOutput[[i]]["criterion"]
       designcounter = designcounter + 1
@@ -1875,7 +1900,7 @@ gen_design = function(
   } else {
     colnames(designmm) = blockedFactors
   }
-
+  #Here?
   design = constructRunMatrix(
     rowIndices = rowindex,
     candidateList = candidateset,
@@ -1902,11 +1927,11 @@ gen_design = function(
               rep(i, blocksizes[[j]][i])
             )
           }
-          block_col_df = data.frame(Block1 = block_col_indicator)
-          allattr = attributes(design)
+          block_col_df = setNames(
+            data.frame(Block1 = block_col_indicator),
+            sprintf("Block%i", j)
+          )
           design = cbind(block_col_df, design)
-          attributes(design) = allattr
-          colnames(design) = c(paste0("Block", j), colnames(design)[-1])
         }
         if (!add_blocking_columns) {
           design = convert_blockcolumn_rownames(
@@ -1945,10 +1970,10 @@ gen_design = function(
     error = function(e) {
     }
   )
-  attr(design, "model.matrix") = designmm
-  attr(design, "generating.model") = model
+  attr(design, "model_matrix") = designmm
+  attr(design, "generating_model") = model
   attr(design, "generating.criterion") = optimality
-  attr(design, "generating.contrast") = contrast
+  attr(design, "generating.contrast") = contrasts
   attr(design, "contrastslist") = contrastslist
 
   if (!splitplot) {
@@ -1964,18 +1989,26 @@ gen_design = function(
     } else {
       rownames(design) = seq_len(nrow(design))
     }
-    if(all(!is.na(moment_matrix))) {
-      colnames(moment_matrix) = colnames(designmm)
-      rownames(moment_matrix) = colnames(designmm)
-      attr(design, "moments.matrix") = moment_matrix
+    if (optimality == "I") {
+      if (all(!is.na(moment_matrix))) {
+        colnames(moment_matrix) = colnames(designmm)
+        rownames(moment_matrix) = colnames(designmm)
+        attr(design, "moments.matrix") = moment_matrix
+      }
+    } else {
+      attr(design, "moments.matrix") = NA_real_
     }
     attr(design, "varianceratios") = varianceratio
   } else {
     rownames(design) = rownames(splitPlotReplicateDesign)
-    if(all(!is.na(blocked_moment_matrix))) {
-      colnames(blocked_moment_matrix) = colnames(designmm)
-      rownames(blocked_moment_matrix) = colnames(designmm)
-      attr(design, "moments.matrix") = blocked_moment_matrix
+    if (optimality == "I") {
+      if (all(!is.na(blocked_moment_matrix))) {
+        colnames(blocked_moment_matrix) = colnames(designmm)
+        rownames(blocked_moment_matrix) = colnames(designmm)
+        attr(design, "moments.matrix") = blocked_moment_matrix
+      }
+    } else {
+      attr(design, "moments.matrix") = NA_real_
     }
     attr(design, "V") = V
     attr(design, "varianceratios") = varianceratios
@@ -2090,11 +2123,15 @@ gen_design = function(
           "values"
         ]))
         attr(design, "variance.matrix") = diag(nrow(designmm)) * varianceratio
-        attr(design, "I") = IOptimality(
-          as.matrix(designmm),
-          momentsMatrix = moment_matrix,
-          blockedVar = diag(nrow(designmm))
-        )
+        if (optimality == "I") {
+          attr(design, "I") = IOptimality(
+            as.matrix(designmm),
+            momentsMatrix = moment_matrix,
+            blockedVar = diag(nrow(designmm))
+          )
+        } else {
+          attr(design, "I") = NA_real_
+        }
       },
       error = function(e) {
         if (is.null(attr(design, "G"))) attr(design, "G") = NA
@@ -2119,11 +2156,15 @@ gen_design = function(
                 t(designmm) %*%
                 vinv
             )))
-        attr(design, "I") = IOptimality(
-          as.matrix(designmm),
-          momentsMatrix = blocked_moment_matrix,
-          blockedVar = V
-        )
+        if (optimality == "I") {
+          attr(design, "I") = IOptimality(
+            as.matrix(designmm),
+            momentsMatrix = blocked_moment_matrix,
+            blockedVar = V
+          )
+        } else {
+          attr(design, "I") = NA_real_
+        }
       },
       error = function(e) {
       }
@@ -2142,11 +2183,15 @@ gen_design = function(
                 t(designmm) %*%
                 vinv
             )))
-        attr(design, "I") = IOptimality(
-          as.matrix(designmm),
-          momentsMatrix = moment_matrix,
-          blockedVar = V
-        )
+        if (optimality == "I") {
+          attr(design, "I") = IOptimality(
+            as.matrix(designmm),
+            momentsMatrix = moment_matrix,
+            blockedVar = V
+          )
+        } else {
+          attr(design, "I") = NA_real_
+        }
       },
       error = function(e) {
       }
@@ -2248,21 +2293,21 @@ gen_design = function(
       allattr = attributes(design)
       design_order = do.call(order, design)
       design = design[design_order, , drop = FALSE]
-      allattr$model.matrix = allattr$model.matrix[design_order, ]
+      allattr$model_matrix = allattr$model_matrix[design_order, ]
       attributes(design) = allattr
     } else {
       allattr = attributes(design)
       noaugmentdesign = design[-seq_len(nrow(augmentdesign)), , drop = FALSE]
       design_order_augment = do.call(order, noaugmentdesign)
       noaugmentdesign = noaugmentdesign[design_order_augment, , drop = FALSE]
-      noaugmentmm = allattr$model.matrix[
+      noaugmentmm = allattr$model_matrix[
         -seq_len(nrow(augmentdesign)),
         ,
         drop = FALSE
       ]
       noaugmentmm = noaugmentmm[design_order_augment, , drop = FALSE]
       rownames(noaugmentmm) = (nrow(augmentdesign) + 1):nrow(design)
-      allattr$model.matrix = rbind(augmentdesignmm, noaugmentmm)
+      allattr$model_matrix = rbind(augmentdesignmm, noaugmentmm)
       design = rbind(augmentdesign, noaugmentdesign)
       attributes(design) = allattr
     }
@@ -2283,6 +2328,12 @@ gen_design = function(
     attr(design, "augmented") = FALSE
   }
   attr(design, "candidate_set") = og_candidate_set
+  modelmatrix_cor = model.matrix(
+    model,
+    design,
+    contrasts.arg = contrastslist_cormat
+  )
+  attr(design, "model_matrix_cor") = modelmatrix_cor
   return(design)
 }
 

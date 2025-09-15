@@ -15,11 +15,11 @@ gen_design(
   repeats = 20,
   custom_v = NULL,
   varianceratio = 1,
-  contrast = contr.simplex,
+  contrasts = contr.simplex,
   aliaspower = 2,
   minDopt = 0.8,
   k = NA,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   high_resolution_candidate_set = NA,
   parallel = FALSE,
   progress = TRUE,
@@ -74,7 +74,7 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
 if no split plot design is entered.}
 
-\item{contrast}{Default `contr.simplex`, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.}
+\item{contrasts}{Default `contr.simplex`, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.}
 
 \item{aliaspower}{Default `2`. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 
@@ -87,7 +87,7 @@ in a faster search, but are less likely tofind an optimal design. Values of `k >
 search. When `k == trials`, this results in the default modified Federov's algorithm.
 A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.}
 
-\item{moment_sample_density}{Default `20`. The density of points to sample when calculating the moment matrix to
+\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to
 compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.}
 
 \item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value

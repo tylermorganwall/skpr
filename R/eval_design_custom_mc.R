@@ -167,10 +167,10 @@ eval_design_custom_mc = function(
     if (is.numeric(model) && missing(alpha)) {
       alpha = model
     }
-    if (is.null(attr(design, "generating.model"))) {
+    if (is.null(attr(design, "generating_model"))) {
       stop("skpr: No model detected in arguments or in design attributes.")
     } else {
-      model = attr(design, "generating.model")
+      model = attr(design, "generating_model")
     }
   }
   args = list(...)
@@ -227,7 +227,7 @@ eval_design_custom_mc = function(
     contrastslist = NULL
   }
 
-  ModelMatrix = model.matrix(
+  model_matrix = model.matrix(
     model,
     RunMatrixReduced,
     contrasts.arg = contrastslist
@@ -238,7 +238,7 @@ eval_design_custom_mc = function(
   generatingmodel = model
 
   if (is.null(parameternames)) {
-    parameter_names = colnames(ModelMatrix)
+    parameter_names = colnames(model_matrix)
   } else {
     parameter_names = parameternames
   }
@@ -253,11 +253,11 @@ eval_design_custom_mc = function(
     anticoef = gen_anticoef(RunMatrixReduced, model, nointercept) *
       effectsize /
       2
-    if (!("(Intercept)" %in% colnames(ModelMatrix))) {
+    if (!("(Intercept)" %in% colnames(model_matrix))) {
       anticoef = anticoef[-1]
     }
   }
-  if (length(anticoef) != dim(ModelMatrix)[2]) {
+  if (length(anticoef) != dim(model_matrix)[2]) {
     stop("skpr: Wrong number of anticipated coefficients")
   }
 
@@ -266,7 +266,7 @@ eval_design_custom_mc = function(
   progresscurrent = 1
 
   model_formula = update.formula(model, Y ~ .)
-  nparam = ncol(ModelMatrix)
+  nparam = ncol(model_matrix)
   RunMatrixReduced$Y = 1
   issued_non_convergence_warning = FALSE
   if (!parallel) {
@@ -286,7 +286,7 @@ eval_design_custom_mc = function(
     }
     for (j in seq_len(nsim)) {
       #simulate the data.
-      RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
+      RunMatrixReduced$Y = rfunction(model_matrix, anticoef)
 
       #fit a model to the simulated data.
       fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
@@ -348,7 +348,8 @@ eval_design_custom_mc = function(
             "model_formula",
             "rfunction",
             "RunMatrixReduced",
-            "model.matrix",
+            "model_matrix",
+            "model_matrix",
             "anticoef",
             "prog",
             "fitfunction",
@@ -368,9 +369,9 @@ eval_design_custom_mc = function(
           if (i %in% progressbarupdates) {
             prog(amount = nsim / num_updates)
           }
-          power_values = rep(0, ncol(ModelMatrix))
+          power_values = rep(0, ncol(model_matrix))
           #simulate the data.
-          RunMatrixReduced$Y = rfunction(ModelMatrix, anticoef)
+          RunMatrixReduced$Y = rfunction(model_matrix, anticoef)
 
           #fit a model to the simulated data.
           fit = fitfunction(model_formula, RunMatrixReduced, contrastslist)
@@ -452,7 +453,7 @@ eval_design_custom_mc = function(
     )
     power_final = rbind(effect_power_final, power_final)
   }
-  attr(power_final, "generating.model") = generatingmodel
+  attr(power_final, "generating_model") = generatingmodel
   attr(power_final, "estimatesnames") = parameter_names
   attr(power_final, "estimates") = estimates
 

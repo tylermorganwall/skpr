@@ -5,17 +5,20 @@
 \title{Fraction of Design Space Plot}
 \usage{
 plot_fds(
-  genoutput,
+  skpr_output,
   model = NULL,
   continuouslength = 1001,
   plot = TRUE,
   sample_size = 10000,
   yaxis_max = NULL,
-  description = "Fraction of Design Space"
+  moment_sample_density = 10,
+  description = "Fraction of Design Space",
+  candidate_set = NA,
+  high_resolution_candidate_set = NA
 )
 }
 \arguments{
-\item{genoutput}{The design, or the output of the power evaluation functions. This can also be a list
+\item{skpr_output}{The design, or the output of the power evaluation functions. This can also be a list
 of several designs, which will result in all of them being plotted in a row (for easy comparison).}
 
 \item{model}{Default `NULL`. The model, if `NULL` it defaults to the model used in `eval_design` or `gen_design`.}
@@ -29,7 +32,7 @@ of several designs, which will result in all of them being plotted in a row (for
 \item{yaxis_max}{Default `NULL`. Manually set the maximum value of the prediction variance.}
 
 \item{description}{Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
-passed to genoutput, it will be the description for each plot.}
+passed to skpr_output, it will be the description for each plot.}
 }
 \value{
 Plots design diagnostics, and invisibly returns the vector of values representing the fraction of design space plot. If multiple

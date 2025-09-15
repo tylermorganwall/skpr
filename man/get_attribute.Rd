@@ -10,7 +10,7 @@ get_attribute(output, attr = NULL, round = TRUE)
 \item{output}{The output of either `gen_design()` or `eval_design()`/`eval_design_mc()``}
 
 \item{attr}{Default `NULL`. Return just the specific value requested.
-Potential values are `model.matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
+Potential values are `model_matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
 `correlation.matrix`, and `model` for the model used in the evaluation/generation of the design.}
 
 \item{round}{Default `TRUE`. Rounds off values smaller than the magnitude `1e-15`` in the `correlation.matrix` and `alias.matrix` matrix attributes.}
@@ -36,7 +36,7 @@ designcoffee = gen_design(factorialcoffee, ~cost + size + type, trials = 29,
 get_attribute(designcoffee)
 
 #Get just one attribute
-get_attribute(designcoffee,"model.matrix")
+get_attribute(designcoffee,"model_matrix")
 
 # Extract from `eval_design()` output
 power_output = eval_design(designcoffee, model = ~cost + size + type,

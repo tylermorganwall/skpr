@@ -144,24 +144,15 @@ eval_design_survival_mc = function(
     if (is.numeric(model) && missing(alpha)) {
       alpha = model
     }
-    if (is.null(attr(design, "generating.model"))) {
+    if (is.null(attr(design, "generating_model"))) {
       stop("skpr: No model detected in arguments or in design attributes.")
     } else {
-      model = attr(design, "generating.model")
+      model = attr(design, "generating_model")
     }
   }
   args = list(...)
   if ("RunMatrix" %in% names(args)) {
     stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
-  }
-  #detect pre-set contrasts
-  presetcontrasts = list()
-  for (x in names(design)[
-    lapply(design, class) %in% c("character", "factor")
-  ]) {
-    if (!is.null(attr(design[[x]], "contrasts"))) {
-      presetcontrasts[[x]] = attr(design[[x]], "contrasts")
-    }
   }
 
   if (!is.null(advancedoptions)) {
@@ -186,18 +177,39 @@ eval_design_survival_mc = function(
   } else {
     nointercept = TRUE
   }
+  varianceratios = 1
+  blocking = FALSE
+  #covert to data frame
+  processed_design_traits = design_df_to_processed_list(
+    design,
+    model,
+    blocking,
+    varianceratios,
+    nointercept
+  )
+  run_matrix_processed = processed_design_traits$design_processed
+  model_processed = processed_design_traits$model_processed
+  varianceratios = processed_design_traits$varianceratios
+  zlist = processed_design_traits$zlist
 
-  #Remove skpr-generated REML blocking indicators if present
-  run_matrix_processed = remove_skpr_blockcols(design)
-
-  #covert tibbles
-  run_matrix_processed = as.data.frame(run_matrix_processed)
-
-  #----- Convert dots in formula to terms -----#
-  model = convert_model_dots(run_matrix_processed, model)
-
-  #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model, data = run_matrix_processed)
+  #detect pre-set contrasts
+  presetcontrasts = list()
+  for (x in names(design)[
+    lapply(design, class) %in% c("character", "factor")
+  ]) {
+    if (!is.null(attr(design[[x]], "contrasts"))) {
+      presetcontrasts[[x]] = attr(design[[x]], "contrasts")
+    }
+  }
+  #---Develop contrast lists for model matrix---#
+  #Variables used later: contrastslist, contrastslist_cormat
+  contrast_info = generate_contrast_list(
+    run_matrix_processed,
+    presetcontrasts,
+    contrasts
+  )
+  contrastslist = contrast_info$contrastslist
+  contrastslist_cormat = contrast_info$contrastslist_cormat
 
   contains_transform = function(expr, transform) {
     if (is.call(expr)) {
@@ -274,36 +286,15 @@ eval_design_survival_mc = function(
       }
     }
   }
+  candidate_set = attr(design, "candidate_set")
 
-  #------Normalize/Center numeric columns ------#
-  run_matrix_processed = normalize_design(run_matrix_processed)
-
-  #---------- Generating model matrix ----------#
-  #remove columns from variables not used in the model
-  RunMatrixReduced = reduceRunMatrix(run_matrix_processed, model)
-
-  contrastslist = list()
-  for (x in names(RunMatrixReduced)[
-    lapply(RunMatrixReduced, class) %in% c("character", "factor")
-  ]) {
-    if (!(x %in% names(presetcontrasts))) {
-      contrastslist[[x]] = contrasts
-      stats::contrasts(RunMatrixReduced[[x]]) = contrasts
-    } else {
-      contrastslist[[x]] = presetcontrasts[[x]]
-    }
-  }
-  if (length(contrastslist) < 1) {
-    contrastslist = NULL
-  }
-
-  ModelMatrix = model.matrix(
-    model,
-    RunMatrixReduced,
+  model_matrix = model.matrix(
+    model_processed,
+    run_matrix_processed,
     contrasts.arg = contrastslist
   )
   #We'll need the parameter and effect names for output
-  parameter_names = colnames(ModelMatrix)
+  parameter_names = colnames(model_matrix)
 
   # autogenerate anticipated coefficients
   if (!missing(anticoef) && !missing(effectsize)) {
@@ -312,18 +303,32 @@ eval_design_survival_mc = function(
     )
   }
   if (missing(anticoef)) {
-    default_coef = gen_anticoef(RunMatrixReduced, model, nointercept)
+    default_coef = gen_anticoef(
+      run_matrix_processed,
+      model_processed,
+      nointercept
+    )
     anticoef = anticoef_from_delta_surv(default_coef, effectsize, distribution)
-    if (!("(Intercept)" %in% colnames(ModelMatrix))) {
+    if (!("(Intercept)" %in% colnames(model_matrix))) {
       anticoef = anticoef[-1]
     }
   }
-  if (length(anticoef) != dim(ModelMatrix)[2]) {
+  if (length(anticoef) != dim(model_matrix)[2]) {
     stop("skpr: Wrong number of anticipated coefficients")
   }
 
-  nparam = ncol(ModelMatrix)
-  RunMatrixReduced$Y = 1
+  nparam = ncol(model_matrix)
+  run_matrix_processed$Y = 1
+
+  #---survival specific, since no contrasts arg----#
+  for (i in seq_len(ncol(run_matrix_processed))) {
+    if (inherits(run_matrix_processed[, i], c("factor", "character"))) {
+      run_matrix_processed[, i] = as.factor(run_matrix_processed[, i])
+      contrasts(run_matrix_processed[, i]) = contr.sum(nlevels(
+        as.factor(run_matrix_processed[, i])
+      ))
+    }
+  }
 
   #---------------- Run Simulations ---------------#
 
@@ -333,7 +338,7 @@ eval_design_survival_mc = function(
   pvallist = list()
   estimates = matrix(0, nrow = nsim, ncol = nparam)
   if (!parallel) {
-    power_values = rep(0, ncol(ModelMatrix))
+    power_values = rep(0, ncol(model_matrix))
     if (interactive() && progress) {
       pb = progress::progress_bar$new(
         format = sprintf(
@@ -355,13 +360,13 @@ eval_design_survival_mc = function(
       #simulate the data.
       anticoef_adjusted = anticoef
 
-      RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef_adjusted)
+      run_matrix_processed$Y = rfunctionsurv(model_matrix, anticoef_adjusted)
 
-      model_formula = update.formula(model, Y ~ .)
+      model_formula = update.formula(model_processed, Y ~ .)
       #fit a model to the simulated data.
-      surv_mat = as.matrix(RunMatrixReduced$Y)
+      surv_mat = as.matrix(run_matrix_processed$Y)
       number_censored = sum(surv_mat[, 2] == 0)
-      if (number_censored == nrow(RunMatrixReduced)) {
+      if (number_censored == nrow(run_matrix_processed)) {
         pvals = rep(1, length(parameter_names))
         names(pvals) = parameter_names
         estimates[j, ] = NA
@@ -371,7 +376,7 @@ eval_design_survival_mc = function(
           {
             fit = survival::survreg(
               model_formula,
-              data = RunMatrixReduced,
+              data = run_matrix_processed,
               dist = distribution,
               ...
             )
@@ -393,10 +398,19 @@ eval_design_survival_mc = function(
 
         #determine whether beta[i] is significant. If so, increment nsignificant
         if (!fiterror && exists("fit")) {
-          pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
+          pvals = extractPvalues(fit)[seq_len(ncol(model_matrix))]
           vals = pvals[order(factor(names(pvals), levels = parameter_names))]
           pvals[is.na(pvals)] = 1
-          stopifnot(all(names(pvals) == parameter_names))
+          if (!all(names(pvals) == parameter_names)) {
+            param_name_err = paste0(
+              sprintf("`%s` ~ `%s`", names(pvals), parameter_names),
+              collapse = "\n"
+            )
+            stop(
+              "Parameter names not equalto to pvalue names:\n",
+              param_name_err
+            )
+          }
           estimates[j, ] = coef(fit)
         } else {
           pvals = rep(1, length(parameter_names))
@@ -433,10 +447,10 @@ eval_design_survival_mc = function(
             "parameter_names",
             "progress",
             "progressbarupdates",
-            "model",
+            "model_processed",
             "distribution",
-            "RunMatrixReduced",
-            "model.matrix",
+            "run_matrix_processed",
+            "model_matrix",
             "anticoef",
             "nc",
             "prog",
@@ -457,20 +471,20 @@ eval_design_survival_mc = function(
               prog(amount = nsim / num_updates)
             }
           }
-          power_values = rep(0, ncol(ModelMatrix))
+          power_values = rep(0, ncol(model_matrix))
           #simulate the data.
 
-          RunMatrixReduced$Y = rfunctionsurv(ModelMatrix, anticoef)
+          run_matrix_processed$Y = rfunctionsurv(model_matrix, anticoef)
 
-          model_formula = update.formula(model, Y ~ .)
+          model_formula = update.formula(model_processed, Y ~ .)
 
           surv_args$formula = model_formula
-          surv_args$data = RunMatrixReduced
+          surv_args$data = run_matrix_processed
           surv_args$dist = distribution
 
-          surv_mat = as.matrix(RunMatrixReduced$Y)
+          surv_mat = as.matrix(run_matrix_processed$Y)
           number_censored = sum(surv_mat[, 2] == 0)
-          if (number_censored == nrow(RunMatrixReduced)) {
+          if (number_censored == nrow(run_matrix_processed)) {
             pvals = rep(1, length(parameter_names))
             names(pvals) = parameter_names
             estimates = rep(NA, length(parameter_names))
@@ -497,7 +511,7 @@ eval_design_survival_mc = function(
 
             #determine whether beta[i] is significant. If so, increment nsignificant
             if (!fiterror && exists("fit")) {
-              pvals = extractPvalues(fit)[seq_len(ncol(ModelMatrix))]
+              pvals = extractPvalues(fit)[seq_len(ncol(model_matrix))]
               vals = pvals[order(factor(
                 names(pvals),
                 levels = parameter_names
@@ -538,12 +552,17 @@ eval_design_survival_mc = function(
   )
   colnames(estimates) = parameter_names
   attr(results, "estimates") = estimates
-  attr(results, "model.matrix") = ModelMatrix
+  attr(results, "model_matrix") = model_matrix
   attr(results, "anticoef") = anticoef
   attr(results, "pvals") = pvals
   attr(results, "alpha") = alpha
-  attr(results, "runmatrix") = RunMatrixReduced
-
+  attr(results, "runmatrix") = run_matrix_processed
+  modelmatrix_cor = model.matrix(
+    model_processed,
+    run_matrix_processed,
+    contrasts.arg = contrastslist_cormat
+  )
+  attr(results, "model_matrix_cor") = modelmatrix_cor
   if (detailedoutput) {
     if (nrow(results) != length(anticoef)) {
       results$anticoef = c(rep(NA, nrow(results) - length(anticoef)), anticoef)
@@ -563,6 +582,9 @@ eval_design_survival_mc = function(
   if (!inherits(results, "skpr_eval_output")) {
     class(results) = c("skpr_eval_output", class(results))
   }
+  attr(results, "candidate_set") = candidate_set
+  attr(results, "contrastslist") = contrastslist
+
   return(results)
 }
 globalVariables("i")

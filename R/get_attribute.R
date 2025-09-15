@@ -4,7 +4,7 @@
 #'
 #'@param output The output of either `gen_design()` or `eval_design()`/`eval_design_mc()``
 #'@param attr Default `NULL`. Return just the specific value requested.
-#'Potential values are `model.matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
+#'Potential values are `model_matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
 #'`correlation.matrix`, and `model` for the model used in the evaluation/generation of the design.
 #'@param round Default `TRUE`. Rounds off values smaller than the magnitude `1e-15`` in the `correlation.matrix` and `alias.matrix` matrix attributes.
 #'@return A list of attributes.
@@ -24,7 +24,7 @@
 #'get_attribute(designcoffee)
 #'
 #'#Get just one attribute
-#'get_attribute(designcoffee,"model.matrix")
+#'get_attribute(designcoffee,"model_matrix")
 #'
 #'# Extract from `eval_design()` output
 #'power_output = eval_design(designcoffee, model = ~cost + size + type,
@@ -33,14 +33,14 @@
 #'get_attribute(power_output,"correlation.matrix")
 get_attribute = function(output, attr = NULL, round = TRUE) {
   attr_list = list()
-  attr_list[["model.matrix"]] = attr(output, "model.matrix")
+  attr_list[["model_matrix"]] = attr(output, "model_matrix")
   attr_list[["moments.matrix"]] = attr(output, "moments.matrix")
   attr_list[["variance.matrix"]] = attr(output, "variance.matrix")
   if (!is.null(attr(output, "alias.matrix"))) {
     attr_list[["alias.matrix"]] = attr(output, "alias.matrix")
   }
   attr_list[["correlation.matrix"]] = attr(output, "correlation.matrix")
-  attr_list[["model"]] = attr(output, "generating.model")
+  attr_list[["model"]] = attr(output, "generating_model")
   if (round) {
     attr_list[["correlation.matrix"]][
       abs(attr_list[["correlation.matrix"]]) < 1e-15
@@ -54,7 +54,7 @@ get_attribute = function(output, attr = NULL, round = TRUE) {
     if (
       !attr %in%
         c(
-          "model.matrix",
+          "model_matrix",
           "moments.matrix",
           "variance.matrix",
           "alias.matrix",
@@ -68,7 +68,7 @@ get_attribute = function(output, attr = NULL, round = TRUE) {
         "` not in ",
         paste0(
           c(
-            "model.matrix",
+            "model_matrix",
             "moments.matrix",
             "variance.matrix",
             "alias.matrix",

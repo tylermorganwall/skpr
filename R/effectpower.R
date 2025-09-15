@@ -25,29 +25,29 @@ effectpower = function(
 
   for (i in 1:(length(g) - 1)) {
     L[[i]] = genparammatrix(
-      dim(attr(RunMatrix, "model.matrix"))[2],
+      dim(attr(RunMatrix, "model_matrix"))[2],
       levelvector[i],
       g[i]
     )
   }
   if (is.null(degrees)) {
     degrees = rep(
-      dim(attr(RunMatrix, "model.matrix"))[1] -
-        dim(attr(RunMatrix, "model.matrix"))[2],
+      dim(attr(RunMatrix, "model_matrix"))[1] -
+        dim(attr(RunMatrix, "model_matrix"))[2],
       length(L)
     )
   } else {
-    degrees[is.na(degrees)] = dim(attr(RunMatrix, "model.matrix"))[1] -
-      dim(attr(RunMatrix, "model.matrix"))[2]
+    degrees[is.na(degrees)] = dim(attr(RunMatrix, "model_matrix"))[1] -
+      dim(attr(RunMatrix, "model_matrix"))[2]
   }
   power = c(length(L))
   for (j in 1:length(L)) {
     if (degrees[j] != 0) {
       power[j] = calculatepower(
-        attr(RunMatrix, "model.matrix"),
+        attr(RunMatrix, "model_matrix"),
         L[[j]],
         calcnoncentralparam(
-          attr(RunMatrix, "model.matrix"),
+          attr(RunMatrix, "model_matrix"),
           L[[j]],
           anticoef,
           vinv = vinv

@@ -6,7 +6,7 @@
 #'@return Vector of conservative anticipated coefficients
 #'@keywords internal
 calc_conservative_anticoef = function(results, effectsize) {
-  groupvars = attr(attr(results, "model.matrix"), "assign")
+  groupvars = attr(attr(results, "model_matrix"), "assign")
   uniquevars = unique(groupvars)
   orderedunique = uniquevars[order(uniquevars)]
   parresults = results[results$type == "parameter.power", ]

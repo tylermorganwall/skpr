@@ -20,7 +20,7 @@ calculate_gefficiency = function(
     randsearches = 10000
   }
   variables = all.vars(get_attribute(design, "model"))
-  designmm = get_attribute(design, "model.matrix")
+  designmm = get_attribute(design, "model_matrix")
   modelentries = names(calculate_level_vector(
     run_matrix,
     get_attribute(design, "model"),

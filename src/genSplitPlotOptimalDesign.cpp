@@ -118,7 +118,7 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
   }
   // If still no non-singular design, returns NA.
   if (isSingularBlocked(combinedDesign,vInv)) {
-    return(List::create(_["indices"] = NumericVector::get_na(), _["model.matrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
+    return(List::create(_["indices"] = NumericVector::get_na(), _["model_matrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
   // Checks for disallowed combinations, and marks those points as `mustchange` during the search if found
   if(anydisallowed) {
@@ -866,5 +866,5 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
-  return(List::create(_["indices"] = candidateRow, _["model.matrix"] = combinedDesign, _["criterion"] = newOptimum));
+  return(List::create(_["indices"] = candidateRow, _["model_matrix"] = combinedDesign, _["criterion"] = newOptimum));
 }

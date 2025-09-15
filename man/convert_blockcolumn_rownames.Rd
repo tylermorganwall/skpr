@@ -4,15 +4,10 @@
 \alias{convert_blockcolumn_rownames}
 \title{Convert Block Column to Rownames}
 \usage{
-convert_blockcolumn_rownames(
-  RunMatrix,
-  blocking,
-  varianceratios,
-  verbose = FALSE
-)
+convert_blockcolumn_rownames(design, blocking, varianceratios, verbose = FALSE)
 }
 \arguments{
-\item{RunMatrix}{The run matrix}
+\item{design}{The run matrix}
 
 \item{blocking}{Whether random effects should be included.}
 

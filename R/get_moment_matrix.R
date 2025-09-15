@@ -11,11 +11,14 @@ get_moment_matrix = function(
   classvector = NA,
   candidate_set_normalized = NA,
   model = ~.,
-  moment_sample_density = 20,
+  moment_sample_density = 10,
   high_resolution_candidate_set = NA
 ) {
   if (all(is.na(design))) {
-    if(all(is.na(candidate_set_normalized)) && all(is.na(high_resolution_candidate_set))) {
+    if (
+      all(is.na(candidate_set_normalized)) &&
+        all(is.na(high_resolution_candidate_set))
+    ) {
       stop("Bug: This branch should never be reached.")
     }
     # We are calculating the moment matrix for the first time
@@ -25,7 +28,7 @@ get_moment_matrix = function(
     if (all(classvector) || !any_disallowed) {
       mm = gen_momentsmatrix_ideal(factors, classvector)
     } else {
-      if(all(is.na(high_resolution_candidate_set))) {
+      if (all(is.na(high_resolution_candidate_set))) {
         #If any disallowed and there are any numeric cols, use convex hull
         if (any_disallowed) {
           warning(
@@ -37,13 +40,11 @@ get_moment_matrix = function(
           if (!all(classvector)) {
             #Hash the inputs so we only have to calculate the moment matrix once for a given input
             hash_mm = digest::digest(list(
-              attr(terms.formula(model),"factors"), #Use the factor matrix to avoid spurious changes related to capture environments
+              attr(terms.formula(model), "factors"), #Use the factor matrix to avoid spurious changes related to capture environments
               candidate_set_normalized,
               moment_sample_density
             ))
-            if (
-              !exists(hash_mm, envir = skpr_moment_matrix_cache)
-            ) {
+            if (!exists(hash_mm, envir = skpr_moment_matrix_cache)) {
               mm = gen_momentsmatrix_constrained(
                 formula = model,
                 candidate_set = candidate_set_normalized,
@@ -67,7 +68,9 @@ get_moment_matrix = function(
           stop("Bug: This branch should never be reached.")
         }
       } else {
-        high_resolution_candidate_set_norm = normalize_design(high_resolution_candidate_set)
+        high_resolution_candidate_set_norm = normalize_design(
+          high_resolution_candidate_set
+        )
         mm = gen_momentsmatrix_constrained(
           formula = model,
           candidate_set = high_resolution_candidate_set_norm,
@@ -79,9 +82,9 @@ get_moment_matrix = function(
   } else {
     # Otherwise, we check for an existing one and only calculate it if need be
     imported_mm = FALSE
-    if (!is.null(attr(design, "generating.model"))) {
+    if (!is.null(attr(design, "generating_model"))) {
       og_design_factors = attr(
-        terms.formula(attr(design, "generating.model")),
+        terms.formula(attr(design, "generating_model")),
         "factors"
       )
       new_model_factors = attr(terms.formula(model), "factors")
@@ -93,7 +96,10 @@ get_moment_matrix = function(
           colnames(og_design_factors) == colnames(new_model_factors)
         )
         if (identical_interactions && identical_main_effects) {
-          if(all(!is.na(attr(design, "moments.matrix")))) {
+          if (
+            all(!is.na(attr(design, "moments.matrix"))) &&
+              all(!is.null(attr(design, "moments.matrix")))
+          ) {
             mm = attr(design, "moments.matrix")
             imported_mm = TRUE
           }
@@ -113,8 +119,13 @@ get_moment_matrix = function(
           mm = NA
         } else {
           #Calculate a dense sampling based off the convex hull: This is slow
-          candidate_set_normalized = normalize_design(attr(design, "candidate_set"))
-          any_disallowed = detect_disallowed_combinations(candidate_set_normalized)
+          candidate_set_normalized = normalize_design(attr(
+            design,
+            "candidate_set"
+          ))
+          any_disallowed = detect_disallowed_combinations(
+            candidate_set_normalized
+          )
 
           if (any_disallowed) {
             warning(
@@ -126,13 +137,11 @@ get_moment_matrix = function(
             if (!all(classvector)) {
               #Hash the inputs so we only have to calculate the moment matrix once for a given input
               hash_mm = digest::digest(list(
-                attr(terms.formula(model),"factors"), #Use the factor matrix to avoid spurious changes related to capture environments
+                attr(terms.formula(model), "factors"), #Use the factor matrix to avoid spurious changes related to capture environments
                 candidate_set_normalized,
                 moment_sample_density
               ))
-              if (
-                !exists(hash_mm, envir = skpr_moment_matrix_cache)
-              ) {
+              if (!exists(hash_mm, envir = skpr_moment_matrix_cache)) {
                 mm = gen_momentsmatrix_constrained(
                   formula = model,
                   candidate_set = candidate_set_normalized,
@@ -161,7 +170,9 @@ get_moment_matrix = function(
           }
         }
       } else {
-        high_resolution_candidate_set_norm = normalize_design(high_resolution_candidate_set)
+        high_resolution_candidate_set_norm = normalize_design(
+          high_resolution_candidate_set
+        )
         mm = gen_momentsmatrix_constrained(
           formula = model,
           candidate_set = high_resolution_candidate_set_norm,

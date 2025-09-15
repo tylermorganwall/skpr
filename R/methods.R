@@ -83,7 +83,7 @@ print.skpr_eval_output = function(x, ...) {
   cat(
     generate_text(
       "Evaluating Model",
-      paste(as.character(attr(x, "generating.model")), collapse = "")
+      paste(as.character(attr(x, "generating_model")), collapse = "")
     ),
     sep = "\n"
   )

@@ -2,7 +2,7 @@
 #'
 #'@description Plots design diagnostics
 #'
-#'@param genoutput The output of either gen_design or eval_design/eval_design_mc
+#'@param skpr_output The output of either gen_design or eval_design/eval_design_mc
 #'@param model Default `NULL`. Defaults to the model used in generating/evaluating
 #'the design, augmented with 2-factor interactions. If specified, it will override the default
 #'model used to generate/evaluate the design.
@@ -35,7 +35,7 @@
 #'plot_correlations(cardesign, customcolors = c("blue", "grey", "red"))
 #'plot_correlations(cardesign, customcolors = c("blue", "green", "yellow", "orange", "red"))
 plot_correlations = function(
-  genoutput,
+  skpr_output,
   model = NULL,
   customcolors = NULL,
   pow = 2,
@@ -44,49 +44,51 @@ plot_correlations = function(
   plot = TRUE
 ) {
   #Remove skpr-generated REML blocking indicators if present
-  if (!is.null(attr(genoutput, "splitanalyzable"))) {
-    if (attr(genoutput, "splitanalyzable")) {
-      allattr = attributes(genoutput)
-      remove_cols = which(colnames(genoutput) %in% allattr$splitcolumns)
+  if (!is.null(attr(skpr_output, "splitanalyzable"))) {
+    if (attr(skpr_output, "splitanalyzable")) {
+      allattr = attributes(skpr_output)
+      remove_cols = which(colnames(skpr_output) %in% allattr$splitcolumns)
       if (length(remove_cols) > 0) {
-        genoutput = genoutput[, -remove_cols, drop = FALSE]
+        skpr_output = skpr_output[, -remove_cols, drop = FALSE]
         allattr$names = allattr$names[-remove_cols]
       }
-      attributes(genoutput) = allattr
+      attributes(skpr_output) = allattr
     }
   }
-  if (!is.null(attr(genoutput, "splitcolumns"))) {
-    allattr = attributes(genoutput)
-    genoutput = genoutput[,
-      !(colnames(genoutput) %in% attr(genoutput, "splitcolumns")),
+  if (!is.null(attr(skpr_output, "splitcolumns"))) {
+    allattr = attributes(skpr_output)
+    skpr_output = skpr_output[,
+      !(colnames(skpr_output) %in% attr(skpr_output, "splitcolumns")),
       drop = FALSE
     ]
     allattr$names = allattr$names[
-      !allattr$names %in% attr(genoutput, "splitcolumns")
+      !allattr$names %in% attr(skpr_output, "splitcolumns")
     ]
-    attributes(genoutput) = allattr
+    attributes(skpr_output) = allattr
   }
-  if (!is.null(attr(genoutput, "augmented"))) {
-    if (attr(genoutput, "augmented")) {
-      allattr = attributes(genoutput)
-      genoutput = genoutput[,
-        !(colnames(genoutput) %in% "Block1"),
+  if (!is.null(attr(skpr_output, "augmented"))) {
+    if (attr(skpr_output, "augmented")) {
+      allattr = attributes(skpr_output)
+      skpr_output = skpr_output[,
+        !(colnames(skpr_output) %in% "Block1"),
         drop = FALSE
       ]
       allattr$names = allattr$names[!allattr$names %in% "Block1"]
-      attributes(genoutput) = allattr
+      attributes(skpr_output) = allattr
     }
   }
-  if (is.null(attr(genoutput, "variance.matrix"))) {
-    genoutput = eval_design(genoutput, model, 0.2)
+  if (is.null(attr(skpr_output, "variance.matrix"))) {
+    skpr_output = eval_design(skpr_output, model, 0.2)
   }
-  V = attr(genoutput, "variance.matrix")
+  V = attr(skpr_output, "variance.matrix")
+  #Maybe add candidate set to the attributes,
+  if (!is.null(attr(skpr_output, "runmatrix"))) {
+    design = attr(skpr_output, "runmatrix")
+  } else {
+    design = skpr_output
+  }
   if (is.null(model)) {
-    if (!is.null(attr(genoutput, "runmatrix"))) {
-      variables = paste0("`", colnames(attr(genoutput, "runmatrix")), "`")
-    } else {
-      variables = paste0("`", colnames(genoutput), "`")
-    }
+    variables = paste0("`", colnames(design), "`")
     linearterms = paste(variables, collapse = " + ")
     linearmodel = paste0(c("~", linearterms), collapse = "")
     model1 = as.formula(paste(
@@ -96,13 +98,13 @@ plot_correlations = function(
       ),
       collapse = " + "
     ))
-    if (!is.null(attr(genoutput, "generating.model"))) {
+    if (!is.null(attr(skpr_output, "generating_model"))) {
       modelfactors = colnames(attr(
-        terms.formula(attr(genoutput, "generating.model")),
+        terms.formula(attr(skpr_output, "generating_model"), data = design),
         "factors"
       ))
       quadmodelfactors = colnames(attr(
-        terms.formula(model1, "factors"),
+        terms.formula(model1, "factors", data = design),
         "factors"
       ))
       otherterms = modelfactors[!modelfactors %in% quadmodelfactors]
@@ -111,11 +113,9 @@ plot_correlations = function(
       model = model1
     }
   }
-  if (!is.null(attr(genoutput, "runmatrix"))) {
-    genoutput = attr(genoutput, "runmatrix")
-  }
-  factornames = colnames(genoutput)[
-    unlist(lapply(genoutput, class)) %in% c("factor", "character")
+
+  factornames = colnames(design)[
+    unlist(lapply(design, class)) %in% c("factor", "character")
   ]
   if (length(factornames) > 0) {
     contrastlist = list()
@@ -127,16 +127,16 @@ plot_correlations = function(
   }
   #------Normalize/Center numeric columns ------#
   if (standardize) {
-    for (column in 1:ncol(genoutput)) {
-      if (is.numeric(genoutput[, column])) {
-        midvalue = mean(c(max(genoutput[, column]), min(genoutput[, column])))
-        genoutput[, column] = (genoutput[, column] - midvalue) /
-          (max(genoutput[, column]) - midvalue)
+    for (column in seq_len(ncol(skpr_output))) {
+      if (is.numeric(design[, column])) {
+        midvalue = mean(c(max(design[, column]), min(design[, column])))
+        design[, column] = (design[, column] - midvalue) /
+          (max(design[, column]) - midvalue)
       }
     }
   }
 
-  mm = model.matrix(model, genoutput, contrasts.arg = contrastlist)
+  mm = model.matrix(model, design, contrasts.arg = contrastlist)
   #Generate pseudo inverse as it's likely the model matrix will be singular with extra terms
   cormat = abs(cov2cor(getPseudoInverse(t(mm) %*% solve(V) %*% mm))[-1, -1])
   if (!plot) {

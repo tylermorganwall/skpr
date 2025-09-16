@@ -2,10 +2,10 @@
 #'
 #'@description Returns a list of optimality values (or one value in particular).
 #'
-#'Note: The choice of contrast will effect the `G` efficiency value, and `gen_design()`
-#'and `eval_design()` by default set different contrasts (`contr.simplex` vs `contr.sum`).
+#'Note: The choice of contrast will effect the `G` efficiency value, and [gen_design()]
+#'and [eval_design()] by default set different contrasts ([contr.simplex()] vs `contr.sum`).
 #'
-#'@param output The output of either gen_design or eval_design/eval_design_mc.
+#'@param output The output of either [gen_design()], [eval_design()], or [eval_design_mc()].
 #'@param optimality Default `NULL`. Return just the specific optimality requested.
 #'@param calc_g Default `FALSE`. Whether to calculate the g-efficiency.
 #'@return A dataframe of optimality conditions. `D`, `A`, and `G` are efficiencies (value is out of 100).

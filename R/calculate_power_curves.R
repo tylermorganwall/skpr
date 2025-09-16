@@ -6,17 +6,17 @@
 #' @param trials A numeric vector indicating the trial(s) used when computing the power curve. If a single
 #' value, this will be fixed and only `effectsize` will be varied.
 #' @param effectsize  Default `1`. A numeric vector indicating the effect size(s) used when computing the power curve. If a single
-#' value, this will be fixed and only `trials` will be varied. If using a length-2 effect size with `eval_design_mc()` (such as
+#' value, this will be fixed and only `trials` will be varied. If using a length-2 effect size with [eval_design_mc()] (such as
 #' a binomial probability interval), the effect size pairs can be input as entries in a list.
-#' @param candidateset Default `NULL`. The candidate set (see `gen_design()` documentation for more information). Provided to aid code completion: can also
+#' @param candidateset Default `NULL`. The candidate set (see [gen_design()] documentation for more information). Provided to aid code completion: can also
 #' be provided in `gen_args`.
-#' @param model Default `NULL`. The model (see `gen_design()` and `eval_design()` documentation for more information). Provided to aid code completion: can also
+#' @param model Default `NULL`. The model (see [gen_design()] and [eval_design()] documentation for more information). Provided to aid code completion: can also
 #' be provided in `gen_args`/`eval_args`.
-#' @param alpha Default `0.05`. The allowable Type-I error rate (see `eval_design()` documentation for more information). Provided to aid code completion: can also
+#' @param alpha Default `0.05`. The allowable Type-I error rate (see [eval_design()] documentation for more information). Provided to aid code completion: can also
 #' be provided in `eval_args`.
-#' @param gen_args Default `list()`. A list of argument/value pairs to specify the design generation parameters for `gen_design()`.
-#' @param eval_function Default `"eval_design"`. A string (or function) specifying the skpr power evaluation function.
-#' Can also be `"eval_design_mc"`, `"eval_design_survival_mc"`, and `"eval_design_custom_mc"`.
+#' @param gen_args Default `list()`. A list of argument/value pairs to specify the design generation parameters for [gen_design()].
+#' @param eval_function Default `"eval_design"`. A string (or function) specifying the skpr power evaluation function
+#' (e.g. [eval_design()], [eval_design_mc()], [eval_design_survival_mc()], or [eval_design_custom_mc()]).
 #' @param eval_args Default `list()`. A list of argument/value pairs to specify the design power evaluation parameters for `eval_function`.
 #' @param random_seed Default `123`. The random seed used to generate and then evaluate the design. The seed is set right before design generation.
 #' @param iterate_seed Default `FALSE`. This will iterate the random seed with each new design. Set this to `TRUE` to add more variability to the design generation process.
@@ -664,9 +664,9 @@ globalVariables(c("parameter", "effectsize_high", "effectsize_low"))
 
 #'@title Get Power Curve Warnings and Errors
 #'
-#'@description Gets the warnings and errors from `calculate_power_curves()` output.
+#'@description Gets the warnings and errors from [calculate_power_curves()] output.
 #'
-#'@param power_curve The output from `calculate_power_curves()`
+#'@param power_curve The output from [calculate_power_curves()]
 #'@return A list of data.frames containing warning/error information
 #'
 #'@export

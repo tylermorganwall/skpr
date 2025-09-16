@@ -27,22 +27,22 @@ calculate_power_curves(
 value, this will be fixed and only `effectsize` will be varied.}
 
 \item{effectsize}{Default `1`. A numeric vector indicating the effect size(s) used when computing the power curve. If a single
-value, this will be fixed and only `trials` will be varied. If using a length-2 effect size with `eval_design_mc()` (such as
+value, this will be fixed and only `trials` will be varied. If using a length-2 effect size with [eval_design_mc()] (such as
 a binomial probability interval), the effect size pairs can be input as entries in a list.}
 
-\item{candidateset}{Default `NULL`. The candidate set (see `gen_design()` documentation for more information). Provided to aid code completion: can also
+\item{candidateset}{Default `NULL`. The candidate set (see [gen_design()] documentation for more information). Provided to aid code completion: can also
 be provided in `gen_args`.}
 
-\item{model}{Default `NULL`. The model (see `gen_design()` and `eval_design()` documentation for more information). Provided to aid code completion: can also
+\item{model}{Default `NULL`. The model (see [gen_design()] and [eval_design()] documentation for more information). Provided to aid code completion: can also
 be provided in `gen_args`/`eval_args`.}
 
-\item{alpha}{Default `0.05`. The allowable Type-I error rate (see `eval_design()` documentation for more information). Provided to aid code completion: can also
+\item{alpha}{Default `0.05`. The allowable Type-I error rate (see [eval_design()] documentation for more information). Provided to aid code completion: can also
 be provided in `eval_args`.}
 
-\item{gen_args}{Default `list()`. A list of argument/value pairs to specify the design generation parameters for `gen_design()`.}
+\item{gen_args}{Default `list()`. A list of argument/value pairs to specify the design generation parameters for [gen_design()].}
 
-\item{eval_function}{Default `"eval_design"`. A string (or function) specifying the skpr power evaluation function.
-Can also be `"eval_design_mc"`, `"eval_design_survival_mc"`, and `"eval_design_custom_mc"`.}
+\item{eval_function}{Default `"eval_design"`. A string (or function) specifying the skpr power evaluation function
+(e.g. [eval_design()], [eval_design_mc()], [eval_design_survival_mc()], or [eval_design_custom_mc()]).}
 
 \item{eval_args}{Default `list()`. A list of argument/value pairs to specify the design power evaluation parameters for `eval_function`.}
 

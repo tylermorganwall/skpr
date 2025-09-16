@@ -38,7 +38,7 @@
 #'@param varianceratio Default `1`. The ratio between the block and run-to-run variance for a given stratum in
 #'a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
 #'if no split plot design is entered.
-#'@param contrasts Default `contr.simplex`, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.
+#'@param contrasts Default [contr.simplex()], an orthonormal sum contrast. Function used to generate the encoding for categorical variables.
 #'@param aliaspower Default `2`. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.
 #'@param minDopt Default `0.8`. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.
 #'@param k Default `NA`. For D-optimal designs, this changes the search to a k-exchange algorithm
@@ -75,7 +75,7 @@
 #'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 #'@param timer Deprecated: Use `progress` instead.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-#'information in its attributes, which can be accessed with the `get_attributes()` and `get_optimality()` functions.
+#'information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.
 #'@import doRNG future
 #'@export
 #'@details

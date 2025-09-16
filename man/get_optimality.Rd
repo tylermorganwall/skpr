@@ -7,7 +7,7 @@
 get_optimality(output, optimality = NULL, calc_g = FALSE)
 }
 \arguments{
-\item{output}{The output of either gen_design or eval_design/eval_design_mc.}
+\item{output}{The output of either [gen_design()], [eval_design()], or [eval_design_mc()].}
 
 \item{optimality}{Default `NULL`. Return just the specific optimality requested.}
 
@@ -21,8 +21,8 @@ A dataframe of optimality conditions. `D`, `A`, and `G` are efficiencies (value 
 \description{
 Returns a list of optimality values (or one value in particular).
 
-Note: The choice of contrast will effect the `G` efficiency value, and `gen_design()`
-and `eval_design()` by default set different contrasts (`contr.simplex` vs `contr.sum`).
+Note: The choice of contrast will effect the `G` efficiency value, and [gen_design()]
+and [eval_design()] by default set different contrasts ([contr.simplex()] vs `contr.sum`).
 }
 \examples{
 # We can extract the optimality of a design from either the output of `gen_design()`

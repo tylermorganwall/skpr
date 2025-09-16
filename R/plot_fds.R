@@ -4,7 +4,7 @@
 #'
 #'@param skpr_output The design, or the output of the power evaluation functions. This can also be a list
 #'of several designs, which will result in all of them being plotted in a row (for easy comparison).
-#'@param model Default `NULL`. The model, if `NULL` it defaults to the model used in `eval_design` or `gen_design`.
+#'@param model Default `NULL`. The model, if `NULL` it defaults to the model used in [eval_design()] or [gen_design()].
 #'@param continuouslength Default `11`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.
 #'@param plot Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.
 #'@param sample_size Default `10000`. Number of samples to take of the design space.

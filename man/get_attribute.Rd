@@ -7,7 +7,7 @@
 get_attribute(output, attr = NULL, round = TRUE)
 }
 \arguments{
-\item{output}{The output of either `gen_design()` or `eval_design()`/`eval_design_mc()``}
+\item{output}{The output of either [gen_design()], [eval_design()], or [eval_design_mc()].}
 
 \item{attr}{Default `NULL`. Return just the specific value requested.
 Potential values are `model_matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,

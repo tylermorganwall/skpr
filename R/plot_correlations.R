@@ -2,7 +2,7 @@
 #'
 #'@description Plots design diagnostics
 #'
-#'@param skpr_output The output of either gen_design or eval_design/eval_design_mc
+#'@param skpr_output The output of either [gen_design()], [eval_design()], or [eval_design_mc()].
 #'@param model Default `NULL`. Defaults to the model used in generating/evaluating
 #'the design, augmented with 2-factor interactions. If specified, it will override the default
 #'model used to generate/evaluate the design.

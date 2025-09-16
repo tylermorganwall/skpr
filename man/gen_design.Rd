@@ -74,7 +74,7 @@ The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)
 a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
 if no split plot design is entered.}
 
-\item{contrasts}{Default `contr.simplex`, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.}
+\item{contrasts}{Default [contr.simplex()], an orthonormal sum contrast. Function used to generate the encoding for categorical variables.}
 
 \item{aliaspower}{Default `2`. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 
@@ -124,7 +124,7 @@ or a data.frame defining the exact points of the design space if `g_efficiency_m
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-information in its attributes, which can be accessed with the `get_attributes()` and `get_optimality()` functions.
+information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.
 }
 \description{
 Creates an experimental design given a model, desired number of runs, and a data frame of candidate

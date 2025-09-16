@@ -76,7 +76,7 @@ a data frame of parameter powers.</p>
 
 <dl><dt id="arg-design">design<a class="anchor" aria-label="anchor" href="#arg-design"></a></dt>
 <dd><p>The experimental design. Internally, <code>eval_design_custom_mc</code> rescales each numeric column
-to the range [-1, 1].</p></dd>
+to the range -1, 1.</p></dd>
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
@@ -87,7 +87,7 @@ factors that are not present in the experimental design.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
-<dd><p>Default `0.05`. The type-I error. p-values less than this will be counted as significant.</p></dd>
+<dd><p>Default <code>0.05</code>. The type-I error. p-values less than this will be counted as significant.</p></dd>
 
 
 <dt id="arg-nsim">nsim<a class="anchor" aria-label="anchor" href="#arg-nsim"></a></dt>
@@ -132,13 +132,13 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 
 <dt id="arg-calceffect">calceffect<a class="anchor" aria-label="anchor" href="#arg-calceffect"></a></dt>
-<dd><p>Default `FALSE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
+<dd><p>Default <code>FALSE</code>. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata. To work, the
-fit returned by `fitfunction` must have a method compatable with the car package.</p></dd>
+fit returned by <code>fitfunction</code> must have a method compatable with the car package.</p></dd>
 
 
 <dt id="arg-detailedoutput">detailedoutput<a class="anchor" aria-label="anchor" href="#arg-detailedoutput"></a></dt>
-<dd><p>Default `FALSE`. If `TRUE`, return additional information about evaluation in results.</p></dd>
+<dd><p>Default <code>FALSE</code>. If <code>TRUE</code>, return additional information about evaluation in results.</p></dd>
 
 
 <dt id="arg-parameternames">parameternames<a class="anchor" aria-label="anchor" href="#arg-parameternames"></a></dt>
@@ -147,20 +147,20 @@ fit returned by `fitfunction` must have a method compatable with the car package
 
 
 <dt id="arg-advancedoptions">advancedoptions<a class="anchor" aria-label="anchor" href="#arg-advancedoptions"></a></dt>
-<dd><p>Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
-user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test–other options are likelyhood-ratio `LR` and F-test `F`.
-`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
-set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.</p></dd>
+<dd><p>Default <code>NULL</code>. Named list of advanced options. <code>advancedoptions$anovatype</code> specifies the Anova type in the car package (default type <code>III</code>),
+user can change to type <code>II</code>). <code>advancedoptions$anovatest</code> specifies the test statistic if the user does not want a <code>Wald</code> test–other options are likelyhood-ratio <code>LR</code> and F-test <code>F</code>.
+<code>advancedoptions$progressBarUpdater</code> is a function called in non-parallel simulations that can be used to update external progress bar.<code>advancedoptions$GUI</code> turns off some warning messages when in the GUI.
+If <code>advancedoptions$save_simulated_responses = TRUE</code>, the dataframe will have an attribute <code>simulated_responses</code> that contains the simulated responses from the power evaluation. <code>advancedoptions$ci_error_conf</code> will
+set the confidence level for power intervals, which are printed when <code>detailedoutput = TRUE</code>.</p></dd>
 
 
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>
-<dd><p>Default `TRUE`. Whether to include a progress bar.</p></dd>
+<dd><p>Default <code>TRUE</code>. Whether to include a progress bar.</p></dd>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
-If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+<dd><p>Default <code>FALSE</code>. If <code>TRUE</code>, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting <code>options("cores")</code> to the desired number (e.g. <code>options("cores" = parallel::detectCores())</code>).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 

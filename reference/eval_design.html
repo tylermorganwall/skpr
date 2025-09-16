@@ -78,7 +78,7 @@ assumes a signal-to-noise ratio of 2, but this can be changed with the
 
 <dl><dt id="arg-design">design<a class="anchor" aria-label="anchor" href="#arg-design"></a></dt>
 <dd><p>The experimental design. Internally, <code>eval_design</code> rescales each numeric column
-to the range [-1, 1], so you do not need to do this scaling manually.</p></dd>
+to the range -1, 1, so you do not need to do this scaling manually.</p></dd>
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
@@ -89,11 +89,11 @@ factors that are not present in the experimental design.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
-<dd><p>Default `0.05`. The specified type-I error.</p></dd>
+<dd><p>Default <code>0.05</code>. The specified type-I error.</p></dd>
 
 
 <dt id="arg-blocking">blocking<a class="anchor" aria-label="anchor" href="#arg-blocking"></a></dt>
-<dd><p>Default `NULL`. If `TRUE`, <code>eval_design</code> will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.</p></dd>
+<dd><p>Default <code>NULL</code>. If <code>TRUE</code>, <code>eval_design</code> will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.</p></dd>
 
 
 <dt id="arg-anticoef">anticoef<a class="anchor" aria-label="anchor" href="#arg-anticoef"></a></dt>
@@ -102,14 +102,14 @@ will be automatically generated based on the <code>effectsize</code> argument.</
 
 
 <dt id="arg-effectsize">effectsize<a class="anchor" aria-label="anchor" href="#arg-effectsize"></a></dt>
-<dd><p>Default `2`. The signal-to-noise ratio. For continuous factors, this specifies the
+<dd><p>Default <code>2</code>. The signal-to-noise ratio. For continuous factors, this specifies the
 difference in response between the highest and lowest levels of the factor (which are -1 and +1 after <code>eval_design</code>
 normalizes the input data), assuming that the root mean square error is 1. If you do not specify <code>anticoef</code>,
 the anticipated coefficients will be half of <code>effectsize</code>. If you do specify <code>anticoef</code>, <code>effectsize</code> will be ignored.</p></dd>
 
 
 <dt id="arg-varianceratios">varianceratios<a class="anchor" aria-label="anchor" href="#arg-varianceratios"></a></dt>
-<dd><p>Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
+<dd><p>Default <code>NULL</code>. The ratio of the whole plot variance to the run-to-run variance.
 If not specified during design generation, this will default to 1. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
 Otherwise, it will use a single value for all strata.</p></dd>
@@ -117,20 +117,20 @@ Otherwise, it will use a single value for all strata.</p></dd>
 
 <dt id="arg-contrasts">contrasts<a class="anchor" aria-label="anchor" href="#arg-contrasts"></a></dt>
 <dd><p>Default <code>contr.sum</code>. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use `contr.sum`.</p></dd>
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use <code>contr.sum</code>.</p></dd>
 
 
 <dt id="arg-conservative">conservative<a class="anchor" aria-label="anchor" href="#arg-conservative"></a></dt>
 <dd><p>Specifies whether default method for generating
-anticipated coefficents should be conservative or not. `TRUE` will give the most conservative
+anticipated coefficents should be conservative or not. <code>TRUE</code> will give the most conservative
 estimate of power by setting all but one (or multiple if they are equally low) level in each categorical factor's anticipated coefficients
-to zero. Default `FALSE`.</p></dd>
+to zero. Default <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-reorder-factors">reorder_factors<a class="anchor" aria-label="anchor" href="#arg-reorder-factors"></a></dt>
-<dd><p>Default `FALSE`. If `TRUE`, the levels will be reordered to generate the most conservative calculation of effect power.
+<dd><p>Default <code>FALSE</code>. If <code>TRUE</code>, the levels will be reordered to generate the most conservative calculation of effect power.
 The function searches through all possible reference levels for a given factor and chooses the one that results in the lowest effect power.
-The reordering will be presenting in the output when `detailedoutput = TRUE`.</p></dd>
+The reordering will be presenting in the output when <code>detailedoutput = TRUE</code>.</p></dd>
 
 
 <dt id="arg-detailedoutput">detailedoutput<a class="anchor" aria-label="anchor" href="#arg-detailedoutput"></a></dt>
@@ -138,12 +138,12 @@ The reordering will be presenting in the output when `detailedoutput = TRUE`.</p
 
 
 <dt id="arg-advancedoptions">advancedoptions<a class="anchor" aria-label="anchor" href="#arg-advancedoptions"></a></dt>
-<dd><p>Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
+<dd><p>Default <code>NULL</code>. A named list with parameters to specify additional attributes to calculate. Options: <code>aliaspower</code>
 gives the degree at which the Alias matrix should be calculated.</p></dd>
 
 
 <dt id="arg-high-resolution-candidate-set">high_resolution_candidate_set<a class="anchor" aria-label="anchor" href="#arg-high-resolution-candidate-set"></a></dt>
-<dd><p>Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+<dd><p>Default <code>NA</code>. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
@@ -152,9 +152,9 @@ If you generated your design externally from skpr, there are disallowed combinat
 
 
 <dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
-<dd><p>Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+<dd><p>Default <code>10</code>. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations. It is much faster and potentially more accurate to
-provide your own candidate set with higher resolution continuous factors to `high_resolution_candidate_set`.`</p></dd>
+provide your own candidate set with higher resolution continuous factors to <code>high_resolution_candidate_set</code>.`</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -181,12 +181,11 @@ encoding used for categorical factors.</p>
 the vector of model coefficients, \(Z_{i}\) are the blocking indicator,
 \(b_{i}\) is the random variable associated with the \(i\)th block, and \(\epsilon\)
 is a random variable normally distributed with zero mean and unit variance (root-mean-square error is 1.0).</p>
-<p><code>eval_design</code> calculates both parameter power as well as effect power, defined as follows:</p>
-<p>1) Parameter power is the probability of rejecting the hypothesis \(H_0 : \beta_i = 0\), where \(\beta_i\) is a single parameter
-in the model
-2) Effect power is the probability of rejecting the hypothesis \(H_0 : \beta_{1} = \beta_{2} = ... = \beta_{n} 0\) for all \(n\) coefficients
-for a categorical factor.</p>
-<p>The two power types are equivalent for continuous factors and two-level categorical factors,
+<p><code>eval_design</code> calculates both parameter power as well as effect power, defined as follows:</p><ol><li><p>Parameter power is the probability of rejecting the hypothesis \(H_0 : \beta_i = 0\), where \(\beta_i\) is a single parameter
+in the model</p></li>
+<li><p>Effect power is the probability of rejecting the hypothesis \(H_0 : \beta_{1} = \beta_{2} = ... = \beta_{n} 0\) for all \(n\) coefficients
+for a categorical factor.</p></li>
+</ol><p>The two power types are equivalent for continuous factors and two-level categorical factors,
 but they will differ for categorical factors with three or more levels.</p>
 <p>For split-plot designs, the degrees of freedom are allocated to each term according to the algorithm
 given in "Mixed-Effects Models in S and S-PLUS" (Pinheiro and Bates, pp. 91).</p>

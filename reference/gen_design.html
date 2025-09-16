@@ -94,78 +94,78 @@ If a factor is continuous, its column should be type <code>numeric</code>. If a 
 
 
 <dt id="arg-splitplotdesign">splitplotdesign<a class="anchor" aria-label="anchor" href="#arg-splitplotdesign"></a></dt>
-<dd><p>If `NULL`, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
+<dd><p>If <code>NULL</code>, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
 this argument specifies the design for all of the factors harder to change than the current set of factors.
 Each row corresponds to a block in which the harder to change factors will be held
 constant. Each row of <code>splitplotdesign</code> will be replicated as specified in <code>blocksizes</code>,
 and the optimal design is found for all of the factors given in the
 <code>model</code> argument, taking into consideration the fixed and replicated hard-to-change factors. If <code>blocksizes</code> is missing,
-`gen_design` will attempt to allocate the runs in the most balanced design possible,
-given the number of blocks given in the argument `splitplotdesign` and the total number of `trials`.</p></dd>
+<code>gen_design</code> will attempt to allocate the runs in the most balanced design possible,
+given the number of blocks given in the argument <code>splitplotdesign</code> and the total number of <code>trials</code>.</p></dd>
 
 
 <dt id="arg-blocksizes">blocksizes<a class="anchor" aria-label="anchor" href="#arg-blocksizes"></a></dt>
-<dd><p>Default `NULL`. Specifies the block size(s) for design generation. If only one number is passed, `gen_design()`
-will create blocks of the specified size, and if the total number of run specified in `trials` is not divisible by the number,
-`gen_design()` will attempt to allocate the runs in the most balanced design possible. If a list is passed, each entry
-in the list will specify an additional layer of blocking. If `splitplotdesign` is not `NULL`, this argument
-specifies the number of subplots within each whole plot (each whole plot corresponding to a row in the `splitplotdesign` data.frame).</p></dd>
+<dd><p>Default <code>NULL</code>. Specifies the block size(s) for design generation. If only one number is passed, <code>gen_design()</code>
+will create blocks of the specified size, and if the total number of run specified in <code>trials</code> is not divisible by the number,
+<code>gen_design()</code> will attempt to allocate the runs in the most balanced design possible. If a list is passed, each entry
+in the list will specify an additional layer of blocking. If <code>splitplotdesign</code> is not <code>NULL</code>, this argument
+specifies the number of subplots within each whole plot (each whole plot corresponding to a row in the <code>splitplotdesign</code> data.frame).</p></dd>
 
 
 <dt id="arg-optimality">optimality<a class="anchor" aria-label="anchor" href="#arg-optimality"></a></dt>
-<dd><p>Default `D`. The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
-define a function of the model matrix named `customOpt` in their namespace that returns a single value, which the algorithm will attempt to optimize. For
-`CUSTOM` optimality split-plot designs, the user must instead define `customBlockedOpt`, which should be a function of the model matrix and the variance-covariance matrix. For
+<dd><p>Default <code>D</code>. The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
+define a function of the model matrix named <code>customOpt</code> in their namespace that returns a single value, which the algorithm will attempt to optimize. For
+<code>CUSTOM</code> optimality split-plot designs, the user must instead define <code>customBlockedOpt</code>, which should be a function of the model matrix and the variance-covariance matrix. For
 information on the algorithm behind Alias-optimal designs, see <em>Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71</em>.</p></dd>
 
 
 <dt id="arg-augmentdesign">augmentdesign<a class="anchor" aria-label="anchor" href="#arg-augmentdesign"></a></dt>
-<dd><p>Default NULL. A `data.frame` of runs that are fixed during the optimal search process. The columns of `augmentdesign` must match those of the candidate set.
-The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.</p></dd>
+<dd><p>Default NULL. A <code>data.frame</code> of runs that are fixed during the optimal search process. The columns of <code>augmentdesign</code> must match those of the candidate set.
+The search algorithm will search for the optimal <code>trials</code> - <code>nrow(augmentdesign)</code> remaining runs.</p></dd>
 
 
 <dt id="arg-repeats">repeats<a class="anchor" aria-label="anchor" href="#arg-repeats"></a></dt>
-<dd><p>Default `20`. The number of times to repeat the search for the best optimal design.</p></dd>
+<dd><p>Default <code>20</code>. The number of times to repeat the search for the best optimal design.</p></dd>
 
 
 <dt id="arg-custom-v">custom_v<a class="anchor" aria-label="anchor" href="#arg-custom-v"></a></dt>
-<dd><p>Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.</p></dd>
+<dd><p>Default <code>NULL</code>. The user can pass a custom variance-covariance matrix to be used during blocked design generation.</p></dd>
 
 
 <dt id="arg-varianceratio">varianceratio<a class="anchor" aria-label="anchor" href="#arg-varianceratio"></a></dt>
-<dd><p>Default `1`. The ratio between the block and run-to-run variance for a given stratum in
-a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
+<dd><p>Default <code>1</code>. The ratio between the block and run-to-run variance for a given stratum in
+a split plot/blocked design. This requires a design passed into <code>splitplotdesign</code>, so it will be overridden to <code>1</code>
 if no split plot design is entered.</p></dd>
 
 
 <dt id="arg-contrasts">contrasts<a class="anchor" aria-label="anchor" href="#arg-contrasts"></a></dt>
-<dd><p>Default [contr.simplex()], an orthonormal sum contrast. Function used to generate the encoding for categorical variables.</p></dd>
+<dd><p>Default <code><a href="contr.simplex.html">contr.simplex()</a></code>, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.</p></dd>
 
 
 <dt id="arg-aliaspower">aliaspower<a class="anchor" aria-label="anchor" href="#arg-aliaspower"></a></dt>
-<dd><p>Default `2`. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.</p></dd>
+<dd><p>Default <code>2</code>. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.</p></dd>
 
 
 <dt id="arg-mindopt">minDopt<a class="anchor" aria-label="anchor" href="#arg-mindopt"></a></dt>
-<dd><p>Default `0.8`. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.</p></dd>
+<dd><p>Default <code>0.8</code>. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.</p></dd>
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
-<dd><p>Default `NA`. For D-optimal designs, this changes the search to a k-exchange algorithm
+<dd><p>Default <code>NA</code>. For D-optimal designs, this changes the search to a k-exchange algorithm
 <em>Johnson and Nachtsheim. "Some Guidelines for Constructing Exact D-Optimal Designs on Convex Design Spaces." Technometrics, vol. 25, 1983, pp. 271-277</em>.
 This exchanges only the k lowest variance runs in the design at each search iteration. Lower numbers can result
-in a faster search, but are less likely tofind an optimal design. Values of `k &gt;= n/4` have been shown empirically to generate similar designs to the full
-search. When `k == trials`, this results in the default modified Federov's algorithm.
-A `k` of 1 is a form of Wynn's algorithm <em>Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14</em>.</p></dd>
+in a faster search, but are less likely tofind an optimal design. Values of <code>k &gt;= n/4</code> have been shown empirically to generate similar designs to the full
+search. When <code>k == trials</code>, this results in the default modified Federov's algorithm.
+A <code>k</code> of 1 is a form of Wynn's algorithm <em>Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14</em>.</p></dd>
 
 
 <dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
-<dd><p>Default `10`. The density of points to sample when calculating the moment matrix to
+<dd><p>Default <code>10</code>. The density of points to sample when calculating the moment matrix to
 compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.</p></dd>
 
 
 <dt id="arg-high-resolution-candidate-set">high_resolution_candidate_set<a class="anchor" aria-label="anchor" href="#arg-high-resolution-candidate-set"></a></dt>
-<dd><p>Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+<dd><p>Default <code>NA</code>. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
@@ -173,33 +173,31 @@ To speed up moment matrix calculation,  pass a higher resolution version of your
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>Default `FALSE`. If `TRUE`, the optimal design search will use all but one of the available cores.
-This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+<dd><p>Default <code>FALSE</code>. If <code>TRUE</code>, the optimal design search will use all but one of the available cores.
+This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting <code>options("cores")</code> to the desired number (e.g. <code>options("cores" = parallel::detectCores())</code>).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>
-<dd><p>Default `TRUE`. Whether to include a progress bar.</p></dd>
+<dd><p>Default <code>TRUE</code>. Whether to include a progress bar.</p></dd>
 
 
 <dt id="arg-add-blocking-columns">add_blocking_columns<a class="anchor" aria-label="anchor" href="#arg-add-blocking-columns"></a></dt>
-<dd><p>Default `FALSE`. The blocking structure of the design will be indicated in the row names of the returned
-design. If `TRUE`, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.</p></dd>
+<dd><p>Default <code>FALSE</code>. The blocking structure of the design will be indicated in the row names of the returned
+design. If <code>TRUE</code>, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.</p></dd>
 
 
 <dt id="arg-randomized">randomized<a class="anchor" aria-label="anchor" href="#arg-randomized"></a></dt>
-<dd><p>Default `TRUE`, due to the intrinsic randomization of the design search algorithm. If `FALSE`,
+<dd><p>Default <code>TRUE</code>, due to the intrinsic randomization of the design search algorithm. If <code>FALSE</code>,
 the randomized design will be re-ordered from left to right.</p></dd>
 
 
 <dt id="arg-advancedoptions">advancedoptions<a class="anchor" aria-label="anchor" href="#arg-advancedoptions"></a></dt>
-<dd><p>Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
-are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing
-matrix when calculating optimality tie-breakers), `alias_tie_tolerance` (the smallest absolute difference in the optimality criterion where designs are
-considered equal before considering the aliasing structure),  `alias_compare“ (which if set to FALSE turns off alias tie breaking completely),
-`aliasmodel` (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
-and `progressBarUpdater“ (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
-`g_efficiency_method`, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
+<dd><p>Default <code>NULL</code>. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
+are <code>design_search_tolerance</code> (the smallest fractional increase below which the design search terminates), <code>alias_tie_power</code> (the degree of the aliasing
+matrix when calculating optimality tie-breakers), <code>alias_tie_tolerance</code> (the smallest absolute difference in the optimality criterion where designs are
+considered equal before considering the aliasing structure),  <code>alias_compare`` (which if set to FALSE turns off alias tie breaking completely), </code>aliasmodel<code>(provided if the user does not want to calculate Alias-optimality using all</code>aliaspower<code>interaction terms), and</code>progressBarUpdater“ (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
+<code>g_efficiency_method</code>, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
 "optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
 and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
 the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
@@ -207,13 +205,13 @@ or a data.frame defining the exact points of the design space if `g_efficiency_m
 
 
 <dt id="arg-timer">timer<a class="anchor" aria-label="anchor" href="#arg-timer"></a></dt>
-<dd><p>Deprecated: Use `progress` instead.</p></dd>
+<dd><p>Deprecated: Use <code>progress</code> instead.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.</p>
+information in its attributes, which can be accessed with the <code><a href="get_attribute.html">get_attribute()</a></code> and <code><a href="get_optimality.html">get_optimality()</a></code> functions.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -618,7 +616,7 @@ information in its attributes, which can be accessed with the [get_attribute()] 
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ~x1 + x2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x560f6c897bd8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55af18404b20&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#A correlation color map can be produced by calling the plot_correlation command with the output</span></span></span>

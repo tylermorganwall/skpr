@@ -69,7 +69,7 @@ using the <code>survival</code> package and <code>survreg</code> to fit the data
 
 
 <dl><dt id="arg-design">design<a class="anchor" aria-label="anchor" href="#arg-design"></a></dt>
-<dd><p>The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].</p></dd>
+<dd><p>The experimental design. Internally, all numeric columns will be rescaled to -1, +1.</p></dd>
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
@@ -80,7 +80,7 @@ factors that are not present in the experimental design.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
-<dd><p>Default `0.05`. The type-I error. p-values less than this will be counted as significant.</p></dd>
+<dd><p>Default <code>0.05</code>. The type-I error. p-values less than this will be counted as significant.</p></dd>
 
 
 <dt id="arg-nsim">nsim<a class="anchor" aria-label="anchor" href="#arg-nsim"></a></dt>
@@ -127,22 +127,22 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
-If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+<dd><p>Default <code>FALSE</code>. If <code>TRUE</code>, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting <code>options("cores")</code> to the desired number (e.g. <code>options("cores" = parallel::detectCores())</code>).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
 
 
 <dt id="arg-detailedoutput">detailedoutput<a class="anchor" aria-label="anchor" href="#arg-detailedoutput"></a></dt>
-<dd><p>Default `FALSE`. If `TRUE`, return additional information about evaluation in results.</p></dd>
+<dd><p>Default <code>FALSE</code>. If <code>TRUE</code>, return additional information about evaluation in results.</p></dd>
 
 
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>
-<dd><p>Default `TRUE`. Whether to include a progress bar.</p></dd>
+<dd><p>Default <code>TRUE</code>. Whether to include a progress bar.</p></dd>
 
 
 <dt id="arg-advancedoptions">advancedoptions<a class="anchor" aria-label="anchor" href="#arg-advancedoptions"></a></dt>
-<dd><p>Default `NULL`. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
-`advancedoptions$ci_error_conf` will set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.</p></dd>
+<dd><p>Default <code>NULL</code>. Named list of advanced options. Pass <code>progressBarUpdater</code> to include function called in non-parallel simulations that can be used to update external progress bar.
+<code>advancedoptions$ci_error_conf</code> will set the confidence level for power intervals, which are printed when <code>detailedoutput = TRUE</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -165,7 +165,6 @@ is the estimate of power for that parameter.</p>
 <p>If not supplied by the user, <code>rfunctionsurv</code> will be generated based on the <code>distribution</code>
 argument as follows:</p><table class="table table"><tr><td><b>distribution</b></td><td><b>generating function</b></td></tr><tr><td>"gaussian"</td><td><code>rnorm(mean = X %*% b, sd = 1)</code></td></tr><tr><td>"exponential"</td><td><code>rexp(rate = exp(-X %*% b))</code></td></tr><tr><td>"lognormal"</td><td><code>rlnorm(meanlog = X %*% b, sdlog = 1)</code></td></tr></table><p>In each case, if a simulated data point is past the censorpoint (greater than for right-censored, less than for
 left-censored) it is marked as censored. See the examples below for how to construct your own function.</p>
-
 <p>Power is dependent on the anticipated coefficients. You can specify those directly with the <code>anticoef</code>
 argument, or you can use the <code>effectsize</code> argument to specify an effect size and <code>skpr</code> will auto-generate them.
 You can provide either a length-1 or length-2 vector. If you provide a length-1 vector, the anticipated

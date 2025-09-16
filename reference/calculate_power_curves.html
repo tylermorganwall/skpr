@@ -66,69 +66,69 @@ trial counts. This function takes a</p>
 
 <dl><dt id="arg-trials">trials<a class="anchor" aria-label="anchor" href="#arg-trials"></a></dt>
 <dd><p>A numeric vector indicating the trial(s) used when computing the power curve. If a single
-value, this will be fixed and only `effectsize` will be varied.</p></dd>
+value, this will be fixed and only <code>effectsize</code> will be varied.</p></dd>
 
 
 <dt id="arg-effectsize">effectsize<a class="anchor" aria-label="anchor" href="#arg-effectsize"></a></dt>
-<dd><p>Default `1`. A numeric vector indicating the effect size(s) used when computing the power curve. If a single
-value, this will be fixed and only `trials` will be varied. If using a length-2 effect size with [eval_design_mc()] (such as
+<dd><p>Default <code>1</code>. A numeric vector indicating the effect size(s) used when computing the power curve. If a single
+value, this will be fixed and only <code>trials</code> will be varied. If using a length-2 effect size with <code><a href="eval_design_mc.html">eval_design_mc()</a></code> (such as
 a binomial probability interval), the effect size pairs can be input as entries in a list.</p></dd>
 
 
 <dt id="arg-candidateset">candidateset<a class="anchor" aria-label="anchor" href="#arg-candidateset"></a></dt>
-<dd><p>Default `NULL`. The candidate set (see [gen_design()] documentation for more information). Provided to aid code completion: can also
-be provided in `gen_args`.</p></dd>
+<dd><p>Default <code>NULL</code>. The candidate set (see <code><a href="gen_design.html">gen_design()</a></code> documentation for more information). Provided to aid code completion: can also
+be provided in <code>gen_args</code>.</p></dd>
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
-<dd><p>Default `NULL`. The model (see [gen_design()] and [eval_design()] documentation for more information). Provided to aid code completion: can also
-be provided in `gen_args`/`eval_args`.</p></dd>
+<dd><p>Default <code>NULL</code>. The model (see <code><a href="gen_design.html">gen_design()</a></code> and <code><a href="eval_design.html">eval_design()</a></code> documentation for more information). Provided to aid code completion: can also
+be provided in <code>gen_args</code>/<code>eval_args</code>.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
-<dd><p>Default `0.05`. The allowable Type-I error rate (see [eval_design()] documentation for more information). Provided to aid code completion: can also
-be provided in `eval_args`.</p></dd>
+<dd><p>Default <code>0.05</code>. The allowable Type-I error rate (see <code><a href="eval_design.html">eval_design()</a></code> documentation for more information). Provided to aid code completion: can also
+be provided in <code>eval_args</code>.</p></dd>
 
 
 <dt id="arg-gen-args">gen_args<a class="anchor" aria-label="anchor" href="#arg-gen-args"></a></dt>
-<dd><p>Default `list()`. A list of argument/value pairs to specify the design generation parameters for [gen_design()].</p></dd>
+<dd><p>Default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>. A list of argument/value pairs to specify the design generation parameters for <code><a href="gen_design.html">gen_design()</a></code>.</p></dd>
 
 
 <dt id="arg-eval-function">eval_function<a class="anchor" aria-label="anchor" href="#arg-eval-function"></a></dt>
-<dd><p>Default `"eval_design"`. A string (or function) specifying the skpr power evaluation function
-(e.g. [eval_design()], [eval_design_mc()], [eval_design_survival_mc()], or [eval_design_custom_mc()]).</p></dd>
+<dd><p>Default <code>"eval_design"</code>. A string (or function) specifying the skpr power evaluation function
+(e.g. <code><a href="eval_design.html">eval_design()</a></code>, <code><a href="eval_design_mc.html">eval_design_mc()</a></code>, <code><a href="eval_design_survival_mc.html">eval_design_survival_mc()</a></code>, or <code><a href="eval_design_custom_mc.html">eval_design_custom_mc()</a></code>).</p></dd>
 
 
 <dt id="arg-eval-args">eval_args<a class="anchor" aria-label="anchor" href="#arg-eval-args"></a></dt>
-<dd><p>Default `list()`. A list of argument/value pairs to specify the design power evaluation parameters for `eval_function`.</p></dd>
+<dd><p>Default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>. A list of argument/value pairs to specify the design power evaluation parameters for <code>eval_function</code>.</p></dd>
 
 
 <dt id="arg-random-seed">random_seed<a class="anchor" aria-label="anchor" href="#arg-random-seed"></a></dt>
-<dd><p>Default `123`. The random seed used to generate and then evaluate the design. The seed is set right before design generation.</p></dd>
+<dd><p>Default <code>123</code>. The random seed used to generate and then evaluate the design. The seed is set right before design generation.</p></dd>
 
 
 <dt id="arg-iterate-seed">iterate_seed<a class="anchor" aria-label="anchor" href="#arg-iterate-seed"></a></dt>
-<dd><p>Default `FALSE`. This will iterate the random seed with each new design. Set this to `TRUE` to add more variability to the design generation process.</p></dd>
+<dd><p>Default <code>FALSE</code>. This will iterate the random seed with each new design. Set this to <code>TRUE</code> to add more variability to the design generation process.</p></dd>
 
 
 <dt id="arg-plot-results">plot_results<a class="anchor" aria-label="anchor" href="#arg-plot-results"></a></dt>
-<dd><p>Default `TRUE`. Whether to print out a plot of the power curves in addition to the data frame of results. Requires `ggplot2`.</p></dd>
+<dd><p>Default <code>TRUE</code>. Whether to print out a plot of the power curves in addition to the data frame of results. Requires <code>ggplot2</code>.</p></dd>
 
 
 <dt id="arg-auto-scale">auto_scale<a class="anchor" aria-label="anchor" href="#arg-auto-scale"></a></dt>
-<dd><p>Default `TRUE`. Whether to automatically scale the y-axis to 0 and 1.</p></dd>
+<dd><p>Default <code>TRUE</code>. Whether to automatically scale the y-axis to 0 and 1.</p></dd>
 
 
 <dt id="arg-x-breaks">x_breaks<a class="anchor" aria-label="anchor" href="#arg-x-breaks"></a></dt>
-<dd><p>Default `NULL`, automaticly generated by ggplot2.</p></dd>
+<dd><p>Default <code>NULL</code>, automaticly generated by ggplot2.</p></dd>
 
 
 <dt id="arg-y-breaks">y_breaks<a class="anchor" aria-label="anchor" href="#arg-y-breaks"></a></dt>
-<dd><p>Default `seq(0,1,by=0.1)`. Y-axis breaks.</p></dd>
+<dd><p>Default <code>seq(0,1,by=0.1)</code>. Y-axis breaks.</p></dd>
 
 
 <dt id="arg-ggplot-elements">ggplot_elements<a class="anchor" aria-label="anchor" href="#arg-ggplot-elements"></a></dt>
-<dd><p>Default `list()`. Extra `ggplot2` elements to customize the plot, passed in as elements in a list.</p></dd>
+<dd><p>Default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>. Extra <code>ggplot2</code> elements to customize the plot, passed in as elements in a list.</p></dd>
 
 </dl></div>
     <div class="section level2">

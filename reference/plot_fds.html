@@ -62,43 +62,43 @@ of several designs, which will result in all of them being plotted in a row (for
 
 
 <dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
-<dd><p>Default `NULL`. The model, if `NULL` it defaults to the model used in [eval_design()] or [gen_design()].</p></dd>
+<dd><p>Default <code>NULL</code>. The model, if <code>NULL</code> it defaults to the model used in <code><a href="eval_design.html">eval_design()</a></code> or <code><a href="gen_design.html">gen_design()</a></code>.</p></dd>
 
 
 <dt id="arg-continuouslength">continuouslength<a class="anchor" aria-label="anchor" href="#arg-continuouslength"></a></dt>
-<dd><p>Default `11`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.</p></dd>
+<dd><p>Default <code>11</code>. The precision of the continuous variables. Decrease for faster (but less precise) plotting.</p></dd>
 
 
 <dt id="arg-plot">plot<a class="anchor" aria-label="anchor" href="#arg-plot"></a></dt>
-<dd><p>Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.</p></dd>
+<dd><p>Default <code>TRUE</code>. Whether to plot the FDS, or just calculate the cumulative distribution function.</p></dd>
 
 
 <dt id="arg-sample-size">sample_size<a class="anchor" aria-label="anchor" href="#arg-sample-size"></a></dt>
-<dd><p>Default `10000`. Number of samples to take of the design space.</p></dd>
+<dd><p>Default <code>10000</code>. Number of samples to take of the design space.</p></dd>
 
 
 <dt id="arg-yaxis-max">yaxis_max<a class="anchor" aria-label="anchor" href="#arg-yaxis-max"></a></dt>
-<dd><p>Default `NULL`. Manually set the maximum value of the prediction variance.</p></dd>
+<dd><p>Default <code>NULL</code>. Manually set the maximum value of the prediction variance.</p></dd>
 
 
 <dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
-<dd><p>Default `10`. The density of points to sample when calculating the moment matrix to
+<dd><p>Default <code>10</code>. The density of points to sample when calculating the moment matrix to
 compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.</p></dd>
 
 
 <dt id="arg-description">description<a class="anchor" aria-label="anchor" href="#arg-description"></a></dt>
-<dd><p>Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
+<dd><p>Default <code>Fraction of Design Space</code>. The description to add to the plot. If a vector and multiple designs
 passed to skpr_output, it will be the description for each plot.</p></dd>
 
 
 <dt id="arg-candidate-set">candidate_set<a class="anchor" aria-label="anchor" href="#arg-candidate-set"></a></dt>
-<dd><p>Default `NA`. If the original design did not come from skpr and has disallowed combinations, the average prediction variance
+<dd><p>Default <code>NA</code>. If the original design did not come from skpr and has disallowed combinations, the average prediction variance
 over the design region needs the original candidate set to accurately compute the I-optimality value. Note that this will estimate the valid design region
-using the convex hull of the given points, which is slow computationally for large designs: pass a `high_resolution_candidate_set` for faster plotting.</p></dd>
+using the convex hull of the given points, which is slow computationally for large designs: pass a <code>high_resolution_candidate_set</code> for faster plotting.</p></dd>
 
 
 <dt id="arg-high-resolution-candidate-set">high_resolution_candidate_set<a class="anchor" aria-label="anchor" href="#arg-high-resolution-candidate-set"></a></dt>
-<dd><p>Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+<dd><p>Default <code>NA</code>. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.

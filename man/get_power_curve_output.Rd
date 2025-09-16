@@ -7,13 +7,13 @@
 get_power_curve_output(power_curve)
 }
 \arguments{
-\item{power_curve}{The output from [calculate_power_curves()]}
+\item{power_curve}{The output from \code{\link[=calculate_power_curves]{calculate_power_curves()}}}
 }
 \value{
 A list of data.frames containing warning/error information
 }
 \description{
-Gets the warnings and errors from [calculate_power_curves()] output.
+Gets the warnings and errors from \code{\link[=calculate_power_curves]{calculate_power_curves()}} output.
 }
 \examples{
 #Generate sample

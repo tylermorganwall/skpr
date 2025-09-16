@@ -14,8 +14,8 @@
 \description{
 Prints design evaluation information below the data.frame of power values
 
-Note: If options("skpr.ANSI") is `NULL` or `TRUE`, ANSI codes will be used during printing
-to prettify the output. If this is `FALSE`, only ASCII will be used.
+Note: If options("skpr.ANSI") is \code{NULL} or \code{TRUE}, ANSI codes will be used during printing
+to prettify the output. If this is \code{FALSE}, only ASCII will be used.
 }
 \examples{
 #Generate/evaluate a design and print its information

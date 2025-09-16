@@ -12,7 +12,7 @@ normalize_design(design, augmented = NULL)
 \arguments{
 \item{design}{The design matrix.}
 
-\item{augmented}{Default `NULL`. If}
+\item{augmented}{Default \code{NULL}. If}
 }
 \value{
 Normalized design matrix

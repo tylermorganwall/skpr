@@ -9,14 +9,16 @@ interpolate_convex_hull(points, ch_halfspace, n_samples_per_dimension = 11)
 \arguments{
 \item{points}{A numeric matrix (n x d).}
 
-\item{ch_halfspace}{Convex hull. Output of `convhull_halfspace`}
+\item{ch_halfspace}{Convex hull. Output of \code{convhull_halfspace}}
 
 \item{n_samples_per_dimension}{Number of samples per dimension (pre filtering) to take}
 }
 \value{
 A list with:
-  - data: The interpolated points
-  - on_edge: A logical vector indicating whether the points
+\itemize{
+\item data: The interpolated points
+\item on_edge: A logical vector indicating whether the points
+}
 }
 \description{
 Interpolate points within a convex hull

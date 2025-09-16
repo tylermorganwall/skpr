@@ -7,7 +7,7 @@
 get_block_groups(existing_block_structure)
 }
 \arguments{
-\item{existing_block_structure}{character matrix from rownames, split by `.`}
+\item{existing_block_structure}{character matrix from rownames, split by \code{.}}
 }
 \value{
 List of numbers indicating split plot layer sizes

@@ -22,9 +22,9 @@ effectpowermc(
 \arguments{
 \item{fit}{Fit from regression}
 
-\item{type}{Default `III`}
+\item{type}{Default \code{III}}
 
-\item{test}{Default `Pr(>Chisq)`.}
+\item{test}{Default \verb{Pr(>Chisq)}.}
 
 \item{...}{Additional arguments to pass to car::Anova}
 }

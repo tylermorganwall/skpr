@@ -7,9 +7,9 @@
 contr.simplex(n, size = NULL)
 }
 \arguments{
-\item{n}{The number of levels in the catagorical variable. If this is a factor or character vector, `n` will be `length(n)`}
+\item{n}{The number of levels in the catagorical variable. If this is a factor or character vector, \code{n} will be \code{length(n)}}
 
-\item{size}{Default `1`. The length of the simplex vector.}
+\item{size}{Default \code{1}. The length of the simplex vector.}
 }
 \value{
 A matrix of Orthonormal contrasts.

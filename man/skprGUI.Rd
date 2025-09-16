@@ -12,13 +12,13 @@ skprGUI(
 )
 }
 \arguments{
-\item{browser}{Default `FALSE`. Whether to open the application in an external browser.}
+\item{browser}{Default \code{FALSE}. Whether to open the application in an external browser.}
 
-\item{return_app}{Default `FALSE`. If `TRUE`, this will return the shinyApp object.}
+\item{return_app}{Default \code{FALSE}. If \code{TRUE}, this will return the shinyApp object.}
 
-\item{multiuser}{Default `FALSE`. If `TRUE`, this will turn off and disable multicore functionality and enable non-blocking operation.}
+\item{multiuser}{Default \code{FALSE}. If \code{TRUE}, this will turn off and disable multicore functionality and enable non-blocking operation.}
 
-\item{progress}{Default `TRUE`. Whether to include a progress bar in the application. Note: if `multiuser = TRUE`, progress
+\item{progress}{Default \code{TRUE}. Whether to include a progress bar in the application. Note: if \code{multiuser = TRUE}, progress
 bars are turned on by default.}
 }
 \description{

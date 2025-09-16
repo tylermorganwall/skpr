@@ -28,14 +28,14 @@ eval_design_custom_mc(
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design_custom_mc} rescales each numeric column
-to the range [-1, 1].}
+to the range \link{-1, 1}.}
 
 \item{model}{The model used in evaluating the design. If this is missing and the design
 was generated with skpr, the generating model will be used. It can be a subset of the model used to
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{Default `0.05`. The type-I error. p-values less than this will be counted as significant.}
+\item{alpha}{Default \code{0.05}. The type-I error. p-values less than this will be counted as significant.}
 
 \item{nsim}{The number of simulations.}
 
@@ -62,25 +62,25 @@ for a categorical factor using the contrasts function, those will be used. Other
 
 \item{coef_function}{Function that, when applied to a fitfunction return object, returns the estimated coefficients.}
 
-\item{calceffect}{Default `FALSE`. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
+\item{calceffect}{Default \code{FALSE}. Calculates effect power for a Type-III Anova (using the car package) using a Wald test.
 this ratio can be a vector specifying the variance ratio for each subplot. Otherwise, it will use a single value for all strata. To work, the
-fit returned by `fitfunction` must have a method compatable with the car package.}
+fit returned by \code{fitfunction} must have a method compatable with the car package.}
 
-\item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
+\item{detailedoutput}{Default \code{FALSE}. If \code{TRUE}, return additional information about evaluation in results.}
 
 \item{parameternames}{Vector of parameter names if the coefficients do not correspond simply to the columns in the model matrix
 (e.g. coefficients from an MLE fit).}
 
-\item{advancedoptions}{Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
-user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
-`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
-set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.}
+\item{advancedoptions}{Default \code{NULL}. Named list of advanced options. \code{advancedoptions$anovatype} specifies the Anova type in the car package (default type \code{III}),
+user can change to type \code{II}). \code{advancedoptions$anovatest} specifies the test statistic if the user does not want a \code{Wald} test--other options are likelyhood-ratio \code{LR} and F-test \code{F}.
+\code{advancedoptions$progressBarUpdater} is a function called in non-parallel simulations that can be used to update external progress bar.\code{advancedoptions$GUI} turns off some warning messages when in the GUI.
+If \code{advancedoptions$save_simulated_responses = TRUE}, the dataframe will have an attribute \code{simulated_responses} that contains the simulated responses from the power evaluation. \code{advancedoptions$ci_error_conf} will
+set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}
 
-\item{progress}{Default `TRUE`. Whether to include a progress bar.}
+\item{progress}{Default \code{TRUE}. Whether to include a progress bar.}
 
-\item{parallel}{Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
-If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+\item{parallel}{Default \code{FALSE}. If \code{TRUE}, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
 \item{parallel_pkgs}{A vector of strings listing the external packages to be included in each parallel worker.}

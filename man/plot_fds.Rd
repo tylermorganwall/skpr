@@ -21,27 +21,27 @@ plot_fds(
 \item{skpr_output}{The design, or the output of the power evaluation functions. This can also be a list
 of several designs, which will result in all of them being plotted in a row (for easy comparison).}
 
-\item{model}{Default `NULL`. The model, if `NULL` it defaults to the model used in [eval_design()] or [gen_design()].}
+\item{model}{Default \code{NULL}. The model, if \code{NULL} it defaults to the model used in \code{\link[=eval_design]{eval_design()}} or \code{\link[=gen_design]{gen_design()}}.}
 
-\item{continuouslength}{Default `11`. The precision of the continuous variables. Decrease for faster (but less precise) plotting.}
+\item{continuouslength}{Default \code{11}. The precision of the continuous variables. Decrease for faster (but less precise) plotting.}
 
-\item{plot}{Default `TRUE`. Whether to plot the FDS, or just calculate the cumulative distribution function.}
+\item{plot}{Default \code{TRUE}. Whether to plot the FDS, or just calculate the cumulative distribution function.}
 
-\item{sample_size}{Default `10000`. Number of samples to take of the design space.}
+\item{sample_size}{Default \code{10000}. Number of samples to take of the design space.}
 
-\item{yaxis_max}{Default `NULL`. Manually set the maximum value of the prediction variance.}
+\item{yaxis_max}{Default \code{NULL}. Manually set the maximum value of the prediction variance.}
 
-\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to
+\item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to
 compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.}
 
-\item{description}{Default `Fraction of Design Space`. The description to add to the plot. If a vector and multiple designs
+\item{description}{Default \verb{Fraction of Design Space}. The description to add to the plot. If a vector and multiple designs
 passed to skpr_output, it will be the description for each plot.}
 
-\item{candidate_set}{Default `NA`. If the original design did not come from skpr and has disallowed combinations, the average prediction variance
+\item{candidate_set}{Default \code{NA}. If the original design did not come from skpr and has disallowed combinations, the average prediction variance
 over the design region needs the original candidate set to accurately compute the I-optimality value. Note that this will estimate the valid design region
-using the convex hull of the given points, which is slow computationally for large designs: pass a `high_resolution_candidate_set` for faster plotting.}
+using the convex hull of the given points, which is slow computationally for large designs: pass a \code{high_resolution_candidate_set} for faster plotting.}
 
-\item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+\item{high_resolution_candidate_set}{Default \code{NA}. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.

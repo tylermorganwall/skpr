@@ -24,57 +24,57 @@ eval_design(
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design} rescales each numeric column
-to the range [-1, 1], so you do not need to do this scaling manually.}
+to the range \link{-1, 1}, so you do not need to do this scaling manually.}
 
 \item{model}{The model used in evaluating the design. If this is missing and the design
 was generated with skpr, the generating model will be used. It can be a subset of the model used to
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{Default `0.05`. The specified type-I error.}
+\item{alpha}{Default \code{0.05}. The specified type-I error.}
 
-\item{blocking}{Default `NULL`. If `TRUE`, \code{eval_design} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
+\item{blocking}{Default \code{NULL}. If \code{TRUE}, \code{eval_design} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
 
 \item{anticoef}{The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}
 
-\item{effectsize}{Default `2`. The signal-to-noise ratio. For continuous factors, this specifies the
+\item{effectsize}{Default \code{2}. The signal-to-noise ratio. For continuous factors, this specifies the
 difference in response between the highest and lowest levels of the factor (which are -1 and +1 after \code{eval_design}
 normalizes the input data), assuming that the root mean square error is 1. If you do not specify \code{anticoef},
 the anticipated coefficients will be half of \code{effectsize}. If you do specify \code{anticoef}, \code{effectsize} will be ignored.}
 
-\item{varianceratios}{Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
+\item{varianceratios}{Default \code{NULL}. The ratio of the whole plot variance to the run-to-run variance.
 If not specified during design generation, this will default to 1. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
 Otherwise, it will use a single value for all strata.}
 
 \item{contrasts}{Default \code{contr.sum}. The function to use to encode the categorical factors in the model matrix. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use `contr.sum`.}
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use \code{contr.sum}.}
 
 \item{conservative}{Specifies whether default method for generating
-anticipated coefficents should be conservative or not. `TRUE` will give the most conservative
+anticipated coefficents should be conservative or not. \code{TRUE} will give the most conservative
 estimate of power by setting all but one (or multiple if they are equally low) level in each categorical factor's anticipated coefficients
-to zero. Default `FALSE`.}
+to zero. Default \code{FALSE}.}
 
-\item{reorder_factors}{Default `FALSE`. If `TRUE`, the levels will be reordered to generate the most conservative calculation of effect power.
+\item{reorder_factors}{Default \code{FALSE}. If \code{TRUE}, the levels will be reordered to generate the most conservative calculation of effect power.
 The function searches through all possible reference levels for a given factor and chooses the one that results in the lowest effect power.
-The reordering will be presenting in the output when `detailedoutput = TRUE`.}
+The reordering will be presenting in the output when \code{detailedoutput = TRUE}.}
 
 \item{detailedoutput}{If `TRUE``, return additional information about evaluation in results. Default FALSE.}
 
-\item{advancedoptions}{Default `NULL`. A named list with parameters to specify additional attributes to calculate. Options: `aliaspower`
+\item{advancedoptions}{Default \code{NULL}. A named list with parameters to specify additional attributes to calculate. Options: \code{aliaspower}
 gives the degree at which the Alias matrix should be calculated.}
 
-\item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+\item{high_resolution_candidate_set}{Default \code{NA}. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
 If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.}
 
-\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+\item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations. It is much faster and potentially more accurate to
-provide your own candidate set with higher resolution continuous factors to `high_resolution_candidate_set`.`}
+provide your own candidate set with higher resolution continuous factors to \code{high_resolution_candidate_set}.`}
 
 \item{...}{Additional arguments.}
 }
@@ -111,11 +111,12 @@ the vector of model coefficients, \eqn{Z_{i}} are the blocking indicator,
 is a random variable normally distributed with zero mean and unit variance (root-mean-square error is 1.0).
 
 \code{eval_design} calculates both parameter power as well as effect power, defined as follows:
-
-1) Parameter power is the probability of rejecting the hypothesis \eqn{H_0 : \beta_i = 0}, where \eqn{\beta_i} is a single parameter
+\enumerate{
+\item Parameter power is the probability of rejecting the hypothesis \eqn{H_0 : \beta_i = 0}, where \eqn{\beta_i} is a single parameter
 in the model
-2) Effect power is the probability of rejecting the hypothesis \eqn{H_0 : \beta_{1} = \beta_{2} = ... = \beta_{n} 0} for all \eqn{n} coefficients
+\item Effect power is the probability of rejecting the hypothesis \eqn{H_0 : \beta_{1} = \beta_{2} = ... = \beta_{n} 0} for all \eqn{n} coefficients
 for a categorical factor.
+}
 
 The two power types are equivalent for continuous factors and two-level categorical factors,
 but they will differ for categorical factors with three or more levels.

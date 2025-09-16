@@ -17,6 +17,6 @@ convert_model_dots(design, model, splitplotdesign = NULL)
 New model with dot operator replaced
 }
 \description{
-Converts the dot operator `.` in a formula to the linear terms in the model. Includes interactions (e.g. .*.)
+Converts the dot operator \code{.} in a formula to the linear terms in the model. Includes interactions (e.g. .*.)
 }
 \keyword{internal}

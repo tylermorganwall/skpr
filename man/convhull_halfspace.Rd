@@ -11,10 +11,12 @@ convhull_halfspace(points)
 }
 \value{
 A list with elements:
-  - A: a matrix of size m x d (m = number of facets)
-  - b: a length-m vector
-  so that x is inside the hull if and only if A %*% x + b >= 0 (for all rows).
-  - volume: Total volume of the convex hull
+\itemize{
+\item A: a matrix of size m x d (m = number of facets)
+\item b: a length-m vector
+so that x is inside the hull if and only if A \%*\% x + b >= 0 (for all rows).
+\item volume: Total volume of the convex hull
+}
 }
 \description{
 Compute convex hull in half-space form

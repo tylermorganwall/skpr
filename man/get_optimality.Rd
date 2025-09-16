@@ -7,22 +7,22 @@
 get_optimality(output, optimality = NULL, calc_g = FALSE)
 }
 \arguments{
-\item{output}{The output of either [gen_design()], [eval_design()], or [eval_design_mc()].}
+\item{output}{The output of either \code{\link[=gen_design]{gen_design()}}, \code{\link[=eval_design]{eval_design()}}, or \code{\link[=eval_design_mc]{eval_design_mc()}}.}
 
-\item{optimality}{Default `NULL`. Return just the specific optimality requested.}
+\item{optimality}{Default \code{NULL}. Return just the specific optimality requested.}
 
-\item{calc_g}{Default `FALSE`. Whether to calculate the g-efficiency.}
+\item{calc_g}{Default \code{FALSE}. Whether to calculate the g-efficiency.}
 }
 \value{
-A dataframe of optimality conditions. `D`, `A`, and `G` are efficiencies (value is out of 100).
-`T` is the trace of the information matrix, `E` is the minimum eigenvalue of the information matrix,
-`I` is the average prediction variance, and `Alias` is the trace of the alias matrix.
+A dataframe of optimality conditions. \code{D}, \code{A}, and \code{G} are efficiencies (value is out of 100).
+\code{T} is the trace of the information matrix, \code{E} is the minimum eigenvalue of the information matrix,
+\code{I} is the average prediction variance, and \code{Alias} is the trace of the alias matrix.
 }
 \description{
 Returns a list of optimality values (or one value in particular).
 
-Note: The choice of contrast will effect the `G` efficiency value, and [gen_design()]
-and [eval_design()] by default set different contrasts ([contr.simplex()] vs `contr.sum`).
+Note: The choice of contrast will effect the \code{G} efficiency value, and \code{\link[=gen_design]{gen_design()}}
+and \code{\link[=eval_design]{eval_design()}} by default set different contrasts (\code{\link[=contr.simplex]{contr.simplex()}} vs \code{contr.sum}).
 }
 \examples{
 # We can extract the optimality of a design from either the output of `gen_design()`

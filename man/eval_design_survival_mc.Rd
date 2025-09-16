@@ -24,14 +24,14 @@ eval_design_survival_mc(
 )
 }
 \arguments{
-\item{design}{The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].}
+\item{design}{The experimental design. Internally, all numeric columns will be rescaled to \link{-1, +1}.}
 
 \item{model}{The model used in evaluating the design. If this is missing and the design
 was generated with skpr, the generating model will be used. It can be a subset of the model used to
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{Default `0.05`. The type-I error. p-values less than this will be counted as significant.}
+\item{alpha}{Default \code{0.05}. The type-I error. p-values less than this will be counted as significant.}
 
 \item{nsim}{The number of simulations. Default 1000.}
 
@@ -60,16 +60,16 @@ If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 \item{contrasts}{Default \code{contr.sum}. Function used to encode categorical variables in the model matrix. If the user has specified their own contrasts
 for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
-\item{parallel}{Default `FALSE`. If `TRUE`, the power simulation will use all but one of the available cores.
-If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+\item{parallel}{Default \code{FALSE}. If \code{TRUE}, the power simulation will use all but one of the available cores.
+If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
+\item{detailedoutput}{Default \code{FALSE}. If \code{TRUE}, return additional information about evaluation in results.}
 
-\item{progress}{Default `TRUE`. Whether to include a progress bar.}
+\item{progress}{Default \code{TRUE}. Whether to include a progress bar.}
 
-\item{advancedoptions}{Default `NULL`. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
-`advancedoptions$ci_error_conf` will set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.}
+\item{advancedoptions}{Default \code{NULL}. Named list of advanced options. Pass \code{progressBarUpdater} to include function called in non-parallel simulations that can be used to update external progress bar.
+\code{advancedoptions$ci_error_conf} will set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
 }
@@ -101,7 +101,6 @@ argument as follows:
 
 In each case, if a simulated data point is past the censorpoint (greater than for right-censored, less than for
 left-censored) it is marked as censored. See the examples below for how to construct your own function.
-
 
 Power is dependent on the anticipated coefficients. You can specify those directly with the \code{anticoef}
 argument, or you can use the \code{effectsize} argument to specify an effect size and \code{skpr} will auto-generate them.

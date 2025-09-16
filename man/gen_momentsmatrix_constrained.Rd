@@ -14,14 +14,14 @@ gen_momentsmatrix_constrained(
 \arguments{
 \item{candidate_set}{Candidate set}
 
-\item{formula}{Default `~ .`. Model formula specifying the terms.}
+\item{formula}{Default \code{~ .}. Model formula specifying the terms.}
 
-\item{n_samples_per_dimension}{Default `10`. Number of samples to take per dimension when interpolating inside
+\item{n_samples_per_dimension}{Default \code{10}. Number of samples to take per dimension when interpolating inside
 the convex hull.}
 }
 \value{
-A matrix of size `p x p` (where `p` is the number of columns in the model matrix),
-  approximating the continuous moment matrix.
+A matrix of size \verb{p x p} (where \code{p} is the number of columns in the model matrix),
+approximating the continuous moment matrix.
 }
 \description{
 Treats the min–max range of each numeric column as a bounding box

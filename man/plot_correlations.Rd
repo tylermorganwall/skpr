@@ -15,9 +15,9 @@ plot_correlations(
 )
 }
 \arguments{
-\item{skpr_output}{The output of either [gen_design()], [eval_design()], or [eval_design_mc()].}
+\item{skpr_output}{The output of either \code{\link[=gen_design]{gen_design()}}, \code{\link[=eval_design]{eval_design()}}, or \code{\link[=eval_design_mc]{eval_design_mc()}}.}
 
-\item{model}{Default `NULL`. Defaults to the model used in generating/evaluating
+\item{model}{Default \code{NULL}. Defaults to the model used in generating/evaluating
 the design, augmented with 2-factor interactions. If specified, it will override the default
 model used to generate/evaluate the design.}
 
@@ -25,12 +25,12 @@ model used to generate/evaluate the design.}
 
 \item{pow}{Default 2. The interaction level that the correlation map is showing.}
 
-\item{custompar}{Default NULL. Custom parameters to pass to the `par` function for base R plotting.}
+\item{custompar}{Default NULL. Custom parameters to pass to the \code{par} function for base R plotting.}
 
-\item{standardize}{Default `TRUE`. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
+\item{standardize}{Default \code{TRUE}. Whether to standardize (scale to -1 and 1 and center) the continuous numeric columns. Not
 standardizing the numeric columns can increase multi-collinearity (predictors that are correlated with other predictors in the model).}
 
-\item{plot}{Default `TRUE`. If `FALSE`, this will return the correlation matrix.}
+\item{plot}{Default \code{TRUE}. If \code{FALSE}, this will return the correlation matrix.}
 }
 \value{
 Silently returns the correlation matrix with the proper row and column names.

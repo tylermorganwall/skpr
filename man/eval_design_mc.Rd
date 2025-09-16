@@ -31,80 +31,80 @@ eval_design_mc(
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design_mc} rescales each numeric column
-to the range [-1, 1].}
+to the range \link{-1, 1}.}
 
 \item{model}{The model used in evaluating the design. If this is missing and the design
 was generated with skpr, the generating model will be used. It can be a subset of the model used to
 generate the design, or include higher order effects not in the original design generation. It cannot include
 factors that are not present in the experimental design.}
 
-\item{alpha}{Default `0.05`. The type-I error. p-values less than this will be counted as significant.}
+\item{alpha}{Default \code{0.05}. The type-I error. p-values less than this will be counted as significant.}
 
-\item{blocking}{Default `NULL`. If `TRUE`, \code{eval_design_mc} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
+\item{blocking}{Default \code{NULL}. If \code{TRUE}, \code{eval_design_mc} will look at the rownames (or blocking columns) to determine blocking structure. Default FALSE.}
 
-\item{nsim}{Default `1000`. The number of Monte Carlo simulations to perform.}
+\item{nsim}{Default \code{1000}. The number of Monte Carlo simulations to perform.}
 
-\item{glmfamily}{Default `gaussian`. String indicating the family of distribution for the `glm` function
+\item{glmfamily}{Default \code{gaussian}. String indicating the family of distribution for the \code{glm} function
 ("gaussian", "binomial", "poisson", or "exponential").}
 
-\item{calceffect}{Default `TRUE`. Whether to calculate effect power. This calculation is more expensive than parameter power,
+\item{calceffect}{Default \code{TRUE}. Whether to calculate effect power. This calculation is more expensive than parameter power,
 so turned off (if not needed) can greatly speed up calculation time.}
 
-\item{effect_anova}{Default `TRUE`, whether to a Type-III Anova or a likelihood ratio test to calculate effect power.
-If `TRUE`, effect power will be calculated using a Type-III Anova (using the car package) and a Wald test. If `FALSE`,
-a likelihood ratio test (using a reduced model for each effect) will performed using the `lmtest` package. If `firth = TRUE`,
-this will be set to `FALSE` automatically.}
+\item{effect_anova}{Default \code{TRUE}, whether to a Type-III Anova or a likelihood ratio test to calculate effect power.
+If \code{TRUE}, effect power will be calculated using a Type-III Anova (using the car package) and a Wald test. If \code{FALSE},
+a likelihood ratio test (using a reduced model for each effect) will performed using the \code{lmtest} package. If \code{firth = TRUE},
+this will be set to \code{FALSE} automatically.}
 
-\item{varianceratios}{Default `NULL`. The ratio of the whole plot variance to the run-to-run variance.
+\item{varianceratios}{Default \code{NULL}. The ratio of the whole plot variance to the run-to-run variance.
 If not specified during design generation, this will default to 1. For designs with more than one subplot
 this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
 Otherwise, it will use a single value for all strata.}
 
-\item{rfunction}{Default `NULL`.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
+\item{rfunction}{Default \code{NULL}.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
 model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
 You only need to specify this if you do not like the default behavior described below.}
 
-\item{anticoef}{Default `NULL`.The anticipated coefficients for calculating the power. If missing, coefficients
+\item{anticoef}{Default \code{NULL}.The anticipated coefficients for calculating the power. If missing, coefficients
 will be automatically generated based on the \code{effectsize} argument.}
 
-\item{firth}{Default `FALSE`. Whether to apply the firth correction (via the `mbest` package) to a logistic regression. This
-setting also automatically sets `effect_lr = TRUE`.}
+\item{firth}{Default \code{FALSE}. Whether to apply the firth correction (via the \code{mbest} package) to a logistic regression. This
+setting also automatically sets \code{effect_lr = TRUE}.}
 
 \item{effectsize}{Helper argument to generate anticipated coefficients. See details for more info.
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{contrasts}{Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+\item{high_resolution_candidate_set}{Default \code{NA}. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
 If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.}
 
-\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
+\item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations.}
 
-\item{parallel}{Default `FALSE`. If `TRUE`, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+\item{parallel}{Default \code{FALSE}. If \code{TRUE}, the Monte Carlo power calculation will use all but one of the available cores. If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{adjust_alpha_inflation}{Default `FALSE`. If `TRUE`, this will run the simulation twice:
+\item{adjust_alpha_inflation}{Default \code{FALSE}. If \code{TRUE}, this will run the simulation twice:
 first to calculate the empirical distribution of p-values under the null hypothesis and find
 the true Type-I error cutoff that corresponds to the desired Type-I error rate,
 and then again given effect size to calculate power values.}
 
-\item{detailedoutput}{Default `FALSE`. If `TRUE`, return additional information about evaluation in results.}
+\item{detailedoutput}{Default \code{FALSE}. If \code{TRUE}, return additional information about evaluation in results.}
 
-\item{progress}{Default `TRUE`. Whether to include a progress bar.}
+\item{progress}{Default \code{TRUE}. Whether to include a progress bar.}
 
-\item{advancedoptions}{Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
-user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
-`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
-If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
-set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.}
+\item{advancedoptions}{Default \code{NULL}. Named list of advanced options. \code{advancedoptions$anovatype} specifies the Anova type in the car package (default type \code{III}),
+user can change to type \code{II}). \code{advancedoptions$anovatest} specifies the test statistic if the user does not want a \code{Wald} test--other options are likelyhood-ratio \code{LR} and F-test \code{F}.
+\code{advancedoptions$progressBarUpdater} is a function called in non-parallel simulations that can be used to update external progress bar.\code{advancedoptions$GUI} turns off some warning messages when in the GUI.
+If \code{advancedoptions$save_simulated_responses = TRUE}, the dataframe will have an attribute \code{simulated_responses} that contains the simulated responses from the power evaluation. \code{advancedoptions$ci_error_conf} will
+set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}
 
 \item{...}{Additional arguments.}
 }

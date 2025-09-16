@@ -43,88 +43,86 @@ If a factor is continuous, its column should be type \code{numeric}. If a factor
 
 \item{trials}{The number of runs in the design.}
 
-\item{splitplotdesign}{If `NULL`, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
+\item{splitplotdesign}{If \code{NULL}, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
 this argument specifies the design for all of the factors harder to change than the current set of factors.
 Each row corresponds to a block in which the harder to change factors will be held
 constant. Each row of \code{splitplotdesign} will be replicated as specified in \code{blocksizes},
 and the optimal design is found for all of the factors given in the
 \code{model} argument, taking into consideration the fixed and replicated hard-to-change factors. If \code{blocksizes} is missing,
-`gen_design` will attempt to allocate the runs in the most balanced design possible,
-given the number of blocks given in the argument `splitplotdesign` and the total number of `trials`.}
+\code{gen_design} will attempt to allocate the runs in the most balanced design possible,
+given the number of blocks given in the argument \code{splitplotdesign} and the total number of \code{trials}.}
 
-\item{blocksizes}{Default `NULL`. Specifies the block size(s) for design generation. If only one number is passed, `gen_design()`
-will create blocks of the specified size, and if the total number of run specified in `trials` is not divisible by the number,
-`gen_design()` will attempt to allocate the runs in the most balanced design possible. If a list is passed, each entry
-in the list will specify an additional layer of blocking. If `splitplotdesign` is not `NULL`, this argument
-specifies the number of subplots within each whole plot (each whole plot corresponding to a row in the `splitplotdesign` data.frame).}
+\item{blocksizes}{Default \code{NULL}. Specifies the block size(s) for design generation. If only one number is passed, \code{gen_design()}
+will create blocks of the specified size, and if the total number of run specified in \code{trials} is not divisible by the number,
+\code{gen_design()} will attempt to allocate the runs in the most balanced design possible. If a list is passed, each entry
+in the list will specify an additional layer of blocking. If \code{splitplotdesign} is not \code{NULL}, this argument
+specifies the number of subplots within each whole plot (each whole plot corresponding to a row in the \code{splitplotdesign} data.frame).}
 
-\item{optimality}{Default `D`. The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
-define a function of the model matrix named `customOpt` in their namespace that returns a single value, which the algorithm will attempt to optimize. For
-`CUSTOM` optimality split-plot designs, the user must instead define `customBlockedOpt`, which should be a function of the model matrix and the variance-covariance matrix. For
+\item{optimality}{Default \code{D}. The optimality criterion used in generating the design. Full list of supported criteria: "D", "I", "A", "ALIAS", "G", "T", "E", or "CUSTOM". If "CUSTOM", user must also
+define a function of the model matrix named \code{customOpt} in their namespace that returns a single value, which the algorithm will attempt to optimize. For
+\code{CUSTOM} optimality split-plot designs, the user must instead define \code{customBlockedOpt}, which should be a function of the model matrix and the variance-covariance matrix. For
 information on the algorithm behind Alias-optimal designs, see \emph{Jones and Nachtsheim. "Efficient Designs With Minimal Aliasing." Technometrics, vol. 53, no. 1, 2011, pp. 62-71}.}
 
-\item{augmentdesign}{Default NULL. A `data.frame` of runs that are fixed during the optimal search process. The columns of `augmentdesign` must match those of the candidate set.
-The search algorithm will search for the optimal `trials` - `nrow(augmentdesign)` remaining runs.}
+\item{augmentdesign}{Default NULL. A \code{data.frame} of runs that are fixed during the optimal search process. The columns of \code{augmentdesign} must match those of the candidate set.
+The search algorithm will search for the optimal \code{trials} - \code{nrow(augmentdesign)} remaining runs.}
 
-\item{repeats}{Default `20`. The number of times to repeat the search for the best optimal design.}
+\item{repeats}{Default \code{20}. The number of times to repeat the search for the best optimal design.}
 
-\item{custom_v}{Default `NULL`. The user can pass a custom variance-covariance matrix to be used during blocked design generation.}
+\item{custom_v}{Default \code{NULL}. The user can pass a custom variance-covariance matrix to be used during blocked design generation.}
 
-\item{varianceratio}{Default `1`. The ratio between the block and run-to-run variance for a given stratum in
-a split plot/blocked design. This requires a design passed into `splitplotdesign`, so it will be overridden to `1`
+\item{varianceratio}{Default \code{1}. The ratio between the block and run-to-run variance for a given stratum in
+a split plot/blocked design. This requires a design passed into \code{splitplotdesign}, so it will be overridden to \code{1}
 if no split plot design is entered.}
 
-\item{contrasts}{Default [contr.simplex()], an orthonormal sum contrast. Function used to generate the encoding for categorical variables.}
+\item{contrasts}{Default \code{\link[=contr.simplex]{contr.simplex()}}, an orthonormal sum contrast. Function used to generate the encoding for categorical variables.}
 
-\item{aliaspower}{Default `2`. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
+\item{aliaspower}{Default \code{2}. Degree of interactions to be used in calculating the alias matrix for alias optimal designs.}
 
-\item{minDopt}{Default `0.8`. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.}
+\item{minDopt}{Default \code{0.8}. Minimum value for the D-Optimality of a design when searching for Alias-optimal designs.}
 
-\item{k}{Default `NA`. For D-optimal designs, this changes the search to a k-exchange algorithm
+\item{k}{Default \code{NA}. For D-optimal designs, this changes the search to a k-exchange algorithm
 \emph{Johnson and Nachtsheim. "Some Guidelines for Constructing Exact D-Optimal Designs on Convex Design Spaces." Technometrics, vol. 25, 1983, pp. 271-277}.
 This exchanges only the k lowest variance runs in the design at each search iteration. Lower numbers can result
-in a faster search, but are less likely tofind an optimal design. Values of `k >= n/4` have been shown empirically to generate similar designs to the full
-search. When `k == trials`, this results in the default modified Federov's algorithm.
-A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.}
+in a faster search, but are less likely tofind an optimal design. Values of \code{k >= n/4} have been shown empirically to generate similar designs to the full
+search. When \code{k == trials}, this results in the default modified Federov's algorithm.
+A \code{k} of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.}
 
-\item{moment_sample_density}{Default `10`. The density of points to sample when calculating the moment matrix to
+\item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to
 compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.}
 
-\item{high_resolution_candidate_set}{Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
+\item{high_resolution_candidate_set}{Default \code{NA}. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.}
 
-\item{parallel}{Default `FALSE`. If `TRUE`, the optimal design search will use all but one of the available cores.
-This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
+\item{parallel}{Default \code{FALSE}. If \code{TRUE}, the optimal design search will use all but one of the available cores.
+This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
 NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
 
-\item{progress}{Default `TRUE`. Whether to include a progress bar.}
+\item{progress}{Default \code{TRUE}. Whether to include a progress bar.}
 
-\item{add_blocking_columns}{Default `FALSE`. The blocking structure of the design will be indicated in the row names of the returned
-design. If `TRUE`, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
+\item{add_blocking_columns}{Default \code{FALSE}. The blocking structure of the design will be indicated in the row names of the returned
+design. If \code{TRUE}, the design also will have extra columns to indicate the blocking structure. If no blocking is detected, no columns will be added.}
 
-\item{randomized}{Default `TRUE`, due to the intrinsic randomization of the design search algorithm. If `FALSE`,
+\item{randomized}{Default \code{TRUE}, due to the intrinsic randomization of the design search algorithm. If \code{FALSE},
 the randomized design will be re-ordered from left to right.}
 
-\item{advancedoptions}{Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
-are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing
-matrix when calculating optimality tie-breakers), `alias_tie_tolerance` (the smallest absolute difference in the optimality criterion where designs are
-considered equal before considering the aliasing structure),  `alias_compare`` (which if set to FALSE turns off alias tie breaking completely),
-`aliasmodel` (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
-and `progressBarUpdater`` (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
-`g_efficiency_method`, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
+\item{advancedoptions}{Default \code{NULL}. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
+are \code{design_search_tolerance} (the smallest fractional increase below which the design search terminates), \code{alias_tie_power} (the degree of the aliasing
+matrix when calculating optimality tie-breakers), \code{alias_tie_tolerance} (the smallest absolute difference in the optimality criterion where designs are
+considered equal before considering the aliasing structure),  \verb{alias_compare`` (which if set to FALSE turns off alias tie breaking completely), }aliasmodel\verb{(provided if the user does not want to calculate Alias-optimality using all}aliaspower\verb{interaction terms), and}progressBarUpdater`` (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
+\code{g_efficiency_method}, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
 "optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
 and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
 the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.}
 
-\item{timer}{Deprecated: Use `progress` instead.}
+\item{timer}{Deprecated: Use \code{progress} instead.}
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.
+information in its attributes, which can be accessed with the \code{\link[=get_attribute]{get_attribute()}} and \code{\link[=get_optimality]{get_optimality()}} functions.
 }
 \description{
 Creates an experimental design given a model, desired number of runs, and a data frame of candidate

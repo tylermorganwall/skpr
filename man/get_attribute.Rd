@@ -7,13 +7,13 @@
 get_attribute(output, attr = NULL, round = TRUE)
 }
 \arguments{
-\item{output}{The output of either [gen_design()], [eval_design()], or [eval_design_mc()].}
+\item{output}{The output of either \code{\link[=gen_design]{gen_design()}}, \code{\link[=eval_design]{eval_design()}}, or \code{\link[=eval_design_mc]{eval_design_mc()}}.}
 
-\item{attr}{Default `NULL`. Return just the specific value requested.
-Potential values are `model_matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
-`correlation.matrix`, and `model` for the model used in the evaluation/generation of the design.}
+\item{attr}{Default \code{NULL}. Return just the specific value requested.
+Potential values are \code{model_matrix} for model used, \code{moments.matrix}, \code{variance.matrix}, \code{alias.matrix},
+\code{correlation.matrix}, and \code{model} for the model used in the evaluation/generation of the design.}
 
-\item{round}{Default `TRUE`. Rounds off values smaller than the magnitude `1e-15`` in the `correlation.matrix` and `alias.matrix` matrix attributes.}
+\item{round}{Default \code{TRUE}. Rounds off values smaller than the magnitude \verb{1e-15`` in the }correlation.matrix\code{and}alias.matrix` matrix attributes.}
 }
 \value{
 A list of attributes.

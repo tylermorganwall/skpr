@@ -6,7 +6,7 @@
 #'a data frame of parameter powers.
 #'
 #'@param design The experimental design. Internally, \code{eval_design_custom_mc} rescales each numeric column
-#'to the range [-1, 1].
+#'to the range -1 to 1.
 #'@param model The model used in evaluating the design. If this is missing and the design
 #'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include

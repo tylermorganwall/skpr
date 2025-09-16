@@ -28,7 +28,7 @@ eval_design_custom_mc(
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design_custom_mc} rescales each numeric column
-to the range \link{-1, 1}.}
+to the range -1 to 1.}
 
 \item{model}{The model used in evaluating the design. If this is missing and the design
 was generated with skpr, the generating model will be used. It can be a subset of the model used to

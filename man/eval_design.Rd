@@ -24,7 +24,7 @@ eval_design(
 }
 \arguments{
 \item{design}{The experimental design. Internally, \code{eval_design} rescales each numeric column
-to the range \link{-1, 1}, so you do not need to do this scaling manually.}
+to the range -1 to 1.}
 
 \item{model}{The model used in evaluating the design. If this is missing and the design
 was generated with skpr, the generating model will be used. It can be a subset of the model used to

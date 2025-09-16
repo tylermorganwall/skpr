@@ -4,7 +4,7 @@
 #'right- or left-censored. Power is evaluated with a Monte Carlo simulation,
 #'using the \code{survival} package and \code{survreg} to fit the data. Split-plot designs are not supported.
 #'
-#'@param design The experimental design. Internally, all numeric columns will be rescaled to [-1, +1].
+#'@param design The experimental design. Internally, all numeric columns will be rescaled to -1 to 1.
 #'@param model The model used in evaluating the design. If this is missing and the design
 #'was generated with skpr, the generating model will be used. It can be a subset of the model used to
 #'generate the design, or include higher order effects not in the original design generation. It cannot include

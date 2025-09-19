@@ -1140,6 +1140,8 @@ gen_design = function(
     if (!is.null(custom_v)) {
       V = custom_v
     }
+  } else {
+    V = diag(trials) * varianceratio
   }
 
   initialreplace = FALSE
@@ -1975,6 +1977,8 @@ gen_design = function(
   attr(design, "generating.criterion") = optimality
   attr(design, "generating.contrast") = contrasts
   attr(design, "contrastslist") = contrastslist
+  attr(design, "variance.matrix") = V
+  attr(design, "candidate_set") = og_candidate_set
 
   if (!splitplot) {
     if (blocking) {
@@ -2097,7 +2101,6 @@ gen_design = function(
     error = function(e) {
     }
   )
-
   if (!splitplot && !blocking) {
     tryCatch(
       {
@@ -2196,6 +2199,9 @@ gen_design = function(
       error = function(e) {
       }
     )
+  }
+  if (is.null(attr(design, "I"))) {
+    attr(design, "I") = NA_real_
   }
 
   #Re-order factors so levels with the lowest number of factors come first
@@ -2327,7 +2333,6 @@ gen_design = function(
   } else {
     attr(design, "augmented") = FALSE
   }
-  attr(design, "candidate_set") = og_candidate_set
   modelmatrix_cor = model.matrix(
     model,
     design,

@@ -19,16 +19,16 @@ calculate_gefficiency = function(
   if (is.null(randsearches)) {
     randsearches = 10000
   }
-  variables = all.vars(get_attribute(design, "model"))
-  designmm = get_attribute(design, "model_matrix")
+  model = attr(design, "generating_model")
+  variables = all.vars(model)
+  designmm = attr(design, "model_matrix")
   modelentries = names(calculate_level_vector(
     run_matrix,
-    get_attribute(design, "model"),
+    model,
     FALSE
   ))
   model_entries_mul = gsub(":", "*", modelentries)
   model_entries_mul[1] = 1
-  fulllist = list()
   factorvars = attr(design, "contrastslist")
   variables = variables[!variables %in% names(factorvars)]
   rand_vector = function(factorlist, model_entries_mul) {
@@ -38,8 +38,16 @@ calculate_gefficiency = function(
     ))
     matrix(fulloutput, 1, length(fulloutput))
   }
-
+  invXtX = solve(t(designmm) %*% designmm)
   calculate_optimality_for_point = function(x, infval = FALSE) {
+    fulllist = list()
+    if (any(x > 1) || any(x < -1)) {
+      if (infval) {
+        return(Inf)
+      } else {
+        return(10000)
+      }
+    }
     for (i in seq_len(length(x))) {
       fulllist[[i]] = x[i]
     }
@@ -52,17 +60,9 @@ calculate_gefficiency = function(
     }
 
     mc_mm = rand_vector(fulllist, model_entries_mul)
-    if (any(x > 1) || any(x < -1)) {
-      if (infval) {
-        return(Inf)
-      } else {
-        return(10000)
-      }
-    }
-    100 *
-      (ncol(designmm)) /
-      (nrow(designmm) *
-        max(diag(mc_mm %*% solve(t(designmm) %*% designmm) %*% t(mc_mm))))
+    return(
+      as.numeric(mc_mm %*% invXtX %*% t(mc_mm))
+    )
   }
   modelentries = names(calculate_level_vector(
     run_matrix,
@@ -72,34 +72,43 @@ calculate_gefficiency = function(
   factorvars = attr(design, "contrastslist")
   variables = all.vars(get_attribute(design, "model"))
   variables = variables[!variables %in% names(factorvars)]
+
+  #First run edges
+  candset = attr(design, "candidate_set")
+  for (i in seq_len(ncol(candset))) {
+    if (is.numeric(candset[[i]])) {
+      num_col = candset[[i]]
+      min_max = range(candset)
+      is_exterior = num_col %in% min_max
+      candset = candset[is_exterior, ]
+    }
+  }
+  contrastslist = attr(design, "contrastslist")
+  candset_mm = model.matrix(model, data = candset, contrasts = contrastslist)
+  max_spv_verts = max(candset_mm %*% invXtX %*% t(candset_mm))
+
   if (calculation_type == "random") {
     vals = list()
-    lowest = 100
     for (i in seq_len(randsearches)) {
       vals[[i]] = calculate_optimality_for_point(
         2 * runif(length(variables)) - 1
       )
-      if (vals[[i]] < lowest) {
-        lowest = vals[[i]]
-      }
     }
-    return(min(unlist(vals)))
+    max_interior_val = max(unlist(vals))
+    max_val_overall = max(max_spv_verts, max_interior_val)
+    return(100 * ncol(designmm) / (nrow(designmm) * max_val_overall))
   }
 
   if (calculation_type == "optim") {
     vals = list()
-    lowest = 100
     for (i in seq_len(randsearches)) {
       vals[[i]] = optim(
         2 * runif(length(variables)) - 1,
         calculate_optimality_for_point,
         method = "SANN"
       )$value
-      if (vals[[i]] < lowest) {
-        lowest = vals[[i]]
-      }
     }
-    return(min(unlist(vals)))
+    return(100 * ncol(designmm) / (nrow(designmm) * max(unlist(vals))))
   }
   if (calculation_type == "custom" && !is.null(design_space_mm)) {
     return(GEfficiency(designmm, design_space_mm))

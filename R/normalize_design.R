@@ -35,7 +35,7 @@ normalize_design = function(design, augmented = NULL) {
         "Design to be augmented and new design must have identical column classes"
       )
     }
-    for (column in 1:ncol(design)) {
+    for (column in seq_len(ncol(design))) {
       if (is.numeric(design[, column])) {
         midvalue = mean(c(
           max(c(design[, column], augmented[, column])),
@@ -46,7 +46,7 @@ normalize_design = function(design, augmented = NULL) {
       }
     }
   } else {
-    for (column in 1:ncol(design)) {
+    for (column in seq_len(ncol(design))) {
       if (is.numeric(design[, column])) {
         midvalue = mean(c(max(design[, column]), min(design[, column])))
         design[, column] = (design[, column] - midvalue) /

@@ -54,40 +54,84 @@ plot_fds = function(
   high_resolution_candidate_set = NA
 ) {
   if (inherits(skpr_output, "list") && length(skpr_output) > 1) {
-    old.par = par(no.readonly = TRUE)
-    on.exit(par(old.par), add = TRUE)
-    par(mfrow = c(1, length(skpr_output)))
-    fds_values = list()
+    fds_values = vector("list", length(skpr_output))
     if (!plot && !is.null(yaxis_max)) {
       warning(
         "`plot = FALSE` but `yaxis_max` non-NULL. Setting `yaxis_max` to NULL"
       )
       yaxis_max = NULL
     }
+    for (i in seq_along(skpr_output)) {
+      fds_values[[i]] = plot_fds(
+        skpr_output[[i]],
+        model = model,
+        continuouslength = continuouslength,
+        plot = FALSE,
+        sample_size = sample_size,
+        moment_sample_density = moment_sample_density,
+        candidate_set = candidate_set,
+        high_resolution_candidate_set = high_resolution_candidate_set
+      )
+    }
     if (is.null(yaxis_max)) {
-      for (i in 1:length(skpr_output)) {
-        fds_values[[i]] = plot_fds(
-          skpr_output[[i]],
-          model = model,
-          continuouslength = continuouslength,
-          plot = FALSE
-        )
-      }
-      yaxis_max = max(unlist(fds_values)) + max(unlist(fds_values)) / 20
+      flattened = unlist(fds_values, use.names = FALSE)
+      yaxis_max = max(flattened) + max(flattened) / 20
     }
     if (length(description) == 1) {
       description = rep(description, length(skpr_output))
     }
     if (plot) {
-      for (i in 1:length(skpr_output)) {
-        fds_values[[i]] = plot_fds(
-          skpr_output[[i]],
-          model = model,
-          continuouslength = continuouslength,
-          plot = plot,
-          yaxis_max = yaxis_max,
-          description = description[i]
+      mid_index = function(values) {
+        max(1, min(length(values), round(sample_size / 2)))
+      }
+      plot_list = vector("list", length(skpr_output))
+      for (i in seq_along(skpr_output)) {
+        values = fds_values[[i]]
+        midval = values[mid_index(values)]
+        fraction = seq_along(values) / length(values)
+        df = data.frame(
+          fraction = fraction,
+          variance = values
         )
+        plot_list[[i]] = ggplot2::ggplot(
+          df,
+          ggplot2::aes(x = fraction, y = variance)
+        ) +
+          ggplot2::geom_line(color = "blue", linewidth = 1) +
+          ggplot2::geom_vline(
+            xintercept = 0.5,
+            linetype = "dashed",
+            color = "red"
+          ) +
+          ggplot2::geom_hline(
+            yintercept = midval,
+            linetype = "dashed",
+            color = "red"
+          ) +
+          ggplot2::scale_x_continuous(
+            limits = c(0, 1),
+            expand = ggplot2::expansion(mult = 0)
+          ) +
+          ggplot2::scale_y_continuous(
+            limits = c(0, yaxis_max),
+            expand = ggplot2::expansion(mult = 0)
+          ) +
+          ggplot2::labs(
+            x = description[i],
+            y = "Prediction Variance"
+          ) +
+          ggplot2::theme_minimal()
+      }
+      if (requireNamespace("gridExtra", quietly = TRUE)) {
+        do.call(
+          gridExtra::grid.arrange,
+          c(plot_list, list(nrow = 1))
+        )
+      } else {
+        warning(
+          "Package `gridExtra` not available; displaying plots sequentially."
+        )
+        lapply(plot_list, print)
       }
     }
     return(invisible(fds_values))
@@ -299,27 +343,39 @@ plot_fds = function(
     maxyaxis = yaxis_max
   }
   if (plot) {
-    plot(
-      1:length(varsorderedscaled) / length(varsorderedscaled),
-      varsorderedscaled,
-      ylim = c(0, maxyaxis),
-      type = "n",
-      xlab = description,
-      ylab = "Prediction Variance",
-      xlim = c(0, 1),
-      xaxs = "i",
-      yaxs = "i"
+    mid_index = max(1, min(length(varsorderedscaled), round(sample_size / 2)))
+    midval = varsorderedscaled[mid_index]
+    df = data.frame(
+      fraction = seq_along(varsorderedscaled) / length(varsorderedscaled),
+      variance = varsorderedscaled
     )
-    abline(v = 0.5, untf = FALSE, lty = 2, col = "red", lwd = 2)
-    abline(h = midval, untf = FALSE, lty = 2, col = "red", lwd = 2)
-    lines(
-      1:length(varsorderedscaled) / length(varsorderedscaled),
-      varsorderedscaled,
-      lwd = 2,
-      col = "blue"
-    )
-    invisible(varsorderedscaled)
-  } else {
-    return(varsorderedscaled)
+    plot_obj = ggplot2::ggplot(df, ggplot2::aes(x = fraction, y = variance)) +
+      ggplot2::geom_line(color = "blue", linewidth = 1) +
+      ggplot2::geom_vline(
+        xintercept = 0.5,
+        linetype = "dashed",
+        color = "red"
+      ) +
+      ggplot2::geom_hline(
+        yintercept = midval,
+        linetype = "dashed",
+        color = "red"
+      ) +
+      ggplot2::scale_x_continuous(
+        limits = c(0, 1),
+        expand = ggplot2::expansion(mult = 0)
+      ) +
+      ggplot2::scale_y_continuous(
+        limits = c(0, maxyaxis),
+        expand = ggplot2::expansion(mult = 0)
+      ) +
+      ggplot2::labs(
+        x = description,
+        y = "Prediction Variance"
+      ) +
+      ggplot2::theme_minimal()
+    print(plot_obj)
+    return(invisible(varsorderedscaled))
   }
+  return(varsorderedscaled)
 }

@@ -158,55 +158,47 @@ plot_correlations = function(
   } else {
     imagecolors = colorRampPalette(customcolors)(101)
   }
-  if (is.null(custompar)) {
-    par(mar = c(5, 3, 7, 0))
-  } else {
-    do.call(par, custompar)
+  if (!is.null(custompar)) {
+    warning("`custompar` is no longer supported; adjust the returned ggplot object instead.")
   }
-  image(
-    t(cormat[ncol(cormat):1, , drop = FALSE]),
-    x = 1:ncol(cormat),
-    y = 1:ncol(cormat),
-    zlim = c(0, 1),
-    asp = 1,
-    axes = F,
-    col = imagecolors,
-    xlab = "",
-    ylab = ""
-  )
-  axis(
-    3,
-    at = 1:ncol(cormat),
-    labels = colnames(mm)[-1],
-    pos = ncol(cormat) + 1,
-    las = 2,
-    hadj = 0,
-    cex.axis = 0.8
-  )
-  axis(
-    2,
-    at = ncol(cormat):1,
-    labels = colnames(mm)[-1],
-    pos = 0,
-    las = 2,
-    hadj = 1,
-    cex.axis = 0.8
-  )
 
-  legend(
-    length(colnames(mm)[-1]) + 1,
-    length(colnames(mm)[-1]),
-    c("0", "", "", "", "", "0.5", "", "", "", "", "1.0"),
-    title = "|r|\n",
-    fill = imagecolors[c(seq(1, 101, 10))],
-    xpd = TRUE,
-    bty = "n",
-    border = NA,
-    y.intersp = 0.3,
-    x.intersp = 0.1,
-    cex = 1
+  labels = colnames(mm)[-1]
+  plot_matrix = t(cormat[ncol(cormat):1, , drop = FALSE])
+  plot_df = data.frame(
+    x = rep(labels, each = length(labels)),
+    y = rep(rev(labels), times = length(labels)),
+    value = as.vector(plot_matrix)
   )
-  par(mar = c(5.1, 4.1, 4.1, 2.1))
+  plot_obj = ggplot2::ggplot(
+    plot_df,
+    ggplot2::aes(
+      x = factor(x, levels = labels),
+      y = factor(y, levels = rev(labels)),
+      fill = value
+    )
+  ) +
+    ggplot2::geom_tile(color = NA) +
+    ggplot2::scale_x_discrete(position = "top") +
+    ggplot2::scale_y_discrete() +
+    ggplot2::scale_fill_gradientn(
+      colours = imagecolors,
+      limits = c(0, 1),
+      name = "|r|"
+    ) +
+    ggplot2::coord_fixed() +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      axis.title = ggplot2::element_blank(),
+      panel.grid = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_text(
+        angle = 90,
+        vjust = 0.5,
+        hjust = 0,
+        size = 8
+      ),
+      axis.text.y = ggplot2::element_text(size = 8)
+    )
+  print(plot_obj)
 
   results = t(cormat[ncol(cormat):1, , drop = FALSE])
   colnames(results) = rev(colnames(mm)[-1])

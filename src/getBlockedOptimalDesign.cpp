@@ -1,5 +1,6 @@
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
+#include "design_utils.h"
 
 #include <RcppEigen.h>
 #include <queue>
@@ -95,30 +96,13 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     return(List::create(_["indices"] = NumericVector::get_na(), _["model_matrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
 
-  bool found = true;
-  double del = 0;
-  int entryx = 0;
-  int entryy = 0;
-  double newOptimum = 0;
-  double priorOptimum = 0;
-  double minDelta = tolerance;
-  double newdel;
-
-  //Initialize matrices for rank-2 updates.
-  Eigen::MatrixXd identitymat(2,2);
-  identitymat.setIdentity(2,2);
-  Eigen::MatrixXd f1(initialdesign.cols(),2);
-  Eigen::MatrixXd f2(initialdesign.cols(),2);
-  Eigen::MatrixXd f2vinv(2,initialdesign.cols());
-
-  //Transpose matrices for faster element access
-  Eigen::MatrixXd initialdesign_trans = initialdesign.transpose();
-  Eigen::MatrixXd candidatelist_trans = candidatelist.transpose();
-  // Eigen::MatrixXd V = (initialdesign.transpose()*initialdesign).partialPivLu().inverse();
+  double del = 0.0;
+  double newOptimum = 0.0;
+  double priorOptimum = 0.0;
+  const double minDelta = tolerance;
 
   //Generate a D-optimal design
   if(condition == "D") {
-    Eigen::MatrixXd temp;
     newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
     if(std::isinf(newOptimum)) {
       newOptimum = calculateBlockedDOptimalityLog(initialdesign, vInv);
@@ -126,60 +110,66 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      del = calculateBlockedDOptimality(initialdesign,vInv);
-      if(std::isinf(del)) {
-        del = calculateBlockedDOptimalityLog(initialdesign, vInv);
+      double currentCriterion = calculateBlockedDOptimality(initialdesign, vInv);
+      if(std::isinf(currentCriterion)) {
+        currentCriterion = calculateBlockedDOptimalityLog(initialdesign, vInv);
       }
+
       std::priority_queue<std::pair<double, int>> q;
-      float min_val = -INFINITY;
+      double minVal = -INFINITY;
       int k = kexchange - augmentedrows;
       if(kexchange != nTrials) {
-        for (int i = augmentedrows; i < nTrials; i++) {
-          float temp_val = -initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-          if(temp_val == min_val) {
-            k++;
-          } else if(temp_val > min_val) {
-            min_val = temp_val;
+        for (int row = augmentedrows; row < nTrials; ++row) {
+          const double tempVal = -initialdesign.row(row) * V * initialdesign.row(row).transpose();
+          if(tempVal == minVal) {
+            ++k;
+          } else if(tempVal > minVal) {
+            minVal = tempVal;
             k = kexchange - augmentedrows;
           }
-          q.push(std::pair<double, int>(temp_val, i));
+          q.emplace(tempVal, row);
         }
       } else {
-        for (int i = augmentedrows; i < nTrials; i++) {
-          q.push(std::pair<double, int>(-i, i));
+        for (int row = augmentedrows; row < nTrials; ++row) {
+          q.emplace(-static_cast<double>(row), row);
         }
       }
 
-      for (int j = 0; j < k; j++) {
+      for (int exchange = 0; exchange < k && !q.empty(); ++exchange) {
         Rcpp::checkUserInterrupt();
-        int i = q.top().second;
+        const int row = q.top().second;
         q.pop();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-          //Check if optimality condition improved and can perform exchange
-          newdel = calculateBlockedDOptimality(temp, vInv);
-          if(std::isinf(newdel)) {
-            newdel = calculateBlockedDOptimalityLog(temp, vInv);
-          }
-          if(newdel > del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+
+        double bestCriterion = currentCriterion;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            initialdesign.row(row) = candidatelist.row(candidateIndex);
+            candidateScore = calculateBlockedDOptimality(initialdesign, vInv);
+            if(std::isinf(candidateScore)) {
+              candidateScore = calculateBlockedDOptimalityLog(initialdesign, vInv);
+            }
+            return true;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        initialdesign.row(row) = originalRow;
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
+
       newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
       if(std::isinf(newOptimum)) {
         newOptimum = calculateBlockedDOptimalityLog(initialdesign, vInv);
@@ -187,141 +177,161 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     }
   }
   //Generate an I-optimal design
-  if(condition == "I") {
-    Eigen::MatrixXd temp;
+  else if(condition == "I") {
     del = calculateBlockedIOptimality(initialdesign, momentsmatrix, vInv);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          //Checks for singularity; If singular, moves to next candidate in the candidate set
-          try {
-            temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-            //Check if optimality condition improved and can perform exchange
-            newdel = calculateBlockedIOptimality(temp,momentsmatrix,vInv);
-            if(newdel < del) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            try {
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              candidateScore = calculateBlockedIOptimality(initialdesign, momentsmatrix, vInv);
+            } catch (std::runtime_error&) {
+              return false;
             }
-          } catch (std::runtime_error& e) {
-            continue;
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+            return true;
+          },
+          skpr::OptimizationSense::Minimize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        initialdesign.row(row) = originalRow;
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
+
       try {
         newOptimum = calculateBlockedIOptimality(initialdesign, momentsmatrix, vInv);
-      } catch (std::runtime_error& e) {
+      } catch (std::runtime_error&) {
         continue;
       }
+      del = newOptimum;
     }
   }
   //Generate an A-optimal design
-  if(condition == "A") {
-    Eigen::MatrixXd temp;
-    del = calculateBlockedAOptimality(initialdesign,vInv);
+  else if(condition == "A") {
+    del = calculateBlockedAOptimality(initialdesign, vInv);
     newOptimum = del;
     priorOptimum = del*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          //Checks for singularity; If singular, moves to next candidate in the candidate set
-          try {
-            temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-            //Check if optimality condition improved and can perform exchange
-            newdel = calculateBlockedAOptimality(temp,vInv);
-            if(newdel < del) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            try {
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              candidateScore = calculateBlockedAOptimality(initialdesign, vInv);
+            } catch (std::runtime_error&) {
+              return false;
             }
-          } catch (std::runtime_error& e) {
-            continue;
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+            return true;
+          },
+          skpr::OptimizationSense::Minimize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        initialdesign.row(row) = originalRow;
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
-      newOptimum = calculateBlockedAOptimality(initialdesign,vInv);
+      newOptimum = calculateBlockedAOptimality(initialdesign, vInv);
+      del = newOptimum;
     }
   }
   //Generate an Alias optimal design
-  if(condition == "ALIAS") {
-    Eigen::MatrixXd temp;
-    Eigen::MatrixXd tempalias;
-    del = calculateBlockedDOptimality(initialdesign,vInv);
-    newOptimum = del;
+  else if(condition == "ALIAS") {
+    newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
+    if(std::isinf(newOptimum)) {
+      newOptimum = calculateBlockedDOptimalityLog(initialdesign, vInv);
+    }
     priorOptimum = newOptimum/2;
 
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      del = calculateBlockedDOptimality(initialdesign,vInv);
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = calculateBlockedDOptimality(initialdesign, vInv);
+      if(std::isinf(currentCriterion)) {
+        currentCriterion = calculateBlockedDOptimalityLog(initialdesign, vInv);
+      }
+
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-          //Calculate interaction terms for sub-whole plot interactions
-          //Check if optimality condition improved and can perform exchange
-          newdel = calculateBlockedDOptimality(temp, vInv);
-          if(newdel > del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          aliasdesign.block(entryx, 0, 1, aliascandidatelist.cols()) = aliascandidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            initialdesign.row(row) = candidatelist.row(candidateIndex);
+            candidateScore = calculateBlockedDOptimality(initialdesign, vInv);
+            if(std::isinf(candidateScore)) {
+              candidateScore = calculateBlockedDOptimalityLog(initialdesign, vInv);
+            }
+            return true;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        initialdesign.row(row) = originalRow;
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          aliasdesign.row(row) = aliascandidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
+
       newOptimum = calculateBlockedDOptimality(initialdesign, vInv);
+      if(std::isinf(newOptimum)) {
+        newOptimum = calculateBlockedDOptimalityLog(initialdesign, vInv);
+      }
     }
 
-    double firstA = calculateBlockedAliasTracePseudoInv(initialdesign, aliasdesign,vInv);
-    double initialD = calculateBlockedDEffNN(initialdesign,vInv);
+    const double firstA = calculateBlockedAliasTracePseudoInv(initialdesign, aliasdesign, vInv);
+    const double initialD = calculateBlockedDEffNN(initialdesign, vInv);
     double currentA = firstA;
     double currentD = initialD;
-    double wdelta = 0.05;
-    double aliasweight = 1;
+    const double wdelta = 0.05;
+    double aliasweight = 1.0;
     double bestA = firstA;
-    double optimum;
-    double first = 1;
+    double optimum = 0.0;
+    double first = 1.0;
 
     Eigen::VectorXi candidateRowTemp = candidateRow;
     Eigen::VectorXi initialRowsTemp = initialRows;
@@ -333,46 +343,57 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
 
     while(firstA != 0 && currentA != 0 && aliasweight > wdelta) {
 
-      aliasweight = aliasweight - wdelta;
+      aliasweight -= wdelta;
       optimum = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
-      first = 1;
+      first = 1.0;
 
-      while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
-        first++;
+      while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1.0) {
+        ++first;
         priorOptimum = optimum;
-        for (int i = 0; i < nTrials; i++) {
+        for (int row = 0; row < nTrials; ++row) {
           Rcpp::checkUserInterrupt();
-          found = false;
-          entryx = 0;
-          entryy = 0;
-          temp = combinedDesignTemp;
-          tempalias = aliasdesign;
-          //Search through candidate set for potential exchanges for row i
-          for (int j = 0; j < totalPoints; j++) {
-            try {
-              temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-              tempalias.block(i, 0, 1, aliascandidatelist.cols()) = aliascandidatelist.row(j);
-              //Check if optimality condition improved and can perform exchange
-              currentA = calculateBlockedAliasTrace(temp,tempalias,vInv);
-              currentD = calculateBlockedDEffNN(temp,vInv);
-              newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
+          const Eigen::RowVectorXd originalDesignRow = combinedDesignTemp.row(row);
+          const Eigen::RowVectorXd originalAliasRow = aliasdesign.row(row);
+          double bestOptimum = optimum;
 
-              if(newdel > optimum && calculateBlockedDEff(temp,vInv) > minDopt) {
-                found = true;
-                entryx = i; entryy = j;
-                optimum = newdel;
+          const int bestCandidate = skpr::findBestCandidate(
+            totalPoints,
+            [&](int candidateIndex, double& candidateScore) -> bool {
+              try {
+                combinedDesignTemp.row(row) = candidatelist.row(candidateIndex);
+                aliasdesign.row(row) = aliascandidatelist.row(candidateIndex);
+                double candidateA = calculateBlockedAliasTrace(combinedDesignTemp, aliasdesign, vInv);
+                double candidateD = calculateBlockedDEffNN(combinedDesignTemp, vInv);
+                if(calculateBlockedDEff(combinedDesignTemp, vInv) <= minDopt) {
+                  combinedDesignTemp.row(row) = originalDesignRow;
+                  aliasdesign.row(row) = originalAliasRow;
+                  return false;
+                }
+                candidateScore = aliasweight*candidateD/initialD + (1-aliasweight)*(1-candidateA/firstA);
+              } catch (std::runtime_error&) {
+                combinedDesignTemp.row(row) = originalDesignRow;
+                aliasdesign.row(row) = originalAliasRow;
+                return false;
               }
-            } catch (std::runtime_error& e) {
-              continue;
-            }
-          }
-          if (found) {
-            combinedDesignTemp.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-            aliasdesign.block(entryx, 0, 1, aliascandidatelist.cols()) = aliascandidatelist.row(entryy);
-            candidateRowTemp(i) = entryy+1;
-            initialRowsTemp(i) = entryy+1;
+              combinedDesignTemp.row(row) = originalDesignRow;
+              aliasdesign.row(row) = originalAliasRow;
+              return true;
+            },
+            skpr::OptimizationSense::Maximize,
+            optimum,
+            bestOptimum
+          );
+
+          if (bestCandidate != -1) {
+            combinedDesignTemp.row(row) = candidatelist.row(bestCandidate);
+            aliasdesign.row(row) = aliascandidatelist.row(bestCandidate);
+            candidateRowTemp(row) = bestCandidate + 1;
+            initialRowsTemp(row) = bestCandidate + 1;
+            optimum = bestOptimum;
           } else {
-            candidateRowTemp(i) = initialRowsTemp(i);
+            combinedDesignTemp.row(row) = originalDesignRow;
+            aliasdesign.row(row) = originalAliasRow;
+            candidateRowTemp(row) = initialRowsTemp(row);
           }
         }
         currentD = calculateBlockedDEffNN(combinedDesignTemp,vInv);
@@ -392,164 +413,180 @@ List genBlockedOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixX
     aliasdesign = bestaliasdesign;
     newOptimum = bestA;
   }
-  if(condition == "G") {
-    Eigen::MatrixXd temp;
+  else if(condition == "G") {
     newOptimum = calculateBlockedGOptimality(initialdesign, vInv);
     priorOptimum = newOptimum*2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
-      del = newOptimum;
       priorOptimum = newOptimum;
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = newOptimum;
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-          //Check if optimality condition improved and can perform exchange
-          try {
-            newdel = calculateBlockedGOptimality(temp, vInv);
-          } catch (std::runtime_error& e) {
-            continue;
-          }
-          if(newdel < del) {
-            if(!isSingularBlocked(temp,vInv)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            bool success = false;
+            try {
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              if(!isSingularBlocked(initialdesign, vInv)) {
+                candidateScore = calculateBlockedGOptimality(initialdesign, vInv);
+                success = true;
+              }
+            } catch (std::runtime_error&) {
+              success = false;
             }
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+            initialdesign.row(row) = originalRow;
+            return success;
+          },
+          skpr::OptimizationSense::Minimize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
       newOptimum = calculateBlockedGOptimality(initialdesign, vInv);
     }
   }
 
-  if(condition == "T") {
-    Eigen::MatrixXd temp;
+  else if(condition == "T") {
     newOptimum = calculateBlockedTOptimality(initialdesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      del = calculateBlockedTOptimality(initialdesign,vInv);
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = calculateBlockedTOptimality(initialdesign, vInv);
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-          //Check if optimality condition improved and can perform exchange
-          newdel = calculateBlockedTOptimality(temp, vInv);
-          if(newdel > del) {
-            if(!isSingularBlocked(temp,vInv)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            bool success = false;
+            try {
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              if(!isSingularBlocked(initialdesign, vInv)) {
+                candidateScore = calculateBlockedTOptimality(initialdesign, vInv);
+                success = true;
+              }
+            } catch (std::runtime_error&) {
+              success = false;
             }
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+            initialdesign.row(row) = originalRow;
+            return success;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
       newOptimum = calculateBlockedTOptimality(initialdesign, vInv);
     }
   }
-  if(condition == "E") {
-    Eigen::MatrixXd temp;
+  else if(condition == "E") {
     newOptimum = calculateBlockedEOptimality(initialdesign, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      del = calculateBlockedEOptimality(initialdesign,vInv);
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = calculateBlockedEOptimality(initialdesign, vInv);
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-          //Check if optimality condition improved and can perform exchange
-          try {
-            newdel = calculateBlockedEOptimality(temp, vInv);
-          } catch (std::runtime_error& e) {
-            continue;
-          }
-          if(newdel > del) {
-            if(!isSingularBlocked(temp,vInv)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            bool success = false;
+            try {
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              if(!isSingularBlocked(initialdesign, vInv)) {
+                candidateScore = calculateBlockedEOptimality(initialdesign, vInv);
+                success = true;
+              }
+            } catch (std::runtime_error&) {
+              success = false;
             }
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+            initialdesign.row(row) = originalRow;
+            return success;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
       newOptimum = calculateBlockedEOptimality(initialdesign, vInv);
     }
   }
-  if(condition == "CUSTOM") {
+  else if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
     Function customBlockedOpt = myEnv["customBlockedOpt"];
-    Eigen::MatrixXd temp;
-    newOptimum = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt,vInv);
+    newOptimum = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);
     priorOptimum = newOptimum/2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      del = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);
-      //Search through candidate set for potential exchanges for row i
-      for (int i = 0; i < nTrials; i++) {
+      double currentCriterion = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);
+      for (int row = 0; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        for (int j = 0; j < totalPoints; j++) {
-          temp.block(i, 0, 1, numbercols) = candidatelist.row(j);
-          //Check if optimality condition improved and can perform exchange
-          try {
-            newdel = calculateBlockedCustomOptimality(temp, customBlockedOpt, vInv);
-          } catch (std::runtime_error& e) {
-            continue;
-          }
-          if(newdel > del) {
-            if(!isSingularBlocked(temp,vInv)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            bool success = false;
+            try {
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              if(!isSingularBlocked(initialdesign, vInv)) {
+                candidateScore = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);
+                success = true;
+              }
+            } catch (std::runtime_error&) {
+              success = false;
             }
-          }
-        }
-        if (found) {
-          initialdesign.block(entryx, 0, 1, numbercols) = candidatelist.row(entryy);
-          candidateRow(i) = entryy+1;
-          initialRows(i) = entryy+1;
+            initialdesign.row(row) = originalRow;
+            return success;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow(row) = bestCandidate + 1;
+          initialRows(row) = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow(i) = initialRows(i);
+          candidateRow(row) = initialRows(row);
         }
       }
       newOptimum = calculateBlockedCustomOptimality(initialdesign, customBlockedOpt, vInv);

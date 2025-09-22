@@ -1,6 +1,8 @@
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
+#include "design_utils.h"
 #include <queue>
+#include <vector>
 
 using namespace Rcpp;
 
@@ -31,10 +33,11 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
   //check and log whether there are inter-strata interactions
   int numberinteractions = interactions.size();
   bool interstrata = (numberinteractions > 0);
-  Eigen::VectorXd orderinteraction(interactions.size());
+  std::vector<Eigen::VectorXi> interactionColumns;
   if(interstrata) {
+    interactionColumns.reserve(numberinteractions);
     for(int i = 0; i < numberinteractions; i++) {
-      orderinteraction(i) = as<Eigen::VectorXd>(interactions[i]).size();
+      interactionColumns.push_back(as<Eigen::VectorXi>(interactions[i]));
     }
   }
   //Generate blocking structure inverse covariance matrix
@@ -66,17 +69,31 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
   combinedAliasDesign.middleCols(blockedCols, designColsAlias) = aliasdesign;
   Eigen::VectorXd interactiontemp(nTrials);
   Eigen::VectorXd interactiontempalias(nTrials);
+  auto computeRowInteractions = [&](Eigen::MatrixXd& matrix, int rowIndex, int offset) {
+    if(!interstrata) {
+      return;
+    }
+    for(int idx = 0; idx < numberinteractions; ++idx) {
+      const Eigen::VectorXi& cols = interactionColumns[idx];
+      double value = matrix(rowIndex, cols(0) - 1);
+      for(int kk = 1; kk < cols.size(); ++kk) {
+        value *= matrix(rowIndex, cols(kk) - 1);
+      }
+      matrix(rowIndex, offset + idx) = value;
+    }
+  };
   //Calculate interaction terms of initial design.
   if(interstrata) {
     for(int i = 0; i < numberinteractions; i++) {
-      interactiontemp = combinedDesign.col(as< Eigen::VectorXd>(interactions[i])(0)-1);
-      interactiontempalias = combinedAliasDesign.col(as< Eigen::VectorXd>(interactions[i])(0)-1);
-      for(int kk = 1; kk < orderinteraction(i); kk++) {
-        interactiontemp = interactiontemp.cwiseProduct(combinedDesign.col(as< Eigen::VectorXd>(interactions[i])(kk)-1));
-        interactiontempalias = interactiontempalias.cwiseProduct(combinedAliasDesign.col(as< Eigen::VectorXd>(interactions[i])(kk)-1));
+      const Eigen::VectorXi& cols = interactionColumns[i];
+      interactiontemp = combinedDesign.col(cols(0) - 1);
+      interactiontempalias = combinedAliasDesign.col(cols(0) - 1);
+      for(int kk = 1; kk < cols.size(); kk++) {
+        interactiontemp = interactiontemp.cwiseProduct(combinedDesign.col(cols(kk) - 1));
+        interactiontempalias = interactiontempalias.cwiseProduct(combinedAliasDesign.col(cols(kk) - 1));
       }
-      combinedDesign.col(blockedCols+designCols + i) = interactiontemp;
-      combinedAliasDesign.col(blockedCols+designColsAlias + i) = interactiontempalias;
+      combinedDesign.col(blockedCols + designCols + i) = interactiontemp;
+      combinedAliasDesign.col(blockedCols + designColsAlias + i) = interactiontempalias;
     }
   }
   Eigen::VectorXi candidateRow = initialRows;
@@ -103,15 +120,16 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
       combinedDesign.block(i, blockedCols, 1, designCols) = candidatelist.row(shuffledindices(i));
       combinedAliasDesign.block(i, blockedCols, 1, designColsAlias) = aliascandidatelist.row(shuffledindices(i));
       if(interstrata) {
-        for(int i = 0; i < numberinteractions; i++) {
-          interactiontemp = combinedDesign.col(as< Eigen::VectorXd>(interactions[i])(0)-1);
-          interactiontempalias = combinedAliasDesign.col(as< Eigen::VectorXd>(interactions[i])(0)-1);
-          for(int k = 1; k < orderinteraction(i); k++) {
-            interactiontemp = interactiontemp.cwiseProduct(combinedDesign.col(as< Eigen::VectorXd>(interactions[i])(k)-1));
-            interactiontempalias = interactiontempalias.cwiseProduct(combinedAliasDesign.col(as< Eigen::VectorXd>(interactions[i])(k)-1));
+        for(int idx = 0; idx < numberinteractions; idx++) {
+          const Eigen::VectorXi& cols = interactionColumns[idx];
+          interactiontemp = combinedDesign.col(cols(0) - 1);
+          interactiontempalias = combinedAliasDesign.col(cols(0) - 1);
+          for(int k = 1; k < cols.size(); k++) {
+            interactiontemp = interactiontemp.cwiseProduct(combinedDesign.col(cols(k) - 1));
+            interactiontempalias = interactiontempalias.cwiseProduct(combinedAliasDesign.col(cols(k) - 1));
           }
-          combinedDesign.col(blockedCols+designCols + i) = interactiontemp;
-          combinedAliasDesign.col(blockedCols+designColsAlias + i) = interactiontempalias;
+          combinedDesign.col(blockedCols + designCols + idx) = interactiontemp;
+          combinedAliasDesign.col(blockedCols + designColsAlias + idx) = interactiontempalias;
         }
       }
     }
@@ -188,9 +206,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  temp(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= temp(i,interactionColumns[k](kk)-1);
               }
               temp(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -223,9 +241,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -264,9 +282,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
             //Calculate interaction terms for sub-whole plot interactions
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
-                interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-                for(int kk = 1; kk < orderinteraction(k); kk++) {
-                  interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+                interactiontempval =  temp(i,interactionColumns[k](0)-1);
+                for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                  interactiontempval *= temp(i,interactionColumns[k](kk)-1);
                 }
                 temp(i,blockedCols+designCols + k) = interactiontempval;
               }
@@ -297,9 +315,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -331,22 +349,10 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
         entryx = 0;
         entryy = 0;
         temp = combinedDesign;
-        //Search through candidate set for potential exchanges for row i
         for (int j = 0; j < totalPoints; j++) {
-          //Checks for singularity; If singular, moves to next candidate in the candidate set
           try {
             temp.block(i, blockedCols, 1, designCols) = candidatelist.row(j);
-            //Calculate interaction terms for sub-whole plot interactions
-            if(interstrata) {
-              for(int k = 0; k < numberinteractions; k++) {
-                interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-                for(int kk = 1; kk < orderinteraction(k); kk++) {
-                  interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
-                }
-                temp(i,blockedCols+designCols + k) = interactiontempval;
-              }
-            }
-            //Check for disallowed combinations
+            computeRowInteractions(temp, i, blockedCols + designCols);
             pointallowed = true;
             if(anydisallowed) {
               for(int k = 0; k < disallowed.rows(); k++) {
@@ -355,7 +361,6 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
                 }
               }
             }
-            //Check if optimality condition improved and can perform exchange
             newdel = calculateBlockedAOptimality(temp,vInv);
             if((newdel < del || mustchange[i]) && pointallowed) {
               found = true;
@@ -369,16 +374,7 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
         }
         if (found) {
           combinedDesign.block(entryx, blockedCols, 1, designCols) = candidatelist.row(entryy);
-          //Calculate interaction terms for sub-whole plot interactions
-          if(interstrata) {
-            for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
-              }
-              combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
-            }
-          }
+          computeRowInteractions(combinedDesign, entryx, blockedCols + designCols);
           candidateRow(i) = entryy+1;
           initialRows(i) = entryy+1;
         } else {
@@ -407,9 +403,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  temp(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= temp(i,interactionColumns[k](kk)-1);
               }
               temp(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -440,9 +436,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -477,9 +473,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  temp(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= temp(i,interactionColumns[k](kk)-1);
               }
               temp(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -514,9 +510,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -549,9 +545,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  temp(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= temp(i,interactionColumns[k](kk)-1);
               }
               temp(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -586,9 +582,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -625,9 +621,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  temp(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= temp(i,interactionColumns[k](kk)-1);
               }
               temp(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -657,11 +653,11 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              interactiontempvalalias = combinedAliasDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
-                interactiontempvalalias *= combinedAliasDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              interactiontempvalalias = combinedAliasDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
+                interactiontempvalalias *= combinedAliasDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
               combinedAliasDesign(i,blockedCols+designCols + k) = interactiontempval;
@@ -718,11 +714,11 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
               //Calculate interaction terms for sub-whole plot interactions
               if(interstrata) {
                 for(int k = 0; k < numberinteractions; k++) {
-                  interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-                  interactiontempvalalias = tempalias(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-                  for(int kk = 1; kk < orderinteraction(k); kk++) {
-                    interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
-                    interactiontempvalalias *= tempalias(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+                  interactiontempval =  temp(i,interactionColumns[k](0)-1);
+                  interactiontempvalalias = tempalias(i,interactionColumns[k](0)-1);
+                  for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                    interactiontempval *= temp(i,interactionColumns[k](kk)-1);
+                    interactiontempvalalias *= tempalias(i,interactionColumns[k](kk)-1);
                   }
                   temp(i,blockedCols+designCols + k) = interactiontempval;
                   tempalias(i,blockedCols+designColsAlias + k) = interactiontempvalalias;
@@ -758,11 +754,11 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
             //Calculate interaction terms for sub-whole plot interactions
             if(interstrata) {
               for(int k = 0; k < numberinteractions; k++) {
-                interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-                interactiontempvalalias = combinedAliasDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-                for(int kk = 1; kk < orderinteraction(k); kk++) {
-                  interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
-                  interactiontempvalalias *= combinedAliasDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+                interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+                interactiontempvalalias = combinedAliasDesign(i,interactionColumns[k](0)-1);
+                for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                  interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
+                  interactiontempvalalias *= combinedAliasDesign(i,interactionColumns[k](kk)-1);
                 }
                 combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
                 combinedAliasDesign(i,blockedCols+designCols + k) = interactiontempval;
@@ -812,9 +808,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  temp(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= temp(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  temp(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= temp(i,interactionColumns[k](kk)-1);
               }
               temp(i,blockedCols+designCols + k) = interactiontempval;
             }
@@ -849,9 +845,9 @@ List genSplitPlotOptimalDesign(Eigen::MatrixXd initialdesign, Eigen::MatrixXd ca
           //Calculate interaction terms for sub-whole plot interactions
           if(interstrata) {
             for(int k = 0; k < numberinteractions; k++) {
-              interactiontempval =  combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(0)-1);
-              for(int kk = 1; kk < orderinteraction(k); kk++) {
-                interactiontempval *= combinedDesign(i,as<Eigen::VectorXi>(interactions[k])(kk)-1);
+              interactiontempval =  combinedDesign(i,interactionColumns[k](0)-1);
+              for(int kk = 1; kk < interactionColumns[k].size(); kk++) {
+                interactiontempval *= combinedDesign(i,interactionColumns[k](kk)-1);
               }
               combinedDesign(i,blockedCols+designCols + k) = interactiontempval;
             }

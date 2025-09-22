@@ -6,6 +6,7 @@
 
 #include "optimalityfunctions.h"
 #include "nullify_alg.h"
+#include "design_utils.h"
 
 using namespace Rcpp;
 
@@ -98,15 +99,10 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
     return(List::create(_["indices"] = NumericVector::get_na(), _["model_matrix"] = NumericMatrix::get_na(), _["criterion"] = NumericVector::get_na()));
   }
 
-  bool found = true;
-  double del = 0;
-  int entryx = 0;
-  int entryy = 0;
-  double newOptimum = 0;
-  double priorOptimum = 0;
-  double minDelta = tolerance;
-  double newdel;
-  double xVx;
+  double del = 0.0;
+  double newOptimum = 0.0;
+  double priorOptimum = 0.0;
+  const double minDelta = tolerance;
 
   //Initialize matrices for rank-2 updates.
   Eigen::MatrixXd identitymat(2,2);
@@ -139,37 +135,33 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
             min_val = temp_val;
             k = kexchange - augmentedrows;
           }
-          q.push(std::pair<double, int>(temp_val, i));
+          q.emplace(temp_val, i);
         }
       } else {
         for (int i = augmentedrows; i < nTrials; i++) {
-          q.push(std::pair<double, int>(-i, i));
+          q.emplace(-i, i);
         }
       }
 
-      for (int j = 0; j < k; j++) {
+      for (int j = 0; j < k && !q.empty(); j++) {
         Rcpp::checkUserInterrupt();
-        int i = q.top().second;
+        const int columnIndex = q.top().second;
         q.pop();
-        found = false;
-        entryy = 0;
-        del=0;
-        xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-        //Search through all candidate set points to find best switch (if one exists).
+        bool found = false;
+        int entryy = 0;
+        double gain = 0.0;
+        const double xVx = initialdesign_trans.col(columnIndex).transpose() * V * initialdesign_trans.col(columnIndex);
 
-        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
+        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(columnIndex), xVx, entryy, found, gain);
 
         if (found) {
-          //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-
-          //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
-          newOptimum = newOptimum * (1 + del);
+          rankUpdate(V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(entryy), identitymat, f1, f2, f2vinv);
+          initialdesign_trans.col(columnIndex) = candidatelist_trans.col(entryy);
+          candidateRow[columnIndex] = entryy + 1;
+          initialRows[columnIndex] = entryy + 1;
+          newOptimum = newOptimum * (1 + gain);
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[columnIndex] = initialRows[columnIndex];
         }
       }
     }
@@ -180,82 +172,89 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
     }
   }
   //Generate an I-optimal design
-  if(condition == "I") {
-    del = calculateIOptimality(V,momentsmatrix);
+  else if(condition == "I") {
+    del = calculateIOptimality(V, momentsmatrix);
     newOptimum = del;
-    priorOptimum = del*2;
+    priorOptimum = del * 2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int columnIndex = augmentedrows; columnIndex < nTrials; ++columnIndex) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          newdel = calculateIOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),momentsmatrix);
-          if(newdel < del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          //Exchange points
-          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            candidateScore = calculateIOptimality(
+              rankUpdateValue(V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(candidateIndex),
+                              identitymat, f1, f2, f2vinv),
+              momentsmatrix);
+            return true;
+          },
+          skpr::OptimizationSense::Minimize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          rankUpdate(V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(bestCandidate), identitymat, f1, f2, f2vinv);
+          initialdesign_trans.col(columnIndex) = candidatelist_trans.col(bestCandidate);
+          candidateRow[columnIndex] = bestCandidate + 1;
+          initialRows[columnIndex] = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[columnIndex] = initialRows[columnIndex];
         }
       }
-      //Re-calculate current criterion value
       initialdesign = initialdesign_trans.transpose();
-      newOptimum = calculateIOptimality(V,momentsmatrix);
+      newOptimum = calculateIOptimality(V, momentsmatrix);
+      del = newOptimum;
     }
   }
   //Generate an A-optimal design
-  if(condition == "A") {
+  else if(condition == "A") {
     del = calculateAOptimality(V);
     newOptimum = del;
-    priorOptimum = del*2;
+    priorOptimum = del * 2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int columnIndex = augmentedrows; columnIndex < nTrials; ++columnIndex) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          newdel = calculateAOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv));
-          if(newdel < del) {
-            found = true;
-            entryx = i; entryy = j;
-            del = newdel;
-          }
-        }
-        if (found) {
-          //Exchange points
-          rankUpdate(V,initialdesign_trans.col(entryx),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            candidateScore = calculateAOptimality(
+              rankUpdateValue(V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(candidateIndex),
+                              identitymat, f1, f2, f2vinv));
+            return true;
+          },
+          skpr::OptimizationSense::Minimize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          rankUpdate(V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(bestCandidate), identitymat, f1, f2, f2vinv);
+          initialdesign_trans.col(columnIndex) = candidatelist_trans.col(bestCandidate);
+          candidateRow[columnIndex] = bestCandidate + 1;
+          initialRows[columnIndex] = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[columnIndex] = initialRows[columnIndex];
         }
       }
-      //Re-calculate current criterion value.
       initialdesign = initialdesign_trans.transpose();
       newOptimum = calculateAOptimality(V);
+      del = newOptimum;
     }
   }
   //Generate an Alias optimal design
   if(condition == "ALIAS") {
     //First, calculate a D-optimal design (only do one iteration--may be only locally optimal) to start the search.
-    Eigen::MatrixXd temp;
-    Eigen::MatrixXd tempalias;
     del = calculateDOptimality(initialdesign);
     newOptimum = del;
     priorOptimum = newOptimum/2;
@@ -264,22 +263,20 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
       priorOptimum = newOptimum;
       for (int i = augmentedrows; i < nTrials; i++) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryy = 0;
-        del=0;
-        xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
-        //Search through candidate set for potential exchanges for row i
-        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, entryy, found, del);
-        if (found) {
-          //Update the inverse with the rank-2 update formula.
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
+        bool found = false;
+        int bestIndex = 0;
+        double gain = 0.0;
+        const double xVx = initialdesign_trans.col(i).transpose() * V * initialdesign_trans.col(i);
 
-          //Exchange points and re-calculate current criterion value.
-          initialdesign_trans.col(i) = candidatelist_trans.col(entryy);
-          aliasdesign.row(i) = aliascandidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
-          newOptimum = newOptimum * (1 + del);
+        search_candidate_set(V, candidatelist_trans, initialdesign_trans.col(i), xVx, bestIndex, found, gain);
+
+        if (found) {
+          rankUpdate(V, initialdesign_trans.col(i), candidatelist_trans.col(bestIndex), identitymat, f1, f2, f2vinv);
+          initialdesign_trans.col(i) = candidatelist_trans.col(bestIndex);
+          aliasdesign.row(i) = aliascandidatelist.row(bestIndex);
+          candidateRow[i] = bestIndex + 1;
+          initialRows[i] = bestIndex + 1;
+          newOptimum = newOptimum * (1 + gain);
         } else {
           candidateRow[i] = initialRows[i];
         }
@@ -319,36 +316,55 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
       while((optimum - priorOptimum)/priorOptimum > minDelta || first == 1) {
         first++;
         priorOptimum = optimum;
-        for (int i = augmentedrows; i < nTrials; i++) {
+        for (int columnIndex = augmentedrows; columnIndex < nTrials; ++columnIndex) {
           Rcpp::checkUserInterrupt();
-          found = false;
-          entryx = 0;
-          entryy = 0;
-          temp = initialdesignTemp;
-          tempalias = aliasdesign;
-          //Search through candidate set for potential exchanges for row i
-          for (int j = 0; j < totalPoints; j++) {
-            temp.row(i) = candidatelist.row(j);
-            tempalias.row(i) = aliascandidatelist.row(j);
-            currentA = calculateAliasTrace(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp,tempalias);
-            currentD = calculateDEffNN(temp,numbercols);
-            newdel = aliasweight*currentD/initialD + (1-aliasweight)*(1-currentA/firstA);
-            if(newdel > optimum && calculateDEff(temp,numbercols,numberrows) > minDopt) {
-              found = true;
-              entryx = i; entryy = j;
-              optimum = newdel;
-            }
-          }
-          if (found) {
-            //Exchange points
-            rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-            initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-            initialdesignTemp.row(entryx) = candidatelist.row(entryy);
-            aliasdesign.row(entryx) = aliascandidatelist.row(entryy);
-            candidateRowTemp[i] = entryy+1;
-            initialRowsTemp[i] = entryy+1;
+          const Eigen::RowVectorXd originalDesignRow = initialdesignTemp.row(columnIndex);
+          const Eigen::RowVectorXd originalAliasRow = aliasdesign.row(columnIndex);
+          double bestOptimum = optimum;
+
+          const int bestCandidate = skpr::findBestCandidate(
+            totalPoints,
+            [&](int candidateIndex, double& candidateScore) -> bool {
+              try {
+                initialdesignTemp.row(columnIndex) = candidatelist.row(candidateIndex);
+                aliasdesign.row(columnIndex) = aliascandidatelist.row(candidateIndex);
+                Eigen::MatrixXd updatedV = rankUpdateValue(
+                  V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(candidateIndex),
+                  identitymat, f1, f2, f2vinv);
+                double candidateA = calculateAliasTrace(updatedV, initialdesignTemp, aliasdesign);
+                double candidateD = calculateDEffNN(initialdesignTemp, numbercols);
+                if(calculateDEff(initialdesignTemp, numbercols, numberrows) <= minDopt) {
+                  initialdesignTemp.row(columnIndex) = originalDesignRow;
+                  aliasdesign.row(columnIndex) = originalAliasRow;
+                  return false;
+                }
+                candidateScore = aliasweight*candidateD/initialD + (1-aliasweight)*(1-candidateA/firstA);
+              } catch (std::runtime_error&) {
+                initialdesignTemp.row(columnIndex) = originalDesignRow;
+                aliasdesign.row(columnIndex) = originalAliasRow;
+                return false;
+              }
+              initialdesignTemp.row(columnIndex) = originalDesignRow;
+              aliasdesign.row(columnIndex) = originalAliasRow;
+              return true;
+            },
+            skpr::OptimizationSense::Maximize,
+            optimum,
+            bestOptimum
+          );
+
+          if (bestCandidate != -1) {
+            rankUpdate(V, initialdesign_trans.col(columnIndex), candidatelist_trans.col(bestCandidate), identitymat, f1, f2, f2vinv);
+            initialdesign_trans.col(columnIndex) = candidatelist_trans.col(bestCandidate);
+            initialdesignTemp.row(columnIndex) = candidatelist.row(bestCandidate);
+            aliasdesign.row(columnIndex) = aliascandidatelist.row(bestCandidate);
+            candidateRowTemp[columnIndex] = bestCandidate + 1;
+            initialRowsTemp[columnIndex] = bestCandidate + 1;
+            optimum = bestOptimum;
           } else {
-            candidateRowTemp[i] = initialRowsTemp[i];
+            initialdesignTemp.row(columnIndex) = originalDesignRow;
+            aliasdesign.row(columnIndex) = originalAliasRow;
+            candidateRowTemp[columnIndex] = initialRowsTemp[columnIndex];
           }
         }
         //Re-calculate current criterion value.
@@ -369,168 +385,188 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
     aliasdesign = bestaliasdesign;
     newOptimum = bestA;
   }
-  if(condition == "G") {
-    Eigen::MatrixXd temp;
-    del = calculateGOptimality(V,initialdesign);
+  else if(condition == "G") {
+    del = calculateGOptimality(V, initialdesign);
     newOptimum = del;
-    priorOptimum = del*2;
+    priorOptimum = del * 2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int row = augmentedrows; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          //Checks for singularity; If singular, moves to next candidate in the candidate set
-          try {
-            temp.row(i) = candidatelist.row(j);
-            newdel = calculateGOptimality(rankUpdateValue(V,initialdesign_trans.col(i),candidatelist_trans.col(j),identitymat,f1,f2,f2vinv),temp);
-            if(newdel < del) {
-              if(!isSingular(temp)) {
-                found = true;
-                entryx = i; entryy = j;
-                del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            bool success = false;
+            try {
+              Eigen::MatrixXd updatedV = rankUpdateValue(
+                V, initialdesign_trans.col(row), candidatelist_trans.col(candidateIndex),
+                identitymat, f1, f2, f2vinv);
+              initialdesign.row(row) = candidatelist.row(candidateIndex);
+              if(!isSingular(initialdesign)) {
+                candidateScore = calculateGOptimality(updatedV, initialdesign);
+                success = true;
               }
+            } catch (std::runtime_error&) {
+              success = false;
             }
-          } catch (std::runtime_error& e) {
-            continue;
-          }
-        }
-        if (found) {
-          //Exchange points
-          rankUpdate(V,initialdesign_trans.col(i),candidatelist_trans.col(entryy),identitymat,f1,f2,f2vinv);
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          initialdesign_trans.col(entryx) = candidatelist_trans.col(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+            initialdesign.row(row) = originalRow;
+            return success;
+          },
+          skpr::OptimizationSense::Minimize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          rankUpdate(V, initialdesign_trans.col(row), candidatelist_trans.col(bestCandidate), identitymat, f1, f2, f2vinv);
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          initialdesign_trans.col(row) = candidatelist_trans.col(bestCandidate);
+          candidateRow[row] = bestCandidate + 1;
+          initialRows[row] = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[row] = initialRows[row];
         }
       }
-      //Re-calculate current criterion value.
-      newOptimum = calculateGOptimality(V,initialdesign);
+      newOptimum = calculateGOptimality(V, initialdesign);
+      del = newOptimum;
     }
   }
-  if(condition == "T") {
-    Eigen::MatrixXd temp;
+  else if(condition == "T") {
     del = calculateTOptimality(initialdesign);
     newOptimum = del;
-    priorOptimum = newOptimum/2;
+    priorOptimum = newOptimum / 2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int row = augmentedrows; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateTOptimality(temp);
-          if(newdel > del) {
-            if(!isSingular(temp)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            initialdesign.row(row) = candidatelist.row(candidateIndex);
+            if(isSingular(initialdesign)) {
+              initialdesign.row(row) = originalRow;
+              return false;
             }
-          }
-        }
-        if (found) {
-          //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+            candidateScore = calculateTOptimality(initialdesign);
+            initialdesign.row(row) = originalRow;
+            return true;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow[row] = bestCandidate + 1;
+          initialRows[row] = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[row] = initialRows[row];
+          initialdesign.row(row) = originalRow;
         }
       }
-      //Re-calculate current criterion value.
       newOptimum = calculateTOptimality(initialdesign);
+      del = newOptimum;
     }
   }
-  if(condition == "E") {
-    Eigen::MatrixXd temp;
+  else if(condition == "E") {
     del = calculateEOptimality(initialdesign);
     newOptimum = del;
-    priorOptimum = newOptimum/2;
+    priorOptimum = newOptimum / 2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int row = augmentedrows; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateEOptimality(temp);
-          if(newdel > del) {
-            if(!isSingular(temp)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            initialdesign.row(row) = candidatelist.row(candidateIndex);
+            if(isSingular(initialdesign)) {
+              initialdesign.row(row) = originalRow;
+              return false;
             }
-          }
-        }
-        if (found) {
-          //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+            candidateScore = calculateEOptimality(initialdesign);
+            initialdesign.row(row) = originalRow;
+            return true;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow[row] = bestCandidate + 1;
+          initialRows[row] = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[row] = initialRows[row];
+          initialdesign.row(row) = originalRow;
         }
       }
-      //Re-calculate current criterion value.
       newOptimum = calculateEOptimality(initialdesign);
+      del = newOptimum;
     }
   }
-  if(condition == "CUSTOM") {
+  else if(condition == "CUSTOM") {
     Environment myEnv = Environment::global_env();
     Function customOpt = myEnv["customOpt"];
-    Eigen::MatrixXd temp;
-    del = calculateCustomOptimality(initialdesign,customOpt);
+    del = calculateCustomOptimality(initialdesign, customOpt);
     newOptimum = del;
-    priorOptimum = newOptimum/2;
+    priorOptimum = newOptimum / 2;
     while((newOptimum - priorOptimum)/priorOptimum > minDelta) {
       priorOptimum = newOptimum;
-      for (int i = augmentedrows; i < nTrials; i++) {
+      double currentCriterion = del;
+      for (int row = augmentedrows; row < nTrials; ++row) {
         Rcpp::checkUserInterrupt();
-        found = false;
-        entryx = 0;
-        entryy = 0;
-        temp = initialdesign;
-        //Search through candidate set for potential exchanges for row i
-        for (int j = 0; j < totalPoints; j++) {
-          temp.row(i) = candidatelist.row(j);
-          newdel = calculateCustomOptimality(temp,customOpt);
-          if(newdel > del) {
-            if(!isSingular(temp)) {
-              found = true;
-              entryx = i; entryy = j;
-              del = newdel;
+        const Eigen::RowVectorXd originalRow = initialdesign.row(row);
+        double bestCriterion = currentCriterion;
+
+        const int bestCandidate = skpr::findBestCandidate(
+          totalPoints,
+          [&](int candidateIndex, double& candidateScore) -> bool {
+            initialdesign.row(row) = candidatelist.row(candidateIndex);
+            if(isSingular(initialdesign)) {
+              initialdesign.row(row) = originalRow;
+              return false;
             }
-          }
-        }
-        if (found) {
-          //Exchange points
-          initialdesign.row(entryx) = candidatelist.row(entryy);
-          candidateRow[i] = entryy+1;
-          initialRows[i] = entryy+1;
+            candidateScore = calculateCustomOptimality(initialdesign, customOpt);
+            initialdesign.row(row) = originalRow;
+            return true;
+          },
+          skpr::OptimizationSense::Maximize,
+          currentCriterion,
+          bestCriterion
+        );
+
+        if (bestCandidate != -1) {
+          initialdesign.row(row) = candidatelist.row(bestCandidate);
+          candidateRow[row] = bestCandidate + 1;
+          initialRows[row] = bestCandidate + 1;
+          currentCriterion = bestCriterion;
         } else {
-          candidateRow[i] = initialRows[i];
+          candidateRow[row] = initialRows[row];
+          initialdesign.row(row) = originalRow;
         }
       }
-      //Re-calculate current criterion value.
-      newOptimum = calculateCustomOptimality(initialdesign,customOpt);
+      newOptimum = calculateCustomOptimality(initialdesign, customOpt);
+      del = newOptimum;
     }
   }
   //return the model matrix and a list of the candidate list indices used to construct the run matrix
   return(List::create(_["indices"] = candidateRow, _["model_matrix"] = initialdesign, _["criterion"] = newOptimum));
 }
-

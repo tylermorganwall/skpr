@@ -115,33 +115,25 @@ plot_correlations = function(
   } else {
     model1 = model
   }
-
-  factornames = colnames(design)[
-    unlist(lapply(design, class)) %in% c("factor", "character")
-  ]
-  if (length(factornames) > 0) {
-    contrastlist = list()
-    for (name in 1:length(factornames)) {
-      contrastlist[[factornames[name]]] = contr.simplex
-    }
-  } else {
-    contrastlist = NULL
-  }
+  presetcontrasts = list()
+  contrast_info = generate_contrast_list(
+    design,
+    presetcontrasts,
+    contr.simplex
+  )
+  contrastslist_cormat = contrast_info$contrastslist_cormat
   #------Normalize/Center numeric columns ------#
   if (standardize) {
-    for (column in seq_len(ncol(skpr_output))) {
-      if (is.numeric(design[, column])) {
-        midvalue = mean(c(max(design[, column]), min(design[, column])))
-        design[, column] = (design[, column] - midvalue) /
-          (max(design[, column]) - midvalue)
-      }
-    }
+    design = normalize_design(design)
   }
+  #Main effects model
+  mm_main = model.matrix(~., design, contrasts.arg = contrastslist_cormat)
+  #All interactions included
+  mm = model.matrix(model1, design, contrasts.arg = contrastslist_cormat)
 
-  mm_main = model.matrix(model, design, contrasts.arg = contrastlist)
-  mm = model.matrix(model1, design, contrasts.arg = contrastlist)
   X = mm_main[, -1, drop = FALSE]
-  int_nms = setdiff(colnames(mm_main), colnames(mm)) # just the interactions
+  int_nms = setdiff(colnames(mm), colnames(mm_main)) # just the interactions
+
   Z = mm[, int_nms, drop = FALSE]
   W = solve(V)
 
@@ -159,9 +151,10 @@ plot_correlations = function(
     imagecolors = colorRampPalette(customcolors)(101)
   }
   if (!is.null(custompar)) {
-    warning("`custompar` is no longer supported; adjust the returned ggplot object instead.")
+    warning(
+      "`custompar` is no longer supported; adjust the returned ggplot object instead."
+    )
   }
-
   labels = colnames(mm)[-1]
   plot_matrix = t(cormat[ncol(cormat):1, , drop = FALSE])
   plot_df = data.frame(

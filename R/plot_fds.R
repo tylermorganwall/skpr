@@ -89,6 +89,7 @@ plot_fds = function(
         values = fds_values[[i]]
         midval = values[mid_index(values)]
         fraction = seq_along(values) / length(values)
+        maxval = max(values)
         df = data.frame(
           fraction = fraction,
           variance = values
@@ -108,19 +109,49 @@ plot_fds = function(
             linetype = "dashed",
             color = "red"
           ) +
+          ggplot2::geom_hline(
+            yintercept = maxval,
+            linetype = "dashed",
+            color = "black"
+          ) +
+          ggplot2::annotate(
+            "text",
+            label = sprintf("Mid PV: %0.3f", midval),
+            x = 0,
+            hjust = 0.0,
+            y = midval,
+            vjust = -0.25,
+            fontface = "bold",
+            size = 6,
+            color = "red"
+          ) +
+          ggplot2::annotate(
+            "text",
+            label = sprintf("Max PV: %0.3f", maxval),
+            x = 0,
+            hjust = 0.0,
+            y = maxval,
+            vjust = -0.25,
+            size = 6,
+            color = "black",
+            fontface = "bold",
+          ) +
           ggplot2::scale_x_continuous(
             limits = c(0, 1),
-            expand = ggplot2::expansion(mult = 0)
+            expand = c(0, 0.0)
           ) +
           ggplot2::scale_y_continuous(
-            limits = c(0, yaxis_max),
+            limits = c(0, maxyaxis),
             expand = ggplot2::expansion(mult = 0)
           ) +
           ggplot2::labs(
-            x = description[i],
+            x = description,
             y = "Prediction Variance"
           ) +
-          ggplot2::theme_minimal()
+          ggplot2::theme_minimal() +
+          ggplot2::theme(margins = ggplot2::unit(c(20, 20, 20, 20), "points")) +
+          ggplot2::theme(text = ggplot2::element_text(size = 24)) +
+          ggplot2::coord_cartesian(clip = F)
       }
       if (requireNamespace("gridExtra", quietly = TRUE)) {
         do.call(
@@ -349,6 +380,7 @@ plot_fds = function(
       fraction = seq_along(varsorderedscaled) / length(varsorderedscaled),
       variance = varsorderedscaled
     )
+    maxval = max(varsorderedscaled)
     plot_obj = ggplot2::ggplot(df, ggplot2::aes(x = fraction, y = variance)) +
       ggplot2::geom_line(color = "blue", linewidth = 1) +
       ggplot2::geom_vline(
@@ -361,9 +393,36 @@ plot_fds = function(
         linetype = "dashed",
         color = "red"
       ) +
+      ggplot2::geom_hline(
+        yintercept = maxval,
+        linetype = "dashed",
+        color = "black"
+      ) +
+      ggplot2::annotate(
+        "text",
+        label = sprintf("Mid PV: %0.3f", midval),
+        x = 0,
+        hjust = 0.0,
+        y = midval,
+        vjust = -0.25,
+        fontface = "bold",
+        size = 6,
+        color = "red"
+      ) +
+      ggplot2::annotate(
+        "text",
+        label = sprintf("Max PV: %0.3f", maxval),
+        x = 0,
+        hjust = 0.0,
+        y = maxval,
+        vjust = -0.25,
+        size = 6,
+        color = "black",
+        fontface = "bold",
+      ) +
       ggplot2::scale_x_continuous(
         limits = c(0, 1),
-        expand = ggplot2::expansion(mult = 0)
+        expand = c(0, 0.0)
       ) +
       ggplot2::scale_y_continuous(
         limits = c(0, maxyaxis),
@@ -373,7 +432,10 @@ plot_fds = function(
         x = description,
         y = "Prediction Variance"
       ) +
-      ggplot2::theme_minimal()
+      ggplot2::theme_minimal() +
+      ggplot2::theme(margins = ggplot2::unit(c(20, 20, 20, 20), "points")) +
+      ggplot2::theme(text = ggplot2::element_text(size = 24)) +
+      ggplot2::coord_cartesian(clip = F)
     print(plot_obj)
     return(invisible(varsorderedscaled))
   }

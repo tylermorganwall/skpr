@@ -2591,18 +2591,22 @@ skprGUI = function(
     ) |>
       bindEvent(powerresultssurv())
 
-    output$aliasplot = renderPlot({
-      req(runmatrix(), cancelOutput = TRUE)
-      if (displayed_design_number_factors() > 1) {
-		print(runmatrix())
-        runmatrix() %>%
-          plot_correlations()
-      }
-    }) |>
-      bindEvent(runmatrix(), ignoreInit = TRUE)
+    output$aliasplot = renderPlot(
+      {
+        req(runmatrix(), cancelOutput = TRUE)
+        if (displayed_design_number_factors() > 1) {
+          runmatrix() %>%
+            plot_correlations() +
+            ggplot2::theme(text = ggplot2::element_text(size = 12))
+        }
+      },
+      width = fdsplot_width
+    ) |>
+      bindEvent(input$evalbutton, ignoreInit = TRUE)
 
     output$fdsplot = renderPlot(
       {
+        req(runmatrix(), cancelOutput = TRUE)
         runmatrix() %>%
           plot_fds()
       },

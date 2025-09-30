@@ -441,3 +441,4 @@ plot_fds = function(
   }
   return(varsorderedscaled)
 }
+globalVariables(c("variance"))

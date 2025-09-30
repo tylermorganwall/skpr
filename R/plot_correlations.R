@@ -198,3 +198,4 @@ plot_correlations = function(
   rownames(results) = colnames(mm)[-1]
   invisible(results)
 }
+globalVariables(c("x", "y"))

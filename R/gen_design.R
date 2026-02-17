@@ -1936,12 +1936,15 @@ gen_design = function(
           design = cbind(block_col_df, design)
         }
         if (!add_blocking_columns) {
-          design = convert_blockcolumn_rownames(
+          design_values = convert_blockcolumn_rownames(
             design,
             TRUE,
             varianceratio,
             FALSE
           )
+          design = design_values[["design_blockcolumn_converted"]]
+          varianceratios = design_values[["varianceratios"]]
+          z_matrix_list = design_values[["zlist"]]
         }
       } else {
         block_col_indicator = c()
@@ -1951,12 +1954,15 @@ gen_design = function(
         block_col_df = data.frame(Block1 = block_col_indicator)
         design = cbind(block_col_df, design)
         if (!add_blocking_columns) {
-          design = convert_blockcolumn_rownames(
+          design_values = convert_blockcolumn_rownames(
             design,
             TRUE,
             varianceratio,
             FALSE
           )
+          design = design_values[["design_blockcolumn_converted"]]
+          varianceratios = design_values[["varianceratios"]]
+          z_matrix_list = design_values[["zlist"]]
         }
       }
     }
@@ -2205,7 +2211,7 @@ gen_design = function(
   }
 
   #Re-order factors so levels with the lowest number of factors come first
-  for (i in seq_len(ncol(design))) {
+  for (i in seq_len(length(design))) {
     if (!is.numeric(design[[i]])) {
       if (inherits(design[[i]], "factor")) {
         design[i] = factor(

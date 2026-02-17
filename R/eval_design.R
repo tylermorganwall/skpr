@@ -243,6 +243,12 @@ eval_design = function(
       blocking = blocking || attr(design, "splitplot")
     }
   }
+  #Convert logical vectors to factors
+  for(i in seq_len(ncol(design))) {
+    if(is.logical(design[[i]])) {
+      design[[i]] = as.factor(design[[i]])
+    }
+  }
 
   #detect pre-set contrasts
   presetcontrasts = list()

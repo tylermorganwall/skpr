@@ -177,6 +177,12 @@ eval_design_survival_mc = function(
   } else {
     nointercept = TRUE
   }
+  #Convert logical vectors to factors
+  for(i in seq_len(ncol(design))) {
+    if(is.logical(design[[i]])) {
+      design[[i]] = as.factor(design[[i]])
+    }
+  }
   varianceratios = 1
   blocking = FALSE
   #covert to data frame

@@ -175,3 +175,12 @@
 #     }
 #   }
 # })
+testthat::test_that("Checking raw blocking works (not split plot) works in gen_design()", {
+  cs  =expand.grid(a=c(-1,0,1),b=c(-1,0,1),d=c(-1,0,1))
+
+  set.seed(1)
+  testthat::expect_no_error(
+    gen_design(cs, ~.+I(a^2) + I(b^2) + I(d^2), trials = 16, randomized = FALSE, blocksizes = 8)
+  )
+  }
+)

@@ -177,6 +177,13 @@ eval_design_custom_mc = function(
   if ("RunMatrix" %in% names(args)) {
     stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
+  #Convert logical vectors to factors
+  for(i in seq_len(ncol(design))) {
+    if(is.logical(design[[i]])) {
+      design[[i]] = as.factor(design[[i]])
+    }
+  }
+
   #detect pre-set contrasts
   presetcontrasts = list()
   for (x in names(design)[

@@ -1,0 +1,231 @@
+# Monte Carlo power evaluation for experimental designs with user-supplied libraries
+
+Evaluates the power of an experimental design, given its run matrix and
+the statistical model to be fit to the data, using monte carlo
+simulation. Simulated data is fit using a user-supplied fitting library
+and power is estimated by the fraction of times a parameter is
+significant. Returns a data frame of parameter powers.
+
+## Usage
+
+``` r
+eval_design_custom_mc(
+  design,
+  model = NULL,
+  alpha = 0.05,
+  nsim,
+  rfunction,
+  fitfunction,
+  pvalfunction,
+  anticoef,
+  effectsize = 2,
+  contrasts = contr.sum,
+  coef_function = coef,
+  calceffect = FALSE,
+  detailedoutput = FALSE,
+  parameternames = NULL,
+  advancedoptions = NULL,
+  progress = TRUE,
+  parallel = FALSE,
+  parallel_pkgs = NULL,
+  ...
+)
+```
+
+## Arguments
+
+- design:
+
+  The experimental design. Internally, `eval_design_custom_mc` rescales
+  each numeric column to the range -1 to 1.
+
+- model:
+
+  The model used in evaluating the design. If this is missing and the
+  design was generated with skpr, the generating model will be used. It
+  can be a subset of the model used to generate the design, or include
+  higher order effects not in the original design generation. It cannot
+  include factors that are not present in the experimental design.
+
+- alpha:
+
+  Default `0.05`. The type-I error. p-values less than this will be
+  counted as significant.
+
+- nsim:
+
+  The number of simulations.
+
+- rfunction:
+
+  Random number generator function. Should be a function of the form
+  f(X, b), where X is the model matrix and b are the anticipated
+  coefficients.
+
+- fitfunction:
+
+  Function used to fit the data. Should be of the form f(formula, X,
+  contrasts) where X is the model matrix. If contrasts do not need to be
+  specified for the user supplied library, that argument can be ignored.
+
+- pvalfunction:
+
+  Function that returns a vector of p-values from the object returned
+  from the fitfunction.
+
+- anticoef:
+
+  The anticipated coefficients for calculating the power. If missing,
+  coefficients will be automatically generated based on `effectsize`.
+
+- effectsize:
+
+  The signal-to-noise ratio. Default 2. For a gaussian model, and for
+  continuous factors, this specifies the difference in response between
+  the highest and lowest levels of a factor (which are +1 and -1 after
+  normalization). More precisely: If you do not specify `anticoef`, the
+  anticipated coefficients will be half of `effectsize`. If you do
+  specify `anticoef`, `effectsize` will be ignored.
+
+- contrasts:
+
+  Default `contr.sum`. Function used to generate the contrasts encoding
+  for categorical variables. If the user has specified their own
+  contrasts for a categorical factor using the contrasts function, those
+  will be used. Otherwise, skpr will use contr.sum.
+
+- coef_function:
+
+  Function that, when applied to a fitfunction return object, returns
+  the estimated coefficients.
+
+- calceffect:
+
+  Default `FALSE`. Calculates effect power for a Type-III Anova (using
+  the car package) using a Wald test. this ratio can be a vector
+  specifying the variance ratio for each subplot. Otherwise, it will use
+  a single value for all strata. To work, the fit returned by
+  `fitfunction` must have a method compatable with the car package.
+
+- detailedoutput:
+
+  Default `FALSE`. If `TRUE`, return additional information about
+  evaluation in results.
+
+- parameternames:
+
+  Vector of parameter names if the coefficients do not correspond simply
+  to the columns in the model matrix (e.g. coefficients from an MLE
+  fit).
+
+- advancedoptions:
+
+  Default `NULL`. Named list of advanced options.
+  `advancedoptions$anovatype` specifies the Anova type in the car
+  package (default type `III`), user can change to type `II`).
+  `advancedoptions$anovatest` specifies the test statistic if the user
+  does not want a `Wald` test–other options are likelyhood-ratio `LR`
+  and F-test `F`. `advancedoptions$progressBarUpdater` is a function
+  called in non-parallel simulations that can be used to update external
+  progress bar.`advancedoptions$GUI` turns off some warning messages
+  when in the GUI. If `advancedoptions$save_simulated_responses = TRUE`,
+  the dataframe will have an attribute `simulated_responses` that
+  contains the simulated responses from the power evaluation.
+  `advancedoptions$ci_error_conf` will set the confidence level for
+  power intervals, which are printed when `detailedoutput = TRUE`.
+
+- progress:
+
+  Default `TRUE`. Whether to include a progress bar.
+
+- parallel:
+
+  Default `FALSE`. If `TRUE`, the power simulation will use all but one
+  of the available cores. If the user wants to set the number of cores
+  manually, they can do this by setting `options("cores")` to the
+  desired number (e.g. `options("cores" = parallel::detectCores())`).
+  NOTE: If you have installed BLAS libraries that include multicore
+  support (e.g. Intel MKL that comes with Microsoft R Open), turning on
+  parallel could result in reduced performance.
+
+- parallel_pkgs:
+
+  A vector of strings listing the external packages to be included in
+  each parallel worker.
+
+- ...:
+
+  Additional arguments.
+
+## Value
+
+A data frame consisting of the parameters and their powers. The
+parameter estimates from the simulations are stored in the 'estimates'
+attribute.
+
+## Examples
+
+``` r
+#To demonstrate how a user can use their own libraries for Monte Carlo power generation,
+#We will recreate eval_design_survival_mc using the eval_design_custom_mc framework.
+
+#To begin, first let us generate the same design and random generation function shown in the
+#eval_design_survival_mc examples:
+
+basicdesign = expand.grid(a = c(-1, 1), b = c("a","b","c"))
+design = gen_design(candidateset = basicdesign, model = ~a + b + a:b, trials = 100,
+                         optimality = "D", repeats = 100)
+
+#Random number generating function
+
+rsurvival = function(X, b) {
+ Y = rexp(n = nrow(X), rate = exp(-(X %*% b)))
+ censored = Y > 1
+ Y[censored] = 1
+ return(survival::Surv(time = Y, event = !censored, type = "right"))
+}
+
+#We now need to tell the package how we want to fit our data,
+#given the formula and the model matrix X (and, if needed, the list of contrasts).
+#If the contrasts aren't required, "contrastslist" should be set to NULL.
+#This should return some type of fit object.
+
+fitsurv = function(formula, X, contrastslist = NULL) {
+ return(survival::survreg(formula, data = X, dist = "exponential"))
+}
+
+
+#We now need to tell the package how to extract the p-values from the fit object returned
+#from the fit function. This is how to extract the p-values from the survreg fit object:
+
+pvalsurv = function(fit) {
+ return(summary(fit)$table[, 4])
+}
+
+#And now we evaluate the design, passing the fitting function and p-value extracting function
+#in along with the standard inputs for eval_design_mc.
+#This has the exact same behavior as eval_design_survival_mc for the exponential distribution.
+eval_design_custom_mc(design = design, model = ~a + b + a:b,
+                     alpha = 0.05, nsim = 100,
+                     fitfunction = fitsurv, pvalfunction = pvalsurv,
+                     rfunction = rsurvival, effectsize = 1)
+#>     parameter                      type power
+#> 1 (Intercept) custom.parameter.power.mc  0.76
+#> 2           a custom.parameter.power.mc  0.72
+#> 3          b1 custom.parameter.power.mc  0.32
+#> 4          b2 custom.parameter.power.mc  0.63
+#> 5        a:b1 custom.parameter.power.mc  0.31
+#> 6        a:b2 custom.parameter.power.mc  0.58
+#> ===============Evaluation Info===============
+#> • Alpha = 0.05 • Trials = 100 • Blocked = FALSE 
+#> • Evaluating Model = ~a + b + a:b 
+#> • Anticipated Coefficients = c(0.500, 0.500, 0.500, -0.500, 0.500, -0.500) 
+#We can also use skpr's framework for parallel computation to automatically parallelize this
+#to speed up computation
+if (FALSE) eval_design_custom_mc(design = design, model = ~a + b + a:b,
+                         alpha = 0.05, nsim = 1000,
+                         fitfunction = fitsurv, pvalfunction = pvalsurv,
+                         rfunction = rsurvival, effectsize = 1,
+                         parallel = TRUE, parallel_pkgs = "survival")
+ # \dontrun{}
+```

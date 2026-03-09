@@ -68,7 +68,7 @@ related to designs:
 - `plot_fds()` generates the fraction of design space plot for a given
   design.
 
-\##skprGUI
+## skprGUI
 
 `skprGUI()` provides an graphical user interface to access all of the
 main features of skpr. An interactive tutorial is provided to

@@ -210,12 +210,12 @@ eval_design_custom_mc(design = design, model = ~a + b + a:b,
                      fitfunction = fitsurv, pvalfunction = pvalsurv,
                      rfunction = rsurvival, effectsize = 1)
 #>     parameter                      type power
-#> 1 (Intercept) custom.parameter.power.mc  0.76
-#> 2           a custom.parameter.power.mc  0.72
-#> 3          b1 custom.parameter.power.mc  0.32
-#> 4          b2 custom.parameter.power.mc  0.63
-#> 5        a:b1 custom.parameter.power.mc  0.31
-#> 6        a:b2 custom.parameter.power.mc  0.58
+#> 1 (Intercept) custom.parameter.power.mc  0.83
+#> 2           a custom.parameter.power.mc  0.77
+#> 3          b1 custom.parameter.power.mc  0.27
+#> 4          b2 custom.parameter.power.mc  0.64
+#> 5        a:b1 custom.parameter.power.mc  0.26
+#> 6        a:b2 custom.parameter.power.mc  0.54
 #> ===============Evaluation Info===============
 #> • Alpha = 0.05 • Trials = 100 • Blocked = FALSE 
 #> • Evaluating Model = ~a + b + a:b 

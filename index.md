@@ -63,7 +63,7 @@ related to designs:
 - [`plot_fds()`](https://tylermorganwall.github.io/skpr/reference/plot_fds.md)
   generates the fraction of design space plot for a given design.
 
-\##skprGUI
+## skprGUI
 
 [`skprGUI()`](https://tylermorganwall.github.io/skpr/reference/skprGUI.md)
 provides an graphical user interface to access all of the main features

@@ -409,18 +409,18 @@ coffeefinaldesign = gen_design(splitfactorialcoffee,
 eval_design(coffeefinaldesign, 0.2, blocking = TRUE)
 #>      parameter            type     power
 #> 1  (Intercept)    effect.power 0.9453423
-#> 2     caffeine    effect.power 0.9448040
-#> 3         cost    effect.power 0.9999934
+#> 2     caffeine    effect.power 0.9448020
+#> 3         cost    effect.power 0.9999931
 #> 4         size    effect.power 0.9990524
-#> 5         type    effect.power 0.9998385
+#> 5         type    effect.power 0.9998370
 #> 6  (Intercept) parameter.power 0.9453423
-#> 7     caffeine parameter.power 0.9448040
-#> 8         cost parameter.power 0.9999934
+#> 7     caffeine parameter.power 0.9448020
+#> 8         cost parameter.power 0.9999931
 #> 9        size1 parameter.power 0.9980496
 #> 10       size2 parameter.power 0.9980496
-#> 11       type1 parameter.power 0.9758443
-#> 12       type2 parameter.power 0.9758443
-#> 13       type3 parameter.power 0.9758443
+#> 11       type1 parameter.power 0.9758438
+#> 12       type2 parameter.power 0.9758438
+#> 13       type3 parameter.power 0.9756156
 #> ============Evaluation Info=============
 #> • Alpha = 0.2 • Trials = 36 • Blocked = TRUE 
 #> • Evaluating Model = ~caffeine + cost + size + type 
@@ -444,9 +444,9 @@ eval_design(coffeefinaldesign, 0.2, blocking = FALSE)
 #> 8         cost parameter.power 0.9999978
 #> 9        size1 parameter.power 0.9981168
 #> 10       size2 parameter.power 0.9981168
-#> 11       type1 parameter.power 0.9828490
-#> 12       type2 parameter.power 0.9828490
-#> 13       type3 parameter.power 0.9828490
+#> 11       type1 parameter.power 0.9828414
+#> 12       type2 parameter.power 0.9828414
+#> 13       type3 parameter.power 0.9828414
 #> ============Evaluation Info=============
 #> • Alpha = 0.2 • Trials = 36 • Blocked = FALSE 
 #> • Evaluating Model = ~caffeine + cost + size + type 
@@ -460,18 +460,18 @@ eval_design(coffeefinaldesign, 0.2, blocking = FALSE)
 eval_design(coffeefinaldesign, 0.2, varianceratios = 2)
 #>      parameter            type     power
 #> 1  (Intercept)    effect.power 0.8158743
-#> 2     caffeine    effect.power 0.8153104
-#> 3         cost    effect.power 0.9999923
+#> 2     caffeine    effect.power 0.8153089
+#> 3         cost    effect.power 0.9999919
 #> 4         size    effect.power 0.9990524
-#> 5         type    effect.power 0.9998159
+#> 5         type    effect.power 0.9998136
 #> 6  (Intercept) parameter.power 0.8158743
-#> 7     caffeine parameter.power 0.8153104
-#> 8         cost parameter.power 0.9999923
+#> 7     caffeine parameter.power 0.8153089
+#> 8         cost parameter.power 0.9999919
 #> 9        size1 parameter.power 0.9980496
 #> 10       size2 parameter.power 0.9980496
-#> 11       type1 parameter.power 0.9746799
-#> 12       type2 parameter.power 0.9746799
-#> 13       type3 parameter.power 0.9746799
+#> 11       type1 parameter.power 0.9746798
+#> 12       type2 parameter.power 0.9746798
+#> 13       type3 parameter.power 0.9744428
 #> ============Evaluation Info=============
 #> • Alpha = 0.2 • Trials = 36 • Blocked = TRUE 
 #> • Evaluating Model = ~caffeine + cost + size + type 
@@ -497,10 +497,10 @@ coffeeblockdesign$Block1 = blockcolumn
 #By default, skpr will throw out the blocking columns unless the user specifies `blocking = TRUE`.
 eval_design(coffeeblockdesign, blocking=TRUE)
 #>     parameter            type     power
-#> 1 (Intercept)    effect.power 0.3326126
-#> 2    caffeine    effect.power 0.6412616
-#> 3 (Intercept) parameter.power 0.3326126
-#> 4    caffeine parameter.power 0.6412616
+#> 1 (Intercept)    effect.power 0.2314776
+#> 2    caffeine    effect.power 0.2314776
+#> 3 (Intercept) parameter.power 0.2314776
+#> 4    caffeine parameter.power 0.2314776
 #> ============Evaluation Info============
 #> • Alpha = 0.05 • Trials = 12 • Blocked = TRUE 
 #> • Evaluating Model = ~caffeine 

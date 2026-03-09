@@ -130,7 +130,7 @@ Otherwise, it will use a single value for all strata.</p></dd>
 
 <dt id="arg-rfunction">rfunction<a class="anchor" aria-label="anchor" href="#arg-rfunction"></a></dt>
 <dd><p>Default <code>NULL</code>.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
-model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
+model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like <code>function(X, b, delta) rnorm(nrow(X), X %*% b + delta, 1)</code>.
 You only need to specify this if you do not like the default behavior described below.</p></dd>
 
 
@@ -151,9 +151,7 @@ If you specify <code>anticoef</code>, <code>effectsize</code> will be ignored.</
 
 <dt id="arg-contrasts">contrasts<a class="anchor" aria-label="anchor" href="#arg-contrasts"></a></dt>
 <dd><p>Default <code>contr.sum</code>. The contrasts to use for categorical factors. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-If the user wants to set the number of cores manually, they can do this by setting <code>options("cores")</code> to the desired number (e.g. <code>options("cores" = parallel::detectCores())</code>).
-NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.</p></dd>
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.</p></dd>
 
 
 <dt id="arg-high-resolution-candidate-set">high_resolution_candidate_set<a class="anchor" aria-label="anchor" href="#arg-high-resolution-candidate-set"></a></dt>
@@ -162,7 +160,7 @@ cannot be calculated and must be approximated by numeric integration. This requi
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
-If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.</p></dd>
+If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimality values, you must pass your candidate set here.</p></dd>
 
 
 <dt id="arg-moment-sample-density">moment_sample_density<a class="anchor" aria-label="anchor" href="#arg-moment-sample-density"></a></dt>
@@ -192,7 +190,7 @@ and then again given effect size to calculate power values.</p></dd>
 
 <dt id="arg-advancedoptions">advancedoptions<a class="anchor" aria-label="anchor" href="#arg-advancedoptions"></a></dt>
 <dd><p>Default <code>NULL</code>. Named list of advanced options. <code>advancedoptions$anovatype</code> specifies the Anova type in the car package (default type <code>III</code>),
-user can change to type <code>II</code>). <code>advancedoptions$anovatest</code> specifies the test statistic if the user does not want a <code>Wald</code> test–other options are likelyhood-ratio <code>LR</code> and F-test <code>F</code>.
+user can change to type <code>II</code>). <code>advancedoptions$anovatest</code> specifies the test statistic if the user does not want a <code>Wald</code> test–other options are likelihood-ratio <code>LR</code> and F-test <code>F</code>.
 <code>advancedoptions$progressBarUpdater</code> is a function called in non-parallel simulations that can be used to update external progress bar.<code>advancedoptions$GUI</code> turns off some warning messages when in the GUI.
 If <code>advancedoptions$save_simulated_responses = TRUE</code>, the dataframe will have an attribute <code>simulated_responses</code> that contains the simulated responses from the power evaluation. <code>advancedoptions$ci_error_conf</code> will
 set the confidence level for power intervals, which are printed when <code>detailedoutput = TRUE</code>.</p></dd>
@@ -302,16 +300,16 @@ and the other coefficients will be
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.93</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.82</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  0.99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.92</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.84</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6         cost parameter.power.mc  1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc  0.66</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc  0.68</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type3 parameter.power.mc  0.66</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc  0.79</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size2 parameter.power.mc  0.85</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6         cost parameter.power.mc  0.99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc  0.62</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc  0.62</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type3 parameter.power.mc  0.69</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc  0.80</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size2 parameter.power.mc  0.82</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>21 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + type + size </span>
@@ -328,28 +326,28 @@ and the other coefficients will be
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power anticoef alpha glmfamily trials nsim</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  1.00       NA  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  1.00       NA  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.96       NA  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.84       NA  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  0.98       NA  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.97       NA  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.87       NA  0.05  gaussian     21  100</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc  1.00        1  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6         cost parameter.power.mc  1.00        1  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc  0.66        1  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc  0.73       -1  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type3 parameter.power.mc  0.76        1  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc  0.85        1  0.05  gaussian     21  100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size2 parameter.power.mc  0.87       -1  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6         cost parameter.power.mc  0.98        1  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc  0.61        1  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc  0.74       -1  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type3 parameter.power.mc  0.72        1  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc  0.86        1  0.05  gaussian     21  100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size2 parameter.power.mc  0.84       -1  0.05  gaussian     21  100</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    blocking error_adjusted_alpha power_lcb power_ucb</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1     FALSE                 0.05 0.9772372 1.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     FALSE                 0.05 0.9772372 1.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     FALSE                 0.05 0.9216525 0.9824411</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4     FALSE                 0.05 0.7828449 0.8863619</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     FALSE                 0.05 0.9476547 0.9946693</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     FALSE                 0.05 0.9344142 0.9889293</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4     FALSE                 0.05 0.8161255 0.9120174</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5     FALSE                 0.05 0.9772372 1.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6     FALSE                 0.05 0.9772372 1.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7     FALSE                 0.05 0.5922582 0.7227847</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8     FALSE                 0.05 0.6649082 0.7879254</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9     FALSE                 0.05 0.6965555 0.8153148</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10    FALSE                 0.05 0.7938706 0.8949874</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11    FALSE                 0.05 0.8161255 0.9120174</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6     FALSE                 0.05 0.9476547 0.9946693</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7     FALSE                 0.05 0.5412640 0.6753363</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8     FALSE                 0.05 0.6754202 0.7970937</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9     FALSE                 0.05 0.6544316 0.7787205</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10    FALSE                 0.05 0.8049623 0.9035414</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11    FALSE                 0.05 0.7828449 0.8863619</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =======================================================Evaluation Info========================================================</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>21 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + type + size </span>
@@ -367,16 +365,16 @@ and the other coefficients will be
 <span class="r-in"><span>                       glmfamily <span class="op">=</span> <span class="st">"gaussian"</span>, effectsize <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.58</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.56</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  0.56</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.35</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.30</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc  0.58</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.33</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.32</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  (Intercept) parameter.power.mc  0.56</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6         cost parameter.power.mc  0.56</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc  0.25</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc  0.19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7        type1 parameter.power.mc  0.23</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type2 parameter.power.mc  0.24</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9        type3 parameter.power.mc  0.18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc  0.33</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       size1 parameter.power.mc  0.36</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 11       size2 parameter.power.mc  0.32</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>21 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
@@ -392,14 +390,14 @@ and the other coefficients will be
 <span class="r-in"><span>              nsim <span class="op">=</span> <span class="fl">100</span>, glmfamily <span class="op">=</span> <span class="st">"gaussian"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter               type power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        cost    effect.power.mc  1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        type    effect.power.mc  0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (Intercept) parameter.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5        cost parameter.power.mc  1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6       type1 parameter.power.mc  0.68</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7       type2 parameter.power.mc  0.69</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8       type3 parameter.power.mc  0.69</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power.mc  0.99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        cost    effect.power.mc  0.97</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        type    effect.power.mc  0.88</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (Intercept) parameter.power.mc  0.99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        cost parameter.power.mc  0.97</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       type1 parameter.power.mc  0.74</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       type2 parameter.power.mc  0.66</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8       type3 parameter.power.mc  0.57</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>21 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + type </span>
@@ -413,21 +411,21 @@ and the other coefficients will be
 <span class="r-in"><span>              nsim <span class="op">=</span> <span class="fl">100</span>, glmfamily <span class="op">=</span> <span class="st">"gaussian"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  0.99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.88</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.82</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5    cost:type    effect.power.mc  0.90</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power.mc  0.99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7         cost parameter.power.mc  0.99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type1 parameter.power.mc  0.66</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type2 parameter.power.mc  0.53</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10       type3 parameter.power.mc  0.60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size1 parameter.power.mc  0.79</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12       size2 parameter.power.mc  0.82</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13  cost:type1 parameter.power.mc  0.65</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  (Intercept)    effect.power.mc  0.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         cost    effect.power.mc  0.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         type    effect.power.mc  0.93</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         size    effect.power.mc  0.88</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5    cost:type    effect.power.mc  0.83</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power.mc  0.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7         cost parameter.power.mc  0.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8        type1 parameter.power.mc  0.70</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9        type2 parameter.power.mc  0.67</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       type3 parameter.power.mc  0.64</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       size1 parameter.power.mc  0.82</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       size2 parameter.power.mc  0.84</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13  cost:type1 parameter.power.mc  0.63</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 14  cost:type2 parameter.power.mc  0.63</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15  cost:type3 parameter.power.mc  0.63</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15  cost:type3 parameter.power.mc  0.58</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ============Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>21 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~cost + type + size + cost * type </span>
@@ -471,17 +469,17 @@ and the other coefficients will be
 <span class="r-in"><span>                       glmfamily <span class="op">=</span> <span class="st">"gaussian"</span>, varianceratios <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      parameter               type power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1        Store    effect.power.mc  0.33</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2         Temp    effect.power.mc  0.89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1        Store    effect.power.mc  0.38</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         Temp    effect.power.mc  0.82</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3         cost    effect.power.mc  1.00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4         type    effect.power.mc  1.00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5         size    effect.power.mc  1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power.mc  0.33</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7       Store1 parameter.power.mc  0.33</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8         Temp parameter.power.mc  0.89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  (Intercept) parameter.power.mc  0.34</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       Store1 parameter.power.mc  0.38</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8         Temp parameter.power.mc  0.82</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9         cost parameter.power.mc  1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10       type1 parameter.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type2 parameter.power.mc  0.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       type1 parameter.power.mc  0.99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11       type2 parameter.power.mc  0.96</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 12       type3 parameter.power.mc  0.98</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 13       size1 parameter.power.mc  1.00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 14       size2 parameter.power.mc  1.00</span>
@@ -507,12 +505,12 @@ and the other coefficients will be
 <span class="r-in"><span>              glmfamily <span class="op">=</span> <span class="st">"binomial"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter               type power</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           a    effect.power.mc  0.88</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3           b    effect.power.mc  0.79</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (Intercept) parameter.power.mc  0.98</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5           a parameter.power.mc  0.88</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6           b parameter.power.mc  0.79</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power.mc  1.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2           a    effect.power.mc  0.90</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3           b    effect.power.mc  0.89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (Intercept) parameter.power.mc  1.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5           a parameter.power.mc  0.90</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6           b parameter.power.mc  0.89</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.2 <span style="font-weight: bold;">• Trials = </span>90 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~a + b </span>
@@ -534,11 +532,11 @@ and the other coefficients will be
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     parameter               type power</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 (Intercept)    effect.power.mc  0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           a    effect.power.mc  0.79</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3           b    effect.power.mc  0.79</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2           a    effect.power.mc  0.80</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3           b    effect.power.mc  0.82</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4 (Intercept) parameter.power.mc  0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5           a parameter.power.mc  0.79</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6           b parameter.power.mc  0.79</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5           a parameter.power.mc  0.80</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6           b parameter.power.mc  0.82</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========Evaluation Info============</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Alpha = </span>0.05 <span style="font-weight: bold;">• Trials = </span>70 <span style="font-weight: bold;">• Blocked = </span>FALSE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">• Evaluating Model = </span>~a + b </span>

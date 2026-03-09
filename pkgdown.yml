@@ -2,7 +2,7 @@ pandoc: 3.1.11
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles: {}
-last_built: 2026-02-17T17:57Z
+last_built: 2026-03-09T19:04Z
 urls:
   reference: https://tylermorganwall.github.io/skpr/reference
   article: https://tylermorganwall.github.io/skpr/articles

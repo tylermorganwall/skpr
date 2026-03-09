@@ -38,8 +38,6 @@
 #'If you specify \code{anticoef}, \code{effectsize} will be ignored.
 #'@param contrasts Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
 #'for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-#' If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
-#' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
 #'@param adjust_alpha_inflation Default `FALSE`. If `TRUE`, this will run the simulation twice:
 #'first to calculate the empirical distribution of p-values under the null hypothesis and find
 #'the true Type-I error cutoff that corresponds to the desired Type-I error rate,
@@ -58,7 +56,7 @@
 #' a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 #' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 #' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
-#' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.
+#' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimality values, you must pass your candidate set here.
 #'@param moment_sample_density Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 #'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.

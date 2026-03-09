@@ -28,7 +28,7 @@
 #'this ratio can be a vector specifying the variance ratio for each subplot (comparing to the run-to-run variance).
 #'Otherwise, it will use a single value for all strata.
 #'@param rfunction Default `NULL`.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
-#'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
+#'model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like `function(X, b, delta) {rnorm(nrow(X), X %*% b + delta, 1)}`.
 #'You only need to specify this if you do not like the default behavior described below.
 #'@param anticoef Default `NULL`.The anticipated coefficients for calculating the power. If missing, coefficients
 #'will be automatically generated based on the \code{effectsize} argument.

@@ -61,7 +61,7 @@ this ratio can be a vector specifying the variance ratio for each subplot (compa
 Otherwise, it will use a single value for all strata.}
 
 \item{rfunction}{Default \code{NULL}.Random number generator function for the response variable. Should be a function of the form f(X, b, delta), where X is the
-model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like rnorm(nrow(X), X * b + delta, 1).
+model matrix, b are the anticipated coefficients, and delta is a vector of blocking errors. Typically something like \code{function(X, b, delta) rnorm(nrow(X), X \%*\% b + delta, 1)}.
 You only need to specify this if you do not like the default behavior described below.}
 
 \item{anticoef}{Default \code{NULL}.The anticipated coefficients for calculating the power. If missing, coefficients
@@ -74,16 +74,14 @@ setting also automatically sets \code{effect_lr = TRUE}.}
 If you specify \code{anticoef}, \code{effectsize} will be ignored.}
 
 \item{contrasts}{Default \code{contr.sum}. The contrasts to use for categorical factors. If the user has specified their own contrasts
-for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.
-If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
-NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.}
+for a categorical factor using the contrasts function, those will be used. Otherwise, skpr will use contr.sum.}
 
 \item{high_resolution_candidate_set}{Default \code{NA}. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
 cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
-If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.}
+If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimality values, you must pass your candidate set here.}
 
 \item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations.}
@@ -101,7 +99,7 @@ and then again given effect size to calculate power values.}
 \item{progress}{Default \code{TRUE}. Whether to include a progress bar.}
 
 \item{advancedoptions}{Default \code{NULL}. Named list of advanced options. \code{advancedoptions$anovatype} specifies the Anova type in the car package (default type \code{III}),
-user can change to type \code{II}). \code{advancedoptions$anovatest} specifies the test statistic if the user does not want a \code{Wald} test--other options are likelyhood-ratio \code{LR} and F-test \code{F}.
+user can change to type \code{II}). \code{advancedoptions$anovatest} specifies the test statistic if the user does not want a \code{Wald} test--other options are likelihood-ratio \code{LR} and F-test \code{F}.
 \code{advancedoptions$progressBarUpdater} is a function called in non-parallel simulations that can be used to update external progress bar.\code{advancedoptions$GUI} turns off some warning messages when in the GUI.
 If \code{advancedoptions$save_simulated_responses = TRUE}, the dataframe will have an attribute \code{simulated_responses} that contains the simulated responses from the power evaluation. \code{advancedoptions$ci_error_conf} will
 set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}

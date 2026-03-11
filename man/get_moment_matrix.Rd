@@ -16,7 +16,7 @@ get_moment_matrix(
 }
 \value{
 Returns a vector consisting of the number
-of levels preceeding each parameter (including the intercept)
+of levels preceding each parameter (including the intercept)
 }
 \description{
 Returns number of levels prior to each parameter

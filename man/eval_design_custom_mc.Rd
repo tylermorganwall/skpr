@@ -72,7 +72,7 @@ fit returned by \code{fitfunction} must have a method compatable with the car pa
 (e.g. coefficients from an MLE fit).}
 
 \item{advancedoptions}{Default \code{NULL}. Named list of advanced options. \code{advancedoptions$anovatype} specifies the Anova type in the car package (default type \code{III}),
-user can change to type \code{II}). \code{advancedoptions$anovatest} specifies the test statistic if the user does not want a \code{Wald} test--other options are likelyhood-ratio \code{LR} and F-test \code{F}.
+user can change to type \code{II}). \code{advancedoptions$anovatest} specifies the test statistic if the user does not want a \code{Wald} test--other options are likelihood-ratio \code{LR} and F-test \code{F}.
 \code{advancedoptions$progressBarUpdater} is a function called in non-parallel simulations that can be used to update external progress bar.\code{advancedoptions$GUI} turns off some warning messages when in the GUI.
 If \code{advancedoptions$save_simulated_responses = TRUE}, the dataframe will have an attribute \code{simulated_responses} that contains the simulated responses from the power evaluation. \code{advancedoptions$ci_error_conf} will
 set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}

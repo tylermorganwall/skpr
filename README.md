@@ -35,7 +35,7 @@ offers:
 # To install:
 install.packages("skpr")
 
-# To install the latest version from Github:
+# To install the latest version from GitHub:
 # install.packages("devtools")
 devtools::install_github("tylermorganwall/skpr")
 ```
@@ -60,7 +60,7 @@ devtools::install_github("tylermorganwall/skpr")
   size and effect size curves.
 - `skprGUI()` opens up the GUI in either RStudio or an external browser.
 
-If addition, the package offers two functions to generate common plots
+In addition, the package offers two functions to generate common plots
 related to designs:
 
 - `plot_correlations()` generates a color map of correlations between
@@ -68,9 +68,9 @@ related to designs:
 - `plot_fds()` generates the fraction of design space plot for a given
   design.
 
-\##skprGUI
+## skprGUI
 
-`skprGUI()` provides an graphical user interface to access all of the
+`skprGUI()` provides a graphical user interface to access all of the
 main features of skpr. An interactive tutorial is provided to
 familiarize the user with the available functionality. Type `skprGUI()`
 to begin. Screenshots:
@@ -169,7 +169,7 @@ eval_design_mc(design, effectsize=1.5)
 #> * Effect Analysis Method = `car::Anova(fit, type = "III")`
 
 #Evaluate power for the design using a Monte Carlo simulation, for a non-normal response. 
-#Here, we also increase the number of simululations to improve the precision of the results.
+#Here, we also increase the number of simulations to improve the precision of the results.
 eval_design_mc(design, nsim=5000, glmfamily = "poisson", effectsize=c(2,6))
 #>     parameter               type  power
 #> 1 (Intercept)    effect.power.mc 0.9968

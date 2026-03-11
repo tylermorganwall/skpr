@@ -235,9 +235,9 @@ skpr v0.45.2 (Release date: 2018-01-22):
 
 Major changes:
 
-• Changed optimal search algorithm to return design with best aliasing structure (as determined by the alias matrix) when there is a tie between optimal designs. Increases likelyhood of producing an orthogonal design.
+• Changed optimal search algorithm to return design with best aliasing structure (as determined by the alias matrix) when there is a tie between optimal designs. Increases likelihood of producing an orthogonal design.
 
-• Added support for mixture designs in evalulation functions. Generation is already supported in gen_design by removing the intercept from the model.
+• Added support for mixture designs in evaluation functions. Generation is already supported in gen_design by removing the intercept from the model.
 
 • Added support for backticked variables in evaluation functions and plotting functions. Made non-support for backticked variables explicit in gen_design.
 

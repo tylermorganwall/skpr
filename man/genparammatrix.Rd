@@ -11,7 +11,7 @@ genparammatrix(parameters, levels, g)
 
 \item{levels}{Number of levels in parameter of interest}
 
-\item{g}{Number of levels/parameters preceeding parameter of interest}
+\item{g}{Number of levels/parameters preceding parameter of interest}
 }
 \value{
 The parameter vector Q isolating the levels of parameter of interest

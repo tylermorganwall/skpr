@@ -5,13 +5,13 @@
 #'
 #'@param parameters Number of parameters total in model.
 #'@param levels Number of levels in parameter of interest
-#'@param g Number of levels/parameters preceeding parameter of interest
+#'@param g Number of levels/parameters preceding parameter of interest
 #'@return The parameter vector Q isolating the levels of parameter of interest
 #'@keywords internal
 genparammatrix = function(parameters, levels, g) {
   if (parameters <= 0 | levels <= 0 | g < 0) {
     stop(
-      "skpr: Number of parameters and levels must be non-zero, preceeding levels must be non-negative"
+      "skpr: Number of parameters and levels must be non-zero, preceding levels must be non-negative"
     )
   }
   if (parameters < levels) {

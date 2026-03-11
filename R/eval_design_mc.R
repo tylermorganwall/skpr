@@ -47,7 +47,7 @@
 #'@param detailedoutput Default `FALSE`. If `TRUE`, return additional information about evaluation in results.
 #'@param progress Default `TRUE`. Whether to include a progress bar.
 #'@param advancedoptions Default `NULL`. Named list of advanced options. `advancedoptions$anovatype` specifies the Anova type in the car package (default type `III`),
-#'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelyhood-ratio `LR` and F-test `F`.
+#'user can change to type `II`). `advancedoptions$anovatest` specifies the test statistic if the user does not want a `Wald` test--other options are likelihood-ratio `LR` and F-test `F`.
 #'`advancedoptions$progressBarUpdater` is a function called in non-parallel simulations that can be used to update external progress bar.`advancedoptions$GUI` turns off some warning messages when in the GUI.
 #'If `advancedoptions$save_simulated_responses = TRUE`, the dataframe will have an attribute `simulated_responses` that contains the simulated responses from the power evaluation. `advancedoptions$ci_error_conf` will
 #'set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
@@ -58,7 +58,7 @@
 #' a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 #' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 #' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
-#' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.
+#' If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimality values, you must pass your candidate set here.
 #'@param moment_sample_density Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 #'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.
@@ -72,7 +72,7 @@
 #' is significant (its p-value, according to the fit function used, is less than the specified \code{alpha})
 #' is the estimate of power for that parameter.
 #'
-#'First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
+#'First, if \code{blocking = TRUE}, the random noise from blocking is generated with \code{rnorm}.
 #'Each block gets a single sample of Gaussian random noise, with a variance as specified in
 #'\code{varianceratios},
 #'and that sample is copied to each run in the block. Then, \code{rfunction} is called to generate a simulated

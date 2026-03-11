@@ -4,7 +4,7 @@
 #'
 #'@keywords internal
 #'@return Returns a vector consisting of the number
-#'of levels preceeding each parameter (including the intercept)
+#'of levels preceding each parameter (including the intercept)
 priorlevels = function(levelvector) {
   sum = 0
   priors = c(0)

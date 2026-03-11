@@ -70,7 +70,7 @@ cannot be calculated and must be approximated by numeric integration. This requi
 a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
 factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
 To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
-If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimalituy values, you must pass your candidate set here.}
+If you generated your design externally from skpr, there are disallowed combinations in your design, and need correct I-optimality values, you must pass your candidate set here.}
 
 \item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 required if the design was generated outside of skpr and there are disallowed combinations. It is much faster and potentially more accurate to

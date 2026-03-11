@@ -2,7 +2,7 @@
 % Please edit documentation in R/anticoef_from_delta_surv.R
 \name{anticoef_from_delta_surv}
 \alias{anticoef_from_delta_surv}
-\title{Generates Anticipated Coefficients from delta for eval_design_suvival_mc}
+\title{Generates Anticipated Coefficients from delta for eval_design_survival_mc}
 \usage{
 anticoef_from_delta_surv(default_coef, delta, distribution)
 }

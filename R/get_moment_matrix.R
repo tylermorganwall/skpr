@@ -4,7 +4,7 @@
 #'
 #'@keywords internal
 #'@return Returns a vector consisting of the number
-#'of levels preceeding each parameter (including the intercept)
+#'of levels preceding each parameter (including the intercept)
 get_moment_matrix = function(
   design = NA,
   factors = NA,

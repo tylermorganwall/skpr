@@ -1,4 +1,4 @@
-#'@title Generates Anticipated Coefficients from delta for eval_design_suvival_mc
+#'@title Generates Anticipated Coefficients from delta for eval_design_survival_mc
 #'
 #'@description Generates Anticipated Coefficients from delta parameter
 #'The logic for generating anticipated coefficients from delta varies with

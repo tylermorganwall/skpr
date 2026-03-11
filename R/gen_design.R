@@ -73,6 +73,13 @@
 #'and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
 #'the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 #'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
+#'Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange currently supports
+#'only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`,
+#'`ce_repair_stuck_limit`, and `ce_repair_max_tries`. You can also pass `factor_levels` (named list) to override CE level grids inferred from `candidateset`.
+#'For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
+#'`filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
+#'Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `%in%`,
+#'and linear constraints over numeric factors.
 #'@param timer Deprecated: Use `progress` instead.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.
@@ -346,100 +353,141 @@ gen_design = function(
     )
   }
 
+  advancedoptions_provided = !is.null(advancedoptions)
+  if (is.null(advancedoptions)) {
+    advancedoptions = list()
+  }
+
+  if (is.null(advancedoptions$search_method)) {
+    advancedoptions$search_method = "fedorov"
+  }
+  search_method = tolower(as.character(advancedoptions$search_method)[1])
+  if (!(search_method %in% c("fedorov", "coordinate_exchange"))) {
+    stop(
+      "skpr: advancedoptions$search_method must be either 'fedorov' or 'coordinate_exchange'."
+    )
+  }
+  use_coordinate_exchange = identical(search_method, "coordinate_exchange")
+
+  if (use_coordinate_exchange) {
+    if (optimality != "D") {
+      stop(
+        "skpr: Coordinate exchange currently supports only optimality = 'D'."
+      )
+    }
+    if (!is.null(splitplotdesign) || !is.null(blocksizes) || !is.null(custom_v)) {
+      stop(
+        "skpr: Coordinate exchange currently supports only fully randomized, non-blocked designs."
+      )
+    }
+  }
+
+  if (!is.null(advancedoptions$constraints)) {
+    if (!is.list(advancedoptions$constraints)) {
+      stop("skpr: advancedoptions$constraints must be a list when provided.")
+    }
+    ce_constraints = advancedoptions$constraints
+  } else {
+    ce_constraints = list()
+  }
+  has_explicit_ce_constraints = (
+    !is.null(ce_constraints$filter_expr) ||
+      !is.null(ce_constraints$forbidden_tuples)
+  )
+
+  if (is.null(advancedoptions$ce_max_iter)) {
+    advancedoptions$ce_max_iter = 200L
+  }
+  if (is.null(advancedoptions$ce_recompute_every)) {
+    advancedoptions$ce_recompute_every = 10L
+  }
+  if (is.null(advancedoptions$ce_repair_stuck_limit)) {
+    advancedoptions$ce_repair_stuck_limit = 5L
+  }
+  if (is.null(advancedoptions$ce_repair_max_tries)) {
+    advancedoptions$ce_repair_max_tries = 2000L
+  }
+
   if (is.null(advancedoptions$design_search_tolerance)) {
     tolerance = 10e-5
   } else {
     tolerance = advancedoptions$design_search_tolerance
   }
   #Check for progress bar and GUI options
-  if (!is.null(advancedoptions)) {
-    if (is.null(advancedoptions$alias_compare)) {
-      advancedoptions$alias_compare = TRUE
-    }
-    if (is.null(advancedoptions$GUI)) {
-      advancedoptions$GUI = FALSE
-    }
-    if (!is.null(advancedoptions$progressBarUpdater)) {
-      progressBarUpdater = advancedoptions$progressBarUpdater
-    } else {
-      progressBarUpdater = NULL
-    }
-    if (!is.null(advancedoptions$aliasmodel)) {
-      amodel = advancedoptions$aliasmodel
-    } else {
-      amodel = NULL
-    }
-    if (
-      !is.null(advancedoptions$g_efficiency_method) &&
-        advancedoptions$g_efficiency_method != "none"
-    ) {
-      if (advancedoptions$g_efficiency_method == "random") {
-        if (is.null(advancedoptions$g_efficiency_samples)) {
-          advancedoptions$g_efficiency_samples = 10000
-        }
-      } else if (advancedoptions$g_efficiency_method == "optim") {
-        if (is.null(advancedoptions$g_efficiency_samples)) {
-          advancedoptions$g_efficiency_samples = 10
-        }
-      } else if (advancedoptions$g_efficiency_method == "custom") {
-        if (
-          is.null(advancedoptions$g_efficiency_samples) ||
-            is.numeric(advancedoptions$g_efficiency_samples)
-        ) {
-          warning(
-            "no data.frame passed to advancedoptions$g_efficiency_samples, ignoring and using random sampling"
-          )
-          advancedoptions$g_efficiency_method == "random"
-          advancedoptions$g_efficiency_samples = 10000
-        }
-        contrastslisttemp = list()
-        for (x in names(advancedoptions$g_efficiency_samples[
-          lapply(advancedoptions$g_efficiency_samples, class) %in%
-            c("factor", "character")
-        ])) {
-          contrastslisttemp[[x]] = contrasts
-        }
-        if (length(contrastslisttemp) == 0) {
-          advancedoptions$g_efficiency_samples = model.matrix(
-            model,
-            normalize_design(advancedoptions$g_efficiency_samples)
-          )
-        } else {
-          advancedoptions$g_efficiency_samples = suppressWarnings(model.matrix(
-            model,
-            normalize_design(advancedoptions$g_efficiency_samples),
-            contrasts.arg = contrastslisttemp
-          ))
-        }
-      } else {
+  if (is.null(advancedoptions$alias_compare)) {
+    advancedoptions$alias_compare = TRUE
+  }
+  if (is.null(advancedoptions$GUI)) {
+    advancedoptions$GUI = FALSE
+  }
+  if (!is.null(advancedoptions$progressBarUpdater)) {
+    progressBarUpdater = advancedoptions$progressBarUpdater
+  } else {
+    progressBarUpdater = NULL
+  }
+  if (!is.null(advancedoptions$aliasmodel)) {
+    amodel = advancedoptions$aliasmodel
+  } else {
+    amodel = NULL
+  }
+  if (
+    !is.null(advancedoptions$g_efficiency_method) &&
+      advancedoptions$g_efficiency_method != "none"
+  ) {
+    if (advancedoptions$g_efficiency_method == "random") {
+      if (is.null(advancedoptions$g_efficiency_samples)) {
+        advancedoptions$g_efficiency_samples = 10000
+      }
+    } else if (advancedoptions$g_efficiency_method == "optim") {
+      if (is.null(advancedoptions$g_efficiency_samples)) {
+        advancedoptions$g_efficiency_samples = 10
+      }
+    } else if (advancedoptions$g_efficiency_method == "custom") {
+      if (
+        is.null(advancedoptions$g_efficiency_samples) ||
+          is.numeric(advancedoptions$g_efficiency_samples)
+      ) {
         warning(
-          "advancedoptions$g_efficiency_method not recognized, defaulting to random search"
+          "no data.frame passed to advancedoptions$g_efficiency_samples, ignoring and using random sampling"
         )
-        advancedoptions$g_efficiency_method = "random"
+        advancedoptions$g_efficiency_method == "random"
         advancedoptions$g_efficiency_samples = 10000
+      }
+      contrastslisttemp = list()
+      for (x in names(advancedoptions$g_efficiency_samples[
+        lapply(advancedoptions$g_efficiency_samples, class) %in%
+          c("factor", "character")
+      ])) {
+        contrastslisttemp[[x]] = contrasts
+      }
+      if (length(contrastslisttemp) == 0) {
+        advancedoptions$g_efficiency_samples = model.matrix(
+          model,
+          normalize_design(advancedoptions$g_efficiency_samples)
+        )
+      } else {
+        advancedoptions$g_efficiency_samples = suppressWarnings(model.matrix(
+          model,
+          normalize_design(advancedoptions$g_efficiency_samples),
+          contrasts.arg = contrastslisttemp
+        ))
       }
     } else {
-      if (optimality == "G") {
-        advancedoptions$g_efficiency_method = "random"
-        advancedoptions$g_efficiency_samples = 10000
-      } else {
-        advancedoptions$g_efficiency_method = "none"
-        advancedoptions$g_efficiency_samples = 10000
-      }
+      warning(
+        "advancedoptions$g_efficiency_method not recognized, defaulting to random search"
+      )
+      advancedoptions$g_efficiency_method = "random"
+      advancedoptions$g_efficiency_samples = 10000
     }
   } else {
-    advancedoptions = list()
-    advancedoptions$alias_compare = TRUE
-    advancedoptions$GUI = FALSE
-    amodel = NULL
+    default_geff_samples = if (advancedoptions_provided) 10000 else 1000
     if (optimality == "G") {
       advancedoptions$g_efficiency_method = "random"
-      advancedoptions$g_efficiency_samples = 1000
+      advancedoptions$g_efficiency_samples = default_geff_samples
     } else {
       advancedoptions$g_efficiency_method = "none"
-      advancedoptions$g_efficiency_samples = 1000
+      advancedoptions$g_efficiency_samples = default_geff_samples
     }
-    progressBarUpdater = NULL
   }
   #turn off progress bar for non-interactive sessions
   progress = progress && interactive()
@@ -843,6 +891,11 @@ gen_design = function(
   # This is used to compute whether the closed-form moment matrix can be
   # used, or whether the (much slower) convex hull approximation must be used.
   any_disallowed = detect_disallowed_combinations(candidateset)
+  if (use_coordinate_exchange && any_disallowed && !has_explicit_ce_constraints) {
+    stop(
+      "skpr: CE requires explicit constraints; removing rows from candidateset cannot be inferred."
+    )
+  }
 
   splitplot = FALSE
   blocking = FALSE
@@ -1262,6 +1315,123 @@ gen_design = function(
     })
   }
 
+  ce_factor_meta = NULL
+  ce_factor_levels = NULL
+  ce_factor_levels_cpp = NULL
+  ce_modelmatrix_fn = NULL
+  ce_factor_columns = NULL
+  ce_constraints_ir = NULL
+  ce_has_constraints = FALSE
+  ce_augment_points = NULL
+  ce_numeric_map = list()
+  ce_numeric_columns = character(0)
+  ce_constraint_value_offset = NULL
+  ce_constraint_value_scale = NULL
+  ce_decode_tol = 1e-10
+
+  if (use_coordinate_exchange && !splitplot) {
+    ce_space = skpr_ce_infer_factor_space(candidatesetnormalized)
+    ce_factor_meta = ce_space$factor_meta
+    ce_factor_levels = ce_space$factor_levels
+    ce_constraint_space = skpr_ce_infer_factor_space(candidateset)
+    ce_constraint_factor_meta = ce_constraint_space$factor_meta
+    ce_constraint_factor_levels = ce_constraint_space$factor_levels
+
+    if (!is.null(advancedoptions$factor_levels)) {
+      if (!is.list(advancedoptions$factor_levels)) {
+        stop("skpr: advancedoptions$factor_levels must be a named list.")
+      }
+      for (nm in intersect(names(ce_factor_meta), names(advancedoptions$factor_levels))) {
+        override_levels = advancedoptions$factor_levels[[nm]]
+        if (length(override_levels) == 0) {
+          stop(
+            "skpr: advancedoptions$factor_levels[['",
+            nm,
+            "']] must contain at least one level."
+          )
+        }
+        if (ce_factor_meta[[nm]]$kind == "discrete") {
+          ce_factor_meta[[nm]]$levels = as.character(override_levels)
+          ce_factor_levels[[nm]] = seq(
+            0,
+            length(ce_factor_meta[[nm]]$levels) - 1L
+          )
+          ce_constraint_factor_meta[[nm]]$levels = as.character(override_levels)
+          ce_constraint_factor_levels[[nm]] = seq(
+            0,
+            length(ce_constraint_factor_meta[[nm]]$levels) - 1L
+          )
+        } else {
+          ce_factor_levels[[nm]] = sort(unique(as.numeric(override_levels)))
+          ce_constraint_factor_levels[[nm]] = sort(unique(as.numeric(override_levels)))
+        }
+      }
+    }
+
+    ce_modelmatrix_fn = skpr_ce_make_modelmatrix_fn(
+      model = model,
+      factor_meta = ce_factor_meta,
+      contrasts_fun = contrasts,
+      drop_intercept = FALSE
+    )
+    ce_factor_columns = skpr_ce_detect_factor_columns(
+      modelmatrix_fn = ce_modelmatrix_fn,
+      factor_levels = ce_factor_levels
+    )
+
+    ce_factor_levels_cpp = unname(ce_factor_levels)
+
+    ce_map_orig = candidateset
+    ce_map_norm = candidatesetnormalized
+    if (!is.null(augmentdesign)) {
+      ce_map_orig = rbind(ce_map_orig, augmentdesign)
+      ce_map_norm = rbind(ce_map_norm, augmentnormalized)
+      ce_augment_points = skpr_ce_encode_points(augmentnormalized, ce_factor_meta)
+    }
+    ce_constraint_value_offset = rep(0, length(ce_factor_meta))
+    ce_constraint_value_scale = rep(1, length(ce_factor_meta))
+    names(ce_constraint_value_offset) = names(ce_factor_meta)
+    names(ce_constraint_value_scale) = names(ce_factor_meta)
+    ce_numeric_columns = names(ce_map_norm)[vapply(
+      ce_map_norm,
+      is.numeric,
+      logical(1)
+    )]
+    for (nm in ce_numeric_columns) {
+      ce_numeric_map[[nm]] = unique(data.frame(
+        original = as.numeric(ce_map_orig[[nm]]),
+        normalized = as.numeric(ce_map_norm[[nm]])
+      ))
+      norm_range = range(as.numeric(ce_map_norm[[nm]]), na.rm = TRUE)
+      orig_range = range(as.numeric(ce_map_orig[[nm]]), na.rm = TRUE)
+      norm_span = diff(norm_range)
+      if (!is.finite(norm_span) || abs(norm_span) <= ce_decode_tol) {
+        ce_constraint_value_scale[[nm]] = 0
+        ce_constraint_value_offset[[nm]] = mean(orig_range)
+      } else {
+        scale = diff(orig_range) / norm_span
+        offset = orig_range[[1]] - scale * norm_range[[1]]
+        ce_constraint_value_scale[[nm]] = scale
+        ce_constraint_value_offset[[nm]] = offset
+      }
+    }
+
+    if (has_explicit_ce_constraints) {
+      ce_constraints_ir = compile_constraints(
+        filter_expr = if (
+          is.null(ce_constraints$filter_expr)
+        ) TRUE else ce_constraints$filter_expr,
+        forbidden_tuples = ce_constraints$forbidden_tuples,
+        factor_meta = ce_constraint_factor_meta,
+        factor_levels = ce_constraint_factor_levels,
+        tol = if (is.null(ce_constraints$tol)) 1e-10 else ce_constraints$tol
+      )
+      ce_constraints_ir$value_offset = unname(as.numeric(ce_constraint_value_offset))
+      ce_constraints_ir$value_scale = unname(as.numeric(ce_constraint_value_scale))
+      ce_has_constraints = TRUE
+    }
+  }
+
   num_updates = min(c(repeats, 200))
   progressbarupdates = floor(seq(1, repeats, length.out = num_updates))
   if (!splitplot) {
@@ -1299,44 +1469,87 @@ gen_design = function(
         if (progress && !advancedoptions$GUI) {
           pb$tick()
         }
-        randomindices = sample(
-          nrow(candidatesetmm),
-          trials,
-          replace = initialreplace
-        )
-        initialdesign = candidatesetmm[randomindices, ]
-        if (!is.null(augmentdesign)) {
-          initialdesign[seq_len(augmentedrows), ] = augmentdesignmm
-        }
-        if (!blocking) {
-          genOutput[[i]] = genOptimalDesign(
-            initialdesign = initialdesign,
-            candidatelist = candidatesetmm,
-            condition = optimality,
-            momentsmatrix = moment_matrix,
-            initialRows = randomindices,
-            aliasdesign = aliasmm[randomindices, ],
-            aliascandidatelist = aliasmm,
-            minDopt = minDopt,
+        if (use_coordinate_exchange && !blocking) {
+          initial_points = matrix(
+            0,
+            nrow = trials,
+            ncol = length(ce_factor_levels_cpp),
+            dimnames = list(NULL, names(ce_factor_meta))
+          )
+          for (j in seq_along(ce_factor_levels_cpp)) {
+            lev = ce_factor_levels_cpp[[j]]
+            initial_points[, j] = sample(lev, trials, replace = TRUE)
+          }
+          if (!is.null(ce_augment_points)) {
+            initial_points[seq_len(augmentedrows), ] = ce_augment_points
+          }
+
+          ce_result = genOptimalDesignCoordinateExchangeConstrained(
+            points = initial_points,
+            factor_levels = ce_factor_levels_cpp,
+            modelmatrix_fn = ce_modelmatrix_fn,
+            factor_columns = ce_factor_columns,
+            constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
             tolerance = tolerance,
-            augmentedrows = augmentedrows,
-            kexchange = kexchange
+            kexchange = as.integer(kexchange),
+            augmentedrows = as.integer(augmentedrows),
+            max_iter = as.integer(advancedoptions$ce_max_iter),
+            recompute_every = as.integer(advancedoptions$ce_recompute_every),
+            repair_stuck_limit = as.integer(
+              advancedoptions$ce_repair_stuck_limit
+            ),
+            repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries)
+          )
+          ce_criterion = DOptimalityLog(ce_result$model_matrix)
+          if (!is.finite(ce_criterion) || isTRUE(ce_result$any_infeasible_remaining)) {
+            ce_criterion = NA_real_
+          }
+          genOutput[[i]] = list(
+            indices = seq_len(trials),
+            model_matrix = ce_result$model_matrix,
+            criterion = ce_criterion,
+            points = ce_result$points
           )
         } else {
-          genOutput[[i]] = genBlockedOptimalDesign(
-            initialdesign = initialdesign,
-            candidatelist = candidatesetmm,
-            condition = optimality,
-            V = V,
-            momentsmatrix = moment_matrix,
-            initialRows = randomindices,
-            aliasdesign = aliasmm[randomindices, ],
-            aliascandidatelist = aliasmm,
-            minDopt = minDopt,
-            tolerance = tolerance,
-            augmentedrows = augmentedrows,
-            kexchange = kexchange
+          randomindices = sample(
+            nrow(candidatesetmm),
+            trials,
+            replace = initialreplace
           )
+          initialdesign = candidatesetmm[randomindices, ]
+          if (!is.null(augmentdesign)) {
+            initialdesign[seq_len(augmentedrows), ] = augmentdesignmm
+          }
+          if (!blocking) {
+            genOutput[[i]] = genOptimalDesign(
+              initialdesign = initialdesign,
+              candidatelist = candidatesetmm,
+              condition = optimality,
+              momentsmatrix = moment_matrix,
+              initialRows = randomindices,
+              aliasdesign = aliasmm[randomindices, ],
+              aliascandidatelist = aliasmm,
+              minDopt = minDopt,
+              tolerance = tolerance,
+              augmentedrows = augmentedrows,
+              kexchange = kexchange
+            )
+          } else {
+            genOutput[[i]] = genBlockedOptimalDesign(
+              initialdesign = initialdesign,
+              candidatelist = candidatesetmm,
+              condition = optimality,
+              V = V,
+              momentsmatrix = moment_matrix,
+              initialRows = randomindices,
+              aliasdesign = aliasmm[randomindices, ],
+              aliascandidatelist = aliasmm,
+              minDopt = minDopt,
+              tolerance = tolerance,
+              augmentedrows = augmentedrows,
+              kexchange = kexchange
+            )
+          }
         }
       }
     } else {
@@ -1356,12 +1569,22 @@ gen_design = function(
             globals = c(
               "genOptimalDesign",
               "genBlockedOptimalDesign",
+              "genOptimalDesignCoordinateExchangeConstrained",
               "candidatesetmm",
               "trials",
               "initialreplace",
               "augmentdesign",
               "augmentedrows",
               "augmentdesignmm",
+              "use_coordinate_exchange",
+              "ce_factor_levels_cpp",
+              "ce_factor_meta",
+              "ce_augment_points",
+              "ce_modelmatrix_fn",
+              "ce_factor_columns",
+              "ce_constraints_ir",
+              "ce_has_constraints",
+              "advancedoptions",
               "progress",
               "is_shiny",
               "progressbarupdates",
@@ -1383,15 +1606,6 @@ gen_design = function(
           )
         ) %dofuture%
           {
-            randomindices = sample(
-              nrow(candidatesetmm),
-              trials,
-              replace = initialreplace
-            )
-            initialdesign = candidatesetmm[randomindices, ]
-            if (!is.null(augmentdesign)) {
-              initialdesign[seq_len(augmentedrows), ] = augmentdesignmm
-            }
             if (progress || is_shiny) {
               if (is_shiny && i %in% progressbarupdates) {
                 prog(
@@ -1403,35 +1617,86 @@ gen_design = function(
                 prog(amount = repeats / num_updates)
               }
             }
-            if (!blocking) {
-              genOptimalDesign(
-                initialdesign = initialdesign,
-                candidatelist = candidatesetmm,
-                condition = optimality,
-                momentsmatrix = moment_matrix,
-                initialRows = randomindices,
-                aliasdesign = aliasmm[randomindices, ],
-                aliascandidatelist = aliasmm,
-                minDopt = minDopt,
+            if (use_coordinate_exchange && !blocking) {
+              initial_points = matrix(
+                0,
+                nrow = trials,
+                ncol = length(ce_factor_levels_cpp),
+                dimnames = list(NULL, names(ce_factor_meta))
+              )
+              for (j in seq_along(ce_factor_levels_cpp)) {
+                lev = ce_factor_levels_cpp[[j]]
+                initial_points[, j] = sample(lev, trials, replace = TRUE)
+              }
+              if (!is.null(ce_augment_points)) {
+                initial_points[seq_len(augmentedrows), ] = ce_augment_points
+              }
+              ce_result = genOptimalDesignCoordinateExchangeConstrained(
+                points = initial_points,
+                factor_levels = ce_factor_levels_cpp,
+                modelmatrix_fn = ce_modelmatrix_fn,
+                factor_columns = ce_factor_columns,
+                constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
                 tolerance = tolerance,
-                augmentedrows = augmentedrows,
-                kexchange = kexchange
+                kexchange = as.integer(kexchange),
+                augmentedrows = as.integer(augmentedrows),
+                max_iter = as.integer(advancedoptions$ce_max_iter),
+                recompute_every = as.integer(advancedoptions$ce_recompute_every),
+                repair_stuck_limit = as.integer(
+                  advancedoptions$ce_repair_stuck_limit
+                ),
+                repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries)
+              )
+              ce_criterion = DOptimalityLog(ce_result$model_matrix)
+              if (!is.finite(ce_criterion) || isTRUE(ce_result$any_infeasible_remaining)) {
+                ce_criterion = NA_real_
+              }
+              list(
+                indices = seq_len(trials),
+                model_matrix = ce_result$model_matrix,
+                criterion = ce_criterion,
+                points = ce_result$points
               )
             } else {
-              genBlockedOptimalDesign(
-                initialdesign = initialdesign,
-                candidatelist = candidatesetmm,
-                condition = optimality,
-                V = V,
-                momentsmatrix = moment_matrix,
-                initialRows = randomindices,
-                aliasdesign = aliasmm[randomindices, ],
-                aliascandidatelist = aliasmm,
-                minDopt = minDopt,
-                tolerance = tolerance,
-                augmentedrows = augmentedrows,
-                kexchange = kexchange
+              randomindices = sample(
+                nrow(candidatesetmm),
+                trials,
+                replace = initialreplace
               )
+              initialdesign = candidatesetmm[randomindices, ]
+              if (!is.null(augmentdesign)) {
+                initialdesign[seq_len(augmentedrows), ] = augmentdesignmm
+              }
+              if (!blocking) {
+                genOptimalDesign(
+                  initialdesign = initialdesign,
+                  candidatelist = candidatesetmm,
+                  condition = optimality,
+                  momentsmatrix = moment_matrix,
+                  initialRows = randomindices,
+                  aliasdesign = aliasmm[randomindices, ],
+                  aliascandidatelist = aliasmm,
+                  minDopt = minDopt,
+                  tolerance = tolerance,
+                  augmentedrows = augmentedrows,
+                  kexchange = kexchange
+                )
+              } else {
+                genBlockedOptimalDesign(
+                  initialdesign = initialdesign,
+                  candidatelist = candidatesetmm,
+                  condition = optimality,
+                  V = V,
+                  momentsmatrix = moment_matrix,
+                  initialRows = randomindices,
+                  aliasdesign = aliasmm[randomindices, ],
+                  aliascandidatelist = aliasmm,
+                  minDopt = minDopt,
+                  tolerance = tolerance,
+                  augmentedrows = augmentedrows,
+                  kexchange = kexchange
+                )
+              }
             }
           }
       }
@@ -1682,13 +1947,24 @@ gen_design = function(
   designs = list()
   rowindicies = list()
   criteria = list()
+  ce_points_normalized = list()
   designcounter = 1
 
   for (i in seq_len(length(genOutput))) {
-    if (!is.na(genOutput[[i]]["criterion"])) {
-      designs[designcounter] = genOutput[[i]]["model_matrix"]
-      rowindicies[designcounter] = genOutput[[i]]["indices"]
-      criteria[designcounter] = genOutput[[i]]["criterion"]
+    if (is.null(genOutput[[i]]) || is.null(genOutput[[i]][["criterion"]])) {
+      next
+    }
+    criterion_val = genOutput[[i]][["criterion"]]
+    if (!is.na(criterion_val)) {
+      designs[designcounter] = list(genOutput[[i]][["model_matrix"]])
+      rowindicies[designcounter] = list(genOutput[[i]][["indices"]])
+      criteria[designcounter] = list(criterion_val)
+      if (use_coordinate_exchange && !splitplot) {
+        ce_points_normalized[designcounter] = list(skpr_ce_decode_points(
+          genOutput[[i]][["points"]],
+          ce_factor_meta
+        ))
+      }
       designcounter = designcounter + 1
     }
   }
@@ -1728,7 +2004,8 @@ gen_design = function(
       optimality == "E" ||
       optimality == "CUSTOM"
   ) {
-    maxcriteria = max(unlist(criteria), na.rm = TRUE)
+    criteria_numeric = unlist(criteria)
+    maxcriteria = max(criteria_numeric, na.rm = TRUE)
     if (
       is.null(advancedoptions$alias_tie_tolerance) ||
         advancedoptions$alias_tie_tolerance == 0
@@ -1751,12 +2028,20 @@ gen_design = function(
     ) {
       aliasvalues = list()
       for (i in bestvec) {
-        rowindextemp = round(rowindicies[[i]])
-        rowindextemp[rowindextemp == 0] = 1
-        if (!is.null(augmentdesign)) {
-          rowindextemp[seq_len(nrow(augmentdesign))] = 1
-        }
-        if (!is.null(splitplotdesign)) {
+        if (use_coordinate_exchange && !splitplot) {
+          suppressWarnings({
+            aliasmatrix = model.matrix(
+              amodel,
+              ce_points_normalized[[i]],
+              contrasts.arg = contrastslist
+            )[, -1, drop = FALSE]
+          })
+        } else if (!is.null(splitplotdesign)) {
+          rowindextemp = round(rowindicies[[i]])
+          rowindextemp[rowindextemp == 0] = 1
+          if (!is.null(augmentdesign)) {
+            rowindextemp[seq_len(nrow(augmentdesign))] = 1
+          }
           if (is.null(advancedoptions$alias_tie_power)) {
             amodel2 = aliasmodel(model, 2)
           } else {
@@ -1773,6 +2058,11 @@ gen_design = function(
             )[, -1, drop = FALSE]
           })
         } else {
+          rowindextemp = round(rowindicies[[i]])
+          rowindextemp[rowindextemp == 0] = 1
+          if (!is.null(augmentdesign)) {
+            rowindextemp[seq_len(nrow(augmentdesign))] = 1
+          }
           suppressWarnings({
             aliasmatrix = model.matrix(
               amodel,
@@ -1798,7 +2088,7 @@ gen_design = function(
         best = bestvec[1]
       }
     } else {
-      best = which.max(criteria)
+      best = which.max(criteria_numeric)
     }
     designmm = designs[[best]]
     rowindex = round(rowindicies[[best]])
@@ -1810,14 +2100,16 @@ gen_design = function(
       optimality == "ALIAS" ||
       optimality == "G"
   ) {
-    negative_criteria = criteria < 0
+    criteria_numeric = unlist(criteria)
+    negative_criteria = criteria_numeric < 0
     criteria = criteria[!negative_criteria]
+    criteria_numeric = criteria_numeric[!negative_criteria]
     rowindicies = rowindicies[!negative_criteria]
     designs = designs[!negative_criteria]
     if (length(criteria) == 0) {
       stop("skpr: No non-singular designs found--increase number of repeats.")
     }
-    mincriteria = min(unlist(criteria), na.rm = TRUE)
+    mincriteria = min(criteria_numeric, na.rm = TRUE)
     if (
       is.null(advancedoptions$alias_tie_tolerance) ||
         advancedoptions$alias_tie_tolerance == 0
@@ -1886,7 +2178,7 @@ gen_design = function(
         best = bestvec[1]
       }
     } else {
-      best = which.min(criteria)
+      best = which.min(criteria_numeric)
     }
     designmm = designs[[best]]
     rowindex = round(rowindicies[[best]])
@@ -1902,17 +2194,53 @@ gen_design = function(
   } else {
     colnames(designmm) = blockedFactors
   }
-  #Here?
-  design = constructRunMatrix(
-    rowIndices = rowindex,
-    candidateList = candidateset,
-    augment = augmentdesign
-  )
-  design_normalized = constructRunMatrix(
-    rowIndices = rowindex,
-    candidateList = candidatesetnormalized,
-    augment = augmentdesign
-  )
+  if (use_coordinate_exchange && !splitplot) {
+    design_normalized = ce_points_normalized[[best]]
+    design = design_normalized
+    for (nm in ce_numeric_columns) {
+      pair_df = ce_numeric_map[[nm]]
+      if (is.null(pair_df) || nrow(pair_df) == 0) {
+        next
+      }
+      normalized_vals = as.numeric(design_normalized[[nm]])
+      idx_match = vapply(
+        normalized_vals,
+        function(v) {
+          d = abs(pair_df$normalized - v)
+          k = which.min(d)
+          if (length(k) == 0 || d[k] > ce_decode_tol) {
+            return(NA_integer_)
+          }
+          k[[1]]
+        },
+        integer(1)
+      )
+      if (any(is.na(idx_match))) {
+        design[[nm]] = normalized_vals
+      } else {
+        design[[nm]] = pair_df$original[idx_match]
+      }
+    }
+    for (nm in names(design)) {
+      if (is.factor(candidateset[[nm]])) {
+        design[[nm]] = factor(
+          as.character(design[[nm]]),
+          levels = levels(candidateset[[nm]])
+        )
+      }
+    }
+  } else {
+    design = constructRunMatrix(
+      rowIndices = rowindex,
+      candidateList = candidateset,
+      augment = augmentdesign
+    )
+    design_normalized = constructRunMatrix(
+      rowIndices = rowindex,
+      candidateList = candidatesetnormalized,
+      augment = augmentdesign
+    )
+  }
 
   if (splitplot) {
     design = cbind(splitPlotReplicateDesign, design)
@@ -2348,4 +2676,4 @@ gen_design = function(
   return(design)
 }
 
-globalVariables("i")
+globalVariables(c("i", "NA_INTEGER"))

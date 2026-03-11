@@ -1,0 +1,13 @@
+paired_rows=320
+quality_global_mean_ce_minus_point=-3.550759
+quality_global_mean_pvalue=0.000014297427
+quality_adjusted_baseline_ce_minus_point=5.503961
+quality_r_squared=0.266854
+quality_adj_r_squared=0.245569
+runtime_log_ratio_intercept=4.550104
+runtime_r_squared=0.807553
+runtime_adj_r_squared=0.801965
+
+mean_by_method:
+  point_exchange: mean_d=79.771234 median_d=78.871300 mean_runtime_ms=377.862
+  coordinate_exchange: mean_d=76.220475 median_d=77.909894 mean_runtime_ms=1837.216

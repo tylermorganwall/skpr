@@ -1,0 +1,310 @@
+---
+title: "Coordinate-Exchange vs Point-Exchange Benchmarks"
+format:
+  html:
+    toc: true
+    code-fold: true
+    df-print: paged
+execute:
+  warning: false
+  message: false
+---
+
+## Overview
+
+This document benchmarks `skpr::gen_design()` using:
+
+- `advancedoptions$search_method = "fedorov"` (point-exchange)
+- `advancedoptions$search_method = "coordinate_exchange"` (CE)
+
+The benchmark set includes:
+
+1. Prior size/trial matrix (candidate set size and design size combinations)
+2. Scaling with respect to `trials`
+3. Scaling with respect to candidate-set rows (the CE search space rows)
+4. Scaling with respect to constraints (feasible rows after applying constraints)
+5. Scaling with respect to model complexity (model-matrix columns)
+
+All timings use the `microbenchmark` package.
+
+The current sweep extends into larger regimes to reduce constant-term dominance:
+
+- trial counts up to `3000`
+- candidate sets up to approximately `30,000` rows
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(knitr)
+```
+
+## Generate Benchmark Data
+
+```{r}
+resolve_path <- function(candidates) {
+  hit <- candidates[file.exists(candidates)]
+  if (length(hit) == 0) {
+    return(candidates[[1]])
+  }
+  hit[[1]]
+}
+
+benchmark_script <- resolve_path(c("run_ce_point_benchmarks.R", "inst/benchmarks/run_ce_point_benchmarks.R"))
+quality_script <- resolve_path(c("run_ce_point_quality.R", "inst/benchmarks/run_ce_point_quality.R"))
+summary_path <- resolve_path(c("results/benchmark_summary.csv", "inst/benchmarks/results/benchmark_summary.csv"))
+raw_path <- resolve_path(c("results/benchmark_raw.csv", "inst/benchmarks/results/benchmark_raw.csv"))
+speed_path <- resolve_path(c("results/benchmark_speedup.csv", "inst/benchmarks/results/benchmark_speedup.csv"))
+scaling_path <- resolve_path(c("results/scaling_exponents.csv", "inst/benchmarks/results/scaling_exponents.csv"))
+quality_path <- resolve_path(c("results/benchmark_quality.csv", "inst/benchmarks/results/benchmark_quality.csv"))
+quality_compare_path <- resolve_path(c("results/benchmark_quality_compare.csv", "inst/benchmarks/results/benchmark_quality_compare.csv"))
+
+if (!file.exists(summary_path) || !file.exists(raw_path) ||
+    !file.exists(speed_path) || !file.exists(scaling_path)) {
+  system2(
+    command = file.path(R.home("bin"), "Rscript"),
+    args = benchmark_script,
+    stdout = TRUE,
+    stderr = TRUE
+  )
+}
+
+if (!file.exists(quality_path) || !file.exists(quality_compare_path)) {
+  system2(
+    command = file.path(R.home("bin"), "Rscript"),
+    args = quality_script,
+    stdout = TRUE,
+    stderr = TRUE
+  )
+}
+```
+
+```{r}
+bench_summary <- fread(summary_path)
+bench_raw <- fread(raw_path)
+bench_speed <- fread(speed_path)
+scaling <- fread(scaling_path)
+quality <- fread(quality_path)
+quality_compare <- fread(quality_compare_path)
+
+bench_summary[, expr := as.character(expr)]
+bench_summary[, section := as.character(section)]
+bench_summary[, scenario := as.character(scenario)]
+bench_speed[, section := as.character(section)]
+bench_speed[, scenario := as.character(scenario)]
+quality[, section := as.character(section)]
+quality[, scenario := as.character(scenario)]
+quality_compare[, section := as.character(section)]
+quality_compare[, scenario := as.character(scenario)]
+```
+
+## Prior Benchmark Matrix
+
+This section reproduces the prior benchmark matrix (candidate set size x trial count).
+
+```{r}
+prior <- bench_summary[section == "prior"][
+  order(candidate_rows, trials, expr),
+  .(scenario, expr, candidate_rows, trials, repeats, min, median, mean, max)
+]
+kable(prior, digits = 2, caption = "Prior benchmark matrix (milliseconds)")
+```
+
+```{r}
+prior_speed <- bench_speed[section == "prior"][
+  order(candidate_rows, trials),
+  .(scenario, candidate_rows, trials, median_point, median_ce, point_over_ce)
+]
+kable(prior_speed, digits = 3, caption = "Prior matrix speed ratio: point/CE (median)")
+```
+
+## Scaling Fits
+
+Scaling is estimated with log-log linear models:
+
+`log(time_ms) = alpha + beta * log(size_variable)`
+
+Estimated `beta` is interpreted as the empirical O(n^beta) exponent.
+
+```{r}
+kable(
+  scaling[order(section, method), .(section, xvar, method, exponent, r_squared, n)],
+  digits = 4,
+  caption = "Empirical scaling exponents (log-log fits)"
+)
+```
+
+## 1) Scaling w.r.t. Trials
+
+```{r}
+d_trials <- bench_summary[section == "scaling_trials"]
+
+ggplot(d_trials, aes(x = trials, y = median, color = expr)) +
+  geom_point(size = 2) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() +
+  labs(
+    title = "Median time vs trials",
+    x = "Trials (log scale)",
+    y = "Median runtime ms (log scale)",
+    color = "Method"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+kable(
+  d_trials[order(trials, expr), .(scenario, expr, trials, median, mean, max)],
+  digits = 2,
+  caption = "Trials scaling raw summary"
+)
+```
+
+## 2) Scaling w.r.t. Candidate Rows
+
+Here, candidate set size is varied while keeping the model and trial count fixed.
+
+```{r}
+d_rows <- bench_summary[section == "scaling_candidate_rows"]
+
+ggplot(d_rows, aes(x = candidate_rows, y = median, color = expr)) +
+  geom_point(size = 2) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() +
+  labs(
+    title = "Median time vs candidate rows",
+    x = "Candidate rows (log scale)",
+    y = "Median runtime ms (log scale)",
+    color = "Method"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+kable(
+  d_rows[order(candidate_rows, expr), .(scenario, expr, candidate_rows, trials, median)],
+  digits = 2,
+  caption = "Candidate-row scaling raw summary"
+)
+```
+
+## 3) Scaling w.r.t. Constraints
+
+Constraint intensity is represented by `feasible_rows` (rows remaining after constraint filtering).
+
+For point-exchange, reducing feasible rows reduces the candidate list directly, which typically speeds search.
+
+```{r}
+d_constraints <- bench_summary[section == "scaling_constraints"]
+
+ggplot(d_constraints, aes(x = feasible_rows, y = median, color = expr)) +
+  geom_point(size = 2) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() +
+  labs(
+    title = "Median time vs feasible rows under constraints",
+    x = "Feasible rows (log scale)",
+    y = "Median runtime ms (log scale)",
+    color = "Method"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+kable(
+  d_constraints[
+    order(feasible_rows, expr),
+    .(scenario, constraints_label, expr, feasible_rows, feasible_fraction, median, mean, max)
+  ],
+  digits = 3,
+  caption = "Constraints scaling raw summary"
+)
+```
+
+## 4) Scaling w.r.t. Model Complexity
+
+Model complexity is proxied by `complexity_cols = ncol(model.matrix(...))`.
+
+```{r}
+d_model <- bench_summary[section == "scaling_model_complexity"]
+
+ggplot(d_model, aes(x = complexity_cols, y = median, color = expr)) +
+  geom_point(size = 2) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() +
+  labs(
+    title = "Median time vs model-matrix columns",
+    x = "Model-matrix columns (log scale)",
+    y = "Median runtime ms (log scale)",
+    color = "Method"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+kable(
+  d_model[order(complexity_cols, expr), .(scenario, model_label, expr, complexity_cols, median, mean, max)],
+  digits = 3,
+  caption = "Model complexity scaling raw summary"
+)
+```
+
+## Consolidated Speed Ratios
+
+`point_over_ce > 1` means CE is faster.  
+`point_over_ce < 1` means point-exchange is faster.
+
+```{r}
+kable(
+  bench_speed[
+    order(section, scenario),
+    .(section, scenario, candidate_rows, trials, constraints_label, feasible_rows, complexity_cols, median_point, median_ce, point_over_ce)
+  ],
+  digits = 3,
+  caption = "Consolidated speed-ratio table"
+)
+```
+
+## Design Quality (D-Optimality)
+
+```{r}
+kable(
+  quality_compare[
+    order(section, scenario),
+    .(section, scenario, candidate_rows, trials, feasible_rows, complexity_cols,
+      d_opt_point, d_opt_ce, d_opt_diff_ce_minus_point, d_opt_ratio_ce_over_point)
+  ],
+  digits = 4,
+  caption = "D-optimality comparison (point vs CE)"
+)
+```
+
+```{r}
+quality_trials <- quality[section == "scaling_trials"]
+
+ggplot(quality_trials, aes(x = trials, y = d_opt, color = expr)) +
+  geom_point(size = 2) +
+  geom_line() +
+  scale_x_log10() +
+  labs(
+    title = "D-optimality vs trials",
+    x = "Trials (log scale)",
+    y = "D-efficiency",
+    color = "Method"
+  ) +
+  theme_minimal()
+```
+
+## Files Written
+
+Benchmark data files:
+
+- `inst/benchmarks/results/benchmark_summary.csv`
+- `inst/benchmarks/results/benchmark_raw.csv`
+- `inst/benchmarks/results/benchmark_speedup.csv`
+- `inst/benchmarks/results/scaling_exponents.csv`
+- `inst/benchmarks/results/benchmark_quality.csv`
+- `inst/benchmarks/results/benchmark_quality_compare.csv`

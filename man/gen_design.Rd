@@ -116,7 +116,14 @@ considered equal before considering the aliasing structure),  \verb{alias_compar
 "optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
 and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
 the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
-or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.}
+or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
+Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange currently supports
+only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`,
+`ce_repair_stuck_limit`, and `ce_repair_max_tries`. You can also pass `factor_levels` (named list) to override CE level grids inferred from `candidateset`.
+For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
+`filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
+Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `\%in\%`,
+and linear constraints over numeric factors.}
 
 \item{timer}{Deprecated: Use \code{progress} instead.}
 }

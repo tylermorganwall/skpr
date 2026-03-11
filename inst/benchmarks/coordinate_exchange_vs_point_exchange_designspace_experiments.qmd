@@ -1,0 +1,279 @@
+---
+title: "CE vs Point: Large Design-Space Experiments"
+format:
+  html:
+    toc: true
+    code-fold: true
+    df-print: paged
+execute:
+  warning: false
+  message: false
+---
+
+## Overview
+
+This report runs a broad benchmark comparison between point-exchange (`fedorov`) and coordinate-exchange across:
+
+- `trial_size`: `small`, `large`
+- `candidate_size`: `small`, `large`
+- interaction complexity: `none`, `some`, `many`
+- quadratic complexity: `none`, `some`, `many`
+- nominal levels: `3`, `4`, `5`
+- numeric density: `low` (`-1:1 by 1`) vs `high` (`-1:1 by 0.1`)
+
+For each selected scenario, both methods are run with matched random seeds over multiple random iterations.
+
+A power-driven meta-design is first generated using `skpr` to target:
+
+- `alpha = 0.05`
+- `effectsize (SNR) = 0.5`
+- `power >= 0.95` for the `method` effect.
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(knitr)
+```
+
+## Generate Data
+
+```{r}
+resolve_path <- function(candidates) {
+  hit <- candidates[file.exists(candidates)]
+  if (length(hit) == 0) {
+    return(candidates[[1]])
+  }
+  hit[[1]]
+}
+
+run_script <- resolve_path(c(
+  "run_ce_point_designspace_experiments.R",
+  "inst/benchmarks/run_ce_point_designspace_experiments.R"
+))
+
+power_scan_path <- resolve_path(c(
+  "results/designspace_power_scan.csv",
+  "inst/benchmarks/results/designspace_power_scan.csv"
+))
+raw_path <- resolve_path(c(
+  "results/designspace_experiment_raw.csv",
+  "inst/benchmarks/results/designspace_experiment_raw.csv"
+))
+paired_path <- resolve_path(c(
+  "results/designspace_experiment_paired.csv",
+  "inst/benchmarks/results/designspace_experiment_paired.csv"
+))
+lm_analysis_script <- resolve_path(c(
+  "analyze_designspace_with_lm.R",
+  "inst/benchmarks/analyze_designspace_with_lm.R"
+))
+lm_analysis_path <- resolve_path(c(
+  "results/designspace_lm_analysis.txt",
+  "inst/benchmarks/results/designspace_lm_analysis.txt"
+))
+lm_quality_global_coef_path <- resolve_path(c(
+  "results/designspace_lm_quality_global_coefficients.csv",
+  "inst/benchmarks/results/designspace_lm_quality_global_coefficients.csv"
+))
+lm_quality_coef_path <- resolve_path(c(
+  "results/designspace_lm_quality_coefficients.csv",
+  "inst/benchmarks/results/designspace_lm_quality_coefficients.csv"
+))
+lm_quality_anova_path <- resolve_path(c(
+  "results/designspace_lm_quality_anova.csv",
+  "inst/benchmarks/results/designspace_lm_quality_anova.csv"
+))
+lm_runtime_coef_path <- resolve_path(c(
+  "results/designspace_lm_runtime_coefficients.csv",
+  "inst/benchmarks/results/designspace_lm_runtime_coefficients.csv"
+))
+lm_runtime_anova_path <- resolve_path(c(
+  "results/designspace_lm_runtime_anova.csv",
+  "inst/benchmarks/results/designspace_lm_runtime_anova.csv"
+))
+
+if (!file.exists(power_scan_path) || !file.exists(raw_path) || !file.exists(paired_path)) {
+  system2(
+    command = file.path(R.home("bin"), "Rscript"),
+    args = run_script,
+    stdout = TRUE,
+    stderr = TRUE
+  )
+}
+
+if (!file.exists(lm_analysis_path) || !file.exists(lm_quality_coef_path)) {
+  system2(
+    command = file.path(R.home("bin"), "Rscript"),
+    args = lm_analysis_script,
+    stdout = TRUE,
+    stderr = TRUE
+  )
+}
+
+power_scan <- fread(power_scan_path)
+raw <- fread(raw_path)
+paired <- fread(paired_path)
+lm_stats_txt <- if (file.exists(lm_analysis_path)) readLines(lm_analysis_path) else character(0)
+lm_quality_global_coef <- fread(lm_quality_global_coef_path)
+lm_quality_coef <- fread(lm_quality_coef_path)
+lm_quality_anova <- fread(lm_quality_anova_path)
+lm_runtime_coef <- fread(lm_runtime_coef_path)
+lm_runtime_anova <- fread(lm_runtime_anova_path)
+```
+
+## Power-Design Scan
+
+```{r}
+kable(power_scan[order(trials)], digits = 4, caption = "Method-effect power scan (SNR=0.5, alpha=0.05)")
+```
+
+```{r}
+ggplot(power_scan[ok == TRUE], aes(x = trials, y = method_power)) +
+  geom_line() +
+  geom_point(size = 2) +
+  geom_hline(yintercept = 0.95, linetype = "dashed", color = "red") +
+  labs(
+    title = "Method-effect power vs meta-design trial count",
+    x = "Meta-design trials",
+    y = "Power for method effect"
+  ) +
+  theme_minimal()
+```
+
+## Run Summary
+
+```{r}
+raw[, method := as.character(method)]
+paired[, both_ok := as.logical(both_ok)]
+
+summary_table <- data.table(
+  total_runs = nrow(raw),
+  successful_runs = raw[is.na(error), .N],
+  paired_rows = nrow(paired),
+  paired_success = paired[both_ok == TRUE, .N]
+)
+
+kable(summary_table, caption = "Execution summary")
+```
+
+## LM Analysis (Primary)
+
+```{r}
+if (length(lm_stats_txt) > 0) {
+  cat(paste(lm_stats_txt, collapse = "\n"))
+}
+```
+
+```{r}
+kable(
+  lm_quality_global_coef,
+  digits = 6,
+  caption = "Global paired-difference lm: d_opt_diff_ce_minus_point ~ 1"
+)
+```
+
+```{r}
+kable(
+  lm_quality_coef,
+  digits = 6,
+  caption = "Adjusted lm coefficients: d_opt_diff_ce_minus_point ~ trial_size + candidate_size + interactions + quadratic + nominal_levels + density"
+)
+```
+
+```{r}
+kable(
+  lm_quality_anova,
+  digits = 6,
+  caption = "Adjusted lm ANOVA: D-optimality difference"
+)
+```
+
+```{r}
+kable(
+  lm_runtime_coef,
+  digits = 6,
+  caption = "Adjusted lm coefficients: log(runtime_ce/runtime_point) ~ factors"
+)
+```
+
+```{r}
+kable(
+  lm_runtime_anova,
+  digits = 6,
+  caption = "Adjusted lm ANOVA: Runtime log ratio"
+)
+```
+
+## D-Optimality Difference (CE - Point)
+
+```{r}
+paired_ok <- paired[both_ok == TRUE & is.finite(d_opt_diff_ce_minus_point)]
+
+kable(
+  paired_ok[, .(
+    n = .N,
+    mean_diff = mean(d_opt_diff_ce_minus_point),
+    median_diff = median(d_opt_diff_ce_minus_point),
+    sd_diff = sd(d_opt_diff_ce_minus_point)
+  )],
+  digits = 6,
+  caption = "Overall CE - Point D-optimality difference"
+)
+```
+
+```{r}
+ggplot(paired_ok, aes(x = d_opt_diff_ce_minus_point)) +
+  geom_histogram(bins = 40, fill = "steelblue", color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Distribution of D-opt difference (CE - Point)",
+    x = "D-opt difference",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+## Runtime Ratio (Point / CE)
+
+```{r}
+kable(
+  paired_ok[, .(
+    n = .N,
+    mean_point_over_ce = mean(runtime_ratio_point_over_ce, na.rm = TRUE),
+    median_point_over_ce = median(runtime_ratio_point_over_ce, na.rm = TRUE),
+    p90_point_over_ce = quantile(runtime_ratio_point_over_ce, probs = 0.9, na.rm = TRUE)
+  )],
+  digits = 4,
+  caption = "Runtime ratio summary (point runtime / CE runtime)"
+)
+```
+
+## Factor-Wise Effects
+
+```{r}
+factor_cols <- c("trial_size", "candidate_size", "interactions", "quadratic", "nominal_levels", "density")
+
+for (fc in factor_cols) {
+  cat("\n### ", fc, "\n", sep = "")
+  tab <- paired_ok[, .(
+    n = .N,
+    mean_diff = mean(d_opt_diff_ce_minus_point),
+    median_diff = median(d_opt_diff_ce_minus_point),
+    sd_diff = sd(d_opt_diff_ce_minus_point),
+    mean_runtime_ratio = mean(runtime_ratio_point_over_ce, na.rm = TRUE)
+  ), by = fc][order(get(fc))]
+  print(kable(tab, digits = 5))
+}
+```
+
+## Raw Data Files
+
+Outputs are written to:
+
+- `inst/benchmarks/results/designspace_power_scan.csv`
+- `inst/benchmarks/results/designspace_powered_meta_design.csv`
+- `inst/benchmarks/results/designspace_base_scenarios.csv`
+- `inst/benchmarks/results/designspace_experiment_raw.csv`
+- `inst/benchmarks/results/designspace_experiment_paired.csv`
+- `inst/benchmarks/results/designspace_experiment_summary_by_scenario.csv`
+- `inst/benchmarks/results/designspace_experiment_stats.txt`

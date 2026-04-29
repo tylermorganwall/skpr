@@ -9,7 +9,10 @@ skpr_ce_detect_factor_columns(
   factor_levels,
   ndetect = 12L,
   tol_col = 1e-12,
-  seed = 123
+  seed = 123,
+  max_exhaustive_rows = 5000L,
+  max_reduced_rows = 512L,
+  max_levels_per_factor = 4L
 )
 }
 \arguments{
@@ -17,16 +20,26 @@ skpr_ce_detect_factor_columns(
 
 \item{factor_levels}{Default \code{NULL}. List of length q; each element numeric vector of allowed values/codes.}
 
-\item{ndetect}{Default \code{12L}. Number of random baselines to OR together (guards against missing interactions).}
+\item{ndetect}{Deprecated compatibility argument; ignored.}
 
 \item{tol_col}{Default \code{1e-12}. Column range threshold to call "varies".}
 
-\item{seed}{Default \code{123}. RNG seed for reproducibility.}
+\item{seed}{Deprecated compatibility argument; ignored.}
+
+\item{max_exhaustive_rows}{Default \code{5000L}. Maximum number of covering rows for exhaustive deterministic coverage.}
+
+\item{max_reduced_rows}{Default \code{512L}. Maximum number of covering rows for reduced Cartesian coverage.}
+
+\item{max_levels_per_factor}{Default \code{4L}. Maximum levels per factor retained before reducing to edge/reference levels.}
 }
 \value{
 List of length q; each element is an integer vector of 1-based model-matrix columns depending on that factor.
 }
 \description{
-Uses probing: for each factor j, hold all other factors fixed at random baselines,
-vary factor j across its allowed levels, and mark columns with nonzero range.
+Uses deterministic probing: for each factor j, vary factor j across all of its
+allowed CE levels and compare model-matrix columns over a deterministic covering
+set of the other factors. Small grids use exhaustive Cartesian coverage. Larger
+grids use a reduced covering set built from reference levels, edge levels, and
+pairwise/all-high combinations so interaction columns are not masked by a single
+zero/reference baseline. No RNG state is read or modified.
 }

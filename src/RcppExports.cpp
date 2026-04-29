@@ -199,6 +199,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// skpr_ce_select_rows_by_leverage
+Rcpp::IntegerVector skpr_ce_select_rows_by_leverage(Eigen::MatrixXd X, Eigen::MatrixXd V, int kexchange, int augmentedrows);
+RcppExport SEXP _skpr_skpr_ce_select_rows_by_leverage(SEXP XSEXP, SEXP VSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type V(VSEXP);
+    Rcpp::traits::input_parameter< int >::type kexchange(kexchangeSEXP);
+    Rcpp::traits::input_parameter< int >::type augmentedrows(augmentedrowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(skpr_ce_select_rows_by_leverage(X, V, kexchange, augmentedrows));
+    return rcpp_result_gen;
+END_RCPP
+}
 // genOptimalDesignCoordinateExchangeConstrained
 Rcpp::List genOptimalDesignCoordinateExchangeConstrained(Eigen::MatrixXd points, Rcpp::List factor_levels, Rcpp::Function modelmatrix_fn, Rcpp::List factor_columns, Rcpp::Nullable<Rcpp::List> constraints_ir, double tolerance, Rcpp::IntegerVector kexchange, int augmentedrows, int max_iter, int recompute_every, int repair_stuck_limit, int repair_max_tries);
 RcppExport SEXP _skpr_genOptimalDesignCoordinateExchangeConstrained(SEXP pointsSEXP, SEXP factor_levelsSEXP, SEXP modelmatrix_fnSEXP, SEXP factor_columnsSEXP, SEXP constraints_irSEXP, SEXP toleranceSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP, SEXP max_iterSEXP, SEXP recompute_everySEXP, SEXP repair_stuck_limitSEXP, SEXP repair_max_triesSEXP) {
@@ -285,6 +299,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_skpr_getPseudoInverse", (DL_FUNC) &_skpr_getPseudoInverse, 1},
     {"_skpr_GEfficiency", (DL_FUNC) &_skpr_GEfficiency, 2},
     {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 11},
+    {"_skpr_skpr_ce_select_rows_by_leverage", (DL_FUNC) &_skpr_skpr_ce_select_rows_by_leverage, 4},
     {"_skpr_genOptimalDesignCoordinateExchangeConstrained", (DL_FUNC) &_skpr_genOptimalDesignCoordinateExchangeConstrained, 12},
     {"_skpr_genSplitPlotOptimalDesign", (DL_FUNC) &_skpr_genSplitPlotOptimalDesign, 15},
     {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 12},

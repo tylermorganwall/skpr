@@ -114,21 +114,31 @@ skpr_ce_make_modelmatrix_fn = function(
 
 #' Detect model-matrix columns that depend on each factor
 #'
-#' Uses probing: for each factor j, hold all other factors fixed at random baselines,
-#' vary factor j across its allowed levels, and mark columns with nonzero range.
+#' Uses deterministic probing: for each factor j, vary factor j across all of its
+#' allowed CE levels and compare model-matrix columns over a deterministic covering
+#' set of the other factors. Small grids use exhaustive Cartesian coverage. Larger
+#' grids use a reduced covering set built from reference levels, edge levels, and
+#' pairwise/all-high combinations so interaction columns are not masked by a single
+#' zero/reference baseline. No RNG state is read or modified.
 #'
 #' @param modelmatrix_fn Default `NULL`. Function from skpr_ce_make_modelmatrix_fn().
 #' @param factor_levels Default `NULL`. List of length q; each element numeric vector of allowed values/codes.
-#' @param ndetect Default `12L`. Number of random baselines to OR together (guards against missing interactions).
+#' @param ndetect Deprecated compatibility argument; ignored.
 #' @param tol_col Default `1e-12`. Column range threshold to call "varies".
-#' @param seed Default `123`. RNG seed for reproducibility.
+#' @param seed Deprecated compatibility argument; ignored.
+#' @param max_exhaustive_rows Default `5000L`. Maximum number of covering rows for exhaustive deterministic coverage.
+#' @param max_reduced_rows Default `512L`. Maximum number of covering rows for reduced Cartesian coverage.
+#' @param max_levels_per_factor Default `4L`. Maximum levels per factor retained before reducing to edge/reference levels.
 #' @return List of length q; each element is an integer vector of 1-based model-matrix columns depending on that factor.
 skpr_ce_detect_factor_columns = function(
 	modelmatrix_fn,
 	factor_levels,
 	ndetect = 12L,
 	tol_col = 1e-12,
-	seed = 123
+	seed = 123,
+	max_exhaustive_rows = 5000L,
+	max_reduced_rows = 512L,
+	max_levels_per_factor = 4L
 ) {
 	if (!is.function(modelmatrix_fn)) {
 		stop("skpr_ce_detect_factor_columns: modelmatrix_fn must be a function.")
@@ -139,7 +149,79 @@ skpr_ce_detect_factor_columns = function(
 		)
 	}
 
-	set.seed(seed)
+	make_grid = function(levels_list) {
+		if (length(levels_list) == 0) {
+			return(matrix(numeric(0), nrow = 1, ncol = 0))
+		}
+		grid = expand.grid(
+			levels_list,
+			KEEP.OUT.ATTRS = FALSE,
+			stringsAsFactors = FALSE
+		)
+		as.matrix(grid)
+	}
+
+	make_reduced_levels = function(lev) {
+		lev = unique(as.numeric(lev))
+		if (length(lev) <= max_levels_per_factor) {
+			return(lev)
+		}
+		mid = lev[ceiling(length(lev) / 2)]
+		unique(c(lev[[1]], mid, lev[[length(lev)]]))
+	}
+
+	make_cover = function(j) {
+		other = setdiff(seq_len(q), j)
+		if (length(other) == 0) {
+			return(matrix(numeric(0), nrow = 1, ncol = 0))
+		}
+
+		other_levels = factor_levels[other]
+		total_rows = prod(vapply(other_levels, length, numeric(1)))
+		if (is.finite(total_rows) && total_rows <= max_exhaustive_rows) {
+			return(make_grid(other_levels))
+		}
+
+		reduced_levels = lapply(other_levels, make_reduced_levels)
+		reduced_rows = prod(vapply(reduced_levels, length, numeric(1)))
+		if (is.finite(reduced_rows) && reduced_rows <= max_reduced_rows) {
+			return(make_grid(reduced_levels))
+		}
+
+		ref = vapply(reduced_levels, function(lev) lev[[1]], numeric(1))
+		rows = list(ref)
+
+		for (a in seq_along(other)) {
+			for (val in reduced_levels[[a]]) {
+				row = ref
+				row[[a]] = val
+				rows[[length(rows) + 1L]] = row
+			}
+		}
+
+		if (length(other) > 1) {
+			for (a in seq_len(length(other) - 1L)) {
+				for (b in seq.int(a + 1L, length(other))) {
+					for (va in reduced_levels[[a]]) {
+						for (vb in reduced_levels[[b]]) {
+							row = ref
+							row[[a]] = va
+							row[[b]] = vb
+							rows[[length(rows) + 1L]] = row
+						}
+					}
+				}
+			}
+		}
+
+		all_high = vapply(
+			reduced_levels,
+			function(lev) lev[[length(lev)]],
+			numeric(1)
+		)
+		rows[[length(rows) + 1L]] = all_high
+		unique(do.call(rbind, rows))
+	}
 
 	q = length(factor_levels)
 	base = vapply(factor_levels, function(lev) lev[[1]], numeric(1))
@@ -156,8 +238,13 @@ skpr_ce_detect_factor_columns = function(
 			next
 		}
 
-		for (t in seq_len(ndetect)) {
-			x0 = vapply(factor_levels, function(lev) sample(lev, 1), numeric(1))
+		cover = make_cover(j)
+		other = setdiff(seq_len(q), j)
+		for (t in seq_len(nrow(cover))) {
+			x0 = base
+			if (length(other) > 0) {
+				x0[other] = cover[t, ]
+			}
 			cand = matrix(rep(x0, each = Lj), nrow = Lj)
 			cand[, j] = levj
 
@@ -175,6 +262,7 @@ skpr_ce_detect_factor_columns = function(
 		cols_by_factor[[j]] = which(depends)
 	}
 
+	names(cols_by_factor) = names(factor_levels)
 	cols_by_factor
 }
 

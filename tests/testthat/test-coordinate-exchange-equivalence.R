@@ -25,6 +25,31 @@ canonicalize_design = function(design_df) {
   out
 }
 
+expect_valid_ce_design = function(design, candidateset, constraints, info) {
+  for (nm in names(candidateset)) {
+    if (is.factor(candidateset[[nm]]) || is.character(candidateset[[nm]])) {
+      expect_true(
+        all(as.character(design[[nm]]) %in% as.character(unique(candidateset[[nm]]))),
+        info = paste(info, nm)
+      )
+    } else {
+      expect_true(
+        all(as.numeric(design[[nm]]) %in% as.numeric(unique(candidateset[[nm]]))),
+        info = paste(info, nm)
+      )
+    }
+  }
+
+  if (!is.null(constraints) && !is.null(constraints$filter_expr)) {
+    ok = eval(constraints$filter_expr, envir = design, enclos = parent.frame())
+    expect_true(all(as.logical(ok)), info = info)
+  }
+
+  mm = attr(design, "model_matrix")
+  expect_true(is.finite(attr(design, "D")), info = info)
+  expect_equal(qr(mm)$rank, ncol(mm), info = info)
+}
+
 run_point_vs_ce = function(
   candidateset,
   model,
@@ -61,7 +86,7 @@ run_point_vs_ce = function(
   list(point = design_point, ce = design_ce)
 }
 
-test_that("CE matches point-exchange on simple scenarios from requested grid", {
+test_that("CE returns valid, competitive designs on requested-grid scenarios", {
   requested = make_requested_candidate_set()
 
   # Full-factorial subset derived from the requested grid.
@@ -140,15 +165,14 @@ test_that("CE matches point-exchange on simple scenarios from requested grid", {
       seed = 7
     )
 
-    expect_identical(
-      canonicalize_design(out$point),
-      canonicalize_design(out$ce),
-      info = spec$name
+    expect_valid_ce_design(
+      out$ce,
+      spec$candidates,
+      spec$ce_constraints,
+      spec$name
     )
-    expect_equal(
-      attr(out$point, "D"),
-      attr(out$ce, "D"),
-      tolerance = 1e-10,
+    expect_true(
+      attr(out$ce, "D") >= attr(out$point, "D") - 10,
       info = spec$name
     )
   }

@@ -119,14 +119,18 @@ the number of random samples  (default 1000 if `g_efficiency_method = "random"`)
 or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange is experimental and currently supports
 only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`,
-`ce_repair_stuck_limit`, and `ce_repair_max_tries`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
+`ce_repair_stuck_limit`, `ce_repair_max_tries`, and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
 For numeric factors, prefer `factor_levels_original` (named list) when supplying levels in the original units used in `candidateset`; skpr maps these to the normalized
 CE search scale internally and returns designs in original units.
 For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
 `filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
 Coordinate-exchange constraints are evaluated in the original user units of `candidateset`, including when CE optimizes on normalized numeric columns.
 Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `\%in\%`,
-and linear constraints over numeric factors.}
+and linear constraints over numeric factors.
+Constrained coordinate exchange automatically groups factors coupled by the compiled constraint IR, so constraints such as `x + y == 0` can be explored with joint moves.
+`advancedoptions$coordinate_groups` can be `NULL` (auto groups when constraints are present and singleton groups otherwise), `"auto"` to force IR-derived groups, or a list of character vectors for manual groups; omitted factors are appended as singleton groups.
+`advancedoptions$coordinate_group_max_candidates` limits the Cartesian candidates enumerated for one coordinate-group proposal.
+For coordinate exchange, `k` is the number of mutable, non-augmented rows considered for exchange. Augmented rows are fixed and excluded from CE row selection.}
 
 \item{timer}{Deprecated: Use \code{progress} instead.}
 }

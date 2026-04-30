@@ -24,7 +24,11 @@ test_that("coordinate exchange engine runs end-to-end with decode", {
     points = points0,
     factor_levels = unname(factor_levels),
     modelmatrix_fn = prep$modelmatrix_fn,
-    factor_columns = prep$factor_columns,
+    coordinate_groups = as.list(seq_along(factor_levels)),
+    group_columns = skpr_ce_group_factor_columns(
+      prep$factor_columns,
+      as.list(seq_along(factor_levels))
+    ),
     tolerance = 1e-5,
     kexchange = n,
     augmentedrows = 0L
@@ -191,7 +195,11 @@ test_that("CE repairs singular near-saturated starts before inversion", {
     points = points0,
     factor_levels = unname(prep$factor_levels),
     modelmatrix_fn = prep$modelmatrix_fn,
-    factor_columns = prep$factor_columns,
+    coordinate_groups = as.list(seq_along(prep$factor_levels)),
+    group_columns = skpr_ce_group_factor_columns(
+      prep$factor_columns,
+      as.list(seq_along(prep$factor_levels))
+    ),
     tolerance = 1e-5,
     kexchange = 8L,
     augmentedrows = 0L
@@ -228,7 +236,14 @@ test_that("CE repairs constrained singular and infeasible starts", {
     points = points0,
     factor_levels = unname(prep$factor_levels),
     modelmatrix_fn = prep$modelmatrix_fn,
-    factor_columns = prep$factor_columns,
+    coordinate_groups = skpr_ce_resolve_coordinate_groups(
+      names(prep$factor_meta),
+      ir
+    )$coordinate_groups,
+    group_columns = skpr_ce_group_factor_columns(
+      prep$factor_columns,
+      skpr_ce_resolve_coordinate_groups(names(prep$factor_meta), ir)$coordinate_groups
+    ),
     constraints_ir = ir,
     tolerance = 1e-5,
     kexchange = 8L,
@@ -286,6 +301,109 @@ test_that("CE setup does not reset or consume global RNG state", {
   expect_identical(.Random.seed, before)
 })
 
+test_that("CE derives coordinate groups from compiled constraint IR", {
+  cand = expand.grid(
+    x = c(-1, 0, 1),
+    y = c(-1, 0, 1),
+    z = c(-1, 1),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  space = skpr_ce_infer_factor_space(cand)
+
+  ir = compile_constraints(
+    filter_expr = quote(x + y == 0),
+    factor_meta = space$factor_meta,
+    factor_levels = space$factor_levels
+  )
+  edges = constraint_ir_support_edges(ir)
+  groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir)
+
+  expect_true(any(vapply(edges, identical, logical(1), c(1L, 2L))))
+  expect_equal(groups$coordinate_group_names, list(c("x", "y"), "z"))
+
+  ir_dnf = compile_constraints(
+    filter_expr = quote((x == 1 & y == -1) | (x == -1 & y == 1)),
+    factor_meta = space$factor_meta,
+    factor_levels = space$factor_levels
+  )
+  dnf_groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir_dnf)
+  expect_equal(dnf_groups$coordinate_group_names, list(c("x", "y"), "z"))
+
+  ir_conj = compile_constraints(
+    filter_expr = quote(x >= 0 & y <= 1),
+    factor_meta = space$factor_meta,
+    factor_levels = space$factor_levels
+  )
+  conj_groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir_conj)
+  expect_equal(conj_groups$coordinate_group_names, as.list(names(space$factor_meta)))
+})
+
+test_that("CE coordinate group validation handles manual groups", {
+  factor_names = c("x", "y", "z", "w")
+
+  expect_error(
+    skpr_ce_validate_manual_coordinate_groups(list(c("x", "missing")), factor_names),
+    "unknown"
+  )
+  expect_error(
+    skpr_ce_validate_manual_coordinate_groups(list(c("x", "x")), factor_names),
+    "within"
+  )
+  expect_error(
+    skpr_ce_validate_manual_coordinate_groups(list("x", c("x", "y")), factor_names),
+    "multiple"
+  )
+  expect_error(
+    skpr_ce_validate_manual_coordinate_groups(list(character(0)), factor_names),
+    "empty"
+  )
+
+  expect_equal(
+    skpr_ce_validate_manual_coordinate_groups(list(c("y", "x"), "w"), factor_names),
+    list(c("y", "x"), "w", "z")
+  )
+})
+
+test_that("CE derives coordinate groups from forbidden tuple tables", {
+  cand = expand.grid(
+    a = c(-1, 1),
+    b = c(-1, 1),
+    c = c(-1, 1),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  space = skpr_ce_infer_factor_space(cand)
+  ir = compile_constraints(
+    filter_expr = TRUE,
+    forbidden_tuples = data.frame(a = -1, b = 1),
+    factor_meta = space$factor_meta,
+    factor_levels = space$factor_levels
+  )
+
+  edges = constraint_ir_support_edges(ir)
+  groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir)
+
+  expect_true(any(vapply(edges, identical, logical(1), c(1L, 2L))))
+  expect_equal(groups$coordinate_group_names, list(c("a", "b"), "c"))
+})
+
+test_that("CE grouped factor columns include interaction columns", {
+  cand = expand.grid(
+    x = c(-1, 0, 1),
+    y = c(-1, 0, 1),
+    z = c(-1, 1),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  prep = skpr_ce_prepare(cand, ~x * y + z, contrasts_fun = contr.simplex)
+  groups = list(c(1L, 2L), 3L)
+  group_columns = skpr_ce_group_factor_columns(prep$factor_columns, groups)
+  mm_cols = colnames(prep$modelmatrix_fn(matrix(c(-1, -1, -1), nrow = 1)))
+
+  expect_true(match("x", mm_cols) %in% group_columns[[1]])
+  expect_true(match("y", mm_cols) %in% group_columns[[1]])
+  expect_true(match("x:y", mm_cols) %in% group_columns[[1]])
+  expect_false(match("z", mm_cols) %in% group_columns[[1]])
+})
+
 test_that("CE user-level random starts are not forced through an internal seed", {
   cand = expand.grid(
     x = seq(10, 30, by = 5),
@@ -324,12 +442,48 @@ test_that("CE user-level random starts are not forced through an internal seed",
   expect_false(identical(as.data.frame(design_100), as.data.frame(design_200)))
 })
 
+test_that("CE grouped constraints allow joint moves through coupled spaces", {
+  cand = expand.grid(
+    x = c(-1, 0, 1),
+    y = c(-1, 0, 1),
+    z = c(-1, 1),
+    KEEP.OUT.ATTRS = FALSE
+  )
+
+  set.seed(12)
+  design = suppressWarnings(gen_design(
+    candidateset = cand,
+    model = ~x + z + x:y,
+    trials = 8,
+    repeats = 3,
+    optimality = "D",
+    progress = FALSE,
+    advancedoptions = list(
+      search_method = "coordinate_exchange",
+      constraints = list(filter_expr = quote(x + y == 0))
+    )
+  ))
+
+  expect_true(all(abs(design$x + design$y) <= 1e-8))
+  expect_true(any((design$x == 1 & design$y == -1) | (design$x == -1 & design$y == 1)))
+  expect_equal(qr(attr(design, "model_matrix"))$rank, ncol(attr(design, "model_matrix")))
+  expect_true(is.finite(attr(design, "D")))
+})
+
 test_that("CE factor_levels_original uses original units for constraints and output", {
   cand = expand.grid(
     temp = c(25, 50, 75),
     pressure = c(1, 3, 5),
     KEEP.OUT.ATTRS = FALSE
   )
+  space = skpr_ce_infer_factor_space(cand)
+  ir = compile_constraints(
+    filter_expr = quote(temp + 10 * pressure <= 100),
+    factor_meta = space$factor_meta,
+    factor_levels = space$factor_levels
+  )
+  groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir)
+  expect_equal(groups$coordinate_group_names, list(c("temp", "pressure")))
 
   set.seed(11)
   design = gen_design(
@@ -445,4 +599,79 @@ test_that("CE k-row selection chooses monotone lowest-leverage sets", {
   expect_equal(rows_k3, expected_rows(3L))
   expect_true(all(rows_k1 %in% rows_k2))
   expect_true(all(rows_k2 %in% rows_k3))
+})
+
+test_that("CE k-row selection excludes augmented rows without reducing k", {
+  x = 1:10
+  y = c(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
+  X = cbind("(Intercept)" = 1, x = x, y = y)
+  V = solve(t(X) %*% X)
+
+  rows = skpr_ce_select_rows_by_leverage(
+    X,
+    V,
+    kexchange = 4L,
+    augmentedrows = 3L
+  )
+
+  expect_equal(length(rows), 4L)
+  expect_true(all(rows > 3L))
+  expect_error(
+    skpr_ce_select_rows_by_leverage(X, V, kexchange = 0L, augmentedrows = 3L),
+    "kexchange must be at least 1"
+  )
+})
+
+test_that("CE augmented rows are fixed and k uses mutable rows", {
+  cand = expand.grid(
+    x = c(-1, 0, 1),
+    y = c(-1, 0, 1),
+    z = c(-1, 1),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  augment = data.frame(
+    x = c(-1, 0),
+    y = c(1, 0),
+    z = c(-1, 1)
+  )
+
+  for (k in c(1L, 2L, 4L, 20L)) {
+    set.seed(20 + k)
+    design = suppressWarnings(gen_design(
+      candidateset = cand,
+      model = ~x + z + x:y,
+      trials = 8,
+      repeats = 2,
+      augmentdesign = augment,
+      optimality = "D",
+      k = k,
+      progress = FALSE,
+      advancedoptions = list(
+        search_method = "coordinate_exchange",
+        constraints = list(filter_expr = quote(x + y == 0))
+      )
+    ))
+
+    expect_equal(as.data.frame(design[seq_len(nrow(augment)), c("x", "y", "z")]), augment)
+    expect_true(all(abs(design$x + design$y) <= 1e-8))
+    expect_true(is.finite(attr(design, "D")))
+  }
+
+  expect_error(
+    suppressWarnings(gen_design(
+      candidateset = cand,
+      model = ~x + z + x:y,
+      trials = 8,
+      repeats = 1,
+      augmentdesign = augment,
+      optimality = "D",
+      k = 0,
+      progress = FALSE,
+      advancedoptions = list(
+        search_method = "coordinate_exchange",
+        constraints = list(filter_expr = quote(x + y == 0))
+      )
+    )),
+    "kexchange must be at least 1"
+  )
 })

@@ -262,6 +262,152 @@ skpr_ce_detect_factor_columns = function(
 	cols_by_factor
 }
 
+skpr_ce_auto_coordinate_groups = function(factor_names, constraints_ir = NULL) {
+	q = length(factor_names)
+	if (q == 0L) {
+		return(list())
+	}
+	if (is.null(factor_names) || any(is.na(factor_names)) || any(factor_names == "")) {
+		stop("skpr_ce_auto_coordinate_groups: factor_names must be non-empty names.")
+	}
+
+	parent = seq_len(q)
+	find = function(x) {
+		while (parent[[x]] != x) {
+			parent[[x]] <<- parent[[parent[[x]]]]
+			x = parent[[x]]
+		}
+		x
+	}
+	union = function(a, b) {
+		ra = find(a)
+		rb = find(b)
+		if (ra != rb) {
+			parent[[rb]] <<- ra
+		}
+	}
+
+	edges = if (is.null(constraints_ir)) {
+		list()
+	} else {
+		constraint_ir_support_edges(constraints_ir)
+	}
+
+	for (edge in edges) {
+		edge = sort(unique(as.integer(edge)))
+		if (length(edge) <= 1L) {
+			next
+		}
+		if (any(is.na(edge)) || any(edge < 1L | edge > q)) {
+			stop("skpr_ce_auto_coordinate_groups: constraint support index out of range.")
+		}
+		for (k in seq.int(2L, length(edge))) {
+			union(edge[[1L]], edge[[k]])
+		}
+	}
+
+	roots = vapply(seq_len(q), find, integer(1))
+	groups = split(seq_len(q), roots)
+	groups = lapply(groups, as.integer)
+	groups = groups[order(vapply(groups, function(g) g[[1L]], integer(1)))]
+	unname(groups)
+}
+
+skpr_ce_validate_manual_coordinate_groups = function(
+	coordinate_groups,
+	factor_names
+) {
+	if (!is.list(coordinate_groups)) {
+		stop("skpr: advancedoptions$coordinate_groups must be a list of character vectors.")
+	}
+	if (is.null(factor_names) || any(is.na(factor_names)) || any(factor_names == "")) {
+		stop("skpr_ce_validate_manual_coordinate_groups: factor_names must be non-empty names.")
+	}
+
+	seen = character()
+	out = vector("list", length(coordinate_groups))
+	for (i in seq_along(coordinate_groups)) {
+		group = coordinate_groups[[i]]
+		if (!is.character(group)) {
+			stop("skpr: advancedoptions$coordinate_groups must be a list of character vectors.")
+		}
+		if (length(group) == 0L) {
+			stop("skpr: advancedoptions$coordinate_groups cannot contain empty groups.")
+		}
+		if (any(is.na(group)) || any(group == "")) {
+			stop("skpr: advancedoptions$coordinate_groups contains invalid factor names.")
+		}
+		unknown = setdiff(group, factor_names)
+		if (length(unknown) > 0L) {
+			stop(
+				"skpr: advancedoptions$coordinate_groups contains unknown factor(s): ",
+				paste(unknown, collapse = ", ")
+			)
+		}
+		dup_within = unique(group[duplicated(group)])
+		if (length(dup_within) > 0L) {
+			stop(
+				"skpr: advancedoptions$coordinate_groups repeats factor(s) within a group: ",
+				paste(dup_within, collapse = ", ")
+			)
+		}
+		dup_across = intersect(group, seen)
+		if (length(dup_across) > 0L) {
+			stop(
+				"skpr: advancedoptions$coordinate_groups assigns factor(s) to multiple groups: ",
+				paste(dup_across, collapse = ", ")
+			)
+		}
+		seen = c(seen, group)
+		out[[i]] = group
+	}
+
+	omitted = factor_names[!(factor_names %in% seen)]
+	if (length(omitted) > 0L) {
+		out = c(out, as.list(omitted))
+	}
+
+	out
+}
+
+skpr_ce_resolve_coordinate_groups = function(
+	factor_names,
+	constraints_ir = NULL,
+	coordinate_groups = NULL
+) {
+	if (is.null(coordinate_groups)) {
+		groups = if (is.null(constraints_ir)) {
+			as.list(seq_along(factor_names))
+		} else {
+			skpr_ce_auto_coordinate_groups(factor_names, constraints_ir)
+		}
+	} else if (identical(coordinate_groups, "auto")) {
+		groups = skpr_ce_auto_coordinate_groups(factor_names, constraints_ir)
+	} else if (is.list(coordinate_groups)) {
+		group_names = skpr_ce_validate_manual_coordinate_groups(
+			coordinate_groups,
+			factor_names
+		)
+		groups = lapply(group_names, function(g) match(g, factor_names))
+	} else {
+		stop(
+			"skpr: advancedoptions$coordinate_groups must be NULL, 'auto', or a list of character vectors."
+		)
+	}
+
+	group_names = lapply(groups, function(g) factor_names[g])
+	list(
+		coordinate_group_names = group_names,
+		coordinate_groups = lapply(groups, as.integer)
+	)
+}
+
+skpr_ce_group_factor_columns = function(factor_columns, coordinate_groups) {
+	lapply(coordinate_groups, function(group) {
+		sort(unique(as.integer(unlist(factor_columns[group], use.names = FALSE))))
+	})
+}
+
 #' Infer factor metadata and levels from a candidate set (skpr-style)
 #'
 #' Discrete columns are factors/characters. Numeric columns are numeric.

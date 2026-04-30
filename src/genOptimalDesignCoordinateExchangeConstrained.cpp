@@ -15,53 +15,6 @@ using namespace Rcpp;
 
 namespace {
 
-std::vector<int> to0based(const IntegerVector &idx1_based) {
-  std::vector<int> out;
-  out.reserve(idx1_based.size());
-  for (int i = 0; i < idx1_based.size(); ++i) {
-    int v = idx1_based[i];
-    if (v <= 0)
-      continue;
-    out.push_back(v - 1);
-  }
-  std::sort(out.begin(), out.end());
-  out.erase(std::unique(out.begin(), out.end()), out.end());
-  return out;
-}
-
-std::vector<int> complement_indices(int p, const std::vector<int> &idx1) {
-  std::vector<char> in1(p, 0);
-  for (size_t i = 0; i < idx1.size(); ++i) {
-    if (idx1[i] >= 0 && idx1[i] < p)
-      in1[idx1[i]] = 1;
-  }
-  std::vector<int> idx2;
-  idx2.reserve(p - static_cast<int>(idx1.size()));
-  for (int i = 0; i < p; ++i)
-    if (!in1[i])
-      idx2.push_back(i);
-  return idx2;
-}
-
-Eigen::VectorXd subvec(const Eigen::VectorXd &v, const std::vector<int> &idx) {
-  Eigen::VectorXd out(static_cast<int>(idx.size()));
-  for (int i = 0; i < static_cast<int>(idx.size()); ++i)
-    out(i) = v(idx[i]);
-  return out;
-}
-
-Eigen::MatrixXd submat(const Eigen::MatrixXd &M, const std::vector<int> &ridx,
-                       const std::vector<int> &cidx) {
-  Eigen::MatrixXd out(static_cast<int>(ridx.size()),
-                      static_cast<int>(cidx.size()));
-  for (int i = 0; i < static_cast<int>(ridx.size()); ++i) {
-    for (int j = 0; j < static_cast<int>(cidx.size()); ++j) {
-      out(i, j) = M(ridx[i], cidx[j]);
-    }
-  }
-  return out;
-}
-
 double logdet_xtx(const Eigen::MatrixXd &X) {
   Eigen::MatrixXd XtX = X.transpose() * X;
   Eigen::LLT<Eigen::MatrixXd> llt(XtX);
@@ -181,6 +134,89 @@ bool enumerate_feasible_candidates(
     candidate_points.row(i) = rows[i];
 
   return true;
+}
+
+struct GroupCandidates {
+  Eigen::MatrixXd points;
+  std::vector<std::vector<int>> codes;
+};
+
+GroupCandidates enumerate_group_candidates(
+    const Eigen::RowVectorXd &base_row, const std::vector<int> &base_codes,
+    const std::vector<int> &group, const Rcpp::List &factor_levels,
+    const ConstraintSet *constraints, int max_candidates) {
+  if (max_candidates < 1) {
+    Rcpp::stop("skpr: advancedoptions$coordinate_group_max_candidates must be "
+               "at least 1.");
+  }
+
+  const int q = static_cast<int>(factor_levels.size());
+  std::vector<Rcpp::NumericVector> levels(q);
+  std::vector<int> Lg(group.size());
+  long double product = 1.0;
+
+  for (int g = 0; g < static_cast<int>(group.size()); ++g) {
+    const int j = group[g];
+    levels[j] = factor_levels[j];
+    Lg[g] = levels[j].size();
+    if (Lg[g] <= 0)
+      Rcpp::stop("skpr: coordinate group contains a factor with no levels.");
+    product *= static_cast<long double>(Lg[g]);
+    if (product > static_cast<long double>(max_candidates)) {
+      Rcpp::stop("skpr: coordinate group candidate count exceeds "
+                 "advancedoptions$coordinate_group_max_candidates.");
+    }
+  }
+
+  const int total = static_cast<int>(product);
+  std::vector<int> combo(group.size(), 0);
+  std::vector<Eigen::RowVectorXd> rows;
+  std::vector<std::vector<int>> codes;
+  rows.reserve(total);
+  codes.reserve(total);
+
+  for (int iter = 0; iter < total; ++iter) {
+    bool same = true;
+    Eigen::RowVectorXd cand = base_row;
+    std::vector<int> cand_codes = base_codes;
+
+    for (int g = 0; g < static_cast<int>(group.size()); ++g) {
+      const int j = group[g];
+      const int code = combo[g];
+      cand(j) = levels[j][code];
+      cand_codes[j] = code;
+      if (code != base_codes[j])
+        same = false;
+    }
+
+    if (!same &&
+        (constraints == NULL || constraints->allowed_row(cand, cand_codes.data()))) {
+      rows.push_back(cand);
+      codes.push_back(cand_codes);
+    }
+
+    for (int g = static_cast<int>(group.size()) - 1; g >= 0; --g) {
+      ++combo[g];
+      if (combo[g] < Lg[g])
+        break;
+      combo[g] = 0;
+    }
+  }
+
+  GroupCandidates out;
+  out.points.resize(static_cast<int>(rows.size()), q);
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i)
+    out.points.row(i) = rows[i];
+  out.codes = std::move(codes);
+  return out;
+}
+
+double d_delta(const Eigen::VectorXd &f_old, const Eigen::VectorXd &f_new,
+               const Eigen::MatrixXd &V) {
+  const double v_old = f_old.dot(V * f_old);
+  const double v_new = f_new.dot(V * f_new);
+  const double v_cross = f_new.dot(V * f_old);
+  return 1.0 + (v_new - v_old) + (v_cross * v_cross - v_new * v_old);
 }
 
 bool sample_feasible_row(Eigen::RowVectorXd &row_values,
@@ -374,11 +410,10 @@ select_ce_rows_by_leverage_impl(const Eigen::MatrixXd &X,
   if (available <= 0)
     return selected;
 
-  int target = kexchange - n_aug;
-  if (target < 1)
-    target = 1;
-  if (target > available)
-    target = available;
+  if (kexchange < 1)
+    Rcpp::stop("skpr: kexchange must be at least 1.");
+
+  const int target = std::min(kexchange, available);
 
   std::vector<std::pair<double, int>> ranked;
   ranked.reserve(available);
@@ -442,19 +477,27 @@ Rcpp::IntegerVector skpr_ce_select_rows_by_leverage(Eigen::MatrixXd X,
 // [[Rcpp::export]]
 Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
     Eigen::MatrixXd points, Rcpp::List factor_levels,
-    Rcpp::Function modelmatrix_fn, Rcpp::List factor_columns,
+    Rcpp::Function modelmatrix_fn, Rcpp::List coordinate_groups,
+    Rcpp::List group_columns,
     Rcpp::Nullable<Rcpp::List> constraints_ir = R_NilValue,
     double tolerance = 1e-4,
     Rcpp::IntegerVector kexchange = Rcpp::IntegerVector::create(NA_INTEGER),
     int augmentedrows = 0, int max_iter = 200, int recompute_every = 10,
-    int repair_stuck_limit = 5, int repair_max_tries = 2000) {
+    int repair_stuck_limit = 5, int repair_max_tries = 2000,
+    int coordinate_group_max_candidates = 10000) {
   RNGScope rngScope;
 
   const int n = points.rows();
   const int q = points.cols();
-  if (factor_levels.size() != q || factor_columns.size() != q) {
-    stop("skpr: factor_levels and factor_columns must have length equal to "
-         "ncol(points).");
+  const int n_aug = std::max(0, std::min(augmentedrows, n));
+  if (factor_levels.size() != q) {
+    stop("skpr: factor_levels must have length equal to ncol(points).");
+  }
+  if (coordinate_groups.size() != group_columns.size()) {
+    stop("skpr: coordinate_groups and group_columns must have the same length.");
+  }
+  if (coordinate_groups.size() <= 0) {
+    stop("skpr: coordinate_groups must contain at least one group.");
   }
 
   std::vector<int> Lq(q);
@@ -477,6 +520,29 @@ Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
       }
       level_pos[i][j] = idx;
     }
+  }
+
+  std::vector<std::vector<int>> group_list(coordinate_groups.size());
+  std::vector<int> factor_seen(q, 0);
+  for (int g = 0; g < coordinate_groups.size(); ++g) {
+    IntegerVector group = coordinate_groups[g];
+    if (group.size() <= 0)
+      stop("skpr: coordinate_groups cannot contain empty groups.");
+    group_list[g].reserve(group.size());
+    for (int k = 0; k < group.size(); ++k) {
+      const int j = group[k] - 1;
+      if (j < 0 || j >= q)
+        stop("skpr: coordinate_groups contains a factor index out of range.");
+      if (factor_seen[j] != 0)
+        stop("skpr: each factor must appear exactly once across coordinate_groups.");
+      factor_seen[j] = 1;
+      group_list[g].push_back(j);
+    }
+    std::sort(group_list[g].begin(), group_list[g].end());
+  }
+  for (int j = 0; j < q; ++j) {
+    if (factor_seen[j] == 0)
+      stop("skpr: each factor must appear exactly once across coordinate_groups.");
   }
 
   bool have_constraints = !constraints_ir.isNull();
@@ -509,11 +575,22 @@ Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
     }
   }
 
-  std::vector<std::vector<int>> idx1_list(q), idx2_list(q);
-  for (int j = 0; j < q; ++j) {
-    IntegerVector cols1 = factor_columns[j];
-    idx1_list[j] = to0based(cols1);
-    idx2_list[j] = complement_indices(p, idx1_list[j]);
+  std::vector<std::vector<int>> group_column_list(group_columns.size());
+  for (int g = 0; g < group_columns.size(); ++g) {
+    IntegerVector cols = group_columns[g];
+    group_column_list[g].reserve(cols.size());
+    for (int k = 0; k < cols.size(); ++k) {
+      const int col0 = cols[k] - 1;
+      if (col0 < 0 || col0 >= p) {
+        stop("skpr: group_columns contains a model-matrix column index out of "
+             "range.");
+      }
+      group_column_list[g].push_back(col0);
+    }
+    std::sort(group_column_list[g].begin(), group_column_list[g].end());
+    group_column_list[g].erase(
+        std::unique(group_column_list[g].begin(), group_column_list[g].end()),
+        group_column_list[g].end());
   }
 
   Eigen::MatrixXd V = information_inverse(X);
@@ -533,7 +610,7 @@ Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
   if (k_use == NA_INTEGER)
     k_use = n;
   if (k_use < 1)
-    k_use = 1;
+    stop("skpr: kexchange must be at least 1.");
   if (k_use > n)
     k_use = n;
 
@@ -546,90 +623,49 @@ Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
     std::vector<int> selected_rows = select_ce_rows_by_leverage_impl(
         X, V, k_use, augmentedrows, have_constraints ? &mustchange : NULL);
 
-    std::vector<unsigned char> row_changed(n, 0);
-
     for (int sel = 0; sel < static_cast<int>(selected_rows.size()); ++sel) {
       Rcpp::checkUserInterrupt();
       int irow = selected_rows[sel];
 
-      for (int j = 0; j < q; ++j) {
+      for (int g = 0; g < static_cast<int>(group_list.size()); ++g) {
         Rcpp::checkUserInterrupt();
 
-        const std::vector<int> &idx1 = idx1_list[j];
-        if (idx1.empty())
+        const std::vector<int> &group = group_list[g];
+        const std::vector<int> &affected_cols = group_column_list[g];
+        if (affected_cols.empty())
           continue;
 
-        NumericVector lev = factor_levels[j];
-        const int Lj = lev.size();
-        if (Lj <= 1)
-          continue;
-
-        const double old_val = points(irow, j);
-        const int old_code = level_pos[irow][j];
-
-        std::vector<int> feasible;
-        feasible.reserve(Lj);
-        if (have_constraints) {
-          for (int code = 0; code < Lj; ++code) {
-            const double new_val = lev[code];
-            if (constraints->allowed_change(points.row(irow),
-                                            level_pos[irow].data(),
-                                            caches[irow], j, new_val, code)) {
-              feasible.push_back(code);
-            }
+        bool has_alternative = false;
+        for (int t = 0; t < static_cast<int>(group.size()); ++t) {
+          if (Lq[group[t]] > 1) {
+            has_alternative = true;
+            break;
           }
-        } else {
-          for (int code = 0; code < Lj; ++code)
-            feasible.push_back(code);
         }
-
-        if (feasible.empty())
+        if (!has_alternative)
           continue;
 
-        Eigen::MatrixXd candPts(static_cast<int>(feasible.size()), q);
-        for (int rr = 0; rr < static_cast<int>(feasible.size()); ++rr) {
-          candPts.row(rr) = points.row(irow);
-          candPts(rr, j) = lev[feasible[rr]];
-        }
+        GroupCandidates candidates = enumerate_group_candidates(
+            points.row(irow), level_pos[irow], group, factor_levels,
+            have_constraints ? constraints.get() : NULL,
+            coordinate_group_max_candidates);
+        if (candidates.points.rows() == 0)
+          continue;
 
-        Eigen::MatrixXd candX = call_modelmatrix(modelmatrix_fn, candPts);
+        Eigen::MatrixXd candX = call_modelmatrix(modelmatrix_fn, candidates.points);
         if (candX.cols() != p)
           stop("skpr: modelmatrix_fn returned wrong number of columns.");
 
         Eigen::VectorXd f_old = X.row(irow).transpose();
-        Eigen::VectorXd Vf_old = V * f_old;
-        double v_i = f_old.dot(Vf_old);
-        double alpha = 1.0 - v_i;
-
-        const std::vector<int> &idx2 = idx2_list[j];
-
-        Eigen::VectorXd B1 = subvec(Vf_old, idx1);
-        Eigen::VectorXd B2 = subvec(Vf_old, idx2);
-
-        Eigen::MatrixXd V11 = submat(V, idx1, idx1);
-        Eigen::MatrixXd V12 = submat(V, idx1, idx2);
-        Eigen::MatrixXd V22 = submat(V, idx2, idx2);
-
-        Eigen::MatrixXd A11 = alpha * V11 + (B1 * B1.transpose());
-        Eigen::MatrixXd A12 = alpha * V12 + (B1 * B2.transpose());
-        Eigen::MatrixXd A22 = alpha * V22 + (B2 * B2.transpose());
-
-        Eigen::VectorXd f2 = subvec(f_old, idx2);
-        Eigen::VectorXd a = 2.0 * (A12 * f2);
-        double cst = f2.dot(A22 * f2) + alpha;
-
         const bool row_must_fix = (have_constraints && mustchange[irow]);
 
         double bestDelta = row_must_fix ? -INFINITY : 1.0;
         int bestPos = -1;
 
-        Eigen::VectorXd f1(static_cast<int>(idx1.size()));
         for (int rr = 0; rr < candX.rows(); ++rr) {
-          for (int t = 0; t < static_cast<int>(idx1.size()); ++t) {
-            f1(t) = candX(rr, idx1[t]);
-          }
-          double delta = f1.dot(A11 * f1) + a.dot(f1) + cst;
-          if (std::isfinite(delta) && delta > bestDelta) {
+          Eigen::VectorXd f_new = candX.row(rr).transpose();
+          const double delta = d_delta(f_old, f_new, V);
+          if (std::isfinite(delta) && delta > 0.0 && delta > bestDelta) {
             bestDelta = delta;
             bestPos = rr;
           }
@@ -640,28 +676,28 @@ Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
         if (!row_must_fix && bestDelta <= 1.0 + eps_improve)
           continue;
 
-        const int new_code = feasible[bestPos];
-        const double new_val = candPts(bestPos, j);
         Eigen::VectorXd f_new = candX.row(bestPos).transpose();
 
         rankUpdate(V, f_old, f_new, identity, ru_f1, ru_f2, ru_f2vinv);
         X.row(irow) = f_new.transpose();
 
-        points(irow, j) = new_val;
-        level_pos[irow][j] = new_code;
+        points.row(irow) = candidates.points.row(bestPos);
+        level_pos[irow] = candidates.codes[bestPos];
 
-        if (bestDelta > 0)
+        if (bestDelta > 0 && std::isfinite(bestDelta)) {
           logdet += std::log(bestDelta);
-
-        if (have_constraints) {
-          constraints->apply_change(points.row(irow), level_pos[irow].data(),
-                                    caches[irow], j, old_val, old_code, new_val,
-                                    new_code);
-          mustchange[irow] = (caches[irow].satisfied_count <= 0) ? 1 : 0;
-		  if (!mustchange[irow]) stuck[irow] = 0;
+        } else {
+          logdet = logdet_xtx(X);
         }
 
-        row_changed[irow] = 1;
+        if (have_constraints) {
+          caches[irow] =
+              constraints->make_cache(points.row(irow), level_pos[irow].data());
+          mustchange[irow] = (caches[irow].satisfied_count <= 0) ? 1 : 0;
+          if (!mustchange[irow])
+            stuck[irow] = 0;
+        }
+
         any_accepted = true;
       }
 
@@ -675,7 +711,7 @@ Rcpp::List genOptimalDesignCoordinateExchangeConstrained(
     }
 
     if (have_constraints) {
-      for (int i = augmentedrows; i < n; ++i) {
+      for (int i = n_aug; i < n; ++i) {
         if (!mustchange[i])
           continue;
         if (stuck[i] < repair_stuck_limit)

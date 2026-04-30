@@ -75,7 +75,7 @@
 #'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 #'Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange is experimental and currently supports
 #'only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`,
-#'`ce_repair_stuck_limit`, and `ce_repair_max_tries`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
+#'`ce_repair_stuck_limit`, `ce_repair_max_tries`, and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
 #'For numeric factors, prefer `factor_levels_original` (named list) when supplying levels in the original units used in `candidateset`; skpr maps these to the normalized
 #'CE search scale internally and returns designs in original units.
 #'For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
@@ -83,6 +83,10 @@
 #'Coordinate-exchange constraints are evaluated in the original user units of `candidateset`, including when CE optimizes on normalized numeric columns.
 #'Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `%in%`,
 #'and linear constraints over numeric factors.
+#'Constrained coordinate exchange automatically groups factors coupled by the compiled constraint IR, so constraints such as `x + y == 0` can be explored with joint moves.
+#'`advancedoptions$coordinate_groups` can be `NULL` (auto groups when constraints are present and singleton groups otherwise), `"auto"` to force IR-derived groups, or a list of character vectors for manual groups; omitted factors are appended as singleton groups.
+#'`advancedoptions$coordinate_group_max_candidates` limits the Cartesian candidates enumerated for one coordinate-group proposal.
+#'For coordinate exchange, `k` is the number of mutable, non-augmented rows considered for exchange. Augmented rows are fixed and excluded from CE row selection.
 #'@param timer Deprecated: Use `progress` instead.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.
@@ -358,17 +362,7 @@ gen_design = function(
     optimality = optimality_uc
   }
 
-  if (is.na(k)) {
-    kexchange = trials
-  } else {
-    kexchange = k
-  }
-  if (kexchange > trials || kexchange < 1) {
-    kexchange = trials
-    warning(
-      "`k` must be an integer between `1` and `trials`. Setting to `trials`."
-    )
-  }
+  kexchange = if (is.na(k)) trials else k
 
   advancedoptions_provided = !is.null(advancedoptions)
   if (is.null(advancedoptions)) {
@@ -397,6 +391,17 @@ gen_design = function(
         "skpr: Coordinate exchange currently supports only fully randomized, non-blocked designs."
       )
     }
+    if (kexchange < 1) {
+      stop("skpr: kexchange must be at least 1.")
+    }
+    if (kexchange > trials) {
+      kexchange = trials
+    }
+  } else if (kexchange > trials || kexchange < 1) {
+    kexchange = trials
+    warning(
+      "`k` must be an integer between `1` and `trials`. Setting to `trials`."
+    )
   }
 
   if (!is.null(advancedoptions$constraints)) {
@@ -423,6 +428,9 @@ gen_design = function(
   }
   if (is.null(advancedoptions$ce_repair_max_tries)) {
     advancedoptions$ce_repair_max_tries = 2000L
+  }
+  if (is.null(advancedoptions$coordinate_group_max_candidates)) {
+    advancedoptions$coordinate_group_max_candidates = 10000L
   }
 
   if (is.null(advancedoptions$design_search_tolerance)) {
@@ -1338,6 +1346,9 @@ gen_design = function(
   ce_factor_levels_cpp = NULL
   ce_modelmatrix_fn = NULL
   ce_factor_columns = NULL
+  ce_coordinate_groups = NULL
+  ce_coordinate_group_names = NULL
+  ce_group_columns = NULL
   ce_constraints_ir = NULL
   ce_has_constraints = FALSE
   ce_augment_points = NULL
@@ -1543,6 +1554,18 @@ gen_design = function(
       ce_constraints_ir$value_scale = unname(as.numeric(ce_constraint_value_scale))
       ce_has_constraints = TRUE
     }
+
+    ce_groups = skpr_ce_resolve_coordinate_groups(
+      factor_names = names(ce_factor_meta),
+      constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
+      coordinate_groups = advancedoptions[["coordinate_groups"]]
+    )
+    ce_coordinate_groups = ce_groups$coordinate_groups
+    ce_coordinate_group_names = ce_groups$coordinate_group_names
+    ce_group_columns = skpr_ce_group_factor_columns(
+      factor_columns = ce_factor_columns,
+      coordinate_groups = ce_coordinate_groups
+    )
   }
 
   num_updates = min(c(repeats, 200))
@@ -1604,7 +1627,8 @@ gen_design = function(
             points = initial_points,
             factor_levels = ce_factor_levels_cpp,
             modelmatrix_fn = ce_modelmatrix_fn,
-            factor_columns = ce_factor_columns,
+            coordinate_groups = ce_coordinate_groups,
+            group_columns = ce_group_columns,
             constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
             tolerance = tolerance,
             kexchange = as.integer(kexchange),
@@ -1614,7 +1638,10 @@ gen_design = function(
             repair_stuck_limit = as.integer(
               advancedoptions$ce_repair_stuck_limit
             ),
-            repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries)
+            repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries),
+            coordinate_group_max_candidates = as.integer(
+              advancedoptions$coordinate_group_max_candidates
+            )
           )
           ce_criterion = DOptimalityLog(ce_result$model_matrix)
           if (!is.finite(ce_criterion) || isTRUE(ce_result$any_infeasible_remaining)) {
@@ -1697,7 +1724,9 @@ gen_design = function(
               "ce_factor_meta",
               "ce_augment_points",
               "ce_modelmatrix_fn",
-              "ce_factor_columns",
+              "ce_coordinate_groups",
+              "ce_coordinate_group_names",
+              "ce_group_columns",
               "ce_constraints_ir",
               "ce_has_constraints",
               "advancedoptions",
@@ -1754,7 +1783,8 @@ gen_design = function(
                 points = initial_points,
                 factor_levels = ce_factor_levels_cpp,
                 modelmatrix_fn = ce_modelmatrix_fn,
-                factor_columns = ce_factor_columns,
+                coordinate_groups = ce_coordinate_groups,
+                group_columns = ce_group_columns,
                 constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
                 tolerance = tolerance,
                 kexchange = as.integer(kexchange),
@@ -1764,7 +1794,10 @@ gen_design = function(
                 repair_stuck_limit = as.integer(
                   advancedoptions$ce_repair_stuck_limit
                 ),
-                repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries)
+                repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries),
+                coordinate_group_max_candidates = as.integer(
+                  advancedoptions$coordinate_group_max_candidates
+                )
               )
               ce_criterion = DOptimalityLog(ce_result$model_matrix)
               if (!is.finite(ce_criterion) || isTRUE(ce_result$any_infeasible_remaining)) {

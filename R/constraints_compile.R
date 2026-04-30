@@ -1025,3 +1025,83 @@ compile_constraints = function(
 	ir$forbidden_tables = tabs
 	ir
 }
+
+constraint_ir_get_range = function(ptr, u) {
+	start = ptr[[u]] + 1L
+	end = ptr[[u + 1L]]
+	if (end < start) integer() else seq.int(start, end)
+}
+
+constraint_ir_atom_supports = function(ir) {
+	if (is.null(ir)) {
+		return(list())
+	}
+
+	n_atoms = length(ir$atom_type)
+	supports = vector("list", n_atoms)
+	if (n_atoms == 0) {
+		return(supports)
+	}
+
+	for (a in seq_len(n_atoms)) {
+		type = ir$atom_type[[a]]
+		payload_idx = ir$atom_payload_idx[[a]]
+		u = payload_idx + 1L
+
+		support = integer()
+		if (type == 1L) {
+			support = ir$cmp_var[[u]] + 1L
+		} else if (type == 2L) {
+			support = ir$in_var[[u]] + 1L
+		} else if (type == 3L) {
+			idx = constraint_ir_get_range(ir$lin_ptr, u)
+			support = ir$lin_idx[idx] + 1L
+		} else if (type == 4L) {
+			idx = constraint_ir_get_range(ir$forb_ptr, u)
+			support = ir$forb_idx[idx] + 1L
+		} else {
+			stop("constraint_ir_atom_supports: unknown atom_type.")
+		}
+
+		supports[[a]] = sort(unique(as.integer(support)))
+	}
+
+	supports
+}
+
+constraint_ir_support_edges = function(ir) {
+	if (is.null(ir)) {
+		return(list())
+	}
+
+	edges = list()
+	add_edge = function(x) {
+		x = sort(unique(as.integer(x)))
+		if (length(x) > 1L) {
+			edges[[length(edges) + 1L]] <<- x
+		}
+	}
+
+	atom_supports = constraint_ir_atom_supports(ir)
+	for (support in atom_supports) {
+		add_edge(support)
+	}
+
+	if (!is.null(ir$forbidden_tables) && length(ir$forbidden_tables) > 0L) {
+		for (tab in ir$forbidden_tables) {
+			add_edge(tab$idx + 1L)
+		}
+	}
+
+	n_clauses = length(ir$clause_ptr) - 1L
+	if (n_clauses > 1L) {
+		for (c in seq_len(n_clauses)) {
+			idx = constraint_ir_get_range(ir$clause_ptr, c)
+			atom_ids = ir$clause_atom[idx] + 1L
+			clause_support = sort(unique(unlist(atom_supports[atom_ids])))
+			add_edge(clause_support)
+		}
+	}
+
+	edges
+}

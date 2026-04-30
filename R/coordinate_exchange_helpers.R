@@ -123,9 +123,7 @@ skpr_ce_make_modelmatrix_fn = function(
 #'
 #' @param modelmatrix_fn Default `NULL`. Function from skpr_ce_make_modelmatrix_fn().
 #' @param factor_levels Default `NULL`. List of length q; each element numeric vector of allowed values/codes.
-#' @param ndetect Deprecated compatibility argument; ignored.
 #' @param tol_col Default `1e-12`. Column range threshold to call "varies".
-#' @param seed Deprecated compatibility argument; ignored.
 #' @param max_exhaustive_rows Default `5000L`. Maximum number of covering rows for exhaustive deterministic coverage.
 #' @param max_reduced_rows Default `512L`. Maximum number of covering rows for reduced Cartesian coverage.
 #' @param max_levels_per_factor Default `4L`. Maximum levels per factor retained before reducing to edge/reference levels.
@@ -133,9 +131,7 @@ skpr_ce_make_modelmatrix_fn = function(
 skpr_ce_detect_factor_columns = function(
 	modelmatrix_fn,
 	factor_levels,
-	ndetect = 12L,
 	tol_col = 1e-12,
-	seed = 123,
 	max_exhaustive_rows = 5000L,
 	max_reduced_rows = 512L,
 	max_levels_per_factor = 4L
@@ -167,7 +163,7 @@ skpr_ce_detect_factor_columns = function(
 			return(lev)
 		}
 		mid = lev[ceiling(length(lev) / 2)]
-		unique(c(lev[[1]], mid, lev[[length(lev)]]))
+		unique(c(lev[1L], mid, lev[length(lev)]))
 	}
 
 	make_cover = function(j) {
@@ -188,7 +184,7 @@ skpr_ce_detect_factor_columns = function(
 			return(make_grid(reduced_levels))
 		}
 
-		ref = vapply(reduced_levels, function(lev) lev[[1]], numeric(1))
+		ref = vapply(reduced_levels, function(lev) lev[1L], numeric(1))
 		rows = list(ref)
 
 		for (a in seq_along(other)) {
@@ -216,7 +212,7 @@ skpr_ce_detect_factor_columns = function(
 
 		all_high = vapply(
 			reduced_levels,
-			function(lev) lev[[length(lev)]],
+			function(lev) lev[length(lev)],
 			numeric(1)
 		)
 		rows[[length(rows) + 1L]] = all_high
@@ -224,7 +220,7 @@ skpr_ce_detect_factor_columns = function(
 	}
 
 	q = length(factor_levels)
-	base = vapply(factor_levels, function(lev) lev[[1]], numeric(1))
+	base = vapply(factor_levels, function(lev) lev[1L], numeric(1))
 	p = ncol(modelmatrix_fn(matrix(base, nrow = 1)))
 
 	cols_by_factor = vector("list", q)
@@ -245,7 +241,7 @@ skpr_ce_detect_factor_columns = function(
 			if (length(other) > 0) {
 				x0[other] = cover[t, ]
 			}
-			cand = matrix(rep(x0, each = Lj), nrow = Lj)
+			cand = matrix(rep(x0, times = Lj), nrow = Lj, byrow = TRUE)
 			cand[, j] = levj
 
 			mm = modelmatrix_fn(cand)
@@ -413,17 +409,13 @@ skpr_ce_decode_points = function(points_mat, factor_meta) {
 #' @param candidateset Default `NULL`. data.frame candidate set (skpr style).
 #' @param model Default `NULL`. Model formula.
 #' @param contrasts_fun Default `contr.simplex`. Contrast generator function.
-#' @param ndetect Default `12L`. Baseline count for factor column detection.
 #' @param tol_col Default `1e-12`. Column range threshold.
-#' @param seed Default `123`. RNG seed.
 #' @return List with factor_meta, factor_levels, modelmatrix_fn, factor_columns.
 skpr_ce_prepare = function(
 	candidateset,
 	model,
 	contrasts_fun = contr.simplex,
-	ndetect = 12L,
-	tol_col = 1e-12,
-	seed = 123
+	tol_col = 1e-12
 ) {
 	space = skpr_ce_infer_factor_space(candidateset)
 	factor_meta = space$factor_meta
@@ -439,9 +431,7 @@ skpr_ce_prepare = function(
 	factor_columns = skpr_ce_detect_factor_columns(
 		modelmatrix_fn = modelmatrix_fn,
 		factor_levels = factor_levels,
-		ndetect = ndetect,
-		tol_col = tol_col,
-		seed = seed
+		tol_col = tol_col
 	)
 
 	list(

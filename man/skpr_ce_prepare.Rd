@@ -8,9 +8,7 @@ skpr_ce_prepare(
   candidateset,
   model,
   contrasts_fun = contr.simplex,
-  ndetect = 12L,
-  tol_col = 1e-12,
-  seed = 123
+  tol_col = 1e-12
 )
 }
 \arguments{
@@ -20,11 +18,7 @@ skpr_ce_prepare(
 
 \item{contrasts_fun}{Default \code{contr.simplex}. Contrast generator function.}
 
-\item{ndetect}{Default \code{12L}. Baseline count for factor column detection.}
-
 \item{tol_col}{Default \code{1e-12}. Column range threshold.}
-
-\item{seed}{Default \code{123}. RNG seed.}
 }
 \value{
 List with factor_meta, factor_levels, modelmatrix_fn, factor_columns.

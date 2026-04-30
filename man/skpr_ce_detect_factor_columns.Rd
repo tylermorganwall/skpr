@@ -7,9 +7,7 @@
 skpr_ce_detect_factor_columns(
   modelmatrix_fn,
   factor_levels,
-  ndetect = 12L,
   tol_col = 1e-12,
-  seed = 123,
   max_exhaustive_rows = 5000L,
   max_reduced_rows = 512L,
   max_levels_per_factor = 4L
@@ -20,11 +18,7 @@ skpr_ce_detect_factor_columns(
 
 \item{factor_levels}{Default \code{NULL}. List of length q; each element numeric vector of allowed values/codes.}
 
-\item{ndetect}{Deprecated compatibility argument; ignored.}
-
 \item{tol_col}{Default \code{1e-12}. Column range threshold to call "varies".}
-
-\item{seed}{Deprecated compatibility argument; ignored.}
 
 \item{max_exhaustive_rows}{Default \code{5000L}. Maximum number of covering rows for exhaustive deterministic coverage.}
 

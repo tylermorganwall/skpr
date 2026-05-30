@@ -228,17 +228,17 @@ arguments as follows. Below, X is the model matrix, b is the anticipated
 coefficients, and d is a vector of blocking noise (if `blocking = FALSE`
 then d = 0):
 
-|               |              |                                            |                                                        |
-|---------------|--------------|--------------------------------------------|--------------------------------------------------------|
-| **glmfamily** | **blocking** | **rfunction**                              | **fit**                                                |
-| "gaussian"    | F            | `rnorm(mean = X %*% b + d, sd = 1)`        | `lm`                                                   |
-| "gaussian"    | T            | `rnorm(mean = X %*% b + d, sd = 1)`        | [`lme4::lmer`](https://rdrr.io/pkg/lme4/man/lmer.html) |
-| "binomial"    | F            | `rbinom(prob = 1/(1+exp(-(X %*% b + d))))` | `glm(family = "binomial")`                             |
-| "binomial"    | T            | `rbinom(prob = 1/(1+exp(-(X %*% b + d))))` | `lme4::glmer(family = "binomial")`                     |
-| "poisson"     | F            | `rpois(lambda = exp((X %*% b + d)))`       | `glm(family = "poisson")`                              |
-| "poisson"     | T            | `rpois(lambda = exp((X %*% b + d)))`       | `lme4::glmer(family = "poisson")`                      |
-| "exponential" | F            | `rexp(rate = exp(-(X %*% b + d)))`         | `glm(family = Gamma(link = "log"))`                    |
-| "exponential" | T            | `rexp(rate = exp(-(X %*% b + d)))`         | `lme4:glmer(family = Gamma(link = "log"))`             |
+|  |  |  |  |
+|----|----|----|----|
+| **glmfamily** | **blocking** | **rfunction** | **fit** |
+| "gaussian" | F | `rnorm(mean = X %*% b + d, sd = 1)` | `lm` |
+| "gaussian" | T | `rnorm(mean = X %*% b + d, sd = 1)` | [`lme4::lmer`](https://rdrr.io/pkg/lme4/man/lmer.html) |
+| "binomial" | F | `rbinom(prob = 1/(1+exp(-(X %*% b + d))))` | `glm(family = "binomial")` |
+| "binomial" | T | `rbinom(prob = 1/(1+exp(-(X %*% b + d))))` | `lme4::glmer(family = "binomial")` |
+| "poisson" | F | `rpois(lambda = exp((X %*% b + d)))` | `glm(family = "poisson")` |
+| "poisson" | T | `rpois(lambda = exp((X %*% b + d)))` | `lme4::glmer(family = "poisson")` |
+| "exponential" | F | `rexp(rate = exp(-(X %*% b + d)))` | `glm(family = Gamma(link = "log"))` |
+| "exponential" | T | `rexp(rate = exp(-(X %*% b + d)))` | `lme4:glmer(family = Gamma(link = "log"))` |
 
 Note that the exponential random generator uses the "rate" parameter,
 but `skpr` and `glm` use the mean value parameterization (= 1 / rate),

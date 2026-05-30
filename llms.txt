@@ -23,6 +23,7 @@ offers:
 ## Installation
 
 ``` r
+
 # To install:
 install.packages("skpr")
 
@@ -77,6 +78,7 @@ to begin. Screenshots:
 ## Usage
 
 ``` r
+
 library(skpr)
 
 #Generate a candidate set of all potential design points to be considered in the experiment

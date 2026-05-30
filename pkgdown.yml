@@ -1,8 +1,8 @@
-pandoc: 3.1.11
+pandoc: 3.8.3
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles: {}
-last_built: 2026-03-09T19:04Z
+last_built: 2026-05-30T04:15Z
 urls:
   reference: https://tylermorganwall.github.io/skpr/reference
   article: https://tylermorganwall.github.io/skpr/articles

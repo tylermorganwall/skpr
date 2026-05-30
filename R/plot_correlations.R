@@ -2,7 +2,7 @@
 #'
 #'@description Plots design diagnostics
 #'
-#'@param skpr_output The output of either [gen_design()], [eval_design()], or [eval_design_mc()].
+#'@param skpr_output The output of either [`gen_design()`][skpr::gen_design], [`eval_design()`][skpr::eval_design], or [`eval_design_mc()`][skpr::eval_design_mc].
 #'@param model Default `NULL`. Defaults to the model used in generating/evaluating
 #'the design, augmented with 2-factor interactions. If specified, it will override the default
 #'model used to generate/evaluate the design.
@@ -155,13 +155,14 @@ plot_correlations = function(
       "`custompar` is no longer supported; adjust the returned ggplot object instead."
     )
   }
-  labels = colnames(mm)[-1]
-  plot_matrix = t(cormat[ncol(cormat):1, , drop = FALSE])
-  plot_df = data.frame(
-    x = rep(labels, each = length(labels)),
-    y = rep(rev(labels), times = length(labels)),
-    value = as.vector(plot_matrix)
+  labels = colnames(cormat)
+  plot_df = expand.grid(
+    x = labels,
+    y = labels,
+    KEEP.OUT.ATTRS = FALSE,
+    stringsAsFactors = FALSE
   )
+  plot_df$value = as.vector(cormat[labels, labels, drop = FALSE])
   plot_obj = ggplot2::ggplot(
     plot_df,
     ggplot2::aes(
@@ -194,8 +195,8 @@ plot_correlations = function(
   print(plot_obj)
 
   results = t(cormat[ncol(cormat):1, , drop = FALSE])
-  colnames(results) = rev(colnames(mm)[-1])
-  rownames(results) = colnames(mm)[-1]
+  colnames(results) = rev(labels)
+  rownames(results) = labels
   invisible(results)
 }
 globalVariables(c("x", "y"))

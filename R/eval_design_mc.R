@@ -60,6 +60,11 @@
 #'@param moment_sample_density Default `10`. The density of points to sample when calculating the moment matrix to compute I-optimality. Only
 #'required if the design was generated outside of skpr and there are disallowed combinations.
 #'@param ... Additional arguments.
+#' @param control Default `NULL`. A fit control object passed to the fitting
+#' function. Use `stats::glm.control()` for unblocked non-Gaussian models,
+#' `lme4::lmerControl()` for blocked Gaussian models, and
+#' `lme4::glmerControl()` for blocked non-Gaussian models. Unblocked Gaussian
+#' models are fit with `stats::lm()`, which does not accept a control object.
 #'@return A data frame consisting of the parameters and their powers, with supplementary information
 #'stored in the data frame's attributes. The parameter estimates from the simulations are stored in the "estimates"
 #' attribute. The "model_matrix" attribute contains the model matrix that was used for power evaluation, and
@@ -262,8 +267,20 @@ eval_design_mc = function(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  ...
+  ...,
+  control = NULL
 ) {
+  control_expression = substitute(control)
+  control_string = if (is.null(control)) {
+    NULL
+  } else {
+    deparse1(control_expression, collapse = " ", width.cutoff = 500L)
+  }
+  control_args = if (is.null(control)) {
+    list()
+  } else {
+    list(control = control)
+  }
   if (!firth || glmfamily != "binomial") {
     method = "glm.fit"
   } else {
@@ -392,6 +409,7 @@ eval_design_mc = function(
       parallel = parallel,
       detailedoutput = detailedoutput,
       advancedoptions = advancedoptions,
+      control = control,
       ...
     )
     if (attr(terms.formula(model, data = design), "intercept") == 1) {
@@ -483,6 +501,12 @@ eval_design_mc = function(
   zlist = processed_design_traits$zlist
 
   glmfamilyname = tolower(glmfamily)
+  if (!is.null(control) && !blocking && glmfamilyname == "gaussian") {
+    stop(
+      "skpr: `control` is not supported for unblocked Gaussian models ",
+      "because `stats::lm()` does not have a `control` argument."
+    )
+  }
   #------Auto-set random generating function----#
   if (is.null(rfunction)) {
     if (glmfamily == "gaussian") {
@@ -760,10 +784,16 @@ eval_design_mc = function(
             {
               fit = suppressWarnings(
                 suppressMessages(
-                  lmerTest::lmer(
-                    model_formula,
-                    data = run_matrix_monte_carlo,
-                    contrasts = contrastslist
+                  do.call(
+                    lmerTest::lmer,
+                    c(
+                      list(
+                        formula = model_formula,
+                        data = run_matrix_monte_carlo,
+                        contrasts = contrastslist
+                      ),
+                      control_args
+                    )
                   )
                 )
               )
@@ -792,11 +822,17 @@ eval_design_mc = function(
             {
               fit = suppressWarnings(
                 suppressMessages(
-                  lme4::glmer(
-                    model_formula,
-                    data = run_matrix_monte_carlo,
-                    family = glmfamily,
-                    contrasts = contrastslist
+                  do.call(
+                    lme4::glmer,
+                    c(
+                      list(
+                        formula = model_formula,
+                        data = run_matrix_monte_carlo,
+                        family = glmfamily,
+                        contrasts = contrastslist
+                      ),
+                      control_args
+                    )
                   )
                 )
               )
@@ -870,12 +906,18 @@ eval_design_mc = function(
           tryCatch(
             {
               fit = suppressWarnings(suppressMessages({
-                glm(
-                  model_formula,
-                  family = glmfamily,
-                  data = run_matrix_monte_carlo,
-                  contrasts = contrastslist,
-                  method = method
+                do.call(
+                  stats::glm,
+                  c(
+                    list(
+                      formula = model_formula,
+                      family = glmfamily,
+                      data = run_matrix_monte_carlo,
+                      contrasts = contrastslist,
+                      method = method
+                    ),
+                    control_args
+                  )
                 )
               }))
             },
@@ -1040,6 +1082,7 @@ eval_design_mc = function(
             "effect_terms",
             "effect_anova",
             "method",
+            "control_args",
             "modelmat",
             "aliasing_checked",
             "parameter_names",
@@ -1069,17 +1112,23 @@ eval_design_mc = function(
             if (glmfamilyname == "gaussian") {
               fit = suppressWarnings(
                 suppressMessages(
-                  lmerTest::lmer(
-                    model_formula,
-                    data = run_matrix_monte_carlo,
-                    contrasts = contrastslist
+                  do.call(
+                    lmerTest::lmer,
+                    c(
+                      list(
+                        formula = model_formula,
+                        data = run_matrix_monte_carlo,
+                        contrasts = contrastslist
+                      ),
+                      control_args
+                    )
                   )
                 )
               )
               if (calceffect) {
                 effect_pvals = effectpowermc(
                   fit,
-                  type = "III",
+                  type = anovatype,
                   test = "Pr(>Chisq)"
                 )
               }
@@ -1088,11 +1137,17 @@ eval_design_mc = function(
                 {
                   fit = suppressWarnings(
                     suppressMessages(
-                      lme4::glmer(
-                        model_formula,
-                        data = run_matrix_monte_carlo,
-                        family = glmfamily,
-                        contrasts = contrastslist
+                      do.call(
+                        lme4::glmer,
+                        c(
+                          list(
+                            formula = model_formula,
+                            data = run_matrix_monte_carlo,
+                            family = glmfamily,
+                            contrasts = contrastslist
+                          ),
+                          control_args
+                        )
                       )
                     )
                   )
@@ -1131,7 +1186,7 @@ eval_design_mc = function(
               if (calceffect) {
                 effect_pvals = effectpowermc(
                   fit,
-                  type = "III",
+                  type = anovatype,
                   test = "Pr(>F)",
                   test.statistic = anovatest,
                   model_formula = model_formula,
@@ -1149,12 +1204,18 @@ eval_design_mc = function(
                 {
                   fit = suppressWarnings(
                     suppressMessages(
-                      glm(
-                        model_formula,
-                        family = glmfamily,
-                        data = run_matrix_monte_carlo,
-                        contrasts = contrastslist,
-                        method = method
+                      do.call(
+                        stats::glm,
+                        c(
+                          list(
+                            formula = model_formula,
+                            family = glmfamily,
+                            data = run_matrix_monte_carlo,
+                            contrasts = contrastslist,
+                            method = method
+                          ),
+                          control_args
+                        )
                       )
                     )
                   )
@@ -1491,6 +1552,10 @@ eval_design_mc = function(
   attr(results, "alpha") = alpha
   attr(results, "blocking") = blocking
   attr(results, "varianceratios") = varianceratios
+  if (!is.null(control)) {
+    attr(results, "fit_control") = control
+    attr(results, "fit_control_string") = control_string
+  }
 
   if (advancedoptions$save_simulated_responses) {
     attr(results, "simulated_responses") = responses
@@ -1499,13 +1564,30 @@ eval_design_mc = function(
     class(results) = c("skpr_eval_output", class(results))
   }
   #Add recommended analysis method
-  contrast_string = deparse(substitute(contrasts))
+  contrast_string = deparse1(
+    substitute(contrasts),
+    collapse = " ",
+    width.cutoff = 500L
+  )
   attr(results, "contrast_string") = sprintf("`%s`", contrast_string)
+  control_argument_string = if (is.null(control)) {
+    ""
+  } else {
+    sprintf(", control = %s", control_string)
+  }
   if (calceffect) {
     if (effect_anova) {
-      effect_string = sprintf(r"{`car::Anova(fit, type = "III")`}")
+      anovatype_string = deparse1(
+        anovatype,
+        collapse = " ",
+        width.cutoff = 500L
+      )
+      effect_string = sprintf(
+        "`car::Anova(fit, type = %s)`",
+        anovatype_string
+      )
     } else {
-      effect_string = r"{`lmtest::lrtest(fit, fit_without_effect)`}"
+      effect_string = "`lmtest::lrtest(fit, fit_without_effect)`"
     }
   } else {
     effect_string = ""
@@ -1518,7 +1600,10 @@ eval_design_mc = function(
       attr(
         results,
         "parameter_analysis_method_string"
-      ) = "`lmerTest::lmer(...)`"
+      ) = sprintf(
+        "`lmerTest::lmer(...%s)`",
+        control_argument_string
+      )
       attr(results, "effect_analysis_method_string") = effect_string
     }
   } else if (glmfamilyname == "binomial") {
@@ -1527,18 +1612,27 @@ eval_design_mc = function(
         attr(
           results,
           "parameter_analysis_method_string"
-        ) = r"{glm(..., family = "binomial")`}"
+        ) = sprintf(
+          "`glm(..., family = \"binomial\"%s)`",
+          control_argument_string
+        )
         attr(results, "effect_analysis_method_string") = effect_string
       } else {
         attr(
           results,
           "parameter_analysis_method_string"
-        ) = r"{glm(..., family = "binomial", method = mbest::firthglm.fit)`}" #"
+        ) = sprintf(
+          paste0(
+            "`glm(..., family = \"binomial\", ",
+            "method = mbest::firthglm.fit%s)`"
+          ),
+          control_argument_string
+        )
         if (calceffect) {
           attr(
             results,
             "effect_analysis_method_string"
-          ) = r"{lmtest::lrtest(fit, fit_without_effect)`}"
+          ) = "`lmtest::lrtest(fit, fit_without_effect)`"
         } else {
           attr(results, "effect_analysis_method_string") = ""
         }
@@ -1547,7 +1641,10 @@ eval_design_mc = function(
       attr(
         results,
         "parameter_analysis_method_string"
-      ) = r"{`lme4::glmer(..., family = "binomial")`}"
+      ) = sprintf(
+        "`lme4::glmer(..., family = \"binomial\"%s)`",
+        control_argument_string
+      )
       if (calceffect) {
         attr(results, "effect_analysis_method_string") = effect_string
       } else {
@@ -1559,13 +1656,19 @@ eval_design_mc = function(
       attr(
         results,
         "parameter_analysis_method_string"
-      ) = r"{`glm(..., family = "poisson")`}"
+      ) = sprintf(
+        "`glm(..., family = \"poisson\"%s)`",
+        control_argument_string
+      )
       attr(results, "effect_analysis_method_string") = effect_string
     } else {
       attr(
         results,
         "parameter_analysis_method_string"
-      ) = r"{`lme4::glmer(..., family = "poisson")`}"
+      ) = sprintf(
+        "`lme4::glmer(..., family = \"poisson\"%s)`",
+        control_argument_string
+      )
       attr(results, "effect_analysis_method_string") = effect_string
     }
   } else if (glmfamilyname == "exponential") {
@@ -1573,13 +1676,25 @@ eval_design_mc = function(
       attr(
         results,
         "parameter_analysis_method_string"
-      ) = r"{`glm(..., family = Gamma(link = "log")); summary(fit, dispersion = 1)`}"
+      ) = sprintf(
+        paste0(
+          "`glm(..., family = Gamma(link = \"log\")%s); ",
+          "summary(fit, dispersion = 1)`"
+        ),
+        control_argument_string
+      )
       attr(results, "effect_analysis_method_string") = effect_string
     } else {
       attr(
         results,
         "parameter_analysis_method_string"
-      ) = r"{`lme4::glmer(..., family = Gamma(link = "log")); summary(fit, dispersion = 1)`}"
+      ) = sprintf(
+        paste0(
+          "`lme4::glmer(..., family = Gamma(link = \"log\")%s); ",
+          "summary(fit, dispersion = 1)`"
+        ),
+        control_argument_string
+      )
       attr(results, "effect_analysis_method_string") = effect_string
     }
   } else {

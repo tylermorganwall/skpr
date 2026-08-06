@@ -37,6 +37,8 @@
 #'@param advancedoptions Default `NULL`. Named list of advanced options. Pass `progressBarUpdater` to include function called in non-parallel simulations that can be used to update external progress bar.
 #'`advancedoptions$ci_error_conf` will set the confidence level for power intervals, which are printed when `detailedoutput = TRUE`.
 #'@param ... Any additional arguments to be passed into the \code{survreg} function during fitting.
+#' @param control Default `NULL`. A `survival::survreg.control()` object passed
+#' to `survival::survreg()` during fitting.
 #'@return A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are
 #'stored in the 'estimates' attribute. The 'modelmatrix' attribute contains the model matrix and the encoding used for
 #'categorical factors. If you manually specify anticipated coefficients, do so in the order of the model matrix.
@@ -132,8 +134,15 @@ eval_design_survival_mc = function(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  ...
+  ...,
+  control = NULL
 ) {
+  control_expression = substitute(control)
+  control_string = if (is.null(control)) {
+    NULL
+  } else {
+    deparse1(control_expression, collapse = " ", width.cutoff = 500L)
+  }
   if (missing(design)) {
     stop("skpr: No design detected in arguments.")
   }
@@ -151,6 +160,9 @@ eval_design_survival_mc = function(
     }
   }
   args = list(...)
+  if (!is.null(control)) {
+    args$control = control
+  }
   if ("RunMatrix" %in% names(args)) {
     stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
@@ -380,12 +392,11 @@ eval_design_survival_mc = function(
         fiterror = FALSE
         tryCatch(
           {
-            fit = survival::survreg(
-              model_formula,
-              data = run_matrix_processed,
-              dist = distribution,
-              ...
-            )
+            surv_args = args
+            surv_args$formula = model_formula
+            surv_args$data = run_matrix_processed
+            surv_args$dist = distribution
+            fit = do.call(survival::survreg, args = surv_args)
           },
           error = function(e) {
             fiterror <<- TRUE
@@ -498,7 +509,7 @@ eval_design_survival_mc = function(
             fiterror = FALSE
             tryCatch(
               {
-                fit = do.call("survreg", args = surv_args)
+                fit = do.call(survival::survreg, args = surv_args)
               },
               error = function(e) {
                 fiterror <<- TRUE
@@ -588,6 +599,36 @@ eval_design_survival_mc = function(
   if (!inherits(results, "skpr_eval_output")) {
     class(results) = c("skpr_eval_output", class(results))
   }
+  attr(results, "generating_model") = model
+  if (!is.null(control)) {
+    attr(results, "fit_control") = control
+    attr(results, "fit_control_string") = control_string
+  }
+  contrast_string = deparse1(
+    substitute(contrasts),
+    collapse = " ",
+    width.cutoff = 500L
+  )
+  attr(results, "contrast_string") = sprintf("`%s`", contrast_string)
+  control_argument_string = if (is.null(control)) {
+    ""
+  } else {
+    sprintf(", control = %s", control_string)
+  }
+  distribution_string = deparse1(
+    distribution,
+    collapse = " ",
+    width.cutoff = 500L
+  )
+  attr(
+    results,
+    "parameter_analysis_method_string"
+  ) = sprintf(
+    "`survival::survreg(..., dist = %s%s)`",
+    distribution_string,
+    control_argument_string
+  )
+  attr(results, "effect_analysis_method_string") = ""
   attr(results, "candidate_set") = candidate_set
   attr(results, "contrastslist") = contrastslist
 

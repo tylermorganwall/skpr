@@ -1,9 +1,0 @@
-"section","xvar","method","exponent","intercept","r_squared","n"
-"scaling_trials","trials","point_exchange",0.533924955848533,7.81626459791266,0.955505293535392,10
-"scaling_trials","trials","coordinate_exchange",0.353063159636326,6.27833652535134,0.911308778652453,10
-"scaling_candidate_rows","candidate_rows","point_exchange",0.674720807366764,4.43361967311897,0.985301381830673,6
-"scaling_candidate_rows","candidate_rows","coordinate_exchange",-0.278589377209892,10.5628624889222,0.910177878100222,6
-"scaling_constraints","feasible_rows","point_exchange",0.735294703473997,3.88826671102521,0.824711574950887,6
-"scaling_constraints","feasible_rows","coordinate_exchange",-0.484158136808749,12.7902766269654,0.546525826209124,6
-"scaling_model_complexity","complexity_cols","point_exchange",0.684096413383244,7.68677973128053,0.82973825321229,5
-"scaling_model_complexity","complexity_cols","coordinate_exchange",-0.10018420384642,6.91539180758161,0.119632221554513,5

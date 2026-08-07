@@ -40,7 +40,9 @@ parameterpower = function(
         )] = degrees[i]
       }
     }
-    degrees_long[is.na(degrees_long)] = dim(attr(RunMatrix, "model_matrix"))[1] -
+    degrees_long[is.na(degrees_long)] = dim(attr(RunMatrix, "model_matrix"))[
+      1
+    ] -
       dim(attr(RunMatrix, "model_matrix"))[2]
     degrees = degrees_long
   }

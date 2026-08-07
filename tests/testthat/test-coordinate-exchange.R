@@ -1,3 +1,22 @@
+expect_points_on_grid = function(points, factor_levels, tol = 1e-10) {
+  for (j in seq_len(ncol(points))) {
+    lev = as.numeric(factor_levels[[j]])
+    on_grid = vapply(
+      points[, j],
+      function(x) any(abs(x - lev) <= tol),
+      logical(1)
+    )
+    expect_true(all(on_grid), info = colnames(points)[j])
+  }
+}
+
+expect_logdet_matches = function(out, tol = 1e-7) {
+  expected = as.numeric(
+    determinant(crossprod(out$model_matrix), logarithm = TRUE)$modulus
+  )
+  expect_equal(out$logdet, expected, tolerance = tol)
+}
+
 test_that("coordinate exchange engine runs end-to-end with decode", {
   cand = expand.grid(
     x = c(-1, 0, 1),
@@ -8,7 +27,11 @@ test_that("coordinate exchange engine runs end-to-end with decode", {
   cand$z = factor(cand$z)
   cand_norm = normalize_design(cand)
 
-  prep = skpr_ce_prepare(cand_norm, ~x + z + x:z, contrasts_fun = contr.simplex)
+  prep = skpr_ce_prepare(
+    cand_norm,
+    ~ x + z + x:z,
+    contrasts_fun = contr.simplex
+  )
   factor_meta = prep$factor_meta
   factor_levels = prep$factor_levels
 
@@ -25,10 +48,6 @@ test_that("coordinate exchange engine runs end-to-end with decode", {
     factor_levels = unname(factor_levels),
     modelmatrix_fn = prep$modelmatrix_fn,
     coordinate_groups = as.list(seq_along(factor_levels)),
-    group_columns = skpr_ce_group_factor_columns(
-      prep$factor_columns,
-      as.list(seq_along(factor_levels))
-    ),
     tolerance = 1e-5,
     kexchange = n,
     augmentedrows = 0L
@@ -40,6 +59,16 @@ test_that("coordinate exchange engine runs end-to-end with decode", {
   expect_true(is.factor(decoded$z))
   expect_false(anyNA(decoded))
   expect_true(is.finite(out$criterion))
+  expect_points_on_grid(out$points, factor_levels)
+  expect_logdet_matches(out)
+  expect_identical(dim(out$level_codes), dim(out$points))
+  expect_true(all(diff(out$diagnostics$objective_history) >= -1e-10))
+  expect_lt(out$diagnostics$logdet_agreement, 1e-8)
+  expect_gte(out$diagnostics$proposals_pruned, 0)
+  expect_equal(
+    out$diagnostics$proposals_pruned,
+    out$diagnostics$partial_pruned
+  )
 })
 
 test_that("gen_design CE search is comparable to default D-optimal search", {
@@ -54,7 +83,7 @@ test_that("gen_design CE search is comparable to default D-optimal search", {
   set.seed(1)
   design_fedorov = gen_design(
     candidateset = cand,
-    model = ~x + z + x:z,
+    model = ~ x + z + x:z,
     trials = 6,
     repeats = 40,
     optimality = "D",
@@ -64,7 +93,7 @@ test_that("gen_design CE search is comparable to default D-optimal search", {
   set.seed(1)
   design_ce = gen_design(
     candidateset = cand,
-    model = ~x + z + x:z,
+    model = ~ x + z + x:z,
     trials = 6,
     repeats = 40,
     optimality = "D",
@@ -96,7 +125,7 @@ test_that("CE in gen_design enforces explicit constraints for sparse candidate s
   expect_error(
     gen_design(
       candidateset = cand_sparse,
-      model = ~x + a + b + a:b,
+      model = ~ x + a + b + a:b,
       trials = 6,
       repeats = 10,
       optimality = "D",
@@ -109,7 +138,7 @@ test_that("CE in gen_design enforces explicit constraints for sparse candidate s
   expect_no_error(
     gen_design(
       candidateset = cand_sparse,
-      model = ~x + a + b,
+      model = ~ x + a + b,
       trials = 6,
       repeats = 10,
       optimality = "D",
@@ -134,7 +163,7 @@ test_that("CE output retains standard gen_design attributes and guardrails", {
 
   design_ce = gen_design(
     candidateset = cand,
-    model = ~x + z + x:z,
+    model = ~ x + z + x:z,
     trials = 6,
     repeats = 10,
     optimality = "D",
@@ -146,11 +175,17 @@ test_that("CE output retains standard gen_design attributes and guardrails", {
   expect_true(!is.null(attr(design_ce, "model_matrix_cor")))
   expect_identical(attr(design_ce, "generating.criterion"), "D")
   expect_true(is.finite(get_optimality(design_ce, "D")[[1]]))
+  expect_equal(
+    attr(design_ce, "D"),
+    100 * DOptimalityLog(attr(design_ce, "model_matrix")),
+    tolerance = 1e-8
+  )
+  expect_no_error(eval_design(design_ce, detailedoutput = FALSE))
 
   expect_error(
     gen_design(
       candidateset = cand,
-      model = ~x + z + x:z,
+      model = ~ x + z + x:z,
       trials = 6,
       repeats = 5,
       optimality = "A",
@@ -163,7 +198,7 @@ test_that("CE output retains standard gen_design attributes and guardrails", {
   expect_error(
     gen_design(
       candidateset = cand,
-      model = ~x + z + x:z,
+      model = ~ x + z + x:z,
       trials = 6,
       blocksizes = 2,
       repeats = 5,
@@ -173,6 +208,47 @@ test_that("CE output retains standard gen_design attributes and guardrails", {
     ),
     "fully randomized, non-blocked designs"
   )
+
+  expect_ce_option_error = function(options, regexp, k = NA) {
+    expect_error(
+      gen_design(
+        candidateset = cand,
+        model = ~ x + z + x:z,
+        trials = 6,
+        repeats = 1,
+        k = k,
+        optimality = "D",
+        progress = FALSE,
+        advancedoptions = c(
+          list(search_method = "coordinate_exchange"),
+          options
+        )
+      ),
+      regexp
+    )
+  }
+
+  expect_ce_option_error(
+    list(ce_max_iter = -1L),
+    "advancedoptions\\$ce_max_iter"
+  )
+  expect_ce_option_error(
+    list(ce_recompute_every = -1L),
+    "advancedoptions\\$ce_recompute_every"
+  )
+  expect_ce_option_error(
+    list(ce_repair_stuck_limit = -1L),
+    "advancedoptions\\$ce_repair_stuck_limit"
+  )
+  expect_ce_option_error(
+    list(ce_repair_max_tries = -1L),
+    "advancedoptions\\$ce_repair_max_tries"
+  )
+  expect_ce_option_error(
+    list(coordinate_group_max_candidates = 0L),
+    "advancedoptions\\$coordinate_group_max_candidates"
+  )
+  expect_ce_option_error(list(), "`k`", k = 0L)
 })
 
 test_that("CE repairs singular near-saturated starts before inversion", {
@@ -182,7 +258,7 @@ test_that("CE repairs singular near-saturated starts before inversion", {
     z = c(-1, 1),
     KEEP.OUT.ATTRS = FALSE
   )
-  prep = skpr_ce_prepare(cand, ~x * y * z, contrasts_fun = contr.simplex)
+  prep = skpr_ce_prepare(cand, ~ x * y * z, contrasts_fun = contr.simplex)
 
   points0 = matrix(
     -1,
@@ -196,10 +272,6 @@ test_that("CE repairs singular near-saturated starts before inversion", {
     factor_levels = unname(prep$factor_levels),
     modelmatrix_fn = prep$modelmatrix_fn,
     coordinate_groups = as.list(seq_along(prep$factor_levels)),
-    group_columns = skpr_ce_group_factor_columns(
-      prep$factor_columns,
-      as.list(seq_along(prep$factor_levels))
-    ),
     tolerance = 1e-5,
     kexchange = 8L,
     augmentedrows = 0L
@@ -207,6 +279,10 @@ test_that("CE repairs singular near-saturated starts before inversion", {
 
   expect_true(is.finite(out$criterion))
   expect_equal(qr(out$model_matrix)$rank, ncol(out$model_matrix))
+  expect_match(out$diagnostics$initialization_mode, "pool")
+  expect_gt(out$diagnostics$reciprocal_condition, 0)
+  expect_points_on_grid(out$points, prep$factor_levels)
+  expect_logdet_matches(out)
 })
 
 test_that("CE repairs constrained singular and infeasible starts", {
@@ -217,7 +293,11 @@ test_that("CE repairs constrained singular and infeasible starts", {
     KEEP.OUT.ATTRS = FALSE
   )
   cand$z = factor(cand$z)
-  prep = skpr_ce_prepare(cand, ~x + y + z + x:z + y:z, contrasts_fun = contr.simplex)
+  prep = skpr_ce_prepare(
+    cand,
+    ~ x + y + z + x:z + y:z,
+    contrasts_fun = contr.simplex
+  )
   ir = compile_constraints(
     filter_expr = quote(x + y <= 0),
     factor_meta = prep$factor_meta,
@@ -240,10 +320,6 @@ test_that("CE repairs constrained singular and infeasible starts", {
       names(prep$factor_meta),
       ir
     )$coordinate_groups,
-    group_columns = skpr_ce_group_factor_columns(
-      prep$factor_columns,
-      skpr_ce_resolve_coordinate_groups(names(prep$factor_meta), ir)$coordinate_groups
-    ),
     constraints_ir = ir,
     tolerance = 1e-5,
     kexchange = 8L,
@@ -251,40 +327,11 @@ test_that("CE repairs constrained singular and infeasible starts", {
   )
 
   decoded = skpr_ce_decode_points(out$points, prep$factor_meta)
-  expect_false(isTRUE(out$any_infeasible_remaining))
   expect_true(all(decoded$x + decoded$y <= 1e-12))
   expect_true(is.finite(out$criterion))
   expect_equal(qr(out$model_matrix)$rank, ncol(out$model_matrix))
-})
-
-test_that("CE factor-column detection is deterministic and catches interactions", {
-  cand = expand.grid(
-    x = c(-1, 0, 1),
-    y = c(-1, 0, 1),
-    z = c(-1, 0, 1),
-    KEEP.OUT.ATTRS = FALSE
-  )
-  prep = skpr_ce_prepare(cand, ~x * y * z, contrasts_fun = contr.simplex)
-  mm = prep$modelmatrix_fn(matrix(c(-1, -1, -1), nrow = 1))
-  mm_cols = colnames(mm)
-  term_has = function(term) {
-    vapply(
-      strsplit(mm_cols, ":", fixed = TRUE),
-      function(parts) term %in% parts,
-      logical(1)
-    )
-  }
-
-  for (nm in c("x", "y", "z")) {
-    expected = which(term_has(nm))
-    observed = prep$factor_columns[[nm]]
-    expect_true(all(expected %in% observed), info = nm)
-  }
-
-  three_way = match("x:y:z", mm_cols)
-  expect_true(three_way %in% prep$factor_columns$x)
-  expect_true(three_way %in% prep$factor_columns$y)
-  expect_true(three_way %in% prep$factor_columns$z)
+  expect_points_on_grid(out$points, prep$factor_levels)
+  expect_logdet_matches(out)
 })
 
 test_that("CE setup does not reset or consume global RNG state", {
@@ -297,8 +344,94 @@ test_that("CE setup does not reset or consume global RNG state", {
 
   set.seed(42)
   before = .Random.seed
-  invisible(skpr_ce_prepare(cand, ~x * y * z, contrasts_fun = contr.simplex))
+  invisible(skpr_ce_prepare(cand, ~ x * y * z, contrasts_fun = contr.simplex))
   expect_identical(.Random.seed, before)
+})
+
+test_that("CE never freezes a masked formula dependency", {
+  factor_levels = rep(list(0:4), 8)
+  names(factor_levels) = paste0("x", seq_len(8))
+  factor_meta = lapply(factor_levels, function(x) list(kind = "numeric"))
+  modelmatrix_fn = skpr_ce_make_modelmatrix_fn(
+    ~ I(x1 * (x2 == 0) * (x3 == 0) * (x4 == 0)),
+    factor_meta
+  )
+  points = matrix(0, nrow = 2, ncol = 8)
+  points[2, 1] = 1
+
+  out = genOptimalDesignCoordinateExchangeConstrained(
+    points = points,
+    factor_levels = unname(factor_levels),
+    modelmatrix_fn = modelmatrix_fn,
+    coordinate_groups = as.list(seq_len(8)),
+    max_iter = 3L,
+    kexchange = 2L
+  )
+
+  expect_equal(sort(out$points[, 1]), c(0, 4))
+  expect_true(all(diff(out$diagnostics$objective_history) >= -1e-10))
+})
+
+test_that("CE bounds oversized connected groups and reports approximation", {
+  cand = expand.grid(rep(list(seq(-1, 1, length.out = 5)), 6))
+  names(cand) = paste0("x", seq_len(6))
+  prep = skpr_ce_prepare(cand, ~ x1 + x2)
+  ir = compile_constraints(
+    quote(
+      x1 + x2 <= 2 & x2 + x3 <= 2 & x3 + x4 <= 2 & x4 + x5 <= 2 & x5 + x6 <= 2
+    ),
+    factor_meta = prep$factor_meta,
+    factor_levels = prep$factor_levels
+  )
+  points = as.matrix(cand[c(1, 5, nrow(cand), nrow(cand) - 4), ])
+
+  set.seed(12)
+  out = genOptimalDesignCoordinateExchangeConstrained(
+    points = points,
+    factor_levels = unname(prep$factor_levels),
+    modelmatrix_fn = prep$modelmatrix_fn,
+    coordinate_groups = list(seq_len(6)),
+    constraints_ir = ir,
+    max_iter = 1L,
+    kexchange = 4L,
+    coordinate_group_max_candidates = 20L
+  )
+
+  expect_gt(out$diagnostics$capped_groups, 0L)
+  expect_equal(out$diagnostics$group_raw_products, 5^6)
+  expect_true(is.finite(out$criterion))
+})
+
+test_that("CE convergence is invariant to nonsingular column scaling", {
+  cand = expand.grid(x = c(-1, 0, 1), y = c(-1, 0, 1))
+  prep = skpr_ce_prepare(cand, ~ x + y)
+  points = as.matrix(cand[c(1, 2, 5, 9), ])
+  scaled_fn = function(x) {
+    mm = prep$modelmatrix_fn(x)
+    sweep(mm, 2, c(10, 0.1, 4), `*`)
+  }
+
+  set.seed(41)
+  base = genOptimalDesignCoordinateExchangeConstrained(
+    points,
+    unname(prep$factor_levels),
+    prep$modelmatrix_fn,
+    as.list(1:2),
+    tolerance = 1e-8,
+    kexchange = 4L
+  )
+  set.seed(41)
+  scaled = genOptimalDesignCoordinateExchangeConstrained(
+    points,
+    unname(prep$factor_levels),
+    scaled_fn,
+    as.list(1:2),
+    tolerance = 1e-8,
+    kexchange = 4L
+  )
+
+  expect_identical(base$level_codes, scaled$level_codes)
+  expect_equal(base$diagnostics$iterations, scaled$diagnostics$iterations)
 })
 
 test_that("CE derives coordinate groups from compiled constraint IR", {
@@ -326,7 +459,10 @@ test_that("CE derives coordinate groups from compiled constraint IR", {
     factor_meta = space$factor_meta,
     factor_levels = space$factor_levels
   )
-  dnf_groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir_dnf)
+  dnf_groups = skpr_ce_resolve_coordinate_groups(
+    names(space$factor_meta),
+    ir_dnf
+  )
   expect_equal(dnf_groups$coordinate_group_names, list(c("x", "y"), "z"))
 
   ir_conj = compile_constraints(
@@ -334,15 +470,24 @@ test_that("CE derives coordinate groups from compiled constraint IR", {
     factor_meta = space$factor_meta,
     factor_levels = space$factor_levels
   )
-  conj_groups = skpr_ce_resolve_coordinate_groups(names(space$factor_meta), ir_conj)
-  expect_equal(conj_groups$coordinate_group_names, as.list(names(space$factor_meta)))
+  conj_groups = skpr_ce_resolve_coordinate_groups(
+    names(space$factor_meta),
+    ir_conj
+  )
+  expect_equal(
+    conj_groups$coordinate_group_names,
+    as.list(names(space$factor_meta))
+  )
 })
 
 test_that("CE coordinate group validation handles manual groups", {
   factor_names = c("x", "y", "z", "w")
 
   expect_error(
-    skpr_ce_validate_manual_coordinate_groups(list(c("x", "missing")), factor_names),
+    skpr_ce_validate_manual_coordinate_groups(
+      list(c("x", "missing")),
+      factor_names
+    ),
     "unknown"
   )
   expect_error(
@@ -350,7 +495,10 @@ test_that("CE coordinate group validation handles manual groups", {
     "within"
   )
   expect_error(
-    skpr_ce_validate_manual_coordinate_groups(list("x", c("x", "y")), factor_names),
+    skpr_ce_validate_manual_coordinate_groups(
+      list("x", c("x", "y")),
+      factor_names
+    ),
     "multiple"
   )
   expect_error(
@@ -359,7 +507,10 @@ test_that("CE coordinate group validation handles manual groups", {
   )
 
   expect_equal(
-    skpr_ce_validate_manual_coordinate_groups(list(c("y", "x"), "w"), factor_names),
+    skpr_ce_validate_manual_coordinate_groups(
+      list(c("y", "x"), "w"),
+      factor_names
+    ),
     list(c("y", "x"), "w", "z")
   )
 })
@@ -386,24 +537,6 @@ test_that("CE derives coordinate groups from forbidden tuple tables", {
   expect_equal(groups$coordinate_group_names, list(c("a", "b"), "c"))
 })
 
-test_that("CE grouped factor columns include interaction columns", {
-  cand = expand.grid(
-    x = c(-1, 0, 1),
-    y = c(-1, 0, 1),
-    z = c(-1, 1),
-    KEEP.OUT.ATTRS = FALSE
-  )
-  prep = skpr_ce_prepare(cand, ~x * y + z, contrasts_fun = contr.simplex)
-  groups = list(c(1L, 2L), 3L)
-  group_columns = skpr_ce_group_factor_columns(prep$factor_columns, groups)
-  mm_cols = colnames(prep$modelmatrix_fn(matrix(c(-1, -1, -1), nrow = 1)))
-
-  expect_true(match("x", mm_cols) %in% group_columns[[1]])
-  expect_true(match("y", mm_cols) %in% group_columns[[1]])
-  expect_true(match("x:y", mm_cols) %in% group_columns[[1]])
-  expect_false(match("z", mm_cols) %in% group_columns[[1]])
-})
-
 test_that("CE user-level random starts are not forced through an internal seed", {
   cand = expand.grid(
     x = seq(10, 30, by = 5),
@@ -414,7 +547,7 @@ test_that("CE user-level random starts are not forced through an internal seed",
   set.seed(100)
   design_100 = gen_design(
     candidateset = cand,
-    model = ~x + y,
+    model = ~ x + y,
     trials = 10,
     repeats = 1,
     optimality = "D",
@@ -428,7 +561,7 @@ test_that("CE user-level random starts are not forced through an internal seed",
   set.seed(200)
   design_200 = gen_design(
     candidateset = cand,
-    model = ~x + y,
+    model = ~ x + y,
     trials = 10,
     repeats = 1,
     optimality = "D",
@@ -453,7 +586,7 @@ test_that("CE grouped constraints allow joint moves through coupled spaces", {
   set.seed(12)
   design = suppressWarnings(gen_design(
     candidateset = cand,
-    model = ~x + z + x:y,
+    model = ~ x + z + x:y,
     trials = 8,
     repeats = 3,
     optimality = "D",
@@ -465,8 +598,13 @@ test_that("CE grouped constraints allow joint moves through coupled spaces", {
   ))
 
   expect_true(all(abs(design$x + design$y) <= 1e-8))
-  expect_true(any((design$x == 1 & design$y == -1) | (design$x == -1 & design$y == 1)))
-  expect_equal(qr(attr(design, "model_matrix"))$rank, ncol(attr(design, "model_matrix")))
+  expect_true(any(
+    (design$x == 1 & design$y == -1) | (design$x == -1 & design$y == 1)
+  ))
+  expect_equal(
+    qr(attr(design, "model_matrix"))$rank,
+    ncol(attr(design, "model_matrix"))
+  )
   expect_true(is.finite(attr(design, "D")))
 })
 
@@ -488,7 +626,7 @@ test_that("CE factor_levels_original uses original units for constraints and out
   set.seed(11)
   design = gen_design(
     candidateset = cand,
-    model = ~temp + pressure + temp:pressure,
+    model = ~ temp + pressure + temp:pressure,
     trials = 6,
     repeats = 10,
     optimality = "D",
@@ -509,12 +647,14 @@ test_that("CE factor_levels_original uses original units for constraints and out
   expect_true(all(design$pressure %in% c(1, 3, 5)))
   expect_true(all(design$temp + 10 * design$pressure <= 100 + 1e-8))
   expect_true(max(design$temp) > 1)
-  expect_equal(qr(attr(design, "model_matrix"))$rank, ncol(attr(design, "model_matrix")))
-
+  expect_equal(
+    qr(attr(design, "model_matrix"))$rank,
+    ncol(attr(design, "model_matrix"))
+  )
   expect_error(
     gen_design(
       candidateset = cand,
-      model = ~temp + pressure,
+      model = ~ temp + pressure,
       trials = 4,
       repeats = 1,
       optimality = "D",
@@ -526,6 +666,157 @@ test_that("CE factor_levels_original uses original units for constraints and out
       )
     ),
     "Supply only one"
+  )
+})
+
+test_that("CE handles mixed forbidden tuple and linear constraints through gen_design", {
+  cand = expand.grid(
+    x = c(-1, 0, 1),
+    y = c(-1, 0, 1),
+    material = factor(c("A", "B")),
+    setting = factor(c("low", "high")),
+    KEEP.OUT.ATTRS = FALSE
+  )
+
+  forbidden = data.frame(
+    material = "B",
+    setting = "high",
+    stringsAsFactors = FALSE
+  )
+
+  set.seed(18)
+  design = gen_design(
+    candidateset = subset(
+      cand,
+      x + y <= 0 & !(material == "B" & setting == "high")
+    ),
+    model = ~ x + y + material + setting + x:material,
+    trials = 10,
+    repeats = 12,
+    optimality = "D",
+    progress = FALSE,
+    advancedoptions = list(
+      search_method = "coordinate_exchange",
+      constraints = list(
+        filter_expr = quote(x + y <= 0),
+        forbidden_tuples = forbidden
+      )
+    )
+  )
+
+  expect_true(all(design$x + design$y <= 1e-8))
+  expect_false(any(design$material == "B" & design$setting == "high"))
+  expect_equal(
+    qr(attr(design, "model_matrix"))$rank,
+    ncol(attr(design, "model_matrix"))
+  )
+  expect_equal(
+    attr(design, "D"),
+    100 * DOptimalityLog(attr(design, "model_matrix")),
+    tolerance = 1e-8
+  )
+})
+
+test_that("CE factor_levels_original supports non-equally-spaced original levels", {
+  cand = expand.grid(
+    dose = c(5, 20, 55, 100),
+    time = c(1, 4, 10),
+    KEEP.OUT.ATTRS = FALSE
+  )
+
+  set.seed(21)
+  design = gen_design(
+    candidateset = cand,
+    model = ~ dose + time + dose:time,
+    trials = 7,
+    repeats = 8,
+    optimality = "D",
+    progress = FALSE,
+    advancedoptions = list(
+      search_method = "coordinate_exchange",
+      factor_levels_original = list(
+        dose = c(5, 20, 55, 100),
+        time = c(1, 4, 10)
+      ),
+      constraints = list(
+        filter_expr = quote(dose + 8 * time <= 120)
+      )
+    )
+  )
+
+  expect_true(all(design$dose %in% c(5, 20, 55, 100)))
+  expect_true(all(design$time %in% c(1, 4, 10)))
+  expect_true(all(design$dose + 8 * design$time <= 120 + 1e-8))
+  expect_equal(
+    qr(attr(design, "model_matrix"))$rank,
+    ncol(attr(design, "model_matrix"))
+  )
+})
+
+test_that("CE discrete overrides add, remove, and reorder levels exactly", {
+  candidate_two = data.frame(A = factor(c("a", "b")))
+  set.seed(23)
+  added = gen_design(
+    candidate_two,
+    ~A,
+    trials = 3,
+    repeats = 2,
+    progress = FALSE,
+    advancedoptions = list(
+      search_method = "coordinate_exchange",
+      factor_levels_original = list(A = c("c", "a", "b"))
+    )
+  )
+  expect_false(anyNA(added$A))
+  expect_setequal(as.character(added$A), c("a", "b", "c"))
+
+  candidate_three = data.frame(A = factor(c("a", "b", "c")))
+  set.seed(24)
+  removed = gen_design(
+    candidate_three,
+    ~A,
+    trials = 2,
+    repeats = 2,
+    progress = FALSE,
+    advancedoptions = list(
+      search_method = "coordinate_exchange",
+      factor_levels = list(A = c("b", "a"))
+    )
+  )
+  expect_false(anyNA(removed$A))
+  expect_setequal(as.character(removed$A), c("a", "b"))
+
+  expect_error(
+    gen_design(
+      candidate_two,
+      ~A,
+      trials = 2,
+      repeats = 1,
+      progress = FALSE,
+      advancedoptions = list(
+        search_method = "coordinate_exchange",
+        factor_levels = list(unknown = c("a", "b"))
+      )
+    ),
+    "unknown factor"
+  )
+  duplicate_names = structure(
+    list(c("a", "b"), c("a", "b")),
+    names = c("A", "A")
+  )
+  expect_error(
+    gen_design(
+      candidate_two,
+      ~A,
+      trials = 2,
+      repeats = 1,
+      progress = FALSE,
+      advancedoptions = list(
+        search_method = "coordinate_exchange",
+        factor_levels = duplicate_names
+      )
+    ),
+    "must be a named list"
   )
 })
 
@@ -543,7 +834,7 @@ test_that("CE parallel repeats preserve partial and all-failure diagnostics", {
   design = expect_warning(
     gen_design(
       candidateset = cand,
-      model = ~x + y,
+      model = ~ x + y,
       trials = 5,
       repeats = 3,
       optimality = "D",
@@ -557,12 +848,31 @@ test_that("CE parallel repeats preserve partial and all-failure diagnostics", {
     "failed in 1 of 3 repeats"
   )
   expect_true(is.finite(attr(design, "D")))
-  expect_equal(qr(attr(design, "model_matrix"))$rank, ncol(attr(design, "model_matrix")))
+  expect_equal(
+    qr(attr(design, "model_matrix"))$rank,
+    ncol(attr(design, "model_matrix"))
+  )
+  diagnostics = attr(design, "coordinate_exchange_diagnostics")
+  expect_length(diagnostics$repeats, 3L)
+  statuses = vapply(
+    diagnostics$repeats,
+    function(outcome) outcome$status,
+    character(1L)
+  )
+  expect_equal(sum(statuses == "error"), 1L)
+  expect_equal(sum(statuses == "ok"), 2L)
+  expect_length(diagnostics$successful_repeats, 2L)
+  expect_equal(diagnostics$selected$status, "ok")
+  failure = diagnostics$repeats[[which(statuses == "error")]]
+  expect_match(
+    failure$error_message,
+    "injected coordinate-exchange repeat failure"
+  )
 
   expect_error(
     gen_design(
       candidateset = cand,
-      model = ~x + y,
+      model = ~ x + y,
       trials = 5,
       repeats = 2,
       optimality = "D",
@@ -586,8 +896,7 @@ test_that("CE k-row selection chooses monotone lowest-leverage sets", {
 
   expected_rows = function(k) {
     ord = order(leverage, seq_along(leverage))
-    cutoff = leverage[ord[k]]
-    which(leverage <= cutoff + 1e-12)
+    ord[seq_len(k)]
   }
 
   rows_k1 = skpr_ce_select_rows_by_leverage(X, V, kexchange = 1L)
@@ -639,7 +948,7 @@ test_that("CE augmented rows are fixed and k uses mutable rows", {
     set.seed(20 + k)
     design = suppressWarnings(gen_design(
       candidateset = cand,
-      model = ~x + z + x:y,
+      model = ~ x + z + x:y,
       trials = 8,
       repeats = 2,
       augmentdesign = augment,
@@ -652,15 +961,58 @@ test_that("CE augmented rows are fixed and k uses mutable rows", {
       )
     ))
 
-    expect_equal(as.data.frame(design[seq_len(nrow(augment)), c("x", "y", "z")]), augment)
+    expect_equal(
+      as.data.frame(design[seq_len(nrow(augment)), c("x", "y", "z")]),
+      augment
+    )
     expect_true(all(abs(design$x + design$y) <= 1e-8))
     expect_true(is.finite(attr(design, "D")))
   }
 
+  ordered_design = suppressWarnings(gen_design(
+    candidateset = cand,
+    model = ~ x + z + x:y,
+    trials = 8,
+    repeats = 2,
+    augmentdesign = augment,
+    optimality = "D",
+    k = 2,
+    randomized = FALSE,
+    progress = FALSE,
+    advancedoptions = list(
+      search_method = "coordinate_exchange",
+      constraints = list(filter_expr = quote(x + y == 0))
+    )
+  ))
+  expect_equal(
+    as.data.frame(ordered_design[seq_len(nrow(augment)), c("x", "y", "z")]),
+    augment
+  )
+  expect_equal(nrow(attr(ordered_design, "model_matrix")), nrow(ordered_design))
+
+  bad_augment = augment
+  bad_augment$y[[1]] = -1
   expect_error(
     suppressWarnings(gen_design(
       candidateset = cand,
-      model = ~x + z + x:y,
+      model = ~ x + z + x:y,
+      trials = 8,
+      repeats = 1,
+      augmentdesign = bad_augment,
+      optimality = "D",
+      progress = FALSE,
+      advancedoptions = list(
+        search_method = "coordinate_exchange",
+        constraints = list(filter_expr = quote(x + y == 0))
+      )
+    )),
+    "augmented row violates"
+  )
+
+  expect_error(
+    suppressWarnings(gen_design(
+      candidateset = cand,
+      model = ~ x + z + x:y,
       trials = 8,
       repeats = 1,
       augmentdesign = augment,
@@ -672,6 +1024,6 @@ test_that("CE augmented rows are fixed and k uses mutable rows", {
         constraints = list(filter_expr = quote(x + y == 0))
       )
     )),
-    "kexchange must be at least 1"
+    "`k` must be a single integer"
   )
 })

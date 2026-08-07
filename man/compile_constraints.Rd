@@ -21,11 +21,12 @@ compile_constraints(
 
 \item{factor_levels}{Default \code{NULL}. Allowed values per factor.}
 
-\item{tol}{Default \code{1e-10}. Numeric snapping tolerance.}
+\item{tol}{Default \code{1e-10}. Numeric snapping tolerance and scaled runtime tolerance for linear comparisons.}
 }
 \value{
-IR list suitable for ConstraintSet.
+Validated constraint IR version 1 suitable for \code{ConstraintSet}.
 }
 \description{
 Compile constraints (filter expression + forbidden tuples)
 }
+\keyword{internal}

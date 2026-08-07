@@ -1,0 +1,72 @@
+---
+title: "Coordinate exchange compared with point exchange"
+format:
+  html:
+    embed-resources: true
+vignette: >
+  %\VignetteIndexEntry{Coordinate exchange compared with point exchange}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+execute:
+  echo: false
+  warning: false
+---
+
+This benchmark compares the public `gen_design()` workflows and the underlying
+search kernels separately. Public timings include setup and method-native random
+starts. Kernel timings exclude shared setup and give both methods the same
+feasible initial designs.
+
+```{r}
+result_dir = file.path("inst", "benchmarks", "results")
+if (!dir.exists(result_dir)) result_dir = file.path("..", "inst", "benchmarks", "results")
+summary_path = file.path(result_dir, "ce_point_smoke_summary.csv")
+paired_path = file.path(result_dir, "ce_point_smoke_paired.csv")
+if (!file.exists(summary_path) || !file.exists(paired_path)) {
+  stop(
+    "Run inst/benchmarks/run_coordinate_exchange_benchmarks.R ",
+    "with --profile=smoke before rendering this report."
+  )
+}
+summary = read.csv(summary_path, stringsAsFactors = FALSE)
+paired = read.csv(paired_path, stringsAsFactors = FALSE)
+```
+
+## Quality and correctness
+
+Every successful coordinate-exchange result must be feasible, finite, and full
+rank. The automated gate requires every paired D-efficiency ratio to be at least
+`0.95` and the overall median to be at least `0.99`.
+
+```{r}
+knitr::kable(
+  summary[, c(
+    "track", "scenario", "successful_pairs", "failure_rate",
+    "d_ratio_median", "d_ratio_low", "d_ratio_high"
+  )],
+  digits = 4,
+  caption = "Coordinate/point D-efficiency ratios"
+)
+```
+
+## Runtime
+
+Runtime is reported as point exchange divided by coordinate exchange. Values
+above one favor coordinate exchange. Intervals are seeded percentile-bootstrap
+intervals over paired runs, not model-based confidence claims.
+
+```{r}
+knitr::kable(
+  summary[, c(
+    "track", "scenario", "runtime_ratio_median", "runtime_ratio_iqr",
+    "runtime_ratio_low", "runtime_ratio_high"
+  )],
+  digits = 3,
+  caption = "Paired point/coordinate runtime ratios"
+)
+```
+
+The scenario matrix includes mixed factors, interactions, coupled constraints,
+forbidden tuples, disconnected and sparse spaces, oversized groups, masked
+formula dependencies, near-saturated models, and ill-conditioned models. See
+`inst/benchmarks/README.md` for implementation diagrams and exact commands.

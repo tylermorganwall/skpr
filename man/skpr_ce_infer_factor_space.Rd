@@ -22,3 +22,4 @@ Discrete levels are taken from factor levels (preferred) or sorted unique charac
 For coordinate exchange, discrete factors are encoded as 0..L-1 codes. The returned
 factor_levels list uses those codes for discrete factors.
 }
+\keyword{internal}

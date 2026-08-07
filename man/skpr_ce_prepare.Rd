@@ -4,12 +4,7 @@
 \alias{skpr_ce_prepare}
 \title{High-level preparation for constrained coordinate exchange}
 \usage{
-skpr_ce_prepare(
-  candidateset,
-  model,
-  contrasts_fun = contr.simplex,
-  tol_col = 1e-12
-)
+skpr_ce_prepare(candidateset, model, contrasts_fun = contr.simplex)
 }
 \arguments{
 \item{candidateset}{Default \code{NULL}. data.frame candidate set (skpr style).}
@@ -17,13 +12,12 @@ skpr_ce_prepare(
 \item{model}{Default \code{NULL}. Model formula.}
 
 \item{contrasts_fun}{Default \code{contr.simplex}. Contrast generator function.}
-
-\item{tol_col}{Default \code{1e-12}. Column range threshold.}
 }
 \value{
-List with factor_meta, factor_levels, modelmatrix_fn, factor_columns.
+List with factor_meta, factor_levels, and modelmatrix_fn.
 }
 \description{
-Returns modelmatrix_fn and factor_columns ready to pass into
+Returns factor metadata, levels, and modelmatrix_fn ready to pass into
 genOptimalDesignCoordinateExchangeConstrained().
 }
+\keyword{internal}

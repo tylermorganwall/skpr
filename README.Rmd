@@ -104,6 +104,50 @@ eval_design_mc(design, nsim=5000, glmfamily = "poisson", effectsize=c(2,6))
 
 expand.grid(temp = c(80,90,100), type = c("Kona","Java"), beansize = c("Large","Medium","Small")) |>
   gen_design(model = ~temp + type + beansize + beansize:type + I(temp^2), trials=24, optimality="I") |>
-  eval_design_mc(detailedoutput = TRUE)
+eval_design_mc(detailedoutput = TRUE)
 
 ```
+
+## Coordinate exchange for large constrained grids
+
+For large candidate grids, point exchange can be slow or memory-heavy because it
+scores full candidate rows. Experimental coordinate exchange searches by factor
+coordinate instead. When the design region is constrained, pass the explicit
+constraint expression; removing rows from the candidate set alone is not enough
+for coordinate exchange to infer the valid region.
+
+```{r coordinate-exchange-example, eval = FALSE}
+large_grid = expand.grid(
+  temp = seq(25, 100, length.out = 76),
+  pressure = seq(1, 10, length.out = 91),
+  catalyst = factor(c("A", "B", "C"))
+)
+
+feasible_grid = subset(large_grid, temp + 8 * pressure <= 150)
+
+ce_design = gen_design(
+  candidateset = feasible_grid,
+  model = ~temp + pressure + catalyst + temp:pressure,
+  trials = 48,
+  optimality = "D",
+  repeats = 20,
+  advancedoptions = list(
+    search_method = "coordinate_exchange",
+    constraints = list(
+      filter_expr = quote(temp + 8 * pressure <= 150)
+    )
+  )
+)
+
+get_optimality(ce_design, "D")
+```
+
+Direct factor constraints are compiled to exact level-code predicates, while
+linear constraints use the original numeric level table and a documented
+tolerance band. Large coupled coordinate groups are searched with a bounded,
+seeded proposal traversal instead of aborting. Search details are available in
+`attr(ce_design, "coordinate_exchange_diagnostics")`.
+
+The paired public and matched-start kernel benchmark can be regenerated with
+`inst/benchmarks/run_coordinate_exchange_benchmarks.R`; implementation diagrams
+and the benchmark schema are documented in `inst/benchmarks/README.md`.

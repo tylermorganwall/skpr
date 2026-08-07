@@ -21,3 +21,4 @@ List with idx (0-based) and codes matrix (n x m) of level positions.
 \description{
 Compile a forbidden tuples table
 }
+\keyword{internal}

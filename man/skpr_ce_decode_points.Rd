@@ -4,12 +4,21 @@
 \alias{skpr_ce_decode_points}
 \title{Decode coordinate-exchange points into a design data.frame}
 \usage{
-skpr_ce_decode_points(points_mat, factor_meta)
+skpr_ce_decode_points(
+  points_mat,
+  factor_meta,
+  level_codes = NULL,
+  factor_levels_original = NULL
+)
 }
 \arguments{
 \item{points_mat}{Default \code{NULL}. Numeric matrix (n x q) of encoded points.}
 
 \item{factor_meta}{Default \code{NULL}. Named metadata list as used by encode.}
+
+\item{level_codes}{Default \code{NULL}. Optional integer matrix of exact level codes.}
+
+\item{factor_levels_original}{Default \code{NULL}. Optional original-unit level table.}
 }
 \value{
 A data.frame with factor/numeric columns restored.
@@ -19,3 +28,4 @@ Inverse of skpr_ce_encode_points(). Discrete factors are converted from
 0-based codes back to factors with the original levels from factor_meta.
 Numeric factors are returned as numeric.
 }
+\keyword{internal}

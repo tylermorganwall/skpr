@@ -29,12 +29,17 @@ expect_valid_ce_design = function(design, candidateset, constraints, info) {
   for (nm in names(candidateset)) {
     if (is.factor(candidateset[[nm]]) || is.character(candidateset[[nm]])) {
       expect_true(
-        all(as.character(design[[nm]]) %in% as.character(unique(candidateset[[nm]]))),
+        all(
+          as.character(design[[nm]]) %in%
+            as.character(unique(candidateset[[nm]]))
+        ),
         info = paste(info, nm)
       )
     } else {
       expect_true(
-        all(as.numeric(design[[nm]]) %in% as.numeric(unique(candidateset[[nm]]))),
+        all(
+          as.numeric(design[[nm]]) %in% as.numeric(unique(candidateset[[nm]]))
+        ),
         info = paste(info, nm)
       )
     }
@@ -92,7 +97,8 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
   # Full-factorial subset derived from the requested grid.
   base = droplevels(subset(
     requested,
-    x1 %in% c(-1, 1) &
+    x1 %in%
+      c(-1, 1) &
       x2 %in% c(-1, 1) &
       x3 %in% c("a", "b") &
       x4 %in% c("a", "b")
@@ -101,7 +107,8 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
   # Larger derived subset used for constrained/sparse scenarios.
   coarse = droplevels(subset(
     requested,
-    x1 %in% c(-1, 0, 1) &
+    x1 %in%
+      c(-1, 0, 1) &
       x2 %in% c(-1, 0, 1) &
       x3 %in% c("a", "b") &
       x4 %in% c("a", "b")
@@ -111,7 +118,7 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
     list(
       name = "baseline-main-effects",
       candidates = base,
-      model = ~x1 + x2 + x3 + x4,
+      model = ~ x1 + x2 + x3 + x4,
       trials = 16L,
       repeats = 40L,
       ce_constraints = NULL
@@ -119,7 +126,7 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
     list(
       name = "baseline-interactions",
       candidates = base,
-      model = ~x1 * x2 + x3 * x4,
+      model = ~ x1 * x2 + x3 * x4,
       trials = 16L,
       repeats = 40L,
       ce_constraints = NULL
@@ -127,7 +134,7 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
     list(
       name = "linear-constraint",
       candidates = droplevels(subset(coarse, x1 + x2 <= 0 + 1e-12)),
-      model = ~x1 + x2 + x3 + x4,
+      model = ~ x1 + x2 + x3 + x4,
       trials = 24L,
       repeats = 60L,
       ce_constraints = list(filter_expr = quote(x1 + x2 <= 0))
@@ -135,7 +142,7 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
     list(
       name = "disallowed-combination",
       candidates = droplevels(subset(coarse, !(x3 == "a" & x4 == "b"))),
-      model = ~x1 + x2 + x3 + x4,
+      model = ~ x1 + x2 + x3 + x4,
       trials = 12L,
       repeats = 120L,
       ce_constraints = list(filter_expr = quote(!(x3 == "a" & x4 == "b")))
@@ -146,7 +153,7 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
         coarse,
         x1 + x2 <= 0 + 1e-12 & !(x3 == "a" & x4 == "b")
       )),
-      model = ~x1 * x2 + x3 + x4,
+      model = ~ x1 * x2 + x3 + x4,
       trials = 12L,
       repeats = 120L,
       ce_constraints = list(
@@ -155,7 +162,9 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
     )
   )
 
-  for (spec in scenario_specs) {
+  quality_ratios = numeric(length(scenario_specs))
+  for (scenario_index in seq_along(scenario_specs)) {
+    spec = scenario_specs[[scenario_index]]
     out = run_point_vs_ce(
       candidateset = spec$candidates,
       model = spec$model,
@@ -171,9 +180,9 @@ test_that("CE returns valid, competitive designs on requested-grid scenarios", {
       spec$ce_constraints,
       spec$name
     )
-    expect_true(
-      attr(out$ce, "D") >= attr(out$point, "D") - 10,
-      info = spec$name
-    )
+    quality_ratio = attr(out$ce, "D") / attr(out$point, "D")
+    quality_ratios[[scenario_index]] = quality_ratio
+    expect_true(quality_ratio >= 0.95, info = spec$name)
   }
+  expect_gte(median(quality_ratios), 0.99)
 })

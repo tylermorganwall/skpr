@@ -12,7 +12,7 @@ test_that("eval_design example code runs without errors", {
 
   #'#this can also be generated with expand.grid as:
   #'
-  factorialdes <- expand.grid(A = c(1, -1), B = c(1, -1), C = c(1, -1))
+  factorialdes = expand.grid(A = c(1, -1), B = c(1, -1), C = c(1, -1))
   expect_silent({
     optdesign = gen_design(
       candidateset = factorialdes,

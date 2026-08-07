@@ -18,3 +18,4 @@ Numeric matrix (n x q) suitable for coordinate exchange.
 Discrete factors become 0-based integer codes in code order defined by factor_meta$levels.
 Numeric factors remain numeric.
 }
+\keyword{internal}

@@ -927,8 +927,13 @@ skprGUI = function(
   }
 
   server = function(input, output, session) {
-    inc_progress_session = function(amount = 0.1, message = NULL, detail = NULL)
+    inc_progress_session = function(
+      amount = 0.1,
+      message = NULL,
+      detail = NULL
+    ) {
       incProgress(amount, message, detail, session)
+    }
 
     session_id = session$token
     progress_file_name = tempfile(pattern = sprintf("progress_%s_", session_id))

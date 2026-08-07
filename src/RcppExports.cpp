@@ -12,31 +12,15 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // skpr_constraints_allowed
-Rcpp::LogicalVector skpr_constraints_allowed(Eigen::MatrixXd points, Rcpp::IntegerMatrix level_pos, Rcpp::List constraints_ir);
+LogicalVector skpr_constraints_allowed(const Eigen::MatrixXd& points, const IntegerMatrix& level_pos, const List& constraints_ir);
 RcppExport SEXP _skpr_skpr_constraints_allowed(SEXP pointsSEXP, SEXP level_posSEXP, SEXP constraints_irSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type points(pointsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type level_pos(level_posSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type constraints_ir(constraints_irSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type points(pointsSEXP);
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type level_pos(level_posSEXP);
+    Rcpp::traits::input_parameter< const List& >::type constraints_ir(constraints_irSEXP);
     rcpp_result_gen = Rcpp::wrap(skpr_constraints_allowed(points, level_pos, constraints_ir));
-    return rcpp_result_gen;
-END_RCPP
-}
-// skpr_constraints_allowed_change
-Rcpp::LogicalVector skpr_constraints_allowed_change(Rcpp::NumericVector row_values, Rcpp::IntegerVector row_codes, Rcpp::List constraints_ir, int var1, double new_value, int new_code);
-RcppExport SEXP _skpr_skpr_constraints_allowed_change(SEXP row_valuesSEXP, SEXP row_codesSEXP, SEXP constraints_irSEXP, SEXP var1SEXP, SEXP new_valueSEXP, SEXP new_codeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type row_values(row_valuesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type row_codes(row_codesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type constraints_ir(constraints_irSEXP);
-    Rcpp::traits::input_parameter< int >::type var1(var1SEXP);
-    Rcpp::traits::input_parameter< double >::type new_value(new_valueSEXP);
-    Rcpp::traits::input_parameter< int >::type new_code(new_codeSEXP);
-    rcpp_result_gen = Rcpp::wrap(skpr_constraints_allowed_change(row_values, row_codes, constraints_ir, var1, new_value, new_code));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -200,40 +184,39 @@ BEGIN_RCPP
 END_RCPP
 }
 // skpr_ce_select_rows_by_leverage
-Rcpp::IntegerVector skpr_ce_select_rows_by_leverage(Eigen::MatrixXd X, Eigen::MatrixXd V, int kexchange, int augmentedrows);
-RcppExport SEXP _skpr_skpr_ce_select_rows_by_leverage(SEXP XSEXP, SEXP VSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP) {
+IntegerVector skpr_ce_select_rows_by_leverage(Eigen::MatrixXd design, Eigen::MatrixXd inverse, int kexchange, int augmentedrows);
+RcppExport SEXP _skpr_skpr_ce_select_rows_by_leverage(SEXP designSEXP, SEXP inverseSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type V(VSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type design(designSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type inverse(inverseSEXP);
     Rcpp::traits::input_parameter< int >::type kexchange(kexchangeSEXP);
     Rcpp::traits::input_parameter< int >::type augmentedrows(augmentedrowsSEXP);
-    rcpp_result_gen = Rcpp::wrap(skpr_ce_select_rows_by_leverage(X, V, kexchange, augmentedrows));
+    rcpp_result_gen = Rcpp::wrap(skpr_ce_select_rows_by_leverage(design, inverse, kexchange, augmentedrows));
     return rcpp_result_gen;
 END_RCPP
 }
 // genOptimalDesignCoordinateExchangeConstrained
-Rcpp::List genOptimalDesignCoordinateExchangeConstrained(Eigen::MatrixXd points, Rcpp::List factor_levels, Rcpp::Function modelmatrix_fn, Rcpp::List coordinate_groups, Rcpp::List group_columns, Rcpp::Nullable<Rcpp::List> constraints_ir, double tolerance, Rcpp::IntegerVector kexchange, int augmentedrows, int max_iter, int recompute_every, int repair_stuck_limit, int repair_max_tries, int coordinate_group_max_candidates);
-RcppExport SEXP _skpr_genOptimalDesignCoordinateExchangeConstrained(SEXP pointsSEXP, SEXP factor_levelsSEXP, SEXP modelmatrix_fnSEXP, SEXP coordinate_groupsSEXP, SEXP group_columnsSEXP, SEXP constraints_irSEXP, SEXP toleranceSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP, SEXP max_iterSEXP, SEXP recompute_everySEXP, SEXP repair_stuck_limitSEXP, SEXP repair_max_triesSEXP, SEXP coordinate_group_max_candidatesSEXP) {
+List genOptimalDesignCoordinateExchangeConstrained(Eigen::MatrixXd points, List factor_levels, Function modelmatrix_fn, List coordinate_groups, Nullable<List> constraints_ir, double tolerance, IntegerVector kexchange, int augmentedrows, int max_iter, int recompute_every, int repair_stuck_limit, int repair_max_tries, int coordinate_group_max_candidates);
+RcppExport SEXP _skpr_genOptimalDesignCoordinateExchangeConstrained(SEXP pointsSEXP, SEXP factor_levelsSEXP, SEXP modelmatrix_fnSEXP, SEXP coordinate_groupsSEXP, SEXP constraints_irSEXP, SEXP toleranceSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP, SEXP max_iterSEXP, SEXP recompute_everySEXP, SEXP repair_stuck_limitSEXP, SEXP repair_max_triesSEXP, SEXP coordinate_group_max_candidatesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type points(pointsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type factor_levels(factor_levelsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Function >::type modelmatrix_fn(modelmatrix_fnSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type coordinate_groups(coordinate_groupsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type group_columns(group_columnsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type constraints_ir(constraints_irSEXP);
+    Rcpp::traits::input_parameter< List >::type factor_levels(factor_levelsSEXP);
+    Rcpp::traits::input_parameter< Function >::type modelmatrix_fn(modelmatrix_fnSEXP);
+    Rcpp::traits::input_parameter< List >::type coordinate_groups(coordinate_groupsSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type constraints_ir(constraints_irSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type kexchange(kexchangeSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type kexchange(kexchangeSEXP);
     Rcpp::traits::input_parameter< int >::type augmentedrows(augmentedrowsSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< int >::type recompute_every(recompute_everySEXP);
     Rcpp::traits::input_parameter< int >::type repair_stuck_limit(repair_stuck_limitSEXP);
     Rcpp::traits::input_parameter< int >::type repair_max_tries(repair_max_triesSEXP);
     Rcpp::traits::input_parameter< int >::type coordinate_group_max_candidates(coordinate_group_max_candidatesSEXP);
-    rcpp_result_gen = Rcpp::wrap(genOptimalDesignCoordinateExchangeConstrained(points, factor_levels, modelmatrix_fn, coordinate_groups, group_columns, constraints_ir, tolerance, kexchange, augmentedrows, max_iter, recompute_every, repair_stuck_limit, repair_max_tries, coordinate_group_max_candidates));
+    rcpp_result_gen = Rcpp::wrap(genOptimalDesignCoordinateExchangeConstrained(points, factor_levels, modelmatrix_fn, coordinate_groups, constraints_ir, tolerance, kexchange, augmentedrows, max_iter, recompute_every, repair_stuck_limit, repair_max_tries, coordinate_group_max_candidates));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -287,7 +270,6 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_skpr_skpr_constraints_allowed", (DL_FUNC) &_skpr_skpr_constraints_allowed, 3},
-    {"_skpr_skpr_constraints_allowed_change", (DL_FUNC) &_skpr_skpr_constraints_allowed_change, 6},
     {"_skpr_DOptimality", (DL_FUNC) &_skpr_DOptimality, 1},
     {"_skpr_DOptimalityLog", (DL_FUNC) &_skpr_DOptimalityLog, 1},
     {"_skpr_DOptimalityBlocked", (DL_FUNC) &_skpr_DOptimalityBlocked, 2},
@@ -302,7 +284,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_skpr_GEfficiency", (DL_FUNC) &_skpr_GEfficiency, 2},
     {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 11},
     {"_skpr_skpr_ce_select_rows_by_leverage", (DL_FUNC) &_skpr_skpr_ce_select_rows_by_leverage, 4},
-    {"_skpr_genOptimalDesignCoordinateExchangeConstrained", (DL_FUNC) &_skpr_genOptimalDesignCoordinateExchangeConstrained, 14},
+    {"_skpr_genOptimalDesignCoordinateExchangeConstrained", (DL_FUNC) &_skpr_genOptimalDesignCoordinateExchangeConstrained, 13},
     {"_skpr_genSplitPlotOptimalDesign", (DL_FUNC) &_skpr_genSplitPlotOptimalDesign, 15},
     {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 12},
     {NULL, NULL, 0}

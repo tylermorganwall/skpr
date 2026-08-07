@@ -118,25 +118,30 @@ and the only way to calculate prediction variance with disallowed combinations).
 the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange is experimental and currently supports
-only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`,
-`ce_repair_stuck_limit`, `ce_repair_max_tries`, and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
+only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`
+(accepted moves between exact information-matrix verification), `ce_repair_stuck_limit` (feasible-pool regenerations), `ce_repair_max_tries`
+(the feasible-generation budget), and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
 For numeric factors, prefer `factor_levels_original` (named list) when supplying levels in the original units used in `candidateset`; skpr maps these to the normalized
 CE search scale internally and returns designs in original units.
+CE evaluates coordinate proposals without materializing the full candidate-set model matrix, so it is intended for large grids where point exchange is slow or memory-heavy; for small finite grids, compare D-efficiency against the default point-exchange search.
 For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
 `filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
-Coordinate-exchange constraints are evaluated in the original user units of `candidateset`, including when CE optimizes on normalized numeric columns.
+Removing rows from `candidateset` is not enough for CE to infer a constrained region; pass the equivalent explicit constraints.
+Coordinate-exchange constraints are evaluated in the original user units of `candidateset`, including when CE optimizes on normalized numeric columns. Direct
+comparisons and membership use exact level codes; `constraints$tol` controls scaled tolerance bands for linear comparisons.
 Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `\%in\%`,
 and linear constraints over numeric factors.
 Constrained coordinate exchange automatically groups factors coupled by the compiled constraint IR, so constraints such as `x + y == 0` can be explored with joint moves.
 `advancedoptions$coordinate_groups` can be `NULL` (auto groups when constraints are present and singleton groups otherwise), `"auto"` to force IR-derived groups, or a list of character vectors for manual groups; omitted factors are appended as singleton groups.
-`advancedoptions$coordinate_group_max_candidates` limits the Cartesian candidates enumerated for one coordinate-group proposal.
+`advancedoptions$coordinate_group_max_candidates` limits feasible candidates scored for one coordinate-group proposal. Larger groups use a seeded bounded traversal and report this in diagnostics rather than failing.
 For coordinate exchange, `k` is the number of mutable, non-augmented rows considered for exchange. Augmented rows are fixed and excluded from CE row selection.}
 
 \item{timer}{Deprecated: Use \code{progress} instead.}
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-information in its attributes, which can be accessed with the \code{\link[=get_attribute]{get_attribute()}} and \code{\link[=get_optimality]{get_optimality()}} functions.
+information in its attributes, which can be accessed with the \code{\link[=get_attribute]{get_attribute()}} and \code{\link[=get_optimality]{get_optimality()}} functions. Coordinate-exchange designs also include a
+\code{coordinate_exchange_diagnostics} attribute with initialization, proposal, convergence, rank, conditioning, and objective-recomputation details, plus the status of every repeat.
 }
 \description{
 Creates an experimental design given a model, desired number of runs, and a data frame of candidate

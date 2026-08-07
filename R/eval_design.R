@@ -244,8 +244,8 @@ eval_design = function(
     }
   }
   #Convert logical vectors to factors
-  for(i in seq_len(ncol(design))) {
-    if(is.logical(design[[i]])) {
+  for (i in seq_len(ncol(design))) {
+    if (is.logical(design[[i]])) {
       design[[i]] = as.factor(design[[i]])
     }
   }
@@ -496,8 +496,7 @@ eval_design = function(
           }
         }
       },
-      error = function(e) {
-      }
+      error = function(e) {}
     )
   }
   attr(results, "generating_model") = model
@@ -670,8 +669,7 @@ eval_design = function(
       "skpr: NA indicates not enough degrees of freedom to estimate power for those terms."
     )
   }
-  recommend_analysis_method = function(blocking) {
-  }
+  recommend_analysis_method = function(blocking) {}
   #Add recommended analysis method
   contrast_string = deparse(substitute(contrasts))
   attr(results, "contrast_string") = sprintf("`%s`", contrast_string)

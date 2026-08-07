@@ -36,3 +36,4 @@ as gen_design().
 Discrete factors are represented as 0-based integer codes in the input matrix.
 Numeric factors are represented as their numeric values.
 }
+\keyword{internal}

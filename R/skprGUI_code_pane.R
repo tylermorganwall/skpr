@@ -3,17 +3,17 @@
 #' @param state Named list containing `input` and reactive helpers used to render the code pane.
 #' @return HTML string for the code pane.
 #' @keywords internal
-build_code_pane_html <- function(state) {
-  input <- state$input
-  inputstring <- state$inputstring
-  any_htc <- state$any_htc
-  blockmodel <- state$blockmodel
-  regularmodelstring <- state$regularmodelstring
-  modelwithblocks <- state$modelwithblocks
-  isblockingtext <- state$isblockingtext
-  anyfactors <- state$anyfactors
-  contraststring <- state$contraststring
-  effectsize <- state$effectsize
+build_code_pane_html = function(state) {
+  input = state$input
+  inputstring = state$inputstring
+  any_htc = state$any_htc
+  blockmodel = state$blockmodel
+  regularmodelstring = state$regularmodelstring
+  modelwithblocks = state$modelwithblocks
+  isblockingtext = state$isblockingtext
+  anyfactors = state$anyfactors
+  contraststring = state$contraststring
+  effectsize = state$effectsize
 
   shiny::req(inputstring(), cancelOutput = TRUE)
   blocking = any_htc()
@@ -569,13 +569,13 @@ build_code_pane_html <- function(state) {
 #'
 #' @return List of reactives required exclusively by the code pane.
 #' @keywords internal
-create_code_pane_reactives <- function(
+create_code_pane_reactives = function(
   input,
   update,
   candidatesetall,
   any_htc_fn
 ) {
-  regularmodelstring <- shiny::reactive({
+  regularmodelstring = shiny::reactive({
     tryCatch(
       {
         if (
@@ -583,7 +583,8 @@ create_code_pane_reactives <- function(
             unlist(strsplit(
               as.character(stats::as.formula(input$model)[2]),
               "\\s\\+\\s|\\s\\*\\s|\\:"
-            )) == "."
+            )) ==
+              "."
           )
         ) {
           dotreplace = paste0(
@@ -629,7 +630,7 @@ create_code_pane_reactives <- function(
     )
   })
 
-  inputstring <- shiny::reactive({
+  inputstring = shiny::reactive({
     shiny::req(update, cancelOutput = TRUE)
     finalstring = c()
     commacount = input$numberfactors - 1
@@ -688,11 +689,11 @@ create_code_pane_reactives <- function(
     finalstring
   })
 
-  isblockingtext <- shiny::reactive({
+  isblockingtext = shiny::reactive({
     any_htc_fn()
   })
 
-  modelwithblocks <- shiny::reactive({
+  modelwithblocks = shiny::reactive({
     if (isblockingtext()) {
       basemodel = gsub(
         pattern = "~",
@@ -705,7 +706,7 @@ create_code_pane_reactives <- function(
     }
   })
 
-  contraststring <- shiny::reactive({
+  contraststring = shiny::reactive({
     factor_cat = list()
     name_cat = list()
 
@@ -730,7 +731,7 @@ create_code_pane_reactives <- function(
     contrasttemp
   })
 
-  anyfactors <- shiny::reactive({
+  anyfactors = shiny::reactive({
     fac = FALSE
     for (i in seq_len(input$numberfactors)) {
       factortype_n = sprintf("factortype%i", i)

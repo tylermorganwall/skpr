@@ -452,8 +452,8 @@ eval_design_mc = function(
   }
 
   #Convert logical vectors to factors
-  for(i in seq_len(ncol(design))) {
-    if(is.logical(design[[i]])) {
+  for (i in seq_len(ncol(design))) {
+    if (is.logical(design[[i]])) {
       design[[i]] = as.factor(design[[i]])
     }
   }
@@ -488,25 +488,29 @@ eval_design_mc = function(
   #------Auto-set random generating function----#
   if (is.null(rfunction)) {
     if (glmfamily == "gaussian") {
-      rfunction = function(X, b, blockvector)
+      rfunction = function(X, b, blockvector) {
         rnorm(n = nrow(X), mean = X %*% b + blockvector, sd = 1)
+      }
     }
     if (glmfamily == "binomial") {
-      rfunction = function(X, b, blockvector)
+      rfunction = function(X, b, blockvector) {
         rbinom(
           n = nrow(X),
           size = 1,
           prob = 1 / (1 + exp(-(X %*% b + blockvector)))
         )
+      }
     }
     if (glmfamily == "poisson") {
-      rfunction = function(X, b, blockvector)
+      rfunction = function(X, b, blockvector) {
         rpois(n = nrow(X), lambda = exp(X %*% b + blockvector))
+      }
     }
     if (glmfamily == "exponential") {
       glmfamily = Gamma(link = "log")
-      rfunction = function(X, b, blockvector)
+      rfunction = function(X, b, blockvector) {
         rexp(n = nrow(X), rate = exp(-(X %*% b + blockvector)))
+      }
     }
   }
 
@@ -653,8 +657,9 @@ eval_design_mc = function(
   #-------Update formula with random blocks------#
   #Variables used later: model, model_formula
   if (blocking) {
-    genBlockIndicators = function(blockgroup)
+    genBlockIndicators = function(blockgroup) {
       rep(1:length(blockgroup), blockgroup)
+    }
     blockindicators = lapply(blockgroups, genBlockIndicators)
     randomeffects = c()
     for (i in 1:(length(blockgroups) - 1)) {
@@ -1376,8 +1381,7 @@ eval_design_mc = function(
         }
         attr(results, "correlation.matrix") = round(correlation.matrix, 8)
       },
-      error = function(e) {
-      }
+      error = function(e) {}
     )
     tryCatch(
       {
@@ -1408,8 +1412,7 @@ eval_design_mc = function(
           }
         }
       },
-      error = function(e) {
-      }
+      error = function(e) {}
     )
   }
   if (detailedoutput) {

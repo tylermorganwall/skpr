@@ -74,22 +74,27 @@
 #'the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 #'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 #'Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange is experimental and currently supports
-#'only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`,
-#'`ce_repair_stuck_limit`, `ce_repair_max_tries`, and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
+#'only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`
+#'(accepted moves between exact information-matrix verification), `ce_repair_stuck_limit` (feasible-pool regenerations), `ce_repair_max_tries`
+#'(the feasible-generation budget), and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
 #'For numeric factors, prefer `factor_levels_original` (named list) when supplying levels in the original units used in `candidateset`; skpr maps these to the normalized
 #'CE search scale internally and returns designs in original units.
+#'CE evaluates coordinate proposals without materializing the full candidate-set model matrix, so it is intended for large grids where point exchange is slow or memory-heavy; for small finite grids, compare D-efficiency against the default point-exchange search.
 #'For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
 #'`filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
-#'Coordinate-exchange constraints are evaluated in the original user units of `candidateset`, including when CE optimizes on normalized numeric columns.
+#'Removing rows from `candidateset` is not enough for CE to infer a constrained region; pass the equivalent explicit constraints.
+#'Coordinate-exchange constraints are evaluated in the original user units of `candidateset`, including when CE optimizes on normalized numeric columns. Direct
+#'comparisons and membership use exact level codes; `constraints$tol` controls scaled tolerance bands for linear comparisons.
 #'Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `%in%`,
 #'and linear constraints over numeric factors.
 #'Constrained coordinate exchange automatically groups factors coupled by the compiled constraint IR, so constraints such as `x + y == 0` can be explored with joint moves.
 #'`advancedoptions$coordinate_groups` can be `NULL` (auto groups when constraints are present and singleton groups otherwise), `"auto"` to force IR-derived groups, or a list of character vectors for manual groups; omitted factors are appended as singleton groups.
-#'`advancedoptions$coordinate_group_max_candidates` limits the Cartesian candidates enumerated for one coordinate-group proposal.
+#'`advancedoptions$coordinate_group_max_candidates` limits feasible candidates scored for one coordinate-group proposal. Larger groups use a seeded bounded traversal and report this in diagnostics rather than failing.
 #'For coordinate exchange, `k` is the number of mutable, non-augmented rows considered for exchange. Augmented rows are fixed and excluded from CE row selection.
 #'@param timer Deprecated: Use `progress` instead.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
-#'information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions.
+#'information in its attributes, which can be accessed with the [get_attribute()] and [get_optimality()] functions. Coordinate-exchange designs also include a
+#'`coordinate_exchange_diagnostics` attribute with initialization, proposal, convergence, rank, conditioning, and objective-recomputation details, plus the status of every repeat.
 #'@import doRNG future
 #'@export
 #'@details
@@ -362,7 +367,7 @@ gen_design = function(
     optimality = optimality_uc
   }
 
-  kexchange = if (is.na(k)) trials else k
+  kexchange = if (length(k) == 1L && is.na(k)) trials else k
 
   advancedoptions_provided = !is.null(advancedoptions)
   if (is.null(advancedoptions)) {
@@ -386,14 +391,24 @@ gen_design = function(
         "skpr: Coordinate exchange currently supports only optimality = 'D'."
       )
     }
-    if (!is.null(splitplotdesign) || !is.null(blocksizes) || !is.null(custom_v)) {
+    if (
+      !is.null(splitplotdesign) || !is.null(blocksizes) || !is.null(custom_v)
+    ) {
       stop(
         "skpr: Coordinate exchange currently supports only fully randomized, non-blocked designs."
       )
     }
-    if (kexchange < 1) {
-      stop("skpr: kexchange must be at least 1.")
+    if (
+      length(kexchange) != 1L ||
+        is.na(kexchange) ||
+        !is.numeric(kexchange) ||
+        !is.finite(kexchange) ||
+        abs(kexchange - round(kexchange)) > .Machine$double.eps^0.5 ||
+        kexchange < 1
+    ) {
+      stop("skpr: `k` must be a single integer >= 1 for coordinate exchange.")
     }
+    kexchange = as.integer(kexchange)
     if (kexchange > trials) {
       kexchange = trials
     }
@@ -412,10 +427,8 @@ gen_design = function(
   } else {
     ce_constraints = list()
   }
-  has_explicit_ce_constraints = (
-    !is.null(ce_constraints$filter_expr) ||
-      !is.null(ce_constraints$forbidden_tuples)
-  )
+  has_explicit_ce_constraints = (!is.null(ce_constraints$filter_expr) ||
+    !is.null(ce_constraints$forbidden_tuples))
 
   if (is.null(advancedoptions$ce_max_iter)) {
     advancedoptions$ce_max_iter = 200L
@@ -431,6 +444,50 @@ gen_design = function(
   }
   if (is.null(advancedoptions$coordinate_group_max_candidates)) {
     advancedoptions$coordinate_group_max_candidates = 10000L
+  }
+  if (is.null(advancedoptions$.ce_test_fail_repeats)) {
+    advancedoptions$.ce_test_fail_repeats = integer(0)
+  }
+
+  if (use_coordinate_exchange) {
+    validate_ce_integer = function(option_name, minimum) {
+      value = advancedoptions[[option_name]]
+      if (
+        length(value) != 1L ||
+          is.na(value) ||
+          !is.numeric(value) ||
+          !is.finite(value) ||
+          abs(value - round(value)) > .Machine$double.eps^0.5 ||
+          value < minimum
+      ) {
+        stop(
+          "skpr: advancedoptions$",
+          option_name,
+          " must be a single integer >= ",
+          minimum,
+          "."
+        )
+      }
+      as.integer(value)
+    }
+
+    advancedoptions$ce_max_iter = validate_ce_integer("ce_max_iter", 0L)
+    advancedoptions$ce_recompute_every = validate_ce_integer(
+      "ce_recompute_every",
+      0L
+    )
+    advancedoptions$ce_repair_stuck_limit = validate_ce_integer(
+      "ce_repair_stuck_limit",
+      0L
+    )
+    advancedoptions$ce_repair_max_tries = validate_ce_integer(
+      "ce_repair_max_tries",
+      0L
+    )
+    advancedoptions$coordinate_group_max_candidates = validate_ce_integer(
+      "coordinate_group_max_candidates",
+      1L
+    )
   }
 
   if (is.null(advancedoptions$design_search_tolerance)) {
@@ -670,7 +727,9 @@ gen_design = function(
       ))
 
       #get whole:non-whole interaction terms
-      wholeinteractionterms = splitterms[regularmodel & wholeorwholeinteraction]
+      wholeinteractionterms = splitterms[
+        regularmodel & wholeorwholeinteraction
+      ]
 
       fullcontrastlist = c(contrastslistsubplot, contrastslistspd)
 
@@ -916,7 +975,9 @@ gen_design = function(
   # This is used to compute whether the closed-form moment matrix can be
   # used, or whether the (much slower) convex hull approximation must be used.
   any_disallowed = detect_disallowed_combinations(candidateset)
-  if (use_coordinate_exchange && any_disallowed && !has_explicit_ce_constraints) {
+  if (
+    use_coordinate_exchange && any_disallowed && !has_explicit_ce_constraints
+  ) {
     stop(
       "skpr: CE requires explicit constraints; removing rows from candidateset cannot be inferred."
     )
@@ -939,7 +1000,10 @@ gen_design = function(
       ))
     }
     if (!is.null(attr(splitplotdesign, "varianceratios"))) {
-      varianceratios = c(attr(splitplotdesign, "varianceratios"), varianceratio)
+      varianceratios = c(
+        attr(splitplotdesign, "varianceratios"),
+        varianceratio
+      )
     } else {
       varianceratios = varianceratio
     }
@@ -1089,7 +1153,10 @@ gen_design = function(
           if (trials %% blocksizes[[i]] == 0) {
             sizevector = rep(blocksizes[[i]], trials / blocksizes[[i]])
           } else {
-            sizevector = rep(blocksizes[[i]], ceiling(trials / blocksizes[[i]]))
+            sizevector = rep(
+              blocksizes[[i]],
+              ceiling(trials / blocksizes[[i]])
+            )
             unbalancedruns = blocksizes[[i]] *
               ceiling(trials / blocksizes[[i]]) -
               trials
@@ -1229,20 +1296,32 @@ gen_design = function(
 
   genOutput = vector(mode = "list", length = repeats)
 
+  if (!exists("augmentdesignmm", inherits = FALSE)) {
+    augmentdesignmm = NULL
+  }
+  model_matrix_candidate_data = if (use_coordinate_exchange && !splitplot) {
+    candidatesetnormalized[1, , drop = FALSE]
+  } else {
+    candidatesetnormalized
+  }
+
   if (length(contrastslist) == 0) {
     if (is.null(splitplotdesign)) {
-      candidatesetmm = model.matrix(model, candidatesetnormalized)
+      candidatesetmm = model.matrix(model, model_matrix_candidate_data)
       if (!is.null(augmentdesign)) {
         augmentdesignmm = model.matrix(model, augmentnormalized)
       }
     } else {
-      candidatesetmm = model.matrix(modelnowholeformula, candidatesetnormalized)
+      candidatesetmm = model.matrix(
+        modelnowholeformula,
+        candidatesetnormalized
+      )
     }
   } else {
     if (is.null(splitplotdesign)) {
       candidatesetmm = suppressWarnings(model.matrix(
         model,
-        candidatesetnormalized,
+        model_matrix_candidate_data,
         contrasts.arg = contrastslist
       ))
       if (!is.null(augmentdesign)) {
@@ -1261,7 +1340,7 @@ gen_design = function(
     }
   }
 
-  if (!splitplot) {
+  if (!splitplot && !use_coordinate_exchange) {
     if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
       is_singular = function() {
         tryCatch(
@@ -1328,7 +1407,9 @@ gen_design = function(
       collapse = ""
     ))
   }
-  if (length(contrastslist) == 0) {
+  if (use_coordinate_exchange && !splitplot) {
+    aliasmm = NULL
+  } else if (length(contrastslist) == 0) {
     aliasmm = model.matrix(amodel, candidatesetnormalized)
   } else {
     suppressWarnings({
@@ -1345,17 +1426,14 @@ gen_design = function(
   ce_factor_levels_original = NULL
   ce_factor_levels_cpp = NULL
   ce_modelmatrix_fn = NULL
-  ce_factor_columns = NULL
   ce_coordinate_groups = NULL
   ce_coordinate_group_names = NULL
-  ce_group_columns = NULL
   ce_constraints_ir = NULL
   ce_has_constraints = FALSE
   ce_augment_points = NULL
-  ce_numeric_map = list()
   ce_numeric_columns = character(0)
-  ce_constraint_value_offset = NULL
-  ce_constraint_value_scale = NULL
+  ce_normalization_offset = NULL
+  ce_normalization_scale = NULL
   ce_decode_tol = 1e-10
 
   if (use_coordinate_exchange && !splitplot) {
@@ -1373,38 +1451,49 @@ gen_design = function(
       ce_map_orig = rbind(ce_map_orig, augmentdesign)
       ce_map_norm = rbind(ce_map_norm, augmentnormalized)
     }
-    ce_constraint_value_offset = rep(0, length(ce_factor_meta))
-    ce_constraint_value_scale = rep(1, length(ce_factor_meta))
-    names(ce_constraint_value_offset) = names(ce_factor_meta)
-    names(ce_constraint_value_scale) = names(ce_factor_meta)
+    ce_normalization_offset = rep(0, length(ce_factor_meta))
+    ce_normalization_scale = rep(1, length(ce_factor_meta))
+    names(ce_normalization_offset) = names(ce_factor_meta)
+    names(ce_normalization_scale) = names(ce_factor_meta)
     ce_numeric_columns = names(ce_map_norm)[vapply(
       ce_map_norm,
       is.numeric,
       logical(1)
     )]
     for (nm in ce_numeric_columns) {
-      ce_numeric_map[[nm]] = unique(data.frame(
-        original = as.numeric(ce_map_orig[[nm]]),
-        normalized = as.numeric(ce_map_norm[[nm]])
-      ))
       norm_range = range(as.numeric(ce_map_norm[[nm]]), na.rm = TRUE)
       orig_range = range(as.numeric(ce_map_orig[[nm]]), na.rm = TRUE)
       norm_span = diff(norm_range)
       if (!is.finite(norm_span) || abs(norm_span) <= ce_decode_tol) {
-        ce_constraint_value_scale[[nm]] = 0
-        ce_constraint_value_offset[[nm]] = mean(orig_range)
+        ce_normalization_scale[[nm]] = 0
+        ce_normalization_offset[[nm]] = mean(orig_range)
       } else {
         scale = diff(orig_range) / norm_span
         offset = orig_range[[1]] - scale * norm_range[[1]]
-        ce_constraint_value_scale[[nm]] = scale
-        ce_constraint_value_offset[[nm]] = offset
+        ce_normalization_scale[[nm]] = scale
+        ce_normalization_offset[[nm]] = offset
       }
     }
 
     validate_ce_level_override = function(x, option_name) {
       if (!is.null(x)) {
-        if (!is.list(x) || is.null(names(x)) || any(names(x) == "")) {
+        if (
+          !is.list(x) ||
+            is.null(names(x)) ||
+            anyNA(names(x)) ||
+            any(names(x) == "") ||
+            anyDuplicated(names(x))
+        ) {
           stop("skpr: advancedoptions$", option_name, " must be a named list.")
+        }
+        unknown = setdiff(names(x), names(ce_factor_meta))
+        if (length(unknown) > 0L) {
+          stop(
+            "skpr: advancedoptions$",
+            option_name,
+            " contains unknown factor(s): ",
+            paste(unknown, collapse = ", ")
+          )
         }
       }
     }
@@ -1430,11 +1519,21 @@ gen_design = function(
     }
 
     search_to_original = function(nm, values) {
-      ce_constraint_value_offset[[nm]] +
-        ce_constraint_value_scale[[nm]] * as.numeric(values)
+      if (
+        abs(ce_normalization_scale[[nm]]) <= ce_decode_tol &&
+          length(unique(as.numeric(values))) > 1L
+      ) {
+        stop(
+          "skpr: Cannot map factor_levels for constant numeric factor '",
+          nm,
+          "'."
+        )
+      }
+      ce_normalization_offset[[nm]] +
+        ce_normalization_scale[[nm]] * as.numeric(values)
     }
     original_to_search = function(nm, values) {
-      scale = ce_constraint_value_scale[[nm]]
+      scale = ce_normalization_scale[[nm]]
       if (!is.finite(scale) || abs(scale) <= ce_decode_tol) {
         stop(
           "skpr: Cannot map factor_levels_original for constant numeric factor '",
@@ -1442,11 +1541,14 @@ gen_design = function(
           "'."
         )
       }
-      (as.numeric(values) - ce_constraint_value_offset[[nm]]) / scale
+      (as.numeric(values) - ce_normalization_offset[[nm]]) / scale
     }
 
     if (!is.null(ce_factor_levels_override)) {
-      for (nm in intersect(names(ce_factor_meta), names(ce_factor_levels_override))) {
+      for (nm in intersect(
+        names(ce_factor_meta),
+        names(ce_factor_levels_override)
+      )) {
         override_levels = ce_factor_levels_override[[nm]]
         if (length(override_levels) == 0) {
           stop(
@@ -1456,27 +1558,43 @@ gen_design = function(
           )
         }
         if (ce_factor_meta[[nm]]$kind == "discrete") {
-          ce_factor_meta[[nm]]$levels = as.character(override_levels)
+          discrete_levels = as.character(override_levels)
+          if (
+            anyNA(discrete_levels) ||
+              any(discrete_levels == "") ||
+              anyDuplicated(discrete_levels)
+          ) {
+            stop(
+              "skpr: advancedoptions$factor_levels[['",
+              nm,
+              "']] must contain unique non-empty discrete levels."
+            )
+          }
+          ce_factor_meta[[nm]]$levels = discrete_levels
           ce_factor_levels[[nm]] = seq(
             0,
             length(ce_factor_meta[[nm]]$levels) - 1L
           )
-          ce_constraint_factor_meta[[nm]]$levels = as.character(override_levels)
+          ce_constraint_factor_meta[[nm]]$levels = discrete_levels
           ce_constraint_factor_levels[[nm]] = seq(
             0,
             length(ce_constraint_factor_meta[[nm]]$levels) - 1L
           )
         } else {
-          search_levels = sort(unique(as.numeric(override_levels)))
-          if (any(!is.finite(search_levels))) {
+          search_levels = as.numeric(override_levels)
+          if (any(!is.finite(search_levels)) || anyDuplicated(search_levels)) {
             stop(
               "skpr: advancedoptions$factor_levels[['",
               nm,
-              "']] must contain finite numeric search-scale levels."
+              "']] must contain finite unique numeric search-scale levels."
             )
           }
+          search_levels = sort(search_levels)
           ce_factor_levels[[nm]] = search_levels
-          ce_factor_levels_original[[nm]] = search_to_original(nm, search_levels)
+          ce_factor_levels_original[[nm]] = search_to_original(
+            nm,
+            search_levels
+          )
           ce_constraint_factor_levels[[nm]] = ce_factor_levels_original[[nm]]
         }
       }
@@ -1496,26 +1614,41 @@ gen_design = function(
           )
         }
         if (ce_factor_meta[[nm]]$kind == "discrete") {
-          ce_factor_meta[[nm]]$levels = as.character(override_levels)
+          discrete_levels = as.character(override_levels)
+          if (
+            anyNA(discrete_levels) ||
+              any(discrete_levels == "") ||
+              anyDuplicated(discrete_levels)
+          ) {
+            stop(
+              "skpr: advancedoptions$factor_levels_original[['",
+              nm,
+              "']] must contain unique non-empty discrete levels."
+            )
+          }
+          ce_factor_meta[[nm]]$levels = discrete_levels
           ce_factor_levels[[nm]] = seq(
             0,
             length(ce_factor_meta[[nm]]$levels) - 1L
           )
-          ce_constraint_factor_meta[[nm]]$levels = as.character(override_levels)
+          ce_constraint_factor_meta[[nm]]$levels = discrete_levels
           ce_factor_levels_original[[nm]] = seq(
             0,
             length(ce_constraint_factor_meta[[nm]]$levels) - 1L
           )
           ce_constraint_factor_levels[[nm]] = ce_factor_levels_original[[nm]]
         } else {
-          original_levels = sort(unique(as.numeric(override_levels)))
-          if (any(!is.finite(original_levels))) {
+          original_levels = as.numeric(override_levels)
+          if (
+            any(!is.finite(original_levels)) || anyDuplicated(original_levels)
+          ) {
             stop(
               "skpr: advancedoptions$factor_levels_original[['",
               nm,
-              "']] must contain finite numeric original-unit levels."
+              "']] must contain finite unique numeric original-unit levels."
             )
           }
+          original_levels = sort(original_levels)
           ce_factor_levels_original[[nm]] = original_levels
           ce_factor_levels[[nm]] = original_to_search(nm, original_levels)
           ce_constraint_factor_levels[[nm]] = original_levels
@@ -1529,29 +1662,27 @@ gen_design = function(
       contrasts_fun = contrasts,
       drop_intercept = FALSE
     )
-    ce_factor_columns = skpr_ce_detect_factor_columns(
-      modelmatrix_fn = ce_modelmatrix_fn,
-      factor_levels = ce_factor_levels
-    )
-
     ce_factor_levels_cpp = unname(ce_factor_levels)
 
     if (!is.null(augmentdesign)) {
-      ce_augment_points = skpr_ce_encode_points(augmentnormalized, ce_factor_meta)
+      ce_augment_points = skpr_ce_encode_points(
+        augmentnormalized,
+        ce_factor_meta
+      )
     }
 
     if (has_explicit_ce_constraints) {
       ce_constraints_ir = compile_constraints(
-        filter_expr = if (
-          is.null(ce_constraints$filter_expr)
-        ) TRUE else ce_constraints$filter_expr,
+        filter_expr = if (is.null(ce_constraints$filter_expr)) {
+          TRUE
+        } else {
+          ce_constraints$filter_expr
+        },
         forbidden_tuples = ce_constraints$forbidden_tuples,
         factor_meta = ce_constraint_factor_meta,
         factor_levels = ce_constraint_factor_levels,
         tol = if (is.null(ce_constraints$tol)) 1e-10 else ce_constraints$tol
       )
-      ce_constraints_ir$value_offset = unname(as.numeric(ce_constraint_value_offset))
-      ce_constraints_ir$value_scale = unname(as.numeric(ce_constraint_value_scale))
       ce_has_constraints = TRUE
     }
 
@@ -1562,16 +1693,20 @@ gen_design = function(
     )
     ce_coordinate_groups = ce_groups$coordinate_groups
     ce_coordinate_group_names = ce_groups$coordinate_group_names
-    ce_group_columns = skpr_ce_group_factor_columns(
-      factor_columns = ce_factor_columns,
-      coordinate_groups = ce_coordinate_groups
-    )
   }
 
   num_updates = min(c(repeats, 200))
   progressbarupdates = floor(seq(1, repeats, length.out = num_updates))
   if (!splitplot) {
-    factors = colnames(candidatesetmm)
+    if (use_coordinate_exchange) {
+      ce_probe_points = matrix(
+        vapply(ce_factor_levels_cpp, function(lev) lev[[1]], numeric(1)),
+        nrow = 1
+      )
+      factors = colnames(ce_modelmatrix_fn(ce_probe_points))
+    } else {
+      factors = colnames(candidatesetmm)
+    }
     classvector = sapply(candidateset, inherits, c("factor", "character"))
 
     if (optimality == "I") {
@@ -1607,7 +1742,9 @@ gen_design = function(
         }
         if (use_coordinate_exchange && !blocking) {
           if (i %in% advancedoptions$.ce_test_fail_repeats) {
-            stop("skpr: injected coordinate-exchange repeat failure for testing.")
+            stop(
+              "skpr: injected coordinate-exchange repeat failure for testing."
+            )
           }
           initial_points = matrix(
             0,
@@ -1628,8 +1765,11 @@ gen_design = function(
             factor_levels = ce_factor_levels_cpp,
             modelmatrix_fn = ce_modelmatrix_fn,
             coordinate_groups = ce_coordinate_groups,
-            group_columns = ce_group_columns,
-            constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
+            constraints_ir = if (ce_has_constraints) {
+              ce_constraints_ir
+            } else {
+              NULL
+            },
             tolerance = tolerance,
             kexchange = as.integer(kexchange),
             augmentedrows = as.integer(augmentedrows),
@@ -1644,14 +1784,16 @@ gen_design = function(
             )
           )
           ce_criterion = DOptimalityLog(ce_result$model_matrix)
-          if (!is.finite(ce_criterion) || isTRUE(ce_result$any_infeasible_remaining)) {
+          if (!is.finite(ce_criterion)) {
             ce_criterion = NA_real_
           }
           genOutput[[i]] = list(
             indices = seq_len(trials),
             model_matrix = ce_result$model_matrix,
             criterion = ce_criterion,
-            points = ce_result$points
+            points = ce_result$points,
+            level_codes = ce_result$level_codes,
+            diagnostics = ce_result$diagnostics
           )
         } else {
           randomindices = sample(
@@ -1707,7 +1849,11 @@ gen_design = function(
         prog = progressr::progressor(steps = repeats)
         foreach::foreach(
           i = iterations,
-          .errorhandling = if (use_coordinate_exchange && !blocking) "pass" else "remove",
+          .errorhandling = if (use_coordinate_exchange && !blocking) {
+            "pass"
+          } else {
+            "remove"
+          },
           .options.future = list(
             globals = c(
               "genOptimalDesign",
@@ -1726,7 +1872,6 @@ gen_design = function(
               "ce_modelmatrix_fn",
               "ce_coordinate_groups",
               "ce_coordinate_group_names",
-              "ce_group_columns",
               "ce_constraints_ir",
               "ce_has_constraints",
               "advancedoptions",
@@ -1764,7 +1909,9 @@ gen_design = function(
             }
             if (use_coordinate_exchange && !blocking) {
               if (i %in% advancedoptions$.ce_test_fail_repeats) {
-                stop("skpr: injected coordinate-exchange repeat failure for testing.")
+                stop(
+                  "skpr: injected coordinate-exchange repeat failure for testing."
+                )
               }
               initial_points = matrix(
                 0,
@@ -1784,30 +1931,39 @@ gen_design = function(
                 factor_levels = ce_factor_levels_cpp,
                 modelmatrix_fn = ce_modelmatrix_fn,
                 coordinate_groups = ce_coordinate_groups,
-                group_columns = ce_group_columns,
-                constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
+                constraints_ir = if (ce_has_constraints) {
+                  ce_constraints_ir
+                } else {
+                  NULL
+                },
                 tolerance = tolerance,
                 kexchange = as.integer(kexchange),
                 augmentedrows = as.integer(augmentedrows),
                 max_iter = as.integer(advancedoptions$ce_max_iter),
-                recompute_every = as.integer(advancedoptions$ce_recompute_every),
+                recompute_every = as.integer(
+                  advancedoptions$ce_recompute_every
+                ),
                 repair_stuck_limit = as.integer(
                   advancedoptions$ce_repair_stuck_limit
                 ),
-                repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries),
+                repair_max_tries = as.integer(
+                  advancedoptions$ce_repair_max_tries
+                ),
                 coordinate_group_max_candidates = as.integer(
                   advancedoptions$coordinate_group_max_candidates
                 )
               )
               ce_criterion = DOptimalityLog(ce_result$model_matrix)
-              if (!is.finite(ce_criterion) || isTRUE(ce_result$any_infeasible_remaining)) {
+              if (!is.finite(ce_criterion)) {
                 ce_criterion = NA_real_
               }
               list(
                 indices = seq_len(trials),
                 model_matrix = ce_result$model_matrix,
                 criterion = ce_criterion,
-                points = ce_result$points
+                points = ce_result$points,
+                level_codes = ce_result$level_codes,
+                diagnostics = ce_result$diagnostics
               )
             } else {
               randomindices = sample(
@@ -1951,7 +2107,10 @@ gen_design = function(
         }
       }
       anydisallowed = TRUE
-      attr(disallowedcombdf, "contrasts") = attr(blockedmodelmatrix, "contrast")
+      attr(disallowedcombdf, "contrasts") = attr(
+        blockedmodelmatrix,
+        "contrast"
+      )
       disallowedcomb = suppressWarnings(model.matrix(
         model,
         disallowedcombdf,
@@ -2127,6 +2286,42 @@ gen_design = function(
   rowindicies = list()
   criteria = list()
   ce_points_normalized = list()
+  ce_points_original = list()
+  ce_repeat_diagnostics = list()
+  ce_repeat_outcomes = list()
+  if (use_coordinate_exchange && !splitplot) {
+    ce_repeat_outcomes = lapply(seq_along(genOutput), function(i) {
+      result = genOutput[[i]]
+      if (is.null(result)) {
+        return(list(
+          repeat_index = i,
+          status = "error",
+          error_class = "coordinate_exchange_null_result",
+          error_message = "coordinate exchange returned no result"
+        ))
+      }
+      if (inherits(result, "error")) {
+        return(list(
+          repeat_index = i,
+          status = "error",
+          error_class = class(result)[[1L]],
+          error_message = conditionMessage(result)
+        ))
+      }
+      if (is.null(result[["criterion"]]) || is.na(result[["criterion"]])) {
+        return(list(
+          repeat_index = i,
+          status = "error",
+          error_class = "coordinate_exchange_invalid_result",
+          error_message = "coordinate exchange returned no finite criterion"
+        ))
+      }
+      outcome = result[["diagnostics"]]
+      outcome$repeat_index = i
+      outcome$status = "ok"
+      outcome
+    })
+  }
   designcounter = 1
 
   for (i in seq_len(length(genOutput))) {
@@ -2147,6 +2342,14 @@ gen_design = function(
           genOutput[[i]][["points"]],
           ce_factor_meta
         ))
+        ce_points_original[designcounter] = list(skpr_ce_decode_points(
+          genOutput[[i]][["points"]],
+          ce_factor_meta,
+          level_codes = genOutput[[i]][["level_codes"]],
+          factor_levels_original = ce_factor_levels_original
+        ))
+        repeat_diagnostics = ce_repeat_outcomes[[i]]
+        ce_repeat_diagnostics[designcounter] = list(repeat_diagnostics)
       }
       designcounter = designcounter + 1
     }
@@ -2379,21 +2582,7 @@ gen_design = function(
   }
   if (use_coordinate_exchange && !splitplot) {
     design_normalized = ce_points_normalized[[best]]
-    design = design_normalized
-    for (nm in ce_numeric_columns) {
-      normalized_vals = as.numeric(design_normalized[[nm]])
-      design[[nm]] =
-        ce_constraint_value_offset[[nm]] +
-        ce_constraint_value_scale[[nm]] * normalized_vals
-    }
-    for (nm in names(design)) {
-      if (is.factor(candidateset[[nm]])) {
-        design[[nm]] = factor(
-          as.character(design[[nm]]),
-          levels = levels(candidateset[[nm]])
-        )
-      }
-    }
+    design = ce_points_original[[best]]
   } else {
     design = constructRunMatrix(
       rowIndices = rowindex,
@@ -2468,8 +2657,7 @@ gen_design = function(
     {
       AOptimality(designmm)
     },
-    error = function(e) {
-    }
+    error = function(e) {}
   )
   attr(design, "model_matrix") = designmm
   attr(design, "generating_model") = model
@@ -2478,6 +2666,15 @@ gen_design = function(
   attr(design, "contrastslist") = contrastslist
   attr(design, "variance.matrix") = V
   attr(design, "candidate_set") = og_candidate_set
+  if (use_coordinate_exchange && !splitplot) {
+    attr(design, "coordinate_exchange_diagnostics") = list(
+      schema_version = 1L,
+      selected_repeat = ce_repeat_diagnostics[[best]]$repeat_index,
+      selected = ce_repeat_diagnostics[[best]],
+      repeats = ce_repeat_outcomes,
+      successful_repeats = ce_repeat_diagnostics
+    )
+  }
 
   if (!splitplot) {
     if (blocking) {
@@ -2597,8 +2794,7 @@ gen_design = function(
         }
       }
     },
-    error = function(e) {
-    }
+    error = function(e) {}
   )
   if (!splitplot && !blocking) {
     tryCatch(
@@ -2636,11 +2832,18 @@ gen_design = function(
         }
       },
       error = function(e) {
-        if (is.null(attr(design, "G"))) attr(design, "G") = NA
-        if (is.null(attr(design, "T"))) attr(design, "T") = NA
-        if (is.null(attr(design, "E"))) attr(design, "E") = NA
-        if (is.null(attr(design, "variance.matrix")))
+        if (is.null(attr(design, "G"))) {
+          attr(design, "G") = NA
+        }
+        if (is.null(attr(design, "T"))) {
+          attr(design, "T") = NA
+        }
+        if (is.null(attr(design, "E"))) {
+          attr(design, "E") = NA
+        }
+        if (is.null(attr(design, "variance.matrix"))) {
           attr(design, "variance.matrix") = NA
+        }
         if (is.null(attr(design, "I"))) attr(design, "I") = NA
       }
     )
@@ -2668,8 +2871,7 @@ gen_design = function(
           attr(design, "I") = NA_real_
         }
       },
-      error = function(e) {
-      }
+      error = function(e) {}
     )
   } else if (blocking) {
     tryCatch(
@@ -2695,8 +2897,7 @@ gen_design = function(
           attr(design, "I") = NA_real_
         }
       },
-      error = function(e) {
-      }
+      error = function(e) {}
     )
   }
   if (is.null(attr(design, "I"))) {

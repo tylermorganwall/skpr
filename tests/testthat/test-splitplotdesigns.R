@@ -1,6 +1,6 @@
 library(skpr)
 test_that("Split-plot design categorical factors are retained", {
-  cand <- expand.grid(
+  cand = expand.grid(
     Zoom = c("None", "Optical", "Digital"),
 
     TargetType = c("Man Sized", "NATO Standard"),
@@ -12,7 +12,7 @@ test_that("Split-plot design categorical factors are retained", {
     Illum = c("Day", "Night", "Low Light")
   )
 
-  htc <- gen_design(
+  htc = gen_design(
     candidateset = cand,
 
     model = ~Zoom,
@@ -22,7 +22,7 @@ test_that("Split-plot design categorical factors are retained", {
     repeats = 10
   )
 
-  DOE <- gen_design(
+  DOE = gen_design(
     candidateset = cand,
 
     model = ~ (Illum + Zoom + TargetType + Orientation + Movement),
@@ -36,7 +36,7 @@ test_that("Split-plot design categorical factors are retained", {
   for (col in seq_len(ncol(DOE))) {
     expect_equal(class(DOE[, col]), "factor")
   }
-  DOE2 <- gen_design(
+  DOE2 = gen_design(
     candidateset = cand,
 
     model = ~ (Illum + Zoom),
@@ -51,7 +51,7 @@ test_that("Split-plot design categorical factors are retained", {
     expect_equal(class(DOE2[, col]), "factor")
   }
 
-  htc2 <- gen_design(
+  htc2 = gen_design(
     candidateset = cand,
 
     model = ~ Illum + Zoom + Illum:Zoom,
@@ -60,7 +60,7 @@ test_that("Split-plot design categorical factors are retained", {
 
     repeats = 10
   )
-  DOE3 <- gen_design(
+  DOE3 = gen_design(
     candidateset = cand,
 
     model = ~ (Illum + Zoom + Illum:Zoom + TargetType + Orientation + Movement),
@@ -74,7 +74,7 @@ test_that("Split-plot design categorical factors are retained", {
   for (col in seq_len(ncol(DOE3))) {
     expect_equal(class(DOE3[, col]), "factor")
   }
-  vhtc <- gen_design(
+  vhtc = gen_design(
     candidateset = cand,
 
     model = ~Illum,
@@ -83,14 +83,14 @@ test_that("Split-plot design categorical factors are retained", {
 
     repeats = 10
   )
-  htc3 <- gen_design(
+  htc3 = gen_design(
     candidateset = cand,
     model = ~ Illum + Zoom + Illum:Zoom,
     trials = 20,
     splitplotdesign = vhtc,
     repeats = 10
   )
-  splitsplitdesign <- gen_design(
+  splitsplitdesign = gen_design(
     candidateset = cand,
     model = ~ (Illum + Zoom + Illum:Zoom + TargetType + Orientation + Movement),
     trials = 60,

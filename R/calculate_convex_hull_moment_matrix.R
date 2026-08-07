@@ -150,7 +150,7 @@ gen_momentsmatrix_constrained = function(
     Xsub = model.matrix(formula, data = interp_df)
 
     w = rep(1, nrow(Xsub))
-    if(!user_provided_high_res_candidateset) {
+    if (!user_provided_high_res_candidateset) {
       w[interp_ch$on_edge] = 0.5
     }
     # average subregion moment
@@ -179,9 +179,12 @@ gen_momentsmatrix_constrained = function(
     get_contrasts_from_candset = function(candset) {
       csn = colnames(candset)[!unlist(lapply(candset, is.numeric))]
       contrasts_return = vector(mode = "list", length = length(csn))
-      for(i in seq_along(csn)) {
-        single_contrast = contr.simplex(unique(candset[[ csn[i] ]]))
-        colnames(single_contrast) = paste0("_skpr_FACTOR_",seq_len(ncol(single_contrast)))
+      for (i in seq_along(csn)) {
+        single_contrast = contr.simplex(unique(candset[[csn[i]]]))
+        colnames(single_contrast) = paste0(
+          "_skpr_FACTOR_",
+          seq_len(ncol(single_contrast))
+        )
         contrasts_return[[i]] = single_contrast
       }
       names(contrasts_return) = csn
@@ -252,7 +255,7 @@ gen_momentsmatrix_constrained = function(
       )
 
       w = rep(1, nrow(Xsub))
-      if(!user_provided_high_res_candidateset) {
+      if (!user_provided_high_res_candidateset) {
         w[interp_ch$on_edge] = 0.5
       }
       # average subregion moment
@@ -275,19 +278,22 @@ gen_momentsmatrix_constrained = function(
       M = M / M[1, 1]
     }
     #Now scan for categorical factors and set off-diagonals to zero
-    is_factor_term = grepl("_skpr_FACTOR_", colnames(model.matrix(
-      formula,
-      data = candidate_set,
-      contrasts.arg = get_contrasts_from_candset(candidate_set)
-    )))
-    colnames(M) = gsub("_skpr_FACTOR_",replacement = "",x = colnames(M))
-    rownames(M) = gsub("_skpr_FACTOR_",replacement = "",x = rownames(M))
+    is_factor_term = grepl(
+      "_skpr_FACTOR_",
+      colnames(model.matrix(
+        formula,
+        data = candidate_set,
+        contrasts.arg = get_contrasts_from_candset(candidate_set)
+      ))
+    )
+    colnames(M) = gsub("_skpr_FACTOR_", replacement = "", x = colnames(M))
+    rownames(M) = gsub("_skpr_FACTOR_", replacement = "", x = rownames(M))
 
-    for(col in seq_len(ncol(M))) {
-      for(row in seq_len(nrow(M))) {
-        if(col != row) {
-          if(is_factor_term[row] || is_factor_term[col]) {
-            M[row,col] = 0
+    for (col in seq_len(ncol(M))) {
+      for (row in seq_len(nrow(M))) {
+        if (col != row) {
+          if (is_factor_term[row] || is_factor_term[col]) {
+            M[row, col] = 0
           }
         }
       }

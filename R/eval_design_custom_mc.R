@@ -178,8 +178,8 @@ eval_design_custom_mc = function(
     stop("skpr: RunMatrix argument deprecated. Use `design` instead.")
   }
   #Convert logical vectors to factors
-  for(i in seq_len(ncol(design))) {
-    if(is.logical(design[[i]])) {
+  for (i in seq_len(ncol(design))) {
+    if (is.logical(design[[i]])) {
       design[[i]] = as.factor(design[[i]])
     }
   }

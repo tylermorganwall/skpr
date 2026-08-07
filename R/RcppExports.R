@@ -5,10 +5,6 @@ skpr_constraints_allowed <- function(points, level_pos, constraints_ir) {
     .Call(`_skpr_skpr_constraints_allowed`, points, level_pos, constraints_ir)
 }
 
-skpr_constraints_allowed_change <- function(row_values, row_codes, constraints_ir, var1, new_value, new_code) {
-    .Call(`_skpr_skpr_constraints_allowed_change`, row_values, row_codes, constraints_ir, var1, new_value, new_code)
-}
-
 DOptimality <- function(currentDesign) {
     .Call(`_skpr_DOptimality`, currentDesign)
 }
@@ -61,12 +57,12 @@ genOptimalDesign <- function(initialdesign, candidatelist, condition, momentsmat
     .Call(`_skpr_genOptimalDesign`, initialdesign, candidatelist, condition, momentsmatrix, initialRows, aliasdesign, aliascandidatelist, minDopt, tolerance, augmentedrows, kexchange)
 }
 
-skpr_ce_select_rows_by_leverage <- function(X, V, kexchange, augmentedrows = 0L) {
-    .Call(`_skpr_skpr_ce_select_rows_by_leverage`, X, V, kexchange, augmentedrows)
+skpr_ce_select_rows_by_leverage <- function(design, inverse, kexchange, augmentedrows = 0L) {
+    .Call(`_skpr_skpr_ce_select_rows_by_leverage`, design, inverse, kexchange, augmentedrows)
 }
 
-genOptimalDesignCoordinateExchangeConstrained <- function(points, factor_levels, modelmatrix_fn, coordinate_groups, group_columns, constraints_ir = NULL, tolerance = 1e-4, kexchange = as.integer( c(NA_INTEGER)), augmentedrows = 0L, max_iter = 200L, recompute_every = 10L, repair_stuck_limit = 5L, repair_max_tries = 2000L, coordinate_group_max_candidates = 10000L) {
-    .Call(`_skpr_genOptimalDesignCoordinateExchangeConstrained`, points, factor_levels, modelmatrix_fn, coordinate_groups, group_columns, constraints_ir, tolerance, kexchange, augmentedrows, max_iter, recompute_every, repair_stuck_limit, repair_max_tries, coordinate_group_max_candidates)
+genOptimalDesignCoordinateExchangeConstrained <- function(points, factor_levels, modelmatrix_fn, coordinate_groups, constraints_ir = NULL, tolerance = 1e-4, kexchange = as.integer( c(NA_INTEGER)), augmentedrows = 0L, max_iter = 200L, recompute_every = 10L, repair_stuck_limit = 5L, repair_max_tries = 2000L, coordinate_group_max_candidates = 10000L) {
+    .Call(`_skpr_genOptimalDesignCoordinateExchangeConstrained`, points, factor_levels, modelmatrix_fn, coordinate_groups, constraints_ir, tolerance, kexchange, augmentedrows, max_iter, recompute_every, repair_stuck_limit, repair_max_tries, coordinate_group_max_candidates)
 }
 
 genSplitPlotOptimalDesign <- function(initialdesign, candidatelist, blockeddesign, condition, momentsmatrix, initialRows, blockedVar, aliasdesign, aliascandidatelist, minDopt, interactions, disallowed, anydisallowed, tolerance, kexchange) {

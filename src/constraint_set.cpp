@@ -1,247 +1,359 @@
 #include "constraint_set.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <limits>
+#include <set>
+#include <string>
 
 using namespace Rcpp;
 
-static std::vector<int> as_int_vec(const IntegerVector &v) {
-  std::vector<int> out(v.size());
-  for (int i = 0; i < v.size(); ++i)
-    out[i] = v[i];
-  return out;
+namespace {
+
+std::vector<int> as_int_vec(const IntegerVector &x) {
+  return std::vector<int>(x.begin(), x.end());
 }
 
-static std::vector<double> as_dbl_vec(const NumericVector &v) {
-  std::vector<double> out(v.size());
-  for (int i = 0; i < v.size(); ++i)
-    out[i] = v[i];
-  return out;
+std::vector<double> as_double_vec(const NumericVector &x) {
+  return std::vector<double>(x.begin(), x.end());
 }
 
-static bool would_overflow_mul_u64(std::uint64_t a, std::uint64_t b) {
-  if (a == 0 || b == 0)
-    return false;
-  return a > (std::numeric_limits<std::uint64_t>::max() / b);
+void require_field(const List &ir, const char *name) {
+  if (!ir.containsElementNamed(name)) {
+    stop("skpr: constraints_ir missing '%s'.", name);
+  }
 }
 
-ConstraintSet::ConstraintSet(const Rcpp::List &ir) {
-  if (!ir.containsElementNamed("q"))
-    stop("skpr: constraints_ir missing 'q'.");
-  q_ = as<int>(ir["q"]);
-  factor_kind_ = as_int_vec(as<IntegerVector>(ir["factor_kind"]));
-  L_ = as_int_vec(as<IntegerVector>(ir["L"]));
+SEXP get_field(const List &ir, const char *name) {
+  require_field(ir, name);
+  return ir[name];
+}
 
-  clause_ptr_ = as_int_vec(as<IntegerVector>(ir["clause_ptr"]));
-  clause_atom_ = as_int_vec(as<IntegerVector>(ir["clause_atom"]));
-
-  atom_type_ = as_int_vec(as<IntegerVector>(ir["atom_type"]));
-  atom_payload_idx_ = as_int_vec(as<IntegerVector>(ir["atom_payload_idx"]));
-
-  cmp_var_ = as_int_vec(as<IntegerVector>(ir["cmp_var"]));
-  cmp_op_ = as_int_vec(as<IntegerVector>(ir["cmp_op"]));
-  cmp_value_ = as_dbl_vec(as<NumericVector>(ir["cmp_value"]));
-
-  in_var_ = as_int_vec(as<IntegerVector>(ir["in_var"]));
-  in_neg_ = as_int_vec(as<IntegerVector>(ir["in_neg"]));
-  in_ptr_ = as_int_vec(as<IntegerVector>(ir["in_ptr"]));
-  in_values_ = as_dbl_vec(as<NumericVector>(ir["in_values"]));
-
-  lin_op_ = as_int_vec(as<IntegerVector>(ir["lin_op"]));
-  lin_rhs_ = as_dbl_vec(as<NumericVector>(ir["lin_rhs"]));
-  lin_const_ = as_dbl_vec(as<NumericVector>(ir["lin_const"]));
-  lin_ptr_ = as_int_vec(as<IntegerVector>(ir["lin_ptr"]));
-  lin_idx_ = as_int_vec(as<IntegerVector>(ir["lin_idx"]));
-  lin_coef_ = as_dbl_vec(as<NumericVector>(ir["lin_coef"]));
-
-  forb_ptr_ = as_int_vec(as<IntegerVector>(ir["forb_ptr"]));
-  forb_idx_ = as_int_vec(as<IntegerVector>(ir["forb_idx"]));
-  forb_value_ = as_dbl_vec(as<NumericVector>(ir["forb_value"]));
-
-  value_offset_.assign(q_, 0.0);
-  value_scale_.assign(q_, 1.0);
-  if (ir.containsElementNamed("value_offset")) {
-    value_offset_ = as_dbl_vec(as<NumericVector>(ir["value_offset"]));
-    if (static_cast<int>(value_offset_.size()) != q_) {
-      stop("skpr: constraints_ir value_offset length must equal q.");
+IntegerVector require_integer_vector(const List &ir, const char *name) {
+  SEXP value = get_field(ir, name);
+  if (TYPEOF(value) != INTSXP) {
+    stop("skpr: constraints_ir %s must be integer.", name);
+  }
+  IntegerVector result(value);
+  for (int item : result) {
+    if (item == NA_INTEGER) {
+      stop("skpr: constraints_ir %s cannot contain NA.", name);
     }
   }
-  if (ir.containsElementNamed("value_scale")) {
-    value_scale_ = as_dbl_vec(as<NumericVector>(ir["value_scale"]));
-    if (static_cast<int>(value_scale_.size()) != q_) {
-      stop("skpr: constraints_ir value_scale length must equal q.");
+  return result;
+}
+
+int require_integer_scalar(const List &ir, const char *name) {
+  IntegerVector value = require_integer_vector(ir, name);
+  if (value.size() != 1) {
+    stop("skpr: constraints_ir %s must be an integer scalar.", name);
+  }
+  return value[0];
+}
+
+NumericVector require_numeric_vector(const List &ir, const char *name) {
+  SEXP value = get_field(ir, name);
+  if (TYPEOF(value) != REALSXP && TYPEOF(value) != INTSXP) {
+    stop("skpr: constraints_ir %s must be numeric.", name);
+  }
+  return as<NumericVector>(value);
+}
+
+double require_numeric_scalar(const List &ir, const char *name) {
+  NumericVector value = require_numeric_vector(ir, name);
+  if (value.size() != 1 || !std::isfinite(value[0])) {
+    stop("skpr: constraints_ir %s must be a finite numeric scalar.", name);
+  }
+  return value[0];
+}
+
+void validate_pointer(const std::vector<int> &ptr, int payload_size,
+                      const char *name) {
+  if (ptr.empty() || ptr.front() != 0) {
+    stop("skpr: constraints_ir %s must start at zero.", name);
+  }
+  for (std::size_t i = 1; i < ptr.size(); ++i) {
+    if (ptr[i] < ptr[i - 1]) {
+      stop("skpr: constraints_ir %s must be monotone.", name);
     }
   }
+  if (ptr.back() != payload_size) {
+    stop("skpr: constraints_ir %s terminal value is invalid.", name);
+  }
+}
+
+void validate_finite(const std::vector<double> &x, const char *name) {
+  for (double value : x) {
+    if (!std::isfinite(value)) {
+      stop("skpr: constraints_ir %s must contain finite values.", name);
+    }
+  }
+}
+
+} // namespace
+
+ConstraintSet::ConstraintSet(const List &ir) {
+  const char *required[] = {
+      "version",          "q",          "comparison_tol", "factor_kind",
+      "L",                "level_ptr",  "level_value",    "clause_ptr",
+      "clause_atom",      "atom_type",  "atom_payload_idx", "cmp_var",
+      "cmp_op",           "cmp_code",   "in_var",         "in_neg",
+      "in_ptr",           "in_code",    "lin_op",         "lin_rhs",
+      "lin_const",        "lin_ptr",    "lin_idx",        "lin_coef",
+      "forb_ptr",         "forb_idx",   "forb_code",      "forbidden_tables"};
+  for (const char *name : required) {
+    require_field(ir, name);
+  }
+
+  const int version = require_integer_scalar(ir, "version");
+  if (version != 1) {
+    stop("skpr: unsupported constraints_ir version; expected version 1.");
+  }
+
+  q_ = require_integer_scalar(ir, "q");
+  if (q_ <= 0) {
+    stop("skpr: constraints_ir q must be positive.");
+  }
+  comparison_tol_ = require_numeric_scalar(ir, "comparison_tol");
+  if (comparison_tol_ < 0.0) {
+    stop("skpr: constraints_ir comparison_tol must be finite and nonnegative.");
+  }
+
+  factor_kind_ = as_int_vec(require_integer_vector(ir, "factor_kind"));
+  L_ = as_int_vec(require_integer_vector(ir, "L"));
+  level_ptr_ = as_int_vec(require_integer_vector(ir, "level_ptr"));
+  level_value_ = as_double_vec(require_numeric_vector(ir, "level_value"));
+
+  clause_ptr_ = as_int_vec(require_integer_vector(ir, "clause_ptr"));
+  clause_atom_ = as_int_vec(require_integer_vector(ir, "clause_atom"));
+  atom_type_ = as_int_vec(require_integer_vector(ir, "atom_type"));
+  atom_payload_idx_ = as_int_vec(
+      require_integer_vector(ir, "atom_payload_idx"));
+
+  cmp_var_ = as_int_vec(require_integer_vector(ir, "cmp_var"));
+  cmp_op_ = as_int_vec(require_integer_vector(ir, "cmp_op"));
+  cmp_code_ = as_int_vec(require_integer_vector(ir, "cmp_code"));
+  in_var_ = as_int_vec(require_integer_vector(ir, "in_var"));
+  in_neg_ = as_int_vec(require_integer_vector(ir, "in_neg"));
+  in_ptr_ = as_int_vec(require_integer_vector(ir, "in_ptr"));
+  in_code_ = as_int_vec(require_integer_vector(ir, "in_code"));
+
+  lin_op_ = as_int_vec(require_integer_vector(ir, "lin_op"));
+  lin_rhs_ = as_double_vec(require_numeric_vector(ir, "lin_rhs"));
+  lin_const_ = as_double_vec(require_numeric_vector(ir, "lin_const"));
+  lin_ptr_ = as_int_vec(require_integer_vector(ir, "lin_ptr"));
+  lin_idx_ = as_int_vec(require_integer_vector(ir, "lin_idx"));
+  lin_coef_ = as_double_vec(require_numeric_vector(ir, "lin_coef"));
+
+  forb_ptr_ = as_int_vec(require_integer_vector(ir, "forb_ptr"));
+  forb_idx_ = as_int_vec(require_integer_vector(ir, "forb_idx"));
+  forb_code_ = as_int_vec(require_integer_vector(ir, "forb_code"));
 
   if (static_cast<int>(factor_kind_.size()) != q_ ||
       static_cast<int>(L_.size()) != q_) {
     stop("skpr: constraints_ir factor_kind/L lengths must equal q.");
   }
-
-  const int n_atoms = static_cast<int>(atom_type_.size());
-  const int n_clauses = static_cast<int>(clause_ptr_.size()) - 1;
-  if (n_clauses < 0)
-    stop("skpr: constraints_ir invalid clause_ptr.");
-
-  atoms_by_factor_.assign(q_, std::vector<int>());
-  clauses_by_atom_.assign(n_atoms, std::vector<int>());
-
-  for (int c = 0; c < n_clauses; ++c) {
-    const int a0 = clause_ptr_[c];
-    const int a1 = clause_ptr_[c + 1];
-    for (int k = a0; k < a1; ++k) {
-      const int atom_id = clause_atom_[k];
-      if (atom_id < 0 || atom_id >= n_atoms)
-        stop("skpr: constraints_ir clause_atom out of range.");
-      clauses_by_atom_[atom_id].push_back(c);
-    }
+  if (static_cast<int>(level_ptr_.size()) != q_ + 1) {
+    stop("skpr: constraints_ir level_ptr length must equal q + 1.");
   }
-
-  for (int a = 0; a < n_atoms; ++a) {
-    const int t = atom_type_[a];
-    const int u = atom_payload_idx_[a];
-
-    if (t == 1) {
-      const int v = cmp_var_[u];
-      if (v < 0 || v >= q_)
-        stop("skpr: constraints_ir cmp var out of range.");
-      atoms_by_factor_[v].push_back(a);
-    } else if (t == 2) {
-      const int v = in_var_[u];
-      if (v < 0 || v >= q_)
-        stop("skpr: constraints_ir in var out of range.");
-      atoms_by_factor_[v].push_back(a);
-    } else if (t == 3) {
-      const int start = lin_ptr_[u];
-      const int end = lin_ptr_[u + 1];
-      for (int k = start; k < end; ++k) {
-        const int v = lin_idx_[k];
-        if (v < 0 || v >= q_)
-          stop("skpr: constraints_ir lin idx out of range.");
-        atoms_by_factor_[v].push_back(a);
-      }
-    } else if (t == 4) {
-      const int start = forb_ptr_[u];
-      const int end = forb_ptr_[u + 1];
-      for (int k = start; k < end; ++k) {
-        const int v = forb_idx_[k];
-        if (v < 0 || v >= q_)
-          stop("skpr: constraints_ir forb idx out of range.");
-        atoms_by_factor_[v].push_back(a);
-      }
-    } else {
-      stop("skpr: constraints_ir unknown atom_type.");
+  validate_pointer(level_ptr_, static_cast<int>(level_value_.size()),
+                   "level_ptr");
+  validate_finite(level_value_, "level_value");
+  for (int j = 0; j < q_; ++j) {
+    if (factor_kind_[j] != 0 && factor_kind_[j] != 1) {
+      stop("skpr: constraints_ir factor_kind entries must be zero or one.");
     }
-  }
-
-  const int n_in = static_cast<int>(in_var_.size());
-  in_mask_ptr_.assign(n_in + 1, 0);
-  in_mask_.clear();
-
-  int offset = 0;
-  for (int u = 0; u < n_in; ++u) {
-    const int v = in_var_[u];
-    const int Lv = (v >= 0 && v < q_) ? L_[v] : 0;
-
-    if (v >= 0 && v < q_ && factor_kind_[v] == 0 && Lv > 0) {
-      in_mask_ptr_[u] = offset;
-      in_mask_.resize(offset + Lv);
-      std::fill(in_mask_.begin() + offset, in_mask_.begin() + offset + Lv, 0);
-      const int start = in_ptr_[u];
-      const int end = in_ptr_[u + 1];
-      for (int k = start; k < end; ++k) {
-        const int code = static_cast<int>(std::llround(in_values_[k]));
-        if (code >= 0 && code < Lv)
-          in_mask_[offset + code] = 1;
-      }
-      offset += Lv;
-    } else {
-      in_mask_ptr_[u] = -1;
+    if (L_[j] <= 0 || level_ptr_[j + 1] - level_ptr_[j] != L_[j]) {
+      stop("skpr: constraints_ir level table length must match L.");
     }
-  }
-  in_mask_ptr_[n_in] = offset;
-
-  for (int u = 0; u < n_in; ++u) {
-    const int v = in_var_[u];
-    if (v >= 0 && v < q_ && factor_kind_[v] == 1) {
-      const int start = in_ptr_[u];
-      const int end = in_ptr_[u + 1];
-      if (end - start > 1) {
-        std::sort(in_values_.begin() + start, in_values_.begin() + end);
-      }
-    }
-  }
-
-  init_forbid_tables(ir);
-}
-
-void ConstraintSet::init_forbid_tables(const Rcpp::List &ir) {
-  forb_tables_.clear();
-  if (!ir.containsElementNamed("forbidden_tables"))
-    return;
-
-  Rcpp::List tabs = ir["forbidden_tables"];
-  if (tabs.size() == 0)
-    return;
-
-  forb_tables_.reserve(tabs.size());
-  for (int t = 0; t < tabs.size(); ++t) {
-    Rcpp::List tabR = tabs[t];
-    IntegerVector idxR = tabR["idx"];     // 0-based indices
-    IntegerMatrix codesR = tabR["codes"]; // n_forb x m codes as level positions
-
-    ForbidTable tab;
-    tab.idx = as_int_vec(idxR);
-    const int m = tab.m();
-    if (m <= 0)
-      stop("skpr: forbidden_tables element has empty idx.");
-    if (codesR.ncol() != m)
-      stop("skpr: forbidden_tables codes ncol mismatch.");
-
-    tab.stride.assign(m, 0);
-    tab.packed_ok = true;
-    std::uint64_t s = 1;
-    for (int j = 0; j < m; ++j) {
-      const int v = tab.idx[j];
-      if (v < 0 || v >= q_)
-        stop("skpr: forbidden_tables idx out of range.");
-      const int Lv = L_[v];
-      if (Lv <= 0) {
-        tab.packed_ok = false;
-        break;
-      }
-      tab.stride[j] = s;
-      if (would_overflow_mul_u64(s, static_cast<std::uint64_t>(Lv))) {
-        tab.packed_ok = false;
-        break;
-      }
-      s *= static_cast<std::uint64_t>(Lv);
-    }
-
-    const int n_forb = codesR.nrow();
-    if (tab.packed_ok) {
-      tab.keys.reserve(static_cast<size_t>(n_forb) * 2);
-      for (int r = 0; r < n_forb; ++r) {
-        std::uint64_t key = 0;
-        for (int j = 0; j < m; ++j) {
-          const int code = codesR(r, j);
-          key += static_cast<std::uint64_t>(code) * tab.stride[j];
+    if (factor_kind_[j] == 1) {
+      for (int code = 1; code < L_[j]; ++code) {
+        if (!(level_value(j, code) > level_value(j, code - 1))) {
+          stop("skpr: numeric constraint levels must be strictly increasing.");
         }
-        tab.keys.insert(key);
-      }
-    } else {
-      tab.tuples.reserve(n_forb);
-      for (int r = 0; r < n_forb; ++r) {
-        std::vector<int> tup(m);
-        for (int j = 0; j < m; ++j)
-          tup[j] = codesR(r, j);
-        tab.tuples.push_back(tup);
       }
     }
+  }
 
-    forb_tables_.push_back(std::move(tab));
+  validate_pointer(clause_ptr_, static_cast<int>(clause_atom_.size()),
+                   "clause_ptr");
+  if (atom_type_.size() != atom_payload_idx_.size()) {
+    stop("skpr: constraints_ir atom arrays must have equal lengths.");
+  }
+  for (int atom : clause_atom_) {
+    if (atom < 0 || atom >= static_cast<int>(atom_type_.size())) {
+      stop("skpr: constraints_ir clause_atom out of range.");
+    }
+  }
+
+  if (cmp_var_.size() != cmp_op_.size() ||
+      cmp_var_.size() != cmp_code_.size()) {
+    stop("skpr: constraints_ir comparison arrays must have equal lengths.");
+  }
+  for (std::size_t i = 0; i < cmp_var_.size(); ++i) {
+    const int var = cmp_var_[i];
+    if (var < 0 || var >= q_ || cmp_op_[i] < 1 || cmp_op_[i] > 6 ||
+        cmp_code_[i] < 0 || cmp_code_[i] >= L_[var]) {
+      stop("skpr: constraints_ir comparison payload is invalid.");
+    }
+    if (factor_kind_[var] == 0 && cmp_op_[i] > 2) {
+      stop("skpr: ordering comparisons are invalid for discrete factors.");
+    }
+  }
+
+  if (in_var_.size() != in_neg_.size() ||
+      in_ptr_.size() != in_var_.size() + 1) {
+    stop("skpr: constraints_ir membership arrays have invalid lengths.");
+  }
+  validate_pointer(in_ptr_, static_cast<int>(in_code_.size()), "in_ptr");
+  for (std::size_t i = 0; i < in_var_.size(); ++i) {
+    const int var = in_var_[i];
+    if (var < 0 || var >= q_ || (in_neg_[i] != 0 && in_neg_[i] != 1) ||
+        in_ptr_[i] == in_ptr_[i + 1]) {
+      stop("skpr: constraints_ir membership payload is invalid.");
+    }
+    for (int k = in_ptr_[i]; k < in_ptr_[i + 1]; ++k) {
+      if (in_code_[k] < 0 || in_code_[k] >= L_[var]) {
+        stop("skpr: constraints_ir membership code out of range.");
+      }
+    }
+  }
+
+  if (lin_op_.size() != lin_rhs_.size() ||
+      lin_op_.size() != lin_const_.size() ||
+      lin_ptr_.size() != lin_op_.size() + 1 ||
+      lin_idx_.size() != lin_coef_.size()) {
+    stop("skpr: constraints_ir linear arrays have invalid lengths.");
+  }
+  validate_pointer(lin_ptr_, static_cast<int>(lin_idx_.size()), "lin_ptr");
+  validate_finite(lin_rhs_, "lin_rhs");
+  validate_finite(lin_const_, "lin_const");
+  validate_finite(lin_coef_, "lin_coef");
+  for (std::size_t i = 0; i < lin_op_.size(); ++i) {
+    if (lin_op_[i] < 1 || lin_op_[i] > 6 ||
+        lin_ptr_[i] == lin_ptr_[i + 1]) {
+      stop("skpr: constraints_ir linear payload is invalid.");
+    }
+    std::set<int> seen;
+    for (int k = lin_ptr_[i]; k < lin_ptr_[i + 1]; ++k) {
+      const int var = lin_idx_[k];
+      if (var < 0 || var >= q_ || factor_kind_[var] != 1 ||
+          !seen.insert(var).second) {
+        stop("skpr: constraints_ir linear factor index is invalid.");
+      }
+    }
+  }
+
+  if (forb_ptr_.empty()) {
+    stop("skpr: constraints_ir forb_ptr cannot be empty.");
+  }
+  const int forbidden_atom_count =
+      static_cast<int>(std::count(atom_type_.begin(), atom_type_.end(), 4));
+  if (static_cast<int>(forb_ptr_.size()) != forbidden_atom_count + 1) {
+    stop("skpr: constraints_ir forb_ptr has the wrong length.");
+  }
+  if (forb_idx_.size() != forb_code_.size()) {
+    stop("skpr: constraints_ir forbidden atom arrays must have equal lengths.");
+  }
+  validate_pointer(forb_ptr_, static_cast<int>(forb_idx_.size()), "forb_ptr");
+  for (std::size_t i = 0; i + 1 < forb_ptr_.size(); ++i) {
+    if (forb_ptr_[i] == forb_ptr_[i + 1]) {
+      stop("skpr: constraints_ir forbidden atoms cannot be empty.");
+    }
+    std::set<int> seen;
+    for (int k = forb_ptr_[i]; k < forb_ptr_[i + 1]; ++k) {
+      const int var = forb_idx_[k];
+      if (var < 0 || var >= q_ || forb_code_[k] < 0 ||
+          forb_code_[k] >= L_[var] || !seen.insert(var).second) {
+        stop("skpr: constraints_ir forbidden atom payload is invalid.");
+      }
+    }
+  }
+
+  for (std::size_t atom = 0; atom < atom_type_.size(); ++atom) {
+    const int type = atom_type_[atom];
+    const int payload = atom_payload_idx_[atom];
+    int payload_count = 0;
+    if (type == 1) {
+      payload_count = static_cast<int>(cmp_var_.size());
+    } else if (type == 2) {
+      payload_count = static_cast<int>(in_var_.size());
+    } else if (type == 3) {
+      payload_count = static_cast<int>(lin_op_.size());
+    } else if (type == 4) {
+      payload_count = static_cast<int>(forb_ptr_.size()) - 1;
+    } else {
+      stop("skpr: constraints_ir atom_type is invalid.");
+    }
+    if (payload < 0 || payload >= payload_count) {
+      stop("skpr: constraints_ir atom_payload_idx out of range.");
+    }
+  }
+
+  SEXP tables_sexp = get_field(ir, "forbidden_tables");
+  if (TYPEOF(tables_sexp) != VECSXP) {
+    stop("skpr: constraints_ir forbidden_tables must be a list.");
+  }
+  List tables(tables_sexp);
+  forb_tables_.reserve(tables.size());
+  for (int table_index = 0; table_index < tables.size(); ++table_index) {
+    if (TYPEOF(tables[table_index]) != VECSXP) {
+      stop("skpr: constraints_ir forbidden table must be a list.");
+    }
+    List table_r = tables[table_index];
+    require_field(table_r, "idx");
+    require_field(table_r, "codes");
+    IntegerVector idx_r = require_integer_vector(table_r, "idx");
+    SEXP codes_sexp = get_field(table_r, "codes");
+    if (TYPEOF(codes_sexp) != INTSXP || !Rf_isMatrix(codes_sexp)) {
+      stop("skpr: constraints_ir forbidden table codes must be an integer matrix.");
+    }
+    IntegerMatrix codes_r(codes_sexp);
+    if (idx_r.size() <= 0 || codes_r.ncol() != idx_r.size() ||
+        codes_r.nrow() <= 0) {
+      stop("skpr: constraints_ir forbidden table dimensions are invalid.");
+    }
+
+    ForbidTable table;
+    table.idx = as_int_vec(idx_r);
+    std::set<int> seen;
+    for (int var : table.idx) {
+      if (var < 0 || var >= q_ || !seen.insert(var).second) {
+        stop("skpr: constraints_ir forbidden table index is invalid.");
+      }
+    }
+    std::set<std::vector<int>> unique_rows;
+    for (int row = 0; row < codes_r.nrow(); ++row) {
+      std::vector<int> tuple(table.idx.size());
+      for (int col = 0; col < codes_r.ncol(); ++col) {
+        const int code = codes_r(row, col);
+        if (code == NA_INTEGER || code < 0 || code >= L_[table.idx[col]]) {
+          stop("skpr: constraints_ir forbidden table code is invalid.");
+        }
+        tuple[col] = code;
+      }
+      unique_rows.insert(tuple);
+    }
+    table.tuples.assign(unique_rows.begin(), unique_rows.end());
+    forb_tables_.push_back(std::move(table));
   }
 }
 
-bool ConstraintSet::relop(double lhs, int op, double rhs) {
+double ConstraintSet::level_value(int var, int code) const {
+  return level_value_[level_ptr_[var] + code];
+}
+
+void ConstraintSet::validate_codes(const int *row_codes) const {
+  for (int var = 0; var < q_; ++var) {
+    if (row_codes[var] == NA_INTEGER || row_codes[var] < 0 ||
+        row_codes[var] >= L_[var]) {
+      stop("skpr: constraint row code is out of range.");
+    }
+  }
+}
+
+bool ConstraintSet::code_relop(int lhs, int op, int rhs) {
   if (op == 1)
     return lhs == rhs;
   if (op == 2)
@@ -252,518 +364,246 @@ bool ConstraintSet::relop(double lhs, int op, double rhs) {
     return lhs <= rhs;
   if (op == 5)
     return lhs > rhs;
-  if (op == 6)
-    return lhs >= rhs;
+  return lhs >= rhs;
+}
+
+bool ConstraintSet::relop(double lhs, int op, double rhs) const {
+  const double band =
+      comparison_tol_ * std::max(1.0, std::max(std::fabs(lhs), std::fabs(rhs)));
+  const double difference = lhs - rhs;
+  if (op == 1)
+    return std::fabs(difference) <= band;
+  if (op == 2)
+    return std::fabs(difference) > band;
+  if (op == 3)
+    return difference < -band;
+  if (op == 4)
+    return difference <= band;
+  if (op == 5)
+    return difference > band;
+  return difference >= -band;
+}
+
+bool ConstraintSet::membership(int payload, int code) const {
+  return std::binary_search(in_code_.begin() + in_ptr_[payload],
+                            in_code_.begin() + in_ptr_[payload + 1], code);
+}
+
+bool ConstraintSet::atom_true(int atom_id, const int *row_codes) const {
+  const int type = atom_type_[atom_id];
+  const int payload = atom_payload_idx_[atom_id];
+  if (type == 1) {
+    return code_relop(row_codes[cmp_var_[payload]], cmp_op_[payload],
+                      cmp_code_[payload]);
+  }
+  if (type == 2) {
+    const bool found = membership(payload, row_codes[in_var_[payload]]);
+    return in_neg_[payload] ? !found : found;
+  }
+  if (type == 3) {
+    double lhs = lin_const_[payload];
+    for (int k = lin_ptr_[payload]; k < lin_ptr_[payload + 1]; ++k) {
+      lhs += lin_coef_[k] * level_value(lin_idx_[k], row_codes[lin_idx_[k]]);
+    }
+    return relop(lhs, lin_op_[payload], lin_rhs_[payload]);
+  }
+
+  for (int k = forb_ptr_[payload]; k < forb_ptr_[payload + 1]; ++k) {
+    if (row_codes[forb_idx_[k]] != forb_code_[k]) {
+      return true;
+    }
+  }
   return false;
 }
 
-double ConstraintSet::to_constraint_value(int var, double raw_value) const {
-  if (var >= 0 && var < q_ && factor_kind_[var] == 1) {
-    return value_offset_[var] + value_scale_[var] * raw_value;
-  }
-  return raw_value;
-}
-
-double ConstraintSet::get_value(const Eigen::RowVectorXd &row_values,
-                                int var_changed, double new_value,
-                                int var_query) const {
-  const double raw =
-      (var_query == var_changed) ? new_value : row_values(var_query);
-  return to_constraint_value(var_query, raw);
-}
-
-double ConstraintSet::lin_coef_for_var(int lin_payload, int var) const {
-  const int start = lin_ptr_[lin_payload];
-  const int end = lin_ptr_[lin_payload + 1];
-  for (int k = start; k < end; ++k) {
-    if (lin_idx_[k] == var)
-      return lin_coef_[k];
-  }
-  return 0.0;
-}
-
-double ConstraintSet::lin_lhs_current(const Eigen::RowVectorXd &row_values,
-                                      int lin_payload) const {
-  double lhs = lin_const_[lin_payload];
-  const int start = lin_ptr_[lin_payload];
-  const int end = lin_ptr_[lin_payload + 1];
-  for (int k = start; k < end; ++k) {
-    const int v = lin_idx_[k];
-    lhs += lin_coef_[k] * to_constraint_value(v, row_values(v));
-  }
-  return lhs;
-}
-
-double ConstraintSet::lin_lhs_changed(const RowCache &cache, int lin_payload,
-                                      int var_changed, double old_value,
-                                      double new_value) const {
-  const double coef = lin_coef_for_var(lin_payload, var_changed);
-  double delta = (new_value - old_value);
-  if (var_changed >= 0 && var_changed < q_ && factor_kind_[var_changed] == 1) {
-    delta *= value_scale_[var_changed];
-  }
-  return cache.lin_lhs[lin_payload] + coef * delta;
-}
-
-bool ConstraintSet::in_membership(int in_payload, double value,
-                                  int code) const {
-  const int v = in_var_[in_payload];
-  if (v >= 0 && v < q_ && factor_kind_[v] == 0 &&
-      in_mask_ptr_[in_payload] >= 0) {
-    const int Lv = L_[v];
-    if (code < 0 || code >= Lv)
-      return false;
-    return in_mask_[in_mask_ptr_[in_payload] + code] != 0;
-  }
-
-  const int start = in_ptr_[in_payload];
-  const int end = in_ptr_[in_payload + 1];
-  if (end <= start)
+bool ConstraintSet::atom_possible(int atom_id, const int *row_codes,
+                                  const unsigned char *assigned) const {
+  const int type = atom_type_[atom_id];
+  const int payload = atom_payload_idx_[atom_id];
+  if (type == 1) {
+    const int var = cmp_var_[payload];
+    if (assigned[var]) {
+      return code_relop(row_codes[var], cmp_op_[payload], cmp_code_[payload]);
+    }
+    for (int code = 0; code < L_[var]; ++code) {
+      if (code_relop(code, cmp_op_[payload], cmp_code_[payload])) {
+        return true;
+      }
+    }
     return false;
-  const double *b = &in_values_[start];
-  const double *e = &in_values_[end];
-  return std::binary_search(b, e, value);
-}
-
-unsigned char
-ConstraintSet::eval_atom_current(const Eigen::RowVectorXd &row_values,
-                                 const int *row_codes, const RowCache &cache,
-                                 int atom_id) const {
-  const int t = atom_type_[atom_id];
-  const int u = atom_payload_idx_[atom_id];
-
-  if (t == 1) {
-    const int v = cmp_var_[u];
-    if (factor_kind_[v] == 0) {
-      const int x = row_codes[v];
-      const int c = static_cast<int>(std::llround(cmp_value_[u]));
-      return relop(static_cast<double>(x), cmp_op_[u], static_cast<double>(c))
-                 ? 1
-                 : 0;
+  }
+  if (type == 2) {
+    const int var = in_var_[payload];
+    if (assigned[var]) {
+      const bool found = membership(payload, row_codes[var]);
+      return in_neg_[payload] ? !found : found;
     }
-    return relop(to_constraint_value(v, row_values(v)), cmp_op_[u], cmp_value_[u])
-               ? 1
-               : 0;
+    for (int code = 0; code < L_[var]; ++code) {
+      const bool found = membership(payload, code);
+      if (in_neg_[payload] ? !found : found) {
+        return true;
+      }
+    }
+    return false;
   }
-
-  if (t == 2) {
-    const int v = in_var_[u];
-    const int code = (factor_kind_[v] == 0) ? row_codes[v] : -1;
-    const bool in = in_membership(u, to_constraint_value(v, row_values(v)), code);
-    const bool neg = (in_neg_[u] != 0);
-    return (neg ? !in : in) ? 1 : 0;
-  }
-
-  if (t == 3) {
-    const double lhs = cache.lin_lhs[u];
-    return relop(lhs, lin_op_[u], lin_rhs_[u]) ? 1 : 0;
-  }
-
-  if (t == 4) {
-    const int start = forb_ptr_[u];
-    const int end = forb_ptr_[u + 1];
-    for (int k = start; k < end; ++k) {
-      const int v = forb_idx_[k];
-      if (factor_kind_[v] == 0) {
-        const int x = row_codes[v];
-        const int c = static_cast<int>(std::llround(forb_value_[k]));
-        if (x != c)
-          return 1;
+  if (type == 3) {
+    double minimum = lin_const_[payload];
+    double maximum = lin_const_[payload];
+    for (int k = lin_ptr_[payload]; k < lin_ptr_[payload + 1]; ++k) {
+      const int var = lin_idx_[k];
+      const double coefficient = lin_coef_[k];
+      if (assigned[var]) {
+        const double contribution = coefficient * level_value(var, row_codes[var]);
+        minimum += contribution;
+        maximum += contribution;
       } else {
-        if (to_constraint_value(v, row_values(v)) != forb_value_[k])
-          return 1;
+        const double low = coefficient * level_value(var, 0);
+        const double high = coefficient * level_value(var, L_[var] - 1);
+        minimum += std::min(low, high);
+        maximum += std::max(low, high);
       }
     }
-    return 0;
+    const double rhs = lin_rhs_[payload];
+    const int op = lin_op_[payload];
+    if (op == 1)
+      return relop(minimum, 4, rhs) && relop(maximum, 6, rhs);
+    if (op == 2)
+      return !(relop(minimum, 1, rhs) && relop(maximum, 1, rhs));
+    if (op == 3)
+      return relop(minimum, 3, rhs);
+    if (op == 4)
+      return relop(minimum, 4, rhs);
+    if (op == 5)
+      return relop(maximum, 5, rhs);
+    return relop(maximum, 6, rhs);
   }
 
-  return 0;
-}
-
-unsigned char
-ConstraintSet::eval_atom_changed(const Eigen::RowVectorXd &row_values,
-                                 const int *row_codes, const RowCache &cache,
-                                 int atom_id, int var_changed, double new_value,
-                                 int new_code) const {
-  const int t = atom_type_[atom_id];
-  const int u = atom_payload_idx_[atom_id];
-
-  if (t == 1) {
-    const int v = cmp_var_[u];
-    if (factor_kind_[v] == 0) {
-      const int x = (v == var_changed) ? new_code : row_codes[v];
-      const int c = static_cast<int>(std::llround(cmp_value_[u]));
-      return relop(static_cast<double>(x), cmp_op_[u], static_cast<double>(c))
-                 ? 1
-                 : 0;
-    }
-    const double x = get_value(row_values, var_changed, new_value, v);
-    return relop(x, cmp_op_[u], cmp_value_[u]) ? 1 : 0;
-  }
-
-  if (t == 2) {
-    const int v = in_var_[u];
-    const int code = (factor_kind_[v] == 0)
-                         ? ((v == var_changed) ? new_code : row_codes[v])
-                         : -1;
-    const double x = get_value(row_values, var_changed, new_value, v);
-    const bool in = in_membership(u, x, code);
-    const bool neg = (in_neg_[u] != 0);
-    return (neg ? !in : in) ? 1 : 0;
-  }
-
-  if (t == 3) {
-    const double old_value = row_values(var_changed);
-    const double lhs =
-        lin_lhs_changed(cache, u, var_changed, old_value, new_value);
-    return relop(lhs, lin_op_[u], lin_rhs_[u]) ? 1 : 0;
-  }
-
-  if (t == 4) {
-    const int start = forb_ptr_[u];
-    const int end = forb_ptr_[u + 1];
-    for (int k = start; k < end; ++k) {
-      const int v = forb_idx_[k];
-      if (factor_kind_[v] == 0) {
-        const int x = (v == var_changed) ? new_code : row_codes[v];
-        const int c = static_cast<int>(std::llround(forb_value_[k]));
-        if (x != c)
-          return 1;
-      } else {
-        const double x = get_value(row_values, var_changed, new_value, v);
-        if (x != forb_value_[k])
-          return 1;
+  for (int k = forb_ptr_[payload]; k < forb_ptr_[payload + 1]; ++k) {
+    const int var = forb_idx_[k];
+    if (assigned[var]) {
+      if (row_codes[var] != forb_code_[k]) {
+        return true;
       }
+    } else if (L_[var] > 1) {
+      return true;
+    } else if (forb_code_[k] != 0) {
+      return true;
     }
-    return 0;
   }
-
-  return 0;
+  return false;
 }
 
-std::uint64_t ConstraintSet::pack_key(const ForbidTable &tab,
-                                      const int *row_codes) const {
-  std::uint64_t key = 0;
-  const int m = tab.m();
-  for (int j = 0; j < m; ++j) {
-    const int v = tab.idx[j];
-    key += static_cast<std::uint64_t>(row_codes[v]) * tab.stride[j];
-  }
-  return key;
-}
-
-unsigned char ConstraintSet::forbid_hit_current(const int *row_codes,
-                                                RowCache &cache) const {
-  if (forb_tables_.empty())
-    return 0;
-
-  unsigned char any_hit = 0;
-  for (size_t t = 0; t < forb_tables_.size(); ++t) {
-    const ForbidTable &tab = forb_tables_[t];
-    unsigned char hit = 0;
-    if (tab.packed_ok) {
-      std::uint64_t key = pack_key(tab, row_codes);
-      cache.forb_key[t] = key;
-      hit = (tab.keys.find(key) != tab.keys.end()) ? 1 : 0;
-    } else {
-      const int m = tab.m();
-      for (size_t r = 0; r < tab.tuples.size(); ++r) {
-        bool match = true;
-        for (int j = 0; j < m; ++j) {
-          const int v = tab.idx[j];
-          if (row_codes[v] != tab.tuples[r][j]) {
-            match = false;
-            break;
-          }
-        }
-        if (match) {
-          hit = 1;
-          break;
-        }
-      }
-    }
-    cache.forb_hit[t] = hit;
-    if (hit)
-      any_hit = 1;
-  }
-  return any_hit;
-}
-
-unsigned char ConstraintSet::forbid_hit_changed(const int *row_codes,
-                                                const RowCache &cache, int var,
-                                                int old_code,
-                                                int new_code) const {
-  if (forb_tables_.empty())
-    return 0;
-
-  for (size_t t = 0; t < forb_tables_.size(); ++t) {
-    const ForbidTable &tab = forb_tables_[t];
-
-    int pos = -1;
-    for (int j = 0; j < tab.m(); ++j) {
-      if (tab.idx[j] == var) {
-        pos = j;
+bool ConstraintSet::forbidden_table_hit(const ForbidTable &table,
+                                        const int *row_codes) const {
+  for (const std::vector<int> &tuple : table.tuples) {
+    bool match = true;
+    for (std::size_t col = 0; col < table.idx.size(); ++col) {
+      if (row_codes[table.idx[col]] != tuple[col]) {
+        match = false;
         break;
       }
     }
+    if (match)
+      return true;
+  }
+  return false;
+}
 
-    unsigned char hit = cache.forb_hit[t];
-    if (pos >= 0) {
-      if (tab.packed_ok) {
-        const std::uint64_t key_old = cache.forb_key[t];
-        const std::int64_t delta =
-            static_cast<std::int64_t>(new_code) -
-            static_cast<std::int64_t>(old_code);
-        std::uint64_t key_new = key_old;
-        if (delta >= 0) {
-          key_new += static_cast<std::uint64_t>(delta) * tab.stride[pos];
-        } else {
-          key_new -= static_cast<std::uint64_t>(-delta) * tab.stride[pos];
-        }
-        hit = (tab.keys.find(key_new) != tab.keys.end()) ? 1 : 0;
-      } else {
-        hit = 0;
-        const int m = tab.m();
-        for (size_t r = 0; r < tab.tuples.size(); ++r) {
-          bool match = true;
-          for (int j = 0; j < m; ++j) {
-            const int v = tab.idx[j];
-            const int code = (v == var) ? new_code : row_codes[v];
-            if (code != tab.tuples[r][j]) {
-              match = false;
-              break;
-            }
-          }
-          if (match) {
-            hit = 1;
-            break;
-          }
-        }
+bool ConstraintSet::forbidden_table_covers_completions(
+    const ForbidTable &table, const int *row_codes,
+    const unsigned char *assigned) const {
+  std::vector<int> open_columns;
+  std::uint64_t combinations = 1;
+  for (std::size_t col = 0; col < table.idx.size(); ++col) {
+    const int var = table.idx[col];
+    if (!assigned[var]) {
+      open_columns.push_back(static_cast<int>(col));
+      const std::uint64_t levels = static_cast<std::uint64_t>(L_[var]);
+      if (combinations > static_cast<std::uint64_t>(table.tuples.size()) /
+                             std::max<std::uint64_t>(1, levels)) {
+        return false;
+      }
+      combinations *= levels;
+    }
+  }
+
+  std::set<std::vector<int>> forbidden_suffixes;
+  for (const std::vector<int> &tuple : table.tuples) {
+    bool prefix_match = true;
+    for (std::size_t col = 0; col < table.idx.size(); ++col) {
+      const int var = table.idx[col];
+      if (assigned[var] && row_codes[var] != tuple[col]) {
+        prefix_match = false;
+        break;
       }
     }
-
-    if (hit)
-      return 1;
+    if (!prefix_match)
+      continue;
+    std::vector<int> suffix;
+    suffix.reserve(open_columns.size());
+    for (int col : open_columns)
+      suffix.push_back(tuple[col]);
+    forbidden_suffixes.insert(std::move(suffix));
   }
-
-  return 0;
+  return forbidden_suffixes.size() == combinations;
 }
 
-ConstraintSet::RowCache
-ConstraintSet::make_cache(const Eigen::RowVectorXd &row_values,
-                          const int *row_codes) const {
-  RowCache cache;
-  const int n_atoms = static_cast<int>(atom_type_.size());
-  const int n_clauses = static_cast<int>(clause_ptr_.size()) - 1;
+bool ConstraintSet::allowed_row(const int *row_codes) const {
+  validate_codes(row_codes);
 
-  cache.atom_truth.assign(n_atoms, 0);
-  cache.clause_unsat.assign(std::max(0, n_clauses), 0);
-
-  cache.lin_lhs.assign(lin_op_.size(), 0.0);
-  for (int u = 0; u < static_cast<int>(lin_op_.size()); ++u) {
-    cache.lin_lhs[u] = lin_lhs_current(row_values, u);
-  }
-
-  cache.forb_hit.assign(forb_tables_.size(), 0);
-  cache.forb_key.assign(forb_tables_.size(), 0);
-  forbid_hit_current(row_codes, cache);
-
-  for (int a = 0; a < n_atoms; ++a) {
-    cache.atom_truth[a] = eval_atom_current(row_values, row_codes, cache, a);
-  }
-
-  cache.satisfied_count = 0;
-  for (int c = 0; c < n_clauses; ++c) {
-    int unsat = 0;
-    const int a0 = clause_ptr_[c];
-    const int a1 = clause_ptr_[c + 1];
-    for (int k = a0; k < a1; ++k) {
-      const int atom_id = clause_atom_[k];
-      if (cache.atom_truth[atom_id] == 0)
-        ++unsat;
+  bool dnf_satisfied = false;
+  for (std::size_t clause = 0; clause + 1 < clause_ptr_.size(); ++clause) {
+    bool clause_satisfied = true;
+    for (int k = clause_ptr_[clause]; k < clause_ptr_[clause + 1]; ++k) {
+      if (!atom_true(clause_atom_[k], row_codes)) {
+        clause_satisfied = false;
+        break;
+      }
     }
-    cache.clause_unsat[c] = unsat;
-    if (unsat == 0)
-      ++cache.satisfied_count;
-  }
-
-  return cache;
-}
-
-bool ConstraintSet::allowed_row(const Eigen::RowVectorXd &row_values,
-                                const int *row_codes) const {
-  RowCache cache = make_cache(row_values, row_codes);
-  if (!forb_tables_.empty()) {
-    for (size_t t = 0; t < cache.forb_hit.size(); ++t) {
-      if (cache.forb_hit[t])
-        return false;
+    if (clause_satisfied) {
+      dnf_satisfied = true;
+      break;
     }
   }
-  return cache.satisfied_count > 0;
-}
-
-bool ConstraintSet::allowed_change(const Eigen::RowVectorXd &row_values,
-                                   const int *row_codes, const RowCache &cache,
-                                   int var, double new_value,
-                                   int new_code) const {
-  const int n_clauses = static_cast<int>(clause_ptr_.size()) - 1;
-  if (n_clauses <= 0)
+  if (!dnf_satisfied)
     return false;
 
-  if (!forb_tables_.empty()) {
-    const int old_code = row_codes[var];
-    if (forbid_hit_changed(row_codes, cache, var, old_code, new_code))
+  for (const ForbidTable &table : forb_tables_) {
+    if (forbidden_table_hit(table, row_codes))
       return false;
   }
-
-  const std::vector<int> &affected_atoms = atoms_by_factor_[var];
-  if (affected_atoms.empty()) {
-    return cache.satisfied_count > 0;
-  }
-
-  std::vector<int> touched;
-  std::vector<int> delta;
-  touched.reserve(16);
-  delta.reserve(16);
-
-  auto touch_clause = [&](int c) -> int {
-    for (int i = 0; i < static_cast<int>(touched.size()); ++i) {
-      if (touched[i] == c)
-        return i;
-    }
-    touched.push_back(c);
-    delta.push_back(0);
-    return static_cast<int>(touched.size()) - 1;
-  };
-
-  int sat_new = cache.satisfied_count;
-
-  for (int idx = 0; idx < static_cast<int>(affected_atoms.size()); ++idx) {
-    const int a = affected_atoms[idx];
-    const unsigned char old_t = cache.atom_truth[a];
-    const unsigned char new_t = eval_atom_changed(row_values, row_codes, cache,
-                                                  a, var, new_value, new_code);
-    if (old_t == new_t)
-      continue;
-
-    const int d_unsat = (old_t == 0 && new_t == 1) ? -1 : +1;
-
-    const std::vector<int> &cls = clauses_by_atom_[a];
-    for (int ci = 0; ci < static_cast<int>(cls.size()); ++ci) {
-      const int c = cls[ci];
-      const int pos = touch_clause(c);
-
-      const int old_unsat = cache.clause_unsat[c] + delta[pos];
-      const int new_unsat = old_unsat + d_unsat;
-
-      if (old_unsat == 0 && new_unsat > 0)
-        --sat_new;
-      else if (old_unsat > 0 && new_unsat == 0)
-        ++sat_new;
-
-      delta[pos] += d_unsat;
-    }
-  }
-
-  return sat_new > 0;
+  return true;
 }
 
-void ConstraintSet::apply_change(const Eigen::RowVectorXd &row_values,
-                                 const int *row_codes, RowCache &cache, int var,
-                                 double old_value, int old_code,
-                                 double new_value, int new_code) const {
-  const int n_clauses = static_cast<int>(clause_ptr_.size()) - 1;
-  if (n_clauses <= 0) {
-    cache.satisfied_count = 0;
-    return;
-  }
-
-  if (!forb_tables_.empty()) {
-    for (size_t t = 0; t < forb_tables_.size(); ++t) {
-      const ForbidTable &tab = forb_tables_[t];
-      int pos = -1;
-      for (int j = 0; j < tab.m(); ++j) {
-        if (tab.idx[j] == var) {
-          pos = j;
-          break;
-        }
-      }
-      if (pos >= 0) {
-        if (tab.packed_ok) {
-          const std::int64_t d = static_cast<std::int64_t>(new_code) -
-                                 static_cast<std::int64_t>(old_code);
-          if (d >= 0) {
-            cache.forb_key[t] += static_cast<std::uint64_t>(d) * tab.stride[pos];
-          } else {
-            cache.forb_key[t] -= static_cast<std::uint64_t>(-d) * tab.stride[pos];
-          }
-          cache.forb_hit[t] =
-              (tab.keys.find(cache.forb_key[t]) != tab.keys.end()) ? 1 : 0;
-        } else {
-          unsigned char hit = 0;
-          const int m = tab.m();
-          for (size_t r = 0; r < tab.tuples.size(); ++r) {
-            bool match = true;
-            for (int jj = 0; jj < m; ++jj) {
-              const int v = tab.idx[jj];
-              const int code = (v == var) ? new_code : row_codes[v];
-              if (code != tab.tuples[r][jj]) {
-                match = false;
-                break;
-              }
-            }
-            if (match) {
-              hit = 1;
-              break;
-            }
-          }
-          cache.forb_hit[t] = hit;
-        }
-      }
+bool ConstraintSet::can_complete(const int *row_codes,
+                                 const unsigned char *assigned) const {
+  for (int var = 0; var < q_; ++var) {
+    if (assigned[var] &&
+        (row_codes[var] < 0 || row_codes[var] >= L_[var])) {
+      stop("skpr: partial constraint row code is out of range.");
     }
   }
 
-  const std::vector<int> &affected_atoms = atoms_by_factor_[var];
-  if (affected_atoms.empty())
-    return;
-
-  for (int idx = 0; idx < static_cast<int>(affected_atoms.size()); ++idx) {
-    const int a = affected_atoms[idx];
-    if (atom_type_[a] == 3) {
-      const int u = atom_payload_idx_[a];
-      const double coef = lin_coef_for_var(u, var);
-      double delta = (new_value - old_value);
-      if (var >= 0 && var < q_ && factor_kind_[var] == 1) {
-        delta *= value_scale_[var];
+  bool dnf_possible = false;
+  for (std::size_t clause = 0; clause + 1 < clause_ptr_.size(); ++clause) {
+    bool clause_possible = true;
+    for (int k = clause_ptr_[clause]; k < clause_ptr_[clause + 1]; ++k) {
+      if (!atom_possible(clause_atom_[k], row_codes, assigned)) {
+        clause_possible = false;
+        break;
       }
-      cache.lin_lhs[u] += coef * delta;
+    }
+    if (clause_possible) {
+      dnf_possible = true;
+      break;
     }
   }
+  if (!dnf_possible)
+    return false;
 
-  for (int idx = 0; idx < static_cast<int>(affected_atoms.size()); ++idx) {
-    const int a = affected_atoms[idx];
-    const unsigned char old_t = cache.atom_truth[a];
-    const unsigned char new_t =
-        eval_atom_current(row_values, row_codes, cache, a);
-    if (old_t == new_t)
-      continue;
-
-    const int d_unsat = (old_t == 0 && new_t == 1) ? -1 : +1;
-
-    const std::vector<int> &cls = clauses_by_atom_[a];
-    for (int ci = 0; ci < static_cast<int>(cls.size()); ++ci) {
-      const int c = cls[ci];
-      const int old_unsat = cache.clause_unsat[c];
-      const int new_unsat = old_unsat + d_unsat;
-
-      if (old_unsat == 0 && new_unsat > 0)
-        --cache.satisfied_count;
-      else if (old_unsat > 0 && new_unsat == 0)
-        ++cache.satisfied_count;
-
-      cache.clause_unsat[c] = new_unsat;
-    }
-
-    cache.atom_truth[a] = new_t;
+  for (const ForbidTable &table : forb_tables_) {
+    if (forbidden_table_covers_completions(table, row_codes, assigned))
+      return false;
   }
+  return true;
 }

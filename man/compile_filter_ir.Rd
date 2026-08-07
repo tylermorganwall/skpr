@@ -17,14 +17,14 @@ compile_filter_ir(
 
 \item{factor_meta}{Default \code{NULL}. Named list of factor metadata; each entry list(kind = 'discrete'|'numeric', levels = ...).}
 
-\item{factor_levels}{Default \code{NULL}. List of allowed values per factor; used to snap numeric constants for \%in\% and ==/!=.}
+\item{factor_levels}{Default \code{NULL}. List of allowed values per factor; used to encode direct predicates and provide original numeric values for linear atoms.}
 
-\item{tol}{Default \code{1e-10}. Snapping tolerance for numeric constants.}
+\item{tol}{Default \code{1e-10}. Numeric snapping tolerance and scaled runtime tolerance for linear comparisons.}
 
 \item{max_clauses}{Default \code{2048L}. Maximum allowed DNF clause count.}
 }
 \value{
-List IR for ConstraintSet.
+Validated, zero-based constraint IR version 1 for \code{ConstraintSet}.
 }
 \description{
 Supported operators:
@@ -42,3 +42,4 @@ The parser converts expressions to DNF (disjunctive normal form). If expansion r
 \code{max_clauses}, compilation errors; if it gets large but remains under the cap, a warning
 is emitted suggesting forbidden tuple tables.
 }
+\keyword{internal}

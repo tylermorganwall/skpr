@@ -35,8 +35,12 @@
 #'
 #'get_optimality(power_output)
 get_optimality = function(output, optimality = NULL, calc_g = FALSE) {
-  if (is.null(attr(output, "D"))) attr(output, "D") = NA
-  if (is.null(attr(output, "A"))) attr(output, "A") = NA
+  if (is.null(attr(output, "D"))) {
+    attr(output, "D") = NA
+  }
+  if (is.null(attr(output, "A"))) {
+    attr(output, "A") = NA
+  }
   if (calc_g) {
     if (!is.null(attr(output, "augmented"))) {
       if (is.null(attr(output, "G"))) {
@@ -66,12 +70,21 @@ get_optimality = function(output, optimality = NULL, calc_g = FALSE) {
   } else {
     if (is.null(attr(output, "G"))) attr(output, "G") = "Not Computed"
   }
-  if (is.null(attr(output, "T"))) attr(output, "T") = NA
-  if (is.null(attr(output, "E"))) attr(output, "E") = NA
-  if (is.null(attr(output, "variance.matrix")))
+  if (is.null(attr(output, "T"))) {
+    attr(output, "T") = NA
+  }
+  if (is.null(attr(output, "E"))) {
+    attr(output, "E") = NA
+  }
+  if (is.null(attr(output, "variance.matrix"))) {
     attr(output, "variance.matrix") = NA
-  if (is.null(attr(output, "I"))) attr(output, "I") = NA
-  if (is.null(attr(output, "trA"))) attr(output, "trA") = NA
+  }
+  if (is.null(attr(output, "I"))) {
+    attr(output, "I") = NA
+  }
+  if (is.null(attr(output, "trA"))) {
+    attr(output, "trA") = NA
+  }
   optimality_df = data.frame(
     D = attr(output, "D"),
     I = attr(output, "I"),

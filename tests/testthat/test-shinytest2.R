@@ -1,10 +1,11 @@
+testthat::skip_if_not_installed("shinytest2")
 library(shinytest2)
 library(shiny)
 
 test_that("{shinytest2} recording: apps", {
   options("in_skpr_test_environment" = TRUE)
   on.exit(options("in_skpr_test_environment" = NULL), add = TRUE)
-  app <- AppDriver$new(
+  app = AppDriver$new(
     app_dir = testthat::test_path("apps"),
     screenshot_args = FALSE,
     expect_values_screenshot_args = FALSE,

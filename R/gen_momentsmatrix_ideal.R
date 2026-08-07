@@ -6,7 +6,6 @@
 #'@return Returns a vector consisting of the number
 #'of levels preceding each parameter (including the intercept)
 gen_momentsmatrix_ideal = function(modelfactors, classvector) {
-
   #parse factor types
   isintercept = modelfactors == "(Intercept)"
   ishigherorder = lapply(

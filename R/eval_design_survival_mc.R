@@ -178,8 +178,8 @@ eval_design_survival_mc = function(
     nointercept = TRUE
   }
   #Convert logical vectors to factors
-  for(i in seq_len(ncol(design))) {
-    if(is.logical(design[[i]])) {
+  for (i in seq_len(ncol(design))) {
+    if (is.logical(design[[i]])) {
       design[[i]] = as.factor(design[[i]])
     }
   }

@@ -33,7 +33,22 @@ Imports:
     geometry,
     digest
 LinkingTo: Rcpp, RcppEigen
-Suggests: testthat, mbest, ggplot2, lmtest, cli, gridExtra, rintrojs, shinythemes, shiny, shinyjs, gt, shinytest2
+Suggests:
+    testthat,
+    mbest,
+    ggplot2,
+    lmtest,
+    cli,
+    gridExtra,
+    rintrojs,
+    shinythemes,
+    shiny,
+    shinyjs,
+    gt,
+    shinytest2,
+    knitr,
+    quarto
+VignetteBuilder: quarto
 Encoding: UTF-8
 URL: https://github.com/tylermorganwall/skpr,
     https://tylermorganwall.github.io/skpr/

@@ -1,4 +1,29 @@
-﻿skpr v0.61.3 (Release date: 2019-09-18):
+skpr v1.9.4 (Development version):
+================
+
+Minor changes:
+
+- Replaced the coordinate-exchange constraint representation with validated IR v1. Direct comparisons, membership, and forbidden tuples now use exact factor-level codes; linear constraints use original-unit level tables with explicit tolerance semantics.
+
+- Reworked constrained coordinate generation and initialization around one constraint-aware backtracking implementation. Oversized connected groups now use a bounded seeded proposal search and expose search diagnostics instead of failing at the Cartesian cap.
+
+- Removed heuristic model-column dependency probing, the unused incremental constraint-change API, affine constraint reconstruction, and stale coordinate-exchange benchmark implementations.
+
+- Coordinate-exchange designs now decode from returned level codes and include `coordinate_exchange_diagnostics` for every successful repeat.
+
+- Consolidated point-versus-coordinate benchmarks into paired public and matched-start kernel tracks with versioned smoke artifacts, explicit failures, descriptive uncertainty, and reproducibility provenance.
+
+- `gen_design()` coordinate exchange now validates CE-specific advanced options before entering the C++ search.
+
+- `gen_design()` coordinate exchange avoids materializing full candidate and alias model matrices when they are not needed for D-optimal CE search.
+
+- Constrained coordinate exchange derives automatic joint coordinate groups from filter-expression and forbidden-tuple constraint IR.
+
+- Added coordinate-exchange quality checks and documentation for large constrained grids.
+
+- Added a Quarto vignette that summarizes coordinate-exchange versus point-exchange quality and runtime benchmark outputs.
+
+skpr v0.61.3 (Release date: 2019-09-18):
 ================
 
 Minor changes:

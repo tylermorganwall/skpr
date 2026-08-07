@@ -1,10 +1,10 @@
-register_s3_method <- function(pkg, generic, class, fun = NULL) {
+register_s3_method = function(pkg, generic, class, fun = NULL) {
   stopifnot(is.character(pkg), length(pkg) == 1)
   stopifnot(is.character(generic), length(generic) == 1)
   stopifnot(is.character(class), length(class) == 1)
 
   if (is.null(fun)) {
-    fun <- get(paste0(generic, ".", class), envir = parent.frame())
+    fun = get(paste0(generic, ".", class), envir = parent.frame())
   } else {
     stopifnot(is.function(fun))
   }
@@ -23,7 +23,7 @@ register_s3_method <- function(pkg, generic, class, fun = NULL) {
 }
 
 
-.onLoad <- function(...) {
+.onLoad = function(...) {
   register_s3_method("skpr", "print", "skpr_eval_output")
   register_s3_method("skpr", "print", "skpr_power_curve_output")
 }
@@ -48,4 +48,3 @@ assign(
 )
 
 skpr_moment_matrix_cache = new.env(parent = emptyenv())
-

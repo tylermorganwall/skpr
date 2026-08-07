@@ -1,2 +1,4 @@
 # Load application support files into testing environment
-shinytest2::load_app_env()
+if (requireNamespace("shinytest2", quietly = TRUE)) {
+  shinytest2::load_app_env()
+}

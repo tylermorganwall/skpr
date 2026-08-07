@@ -14,12 +14,19 @@ test_that("extractPvalues works as intended", {
   expect_equal(coef(summary(fitglm))[, 4], extractPvalues(fitglm))
 
   #glmer
-  gm1 <- lme4::glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-                data = cbpp, family = binomial)
+  gm1 = lme4::glmer(
+    cbind(incidence, size - incidence) ~ period + (1 | herd),
+    data = cbpp,
+    family = binomial
+  )
   expect_equal(coef(summary(gm1))[, 4], extractPvalues(gm1))
 
   #survreg
-  fitsurvreg = survival::survreg(survival::Surv(futime, fustat) ~ ecog.ps + rx, survival::ovarian, dist = "weibull",
-                       scale = 1)
+  fitsurvreg = survival::survreg(
+    survival::Surv(futime, fustat) ~ ecog.ps + rx,
+    survival::ovarian,
+    dist = "weibull",
+    scale = 1
+  )
   expect_equal(summary(fitsurvreg)$table[, 4], extractPvalues(fitsurvreg))
 })

@@ -56,6 +56,35 @@ test_that("plot_correlations works as intended", {
   )
 })
 
+test_that("plot_correlations tile values match returned correlation matrix", {
+  design = data.frame(
+    a = c(-1, 1, 1, -1, -1, -1, 1),
+    b = c(-1, 1, 1, 1, -1, 1, -1),
+    c = c(1, -1, 1, -1, -1, 1, 0)
+  )
+  attr(design, "variance.matrix") = diag(nrow(design))
+
+  model = ~ a + b + c + a:b + a:c
+  cormat = plot_correlations(design, model = model, plot = FALSE)
+  expect_silent(plot_correlations(design, model = model))
+
+  labels = colnames(cormat)
+  expected_plot_df = expand.grid(
+    x = labels,
+    y = rev(labels),
+    KEEP.OUT.ATTRS = FALSE,
+    stringsAsFactors = FALSE
+  )
+  expected_plot_df$value = as.vector(cormat[labels, rev(labels), drop = FALSE])
+
+  plot_df = ggplot2::last_plot()$data
+  expect_equal(plot_df[, c("x", "y", "value")], expected_plot_df)
+  expect_gt(
+    plot_df$value[plot_df$x == "c" & plot_df$y == "a:c"],
+    plot_df$value[plot_df$x == "a" & plot_df$y == "c"]
+  )
+})
+
 test_that("plot_fds works as intended", {
   candlist = expand.grid(
     Location = as.character(c("East", "West")),

@@ -1,5 +1,6 @@
 Package: skpr
 Title: Design of Experiments Suite: Generate and Evaluate Optimal Designs
+
 Date: 2026-08-12
 Version: 1.9.5
 Authors@R: c(person("Tyler", "Morgan-Wall", email = "tylermw@gmail.com", role = c("aut", "cre")),
@@ -38,3 +39,4 @@ Encoding: UTF-8
 URL: https://github.com/tylermorganwall/skpr,
     https://tylermorganwall.github.io/skpr/
 BugReports: https://github.com/tylermorganwall/skpr/issues
+Config/roxygen2/version: 8.0.0

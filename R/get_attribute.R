@@ -2,7 +2,7 @@
 #'
 #'@description Returns one or more of underlying attributes used in design generation/evaluation
 #'
-#'@param output The output of either [gen_design()], [eval_design()], or [eval_design_mc()].
+#'@param output The output of either [`gen_design()`][skpr::gen_design], [`eval_design()`][skpr::eval_design], or [`eval_design_mc()`][skpr::eval_design_mc].
 #'@param attr Default `NULL`. Return just the specific value requested.
 #'Potential values are `model_matrix` for model used, `moments.matrix`, `variance.matrix`, `alias.matrix`,
 #'`correlation.matrix`, and `model` for the model used in the evaluation/generation of the design.

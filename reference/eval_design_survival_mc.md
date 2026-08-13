@@ -210,8 +210,10 @@ eval_design_survival_mc(design = design, model = ~a, alpha = 0.05,
 #> 2           a parameter.power.mc  0.89
 #> ===========Evaluation Info============
 #> • Alpha = 0.05 • Trials = 15 • Blocked = FALSE 
-#> • Evaluating Model =  
+#> • Evaluating Model = ~a 
 #> • Anticipated Coefficients = c(1, 1) 
+#> • Contrasts = `contr.sum` 
+#> • Parameter Analysis Method = `survival::survreg(..., dist = "exponential")` 
 
 #Built-in Monte Carlo random generating functions are included for the gaussian, exponential,
 #and lognormal distributions.
@@ -237,6 +239,8 @@ eval_design_survival_mc(design = design, model = ~a, alpha = 0.2, nsim = 100,
 #> 2           a parameter.power.mc  0.40
 #> ===========Evaluation Info============
 #> • Alpha = 0.2 • Trials = 15 • Blocked = FALSE 
-#> • Evaluating Model =  
+#> • Evaluating Model = ~a 
 #> • Anticipated Coefficients = c(0.184, 0.101) 
+#> • Contrasts = `contr.sum` 
+#> • Parameter Analysis Method = `survival::survreg(..., dist = "lognormal")` 
 ```

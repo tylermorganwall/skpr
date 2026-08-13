@@ -546,7 +546,7 @@ eval_design_mc(designbinom, ~a + b, alpha = 0.2, nsim = 100, effectsize = c(0.7,
 #> • Evaluating Model = ~a + b 
 #> • Anticipated Coefficients = c(1.522, 0.675, 0.675) 
 #> • Contrasts = `contr.sum` 
-#> • Parameter Analysis Method = glm(..., family = "binomial")` 
+#> • Parameter Analysis Method = `glm(..., family = "binomial")` 
 #> • Effect Analysis Method = `car::Anova(fit, type = "III")` 
 if(skpr:::run_documentation()) {
 #We can also use this method to determine power for poisson response variables.

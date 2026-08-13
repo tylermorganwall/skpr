@@ -1,6 +1,5 @@
 Package: skpr
 Title: Design of Experiments Suite: Generate and Evaluate Optimal Designs
-
 Date: 2026-08-12
 Version: 1.9.5
 Authors@R: c(person("Tyler", "Morgan-Wall", email = "tylermw@gmail.com", role = c("aut", "cre")),

@@ -88,11 +88,11 @@ calculate_degrees_of_freedom = function(
         if (length(layercols) > 0) {
           for (j in seq_len(length(layercols))) {
             if (
-              is.numeric(run_matrix_processed[, layercols[j], drop = FALSE])
+              is.numeric(run_matrix_processed[, layercols[j]])
             ) {
               mtemp = mtemp - 1
             } else {
-              cat_degrees = length(unique(run_matrix_processed[,
+              cat_degrees = nrow(unique(run_matrix_processed[,
                 layercols[j],
                 drop = FALSE
               ])) -
@@ -138,9 +138,9 @@ calculate_degrees_of_freedom = function(
             #e.g. two 3 level factors interacting = 1*(3-1)*(3-1) = 4 df total.
             temp_degrees = 1
             for (col_name in interaction_cols) {
-              if (!is.numeric(run_matrix_processed[, col_name, drop = FALSE])) {
+              if (!is.numeric(run_matrix_processed[, col_name])) {
                 temp_degrees = temp_degrees *
-                  (length(unique(run_matrix_processed[,
+                  (nrow(unique(run_matrix_processed[,
                     col_name,
                     drop = FALSE
                   ])) -
@@ -166,10 +166,10 @@ calculate_degrees_of_freedom = function(
     if (split_plot_structure) {
       if (length(layercols) > 0) {
         for (j in seq_len(length(layercols))) {
-          if (is.numeric(run_matrix_processed[, layercols[j], drop = FALSE])) {
+          if (is.numeric(run_matrix_processed[, layercols[j]])) {
             mtemp = mtemp - 1
           } else {
-            cat_degrees = length(unique(run_matrix_processed[,
+            cat_degrees = nrow(unique(run_matrix_processed[,
               layercols[j],
               drop = FALSE
             ])) -
@@ -193,11 +193,11 @@ calculate_degrees_of_freedom = function(
         if (length(layercols) > 0) {
           for (j in seq_len(length(layercols))) {
             if (
-              is.numeric(run_matrix_processed[, layercols[j], drop = FALSE])
+              is.numeric(run_matrix_processed[, layercols[j]])
             ) {
               mtemp = mtemp - 1
             } else {
-              cat_degrees = length(unique(run_matrix_processed[,
+              cat_degrees = nrow(unique(run_matrix_processed[,
                 layercols[j],
                 drop = FALSE
               ])) -
@@ -244,9 +244,9 @@ calculate_degrees_of_freedom = function(
           #e.g. two 3 level factors interacting = 1*(3-1)*(3-1) = 4 df total.
           temp_degrees = 1
           for (col_name in interaction_cols) {
-            if (!is.numeric(run_matrix_processed[, col_name, drop = FALSE])) {
+            if (!is.numeric(run_matrix_processed[, col_name])) {
               temp_degrees = temp_degrees *
-                (length(unique(run_matrix_processed[,
+                (nrow(unique(run_matrix_processed[,
                   col_name,
                   drop = FALSE
                 ])) -

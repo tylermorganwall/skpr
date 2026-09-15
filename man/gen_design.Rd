@@ -118,12 +118,19 @@ and the only way to calculate prediction variance with disallowed combinations).
 the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange is experimental and currently supports
-only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`
-(accepted moves between exact information-matrix verification), `ce_repair_stuck_limit` (feasible-pool regenerations), `ce_repair_max_tries`
+only fully randomized, non-blocked, D-optimal designs with fixed pointwise formulas (base arithmetic and pointwise transforms).
+Batch-dependent transforms such as `mean()` and `scale()`, and arbitrary custom formula functions, are rejected. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`
+(accepted factor updates between exact information-matrix verification; zero disables periodic rebuilds), `ce_repair_stuck_limit` (feasible-pool regenerations), `ce_repair_max_tries`
 (the feasible-generation budget), and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
 For numeric factors, prefer `factor_levels_original` (named list) when supplying levels in the original units used in `candidateset`; skpr maps these to the normalized
 CE search scale internally and returns designs in original units.
 CE evaluates coordinate proposals without materializing the full candidate-set model matrix, so it is intended for large grids where point exchange is slow or memory-heavy; for small finite grids, compare D-efficiency against the default point-exchange search.
+`ce_model_evaluator` defaults to `"auto"`: R precomputes small model-value tables, and C++ looks up affected terms without model callbacks during search.
+Use `"tables"` to require precomputation or `"r"` to force the R evaluator. `ce_model_table_max_bytes` (default 33554432) limits total numeric table storage;
+`ce_model_table_max_rows` (default 65536) limits combinations in any one table. Auto mode falls back to R when preparation cannot meet these limits or preserve the model schema.
+Tables use the complete model's contrasts and column ordering. Interactions across groups are indexed by the other factors' current levels.
+Each completed table-based repeat is independently checked with R before selection. Diagnostics report `model_evaluator`, `model_matrix_calls` (native-search callbacks),
+`model_table_bytes`, `model_table_evaluations`, `model_preparation_seconds`, `model_preparation_calls`, `model_verification_calls`, and any `model_fallback_reason`.
 For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
 `filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
 Removing rows from `candidateset` is not enough for CE to infer a constrained region; pass the equivalent explicit constraints.
@@ -132,8 +139,13 @@ comparisons and membership use exact level codes; `constraints$tol` controls sca
 Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `\%in\%`,
 and linear constraints over numeric factors.
 Constrained coordinate exchange automatically groups factors coupled by the compiled constraint IR, so constraints such as `x + y == 0` can be explored with joint moves.
+Within each selected row, CE visits coordinate groups in order, holding all factors outside the current group fixed. Each improving move is committed before evaluating the next group.
+Model terms, including interactions, are recomputed for each proposed coordinate change; model interactions do not join factor groups.
 `advancedoptions$coordinate_groups` can be `NULL` (auto groups when constraints are present and singleton groups otherwise), `"auto"` to force IR-derived groups, or a list of character vectors for manual groups; omitted factors are appended as singleton groups.
-`advancedoptions$coordinate_group_max_candidates` limits feasible candidates scored for one coordinate-group proposal. Larger groups use a seeded bounded traversal and report this in diagnostics rather than failing.
+`advancedoptions$coordinate_group_max_candidates` limits feasible candidates scored for one coordinate-group proposal. Larger groups use bounded randomized descents and report this in diagnostics.
+Initialization retains feasible support across repair attempts and randomizes the selection of full-rank starts, including when the feasible grid is small.
+Diagnostics count `factor_updates`, exact `information_recomputes`, and `numerical_fallbacks`; `reciprocal_condition` describes the column-equilibrated information matrix.
+`sampled_no_improvement` indicates that a bounded neighborhood produced no accepted move. Final model rows are re-evaluated and checked before a design is returned.
 For coordinate exchange, `k` is the number of mutable, non-augmented rows considered for exchange. Augmented rows are fixed and excluded from CE row selection.}
 
 \item{timer}{Deprecated: Use \code{progress} instead.}

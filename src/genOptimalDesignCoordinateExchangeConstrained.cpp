@@ -1,3 +1,32 @@
+// Constrained coordinate exchange for one fully randomized D-optimal search.
+// R/gen_design.R owns normalization, repeat scheduling, and final design
+// attributes. This file owns feasible initialization and exchanges within one
+// repeat; constraint_set.* evaluates the compiled constraints. R precomputes
+// model values in small tables; a callback handles models exceeding table limits.
+//
+// Data flow:
+//   R points + factor levels + coordinate groups + model tables + constraint IR
+//     -> validate inputs and map every factor value to a zero-based level code
+//     -> evaluate the starting model matrix and repair feasibility/rank if needed
+//     -> select mutable rows and visit their coordinate groups in order
+//     -> generate one group's feasible alternatives with other factors fixed,
+//        then look up affected model values using proposed and fixed level codes
+//     -> score row replacements by determinant ratio and immediately commit the
+//        best improvement before generating the next group's alternatives
+//     -> update a scaled triangular factor, with periodic exact rebuilds
+//     -> return points, exact level codes, model matrix, objective, and diagnostics
+//        to R for decoding and comparison with other repeats.
+//
+// Representations: n = runs, q = factors, p = model columns. `points` is n x q
+// (numeric search-scale values or discrete codes); `codes` indexes each factor's
+// level table; `design` is the n x p model matrix X. The constraint IR has its own
+// numeric level values, in original units when supplied by gen_design(), but must
+// use the same level-code ordering. `information` holds the triangular factor
+// of equilibrated X'X, column scales, and the original-basis log(det(X'X)).
+// The first `augmentedrows` runs remain fixed. R validates supported pointwise
+// formulas. Native reconstruction checks cached row values; R independently
+// verifies tabulated results before comparing repeats.
+
 #include <Rcpp.h>
 #include <RcppEigen.h>
 // [[Rcpp::depends(RcppEigen)]]
@@ -8,6 +37,7 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16,6 +46,9 @@ using namespace Rcpp;
 
 namespace {
 
+// Search state and traversal workspace ---------------------------------------
+// Diagnostics describe one repeat. Objective history records initialization and
+// accepted moves; proposal counters also expose pruning and bounded generation.
 struct SearchDiagnostics {
   long long proposals_generated = 0;
   long long proposals_scored = 0;
@@ -23,7 +56,12 @@ struct SearchDiagnostics {
   long long partial_pruned = 0;
   int capped_groups = 0;
   int model_matrix_calls = 0;
+  int model_table_evaluations = 0;
+  double model_table_bytes = 0;
+  std::string model_evaluator = "r";
   int information_recomputes = 0;
+  int factor_updates = 0;
+  int numerical_fallbacks = 0;
   int accepted_moves = 0;
   int iterations = 0;
   int initialization_restarts = 0;
@@ -33,15 +71,20 @@ struct SearchDiagnostics {
   std::vector<double> objective_history;
 };
 
+// A valid state holds a lower triangular factor of the equilibrated information
+// matrix. Triangular solves replace inverse products when scoring exchanges.
 struct InformationState {
-  Eigen::MatrixXd matrix;
-  Eigen::MatrixXd inverse;
+  Eigen::MatrixXd factor;
+  Eigen::VectorXd scales;
   double logdet = -std::numeric_limits<double>::infinity();
   double reciprocal_condition = 0.0;
   int rank = 0;
   bool valid = false;
 };
 
+// A generated batch keeps values and exact level positions together. `complete`
+// describes exhaustion of this traversal (with any requested base exclusion);
+// `capped` records truncation, and raw_product ignores constraint pruning.
 struct GeneratedRows {
   Eigen::MatrixXd points;
   std::vector<std::vector<int>> codes;
@@ -52,6 +95,11 @@ struct GeneratedRows {
   double raw_product = 1.0;
 };
 
+int random_index(int n);
+
+// Depth-first assignment of the factors in `variables`. Other factors retain
+// their base codes. The assigned mask tells ConstraintSet which entries are
+// fixed along the current branch and which may still take any allowed level.
 struct GeneratorState {
   const std::vector<std::vector<double>> &levels;
   const ConstraintSet *constraints;
@@ -64,6 +112,7 @@ struct GeneratorState {
   int limit;
   long long node_budget;
   bool exclude_base;
+  bool randomized = false;
   bool stopped = false;
   long long nodes = 0;
   long long pruned = 0;
@@ -72,10 +121,14 @@ struct GeneratorState {
     if (stopped)
       return;
     ++nodes;
+    if ((nodes & 1023LL) == 0)
+      checkUserInterrupt();
     if (nodes > node_budget || static_cast<int>(rows.size()) >= limit) {
       stopped = true;
       return;
     }
+    // Partial checks only reject impossible branches; a leaf still receives a
+    // complete constraint check before it becomes a candidate row.
     if (depth == static_cast<int>(variables.size())) {
       if (constraints != NULL && !constraints->allowed_row(codes.data())) {
         ++pruned;
@@ -84,11 +137,16 @@ struct GeneratorState {
       if (exclude_base && codes == base_codes)
         return;
       rows.push_back(codes);
+      if (static_cast<int>(rows.size()) >= limit)
+        stopped = true;
       return;
     }
 
     const int var = variables[depth];
-    for (int code : level_order[depth]) {
+    const auto &order = level_order[depth];
+    const int offset = randomized ? random_index(order.size()) : 0;
+    for (int index = 0; index < static_cast<int>(order.size()); ++index) {
+      const int code = order[(index + offset) % order.size()];
       codes[var] = code;
       assigned[var] = 1;
       if (constraints == NULL ||
@@ -96,6 +154,12 @@ struct GeneratorState {
         visit(depth + 1);
       } else {
         ++pruned;
+        // Failed partial branches consume the budget too, even without descent.
+        ++nodes;
+        if ((nodes & 1023LL) == 0)
+          checkUserInterrupt();
+        if (nodes >= node_budget)
+          stopped = true;
       }
       assigned[var] = 0;
       if (stopped)
@@ -104,6 +168,8 @@ struct GeneratorState {
   }
 };
 
+// Use R's RNG for traversal shuffles so set.seed() and repeat-level seeds control
+// the bounded search. Exact enumeration below does not shuffle its traversal.
 int random_index(int n) {
   if (n <= 1)
     return 0;
@@ -118,6 +184,9 @@ template <typename T> void shuffle_vector(std::vector<T> &x) {
   }
 }
 
+// Model expansion and numerical summaries -----------------------------------
+// Cross the R/C++ boundary once per batch. Callers separately check that the
+// number of model columns remains p across starting points and proposal batches.
 Eigen::MatrixXd call_model_matrix(Function model_matrix_fn,
                                   const Eigen::MatrixXd &points,
                                   SearchDiagnostics &diagnostics) {
@@ -130,111 +199,232 @@ Eigen::MatrixXd call_model_matrix(Function model_matrix_fn,
   return matrix;
 }
 
-InformationState information_from_matrix(const Eigen::MatrixXd &matrix,
-                                         int design_rows) {
-  InformationState state;
-  state.matrix = 0.5 * (matrix + matrix.transpose());
-  if (!state.matrix.allFinite() || state.matrix.rows() == 0 ||
-      state.matrix.rows() != state.matrix.cols()) {
-    return state;
+// R precomputes exact model values by term dependency. Native evaluation only
+// indexes these immutable tables; interactions use all their current level codes.
+// The callback remains available for models exceeding preparation limits and for
+// direct internal callers. Both evaluators run through the same search algorithm.
+class ModelEvaluator {
+  struct Block {
+    std::vector<int> factors;
+    std::vector<int> columns;
+    std::vector<int> strides;
+    Eigen::MatrixXd values;
+  };
+  Function callback;
+  bool tabulated = false;
+  int p = 0;
+  std::vector<Block> blocks;
+  std::vector<int> all_blocks;
+  std::vector<std::vector<int>> group_blocks;
+
+public:
+  ModelEvaluator(Function fn, Nullable<List> tables,
+                 const std::vector<std::vector<double>> &levels,
+                 const std::vector<std::vector<int>> &groups,
+                 SearchDiagnostics &diagnostics) : callback(fn) {
+    if (tables.isNull())
+      return;
+    List plan(tables);
+    if (as<int>(plan["version"]) != 1)
+      stop("skpr: unsupported model table version.");
+    List grids = plan["factor_levels"];
+    if (grids.size() != static_cast<int>(levels.size()))
+      stop("skpr: model table factor grids do not match factor_levels.");
+    for (int j = 0; j < grids.size(); ++j)
+      if (as<std::vector<double>>(grids[j]) != levels[j])
+        stop("skpr: model table factor grids do not match factor_levels.");
+    CharacterVector names = plan["columns"];
+    p = names.size();
+    if (p <= 0)
+      stop("skpr: model tables must contain model columns.");
+    std::vector<bool> covered(p, false);
+    List source = plan["blocks"];
+    group_blocks.resize(groups.size());
+    for (int b = 0; b < source.size(); ++b) {
+      List item = source[b];
+      Block block;
+      block.factors = as<std::vector<int>>(item["factors"]);
+      block.columns = as<std::vector<int>>(item["columns"]);
+      block.values = as<Eigen::MatrixXd>(item["values"]);
+      long long count = 1;
+      std::set<int> used;
+      for (int factor : block.factors) {
+        if (factor < 0 || factor >= static_cast<int>(levels.size()) ||
+            !used.insert(factor).second)
+          stop("skpr: invalid model table factor index.");
+        block.strides.push_back(static_cast<int>(count));
+        if (count > std::numeric_limits<int>::max() /
+                        static_cast<long long>(levels[factor].size()))
+          stop("skpr: model table dimensions overflow.");
+        count *= levels[factor].size();
+      }
+      if (block.columns.empty() || block.values.rows() != count ||
+          block.values.cols() != static_cast<int>(block.columns.size()))
+        stop("skpr: invalid model table dimensions.");
+      for (int col : block.columns) {
+        if (col < 0 || col >= p || covered[col])
+          stop("skpr: model table columns must partition the model matrix.");
+        covered[col] = true;
+      }
+      for (int g = 0; g < static_cast<int>(groups.size()); ++g)
+        for (int factor : groups[g])
+          if (used.count(factor)) {
+            group_blocks[g].push_back(b);
+            break;
+          }
+      diagnostics.model_table_bytes += 8.0 * block.values.size();
+      blocks.push_back(std::move(block));
+      all_blocks.push_back(b);
+    }
+    if (std::find(covered.begin(), covered.end(), false) != covered.end())
+      stop("skpr: model tables omit model columns.");
+    tabulated = true;
+    diagnostics.model_evaluator = "tables";
   }
 
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(state.matrix);
-  if (solver.info() != Eigen::Success)
-    return state;
-  const Eigen::VectorXd eigenvalues = solver.eigenvalues();
-  const double largest = eigenvalues.maxCoeff();
-  if (!std::isfinite(largest) || largest <= 0.0)
-    return state;
-  const double rank_tolerance =
-      std::max(design_rows, static_cast<int>(matrix.rows())) *
-      std::numeric_limits<double>::epsilon() * largest;
-  state.rank = static_cast<int>((eigenvalues.array() > rank_tolerance).count());
-  if (state.rank != matrix.rows() || eigenvalues.minCoeff() <= 0.0)
-    return state;
+  Eigen::MatrixXd evaluate(const Eigen::MatrixXd &points,
+                           const std::vector<std::vector<int>> &codes,
+                           SearchDiagnostics &diagnostics,
+                           const Eigen::VectorXd *base = NULL, int group = -1) const {
+    if (!tabulated)
+      return call_model_matrix(callback, points, diagnostics);
+    ++diagnostics.model_table_evaluations;
+    Eigen::MatrixXd result(codes.size(), p);
+    if (base != NULL)
+      result.rowwise() = base->transpose();
+    const std::vector<int> &active = base == NULL ? all_blocks : group_blocks.at(group);
+    for (int b : active) {
+      const Block &block = blocks[b];
+      for (int row = 0; row < static_cast<int>(codes.size()); ++row) {
+        int index = 0;
+        for (int j = 0; j < static_cast<int>(block.factors.size()); ++j)
+          index += codes[row][block.factors[j]] * block.strides[j];
+        for (int col = 0; col < static_cast<int>(block.columns.size()); ++col)
+          result(row, block.columns[col]) = block.values(index, col);
+      }
+    }
+    if (!result.allFinite())
+      stop("skpr: precomputed model table produced non-finite entries (NA/NaN/Inf).");
+    return result;
+  }
+};
 
-  state.logdet = eigenvalues.array().log().sum();
-  state.reciprocal_condition = eigenvalues.minCoeff() / largest;
-  state.inverse = solver.eigenvectors() * eigenvalues.cwiseInverse().asDiagonal() *
-                  solver.eigenvectors().transpose();
-  state.valid = std::isfinite(state.logdet) && state.inverse.allFinite();
-  return state;
+// Column equilibration keeps numerical rank independent of model-column units.
+// All rank decisions use singular values of X itself, not squared values in X'X.
+Eigen::VectorXd column_scales(const Eigen::MatrixXd &design) {
+  Eigen::VectorXd scales = design.cwiseAbs().colwise().maxCoeff().transpose();
+  for (int col = 0; col < scales.size(); ++col)
+    if (scales(col) == 0.0)
+      scales(col) = 1.0;
+  return scales;
 }
 
-InformationState information_from_design(const Eigen::MatrixXd &design) {
-  return information_from_matrix(design.transpose() * design, design.rows());
+int singular_rank(const Eigen::VectorXd &singular, int rows, int cols) {
+  if (singular.size() == 0 || singular(0) <= 0.0)
+    return 0;
+  const double tolerance = std::max(rows, cols) *
+      std::numeric_limits<double>::epsilon() * singular(0);
+  return static_cast<int>((singular.array() > tolerance).count());
 }
 
 int matrix_rank(const Eigen::MatrixXd &matrix) {
   if (matrix.rows() == 0 || matrix.cols() == 0)
     return 0;
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd(matrix);
-  const Eigen::VectorXd singular = svd.singularValues();
-  if (singular.size() == 0)
-    return 0;
-  const double tolerance = std::max(matrix.rows(), matrix.cols()) *
-                           std::numeric_limits<double>::epsilon() * singular(0);
-  return static_cast<int>((singular.array() > tolerance).count());
+  const Eigen::MatrixXd normalized =
+      matrix.array().rowwise() / column_scales(matrix).transpose().array();
+  Eigen::JacobiSVD<Eigen::MatrixXd> svd(normalized);
+  return singular_rank(svd.singularValues(), matrix.rows(), matrix.cols());
 }
 
-struct InitializationScore {
-  int rank = -1;
-  double log_pseudodeterminant =
-      -std::numeric_limits<double>::infinity();
-  double reciprocal_condition = 0.0;
-  bool valid = false;
-};
+// Exact rebuilds compute a triangular factor directly from the equilibrated
+// design using QR. SVD supplies rank and conditioning; no explicit inverse is
+// needed. The column scaling is included in the returned, original-basis logdet.
+InformationState information_from_design(const Eigen::MatrixXd &design) {
+  InformationState state;
+  const int p = design.cols();
+  if (p == 0 || design.rows() < p || !design.allFinite())
+    return state;
+  state.scales = column_scales(design);
+  const Eigen::MatrixXd normalized =
+      design.array().rowwise() / state.scales.transpose().array();
+  Eigen::JacobiSVD<Eigen::MatrixXd> svd(normalized);
+  state.rank = singular_rank(svd.singularValues(), design.rows(), p);
+  if (state.rank != p)
+    return state;
+  Eigen::HouseholderQR<Eigen::MatrixXd> qr(normalized);
+  Eigen::MatrixXd upper = qr.matrixQR().topLeftCorner(p, p)
+      .triangularView<Eigen::Upper>();
+  for (int row = 0; row < p; ++row)
+    if (upper(row, row) < 0.0)
+      upper.row(row) *= -1.0;
+  state.factor = upper.transpose();
+  state.logdet = 2.0 * (upper.diagonal().array().log().sum() +
+                       state.scales.array().log().sum());
+  const double ratio = svd.singularValues()(p - 1) / svd.singularValues()(0);
+  state.reciprocal_condition = ratio * ratio;
+  state.valid = std::isfinite(state.logdet) && state.factor.allFinite() &&
+                (state.factor.diagonal().array() > 0.0).all();
+  return state;
+}
 
-InitializationScore initialization_score(const Eigen::MatrixXd &information,
-                                          int design_rows) {
-  InitializationScore score;
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(
-      0.5 * (information + information.transpose()));
-  if (solver.info() != Eigen::Success)
-    return score;
-  const Eigen::VectorXd eigenvalues = solver.eigenvalues();
-  const double largest = eigenvalues.maxCoeff();
-  if (!std::isfinite(largest) || largest <= 0.0)
-    return score;
-  const double tolerance =
-      std::max(design_rows, static_cast<int>(information.rows())) *
-      std::numeric_limits<double>::epsilon() * largest;
-  score.rank = static_cast<int>((eigenvalues.array() > tolerance).count());
-  if (score.rank <= 0)
-    return score;
-  score.log_pseudodeterminant = 0.0;
-  double smallest_positive = largest;
-  for (int index = 0; index < eigenvalues.size(); ++index) {
-    if (eigenvalues(index) > tolerance) {
-      score.log_pseudodeterminant += std::log(eigenvalues(index));
-      smallest_positive = std::min(smallest_positive, eigenvalues(index));
+Eigen::VectorXd whiten_row(const Eigen::VectorXd &row,
+                          const InformationState &state) {
+  return state.factor.triangularView<Eigen::Lower>().solve(
+      row.cwiseQuotient(state.scales));
+}
+
+// Update/downdate a lower Cholesky factor in O(p^2). Add the new row before
+// removing the old one so a saturated design never passes through a singular
+// intermediate matrix. Numerically unsafe downdates fall back to an exact QR.
+bool update_factor(Eigen::MatrixXd &factor, Eigen::VectorXd value, int sign) {
+  const double guard = 64.0 * std::numeric_limits<double>::epsilon();
+  for (int col = 0; col < factor.cols(); ++col) {
+    const double diagonal = factor(col, col);
+    const double s = value(col) / diagonal;
+    const double squared_c = 1.0 + sign * s * s;
+    if (!std::isfinite(squared_c) || squared_c <= guard)
+      return false;
+    const double c = std::sqrt(squared_c);
+    factor(col, col) = diagonal * c;
+    for (int row = col + 1; row < factor.rows(); ++row) {
+      factor(row, col) = (factor(row, col) + sign * s * value(row)) / c;
+      value(row) = c * value(row) - s * factor(row, col);
     }
   }
-  score.reciprocal_condition = smallest_positive / largest;
-  score.valid = std::isfinite(score.log_pseudodeterminant) &&
-                std::isfinite(score.reciprocal_condition);
-  return score;
+  return factor.allFinite();
 }
 
-bool better_initialization_score(const InitializationScore &candidate,
-                                 const InitializationScore &best) {
-  if (!candidate.valid)
+bool replace_information_row(InformationState &state,
+                             const Eigen::VectorXd &old_row,
+                             const Eigen::VectorXd &new_row) {
+  const Eigen::VectorXd old_scaled = old_row.cwiseQuotient(state.scales);
+  const Eigen::VectorXd new_scaled = new_row.cwiseQuotient(state.scales);
+  if (!update_factor(state.factor, new_scaled, 1) ||
+      !update_factor(state.factor, old_scaled, -1))
     return false;
-  if (!best.valid || candidate.rank != best.rank)
-    return !best.valid || candidate.rank > best.rank;
-  const double log_tolerance =
-      64.0 * std::numeric_limits<double>::epsilon() *
-      std::max(1.0, std::abs(best.log_pseudodeterminant));
-  if (candidate.log_pseudodeterminant >
-      best.log_pseudodeterminant + log_tolerance)
-    return true;
-  if (std::abs(candidate.log_pseudodeterminant -
-               best.log_pseudodeterminant) <= log_tolerance) {
-    return candidate.reciprocal_condition > best.reciprocal_condition;
-  }
-  return false;
+  state.logdet = 2.0 * (state.factor.diagonal().array().log().sum() +
+                       state.scales.array().log().sum());
+  return std::isfinite(state.logdet);
 }
 
+// The final callback evaluation must agree column by column with the cached
+// rows. Relative column scales make this check independent of coefficient units.
+bool model_matrices_agree(const Eigen::MatrixXd &left,
+                          const Eigen::MatrixXd &right) {
+  if (left.rows() != right.rows() || left.cols() != right.cols())
+    return false;
+  for (int col = 0; col < left.cols(); ++col) {
+    const double scale = std::max(left.col(col).cwiseAbs().maxCoeff(),
+                                  right.col(col).cwiseAbs().maxCoeff());
+    if ((left.col(col) - right.col(col)).cwiseAbs().maxCoeff() > 1e-10 * scale)
+      return false;
+  }
+  return true;
+}
+
+// Factor-space validation ----------------------------------------------------
+// Initial numeric points are matched to the closest grid entry within a scaled
+// tolerance. Subsequent proposals use exact table lookups through their codes.
 int match_level(double value, const std::vector<double> &levels) {
   int best = -1;
   double best_distance = std::numeric_limits<double>::infinity();
@@ -249,6 +439,8 @@ int match_level(double value, const std::vector<double> &levels) {
   return best_distance <= 1e-10 * scale ? best : -1;
 }
 
+// Canonicalize each search grid into increasing, finite, unique values. Its
+// resulting positions must agree with the constraint IR's level-code ordering.
 std::vector<std::vector<double>> read_factor_levels(const List &factor_levels,
                                                     int q) {
   if (factor_levels.size() != q)
@@ -272,6 +464,8 @@ std::vector<std::vector<double>> read_factor_levels(const List &factor_levels,
   return levels;
 }
 
+// R supplies one-based factor indices; C++ uses zero-based indices. A group is
+// a set of coordinates changed jointly, and groups must partition all factors.
 std::vector<std::vector<int>> validate_groups(const List &coordinate_groups,
                                               int q) {
   if (coordinate_groups.size() <= 0)
@@ -297,6 +491,10 @@ std::vector<std::vector<int>> validate_groups(const List &coordinate_groups,
   return groups;
 }
 
+// Feasible row generation ----------------------------------------------------
+// The same generator supplies initialization pools and coordinate alternatives.
+// Small grids are enumerated; larger ones use independent randomized descents
+// under a shared node budget, retaining distinct feasible rows.
 GeneratedRows generate_rows(
     const std::vector<int> &base_codes, const std::vector<int> &variables,
     const std::vector<std::vector<double>> &levels,
@@ -325,6 +523,9 @@ GeneratedRows generate_rows(
                        std::max<long long>(node_budget, candidate_limit + 1LL),
                        exclude_base};
 
+  // Exact searches enumerate the grid. Bounded searches repeatedly find a single
+  // feasible row, randomizing branch starts on each descent. This spreads the
+  // pool across all coordinates instead of taking a rank-deficient DFS prefix.
   for (int var : variables)
     state.assigned[var] = 0;
   if (bounded)
@@ -335,26 +536,46 @@ GeneratedRows generate_rows(
     std::iota(order.begin(), order.end(), 0);
     if (bounded)
       shuffle_vector(order);
-    if (exclude_base) {
+    if (exclude_base && !bounded) {
       const auto position = std::find(order.begin(), order.end(), base_codes[var]);
       if (position != order.end())
         std::rotate(order.begin(), position, position + 1);
     }
     state.level_order.push_back(std::move(order));
   }
-  if (constraints == NULL ||
-      constraints->can_complete(state.codes.data(), state.assigned.data())) {
+  if (bounded) {
+    state.randomized = true;
+    state.limit = 1;
+    result.complete = false;
+    std::set<std::vector<int>> seen;
+    while (result.nodes < node_budget &&
+           static_cast<int>(result.codes.size()) < candidate_limit) {
+      checkUserInterrupt();
+      state.nodes = state.pruned = 0;
+      state.stopped = false;
+      state.rows.clear();
+      state.node_budget = node_budget - result.nodes;
+      state.visit(0);
+      result.nodes += state.nodes;
+      result.pruned += state.pruned;
+      if (state.rows.empty() && !state.stopped) {
+        result.complete = true;
+        break;
+      }
+      if (!state.rows.empty() && seen.insert(state.rows.front()).second)
+        result.codes.push_back(state.rows.front());
+    }
+    result.capped = !result.complete;
+  } else {
     state.visit(0);
+    result.nodes = state.nodes;
+    result.pruned = state.pruned;
+    result.complete = !state.stopped;
+    result.capped = state.stopped;
+    result.codes = std::move(state.rows);
+    if (static_cast<int>(result.codes.size()) > candidate_limit)
+      result.codes.resize(candidate_limit);
   }
-
-  result.nodes = state.nodes;
-  result.pruned = state.pruned;
-  result.complete = !state.stopped;
-  result.capped = static_cast<int>(state.rows.size()) > candidate_limit ||
-                  (state.stopped && result.raw_product > candidate_limit);
-  if (static_cast<int>(state.rows.size()) > candidate_limit)
-    state.rows.resize(candidate_limit);
-  result.codes = std::move(state.rows);
   result.points.resize(result.codes.size(), levels.size());
   for (int row = 0; row < static_cast<int>(result.codes.size()); ++row) {
     for (int var = 0; var < static_cast<int>(levels.size()); ++var)
@@ -363,18 +584,19 @@ GeneratedRows generate_rows(
   return result;
 }
 
-std::vector<int> select_rows_by_leverage(
-    const Eigen::MatrixXd &design, const Eigen::MatrixXd &inverse,
-    int kexchange, int augmented_rows) {
-  const int n = design.rows();
+// Mutable-row selection ------------------------------------------------------
+// Rank eligible rows by leverage x' (X'X)^-1 x, taking the k lowest values.
+// Augmented rows are excluded before counting k; row index breaks equal scores.
+template <typename Leverage>
+std::vector<int> select_rows(int n, int kexchange, int augmented_rows,
+                             Leverage leverage) {
   const int first = std::max(0, std::min(augmented_rows, n));
   if (kexchange < 1)
     stop("skpr: kexchange must be at least 1.");
   const int target = std::min(kexchange, n - first);
   std::vector<std::pair<double, int>> ranked;
   for (int row = first; row < n; ++row) {
-    const Eigen::VectorXd value = design.row(row).transpose();
-    ranked.emplace_back(value.dot(inverse * value), row);
+    ranked.emplace_back(leverage(row), row);
   }
   std::sort(ranked.begin(), ranked.end(),
             [](const std::pair<double, int> &left,
@@ -389,6 +611,18 @@ std::vector<int> select_rows_by_leverage(
   return selected;
 }
 
+std::vector<int> select_rows_by_leverage(
+    const Eigen::MatrixXd &design, const Eigen::MatrixXd &inverse,
+    int kexchange, int augmented_rows) {
+  return select_rows(design.rows(), kexchange, augmented_rows, [&](int row) {
+    const Eigen::VectorXd value = design.row(row).transpose();
+    return value.dot(inverse * value);
+  });
+}
+
+// Feasible, full-rank initialization -----------------------------------------
+// A supplied start can be used directly only if every row is feasible and the
+// information matrix is numerically invertible.
 bool all_rows_feasible(const std::vector<std::vector<int>> &codes,
                        const ConstraintSet *constraints) {
   if (constraints == NULL)
@@ -400,75 +634,101 @@ bool all_rows_feasible(const std::vector<std::vector<int>> &codes,
   return true;
 }
 
+// Preserve fixed rows, then scan a randomized pool ordering for independent
+// model rows. Reorthogonalization identifies missing rank directions in O(M p^2)
+// without an eigendecomposition for every candidate. Remaining runs are sampled
+// with replacement, providing independent starts even for exact feasible pools.
 bool initialize_from_pool(
     Eigen::MatrixXd &points, std::vector<std::vector<int>> &codes,
     Eigen::MatrixXd &design, const GeneratedRows &pool,
-    Function model_matrix_fn, int augmented_rows, SearchDiagnostics &diagnostics,
+    const ModelEvaluator &model, int augmented_rows, SearchDiagnostics &diagnostics,
     bool &support_definitively_singular) {
-  support_definitively_singular = false;
+  support_definitively_singular = pool.complete && pool.points.rows() == 0;
   if (pool.points.rows() == 0)
     return false;
-  Eigen::MatrixXd pool_design =
-      call_model_matrix(model_matrix_fn, pool.points, diagnostics);
+  const Eigen::MatrixXd pool_design =
+      model.evaluate(pool.points, pool.codes, diagnostics);
   if (pool_design.cols() != design.cols())
     stop("skpr: modelmatrix_fn changed its number of columns.");
-
   const int n = points.rows();
   const int p = design.cols();
-  const int fixed = std::max(0, std::min(augmented_rows, n));
+  const int fixed = augmented_rows;
   Eigen::MatrixXd support(fixed + pool_design.rows(), p);
   if (fixed > 0)
     support.topRows(fixed) = design.topRows(fixed);
   support.bottomRows(pool_design.rows()) = pool_design;
-  if (matrix_rank(support) < p) {
+  const Eigen::VectorXd scales = column_scales(support);
+  support.array().rowwise() /= scales.transpose().array();
+  Eigen::JacobiSVD<Eigen::MatrixXd> svd(support);
+  if (singular_rank(svd.singularValues(), support.rows(), p) < p) {
     support_definitively_singular = pool.complete;
     return false;
   }
+  const double tolerance = std::max(static_cast<int>(support.rows()), p) *
+      std::numeric_limits<double>::epsilon() * svd.singularValues()(0);
+  Eigen::MatrixXd basis = Eigen::MatrixXd::Zero(p, p);
+  int rank = 0;
+  auto add_direction = [&](Eigen::VectorXd value) {
+    if (rank == p)
+      return false;
+    for (int pass = 0; pass < 2; ++pass)
+      if (rank > 0)
+        value -= basis.leftCols(rank) *
+                 (basis.leftCols(rank).transpose() * value).eval();
+    const double norm = value.norm();
+    if (norm <= tolerance)
+      return false;
+    basis.col(rank++) = value / norm;
+    return true;
+  };
+  for (int row = 0; row < fixed; ++row)
+    add_direction(support.row(row).transpose());
+  if (n - fixed < p - rank)
+    return false;
 
-  Eigen::MatrixXd selected(n, p);
-  if (fixed > 0)
-    selected.topRows(fixed) = design.topRows(fixed);
-  int selected_count = fixed;
-  int current_rank = matrix_rank(selected.topRows(selected_count));
-  Eigen::MatrixXd selected_information = Eigen::MatrixXd::Zero(p, p);
-  if (fixed > 0) {
-    selected_information =
-        selected.topRows(fixed).transpose() * selected.topRows(fixed);
-  }
+  std::vector<int> order(pool_design.rows());
+  std::iota(order.begin(), order.end(), 0);
+  shuffle_vector(order);
+  std::vector<int> selected;
+  int cursor = 0;
   for (int row = fixed; row < n; ++row) {
     int chosen = -1;
-    InitializationScore best_score;
-    for (int candidate = 0; candidate < pool_design.rows(); ++candidate) {
-      const Eigen::VectorXd candidate_row = pool_design.row(candidate);
-      const Eigen::MatrixXd trial_information =
-          selected_information + candidate_row * candidate_row.transpose();
-      const InitializationScore candidate_score =
-          initialization_score(trial_information, selected_count + 1);
-      if (current_rank < p && candidate_score.rank <= current_rank)
-        continue;
-      if (better_initialization_score(candidate_score, best_score)) {
-        chosen = candidate;
-        best_score = candidate_score;
+    if (rank < p) {
+      while (cursor < static_cast<int>(order.size())) {
+        const int candidate = order[cursor++];
+        if (add_direction(support.row(fixed + candidate).transpose())) {
+          chosen = candidate;
+          break;
+        }
       }
+    } else {
+      chosen = random_index(pool_design.rows());
     }
     if (chosen < 0)
       return false;
+    selected.push_back(chosen);
+  }
+
+  Eigen::MatrixXd selected_design = design;
+  for (int row = fixed; row < n; ++row) {
+    const int chosen = selected[row - fixed];
     points.row(row) = pool.points.row(chosen);
     codes[row] = pool.codes[chosen];
-    selected.row(selected_count) = pool_design.row(chosen);
-    const Eigen::VectorXd chosen_row = pool_design.row(chosen);
-    selected_information += chosen_row * chosen_row.transpose();
-    ++selected_count;
-    current_rank = best_score.rank;
+    selected_design.row(row) = pool_design.row(chosen);
   }
-  design = call_model_matrix(model_matrix_fn, points, diagnostics);
-  return information_from_design(design).valid;
+  design = model.evaluate(points, codes, diagnostics);
+  if (!model_matrices_agree(design, selected_design))
+    stop("skpr: modelmatrix_fn must use a fixed pointwise model; its rows depend on the evaluation batch.");
+  return matrix_rank(design) == p;
 }
 
+// Reject infeasible fixed rows and reuse valid starts. Otherwise accumulate
+// distinct feasible support across restart pools, so rank directions discovered
+// in an earlier bounded sample remain available in subsequent attempts.
 void ensure_feasible_full_rank_initialization(
     Eigen::MatrixXd &points, std::vector<std::vector<int>> &codes,
     Eigen::MatrixXd &design, const std::vector<std::vector<double>> &levels,
-    Function model_matrix_fn, const ConstraintSet *constraints,
+    const ModelEvaluator &model, const ConstraintSet *constraints,
     int augmented_rows, int restart_limit, int generation_budget,
     SearchDiagnostics &diagnostics) {
   const int n = points.rows();
@@ -481,7 +741,7 @@ void ensure_feasible_full_rank_initialization(
     }
   }
   if (all_rows_feasible(codes, constraints) &&
-      information_from_design(design).valid) {
+      matrix_rank(design) == design.cols()) {
     diagnostics.initialization_mode = "provided";
     return;
   }
@@ -495,20 +755,33 @@ void ensure_feasible_full_rank_initialization(
   const int pool_limit = generation_budget;
   const long long node_budget =
       std::max<long long>(pool_limit + 1LL,
-                          static_cast<long long>(generation_budget) * 50LL);
+                          static_cast<long long>(generation_budget) *
+                          std::max(50LL, 2LL * static_cast<long long>(levels.size() + 1)));
+  GeneratedRows accumulated;
+  accumulated.complete = false;
+  std::set<std::vector<int>> seen;
   for (int restart = 0; restart < restart_limit; ++restart) {
     ++diagnostics.initialization_restarts;
     GeneratedRows pool = generate_rows(base_codes, variables, levels, constraints,
-                                       pool_limit, node_budget, restart > 0);
+                                       pool_limit, node_budget, false);
     diagnostics.partial_nodes += pool.nodes;
     diagnostics.partial_pruned += pool.pruned;
+    for (const auto &row : pool.codes)
+      if (seen.insert(row).second)
+        accumulated.codes.push_back(row);
+    accumulated.complete = accumulated.complete || pool.complete;
+    accumulated.capped = !accumulated.complete;
+    accumulated.points.resize(accumulated.codes.size(), levels.size());
+    for (int row = 0; row < static_cast<int>(accumulated.codes.size()); ++row)
+      for (int var = 0; var < static_cast<int>(levels.size()); ++var)
+        accumulated.points(row, var) = levels[var][accumulated.codes[row][var]];
     diagnostics.initialization_pool_size =
         std::max(diagnostics.initialization_pool_size,
-                 static_cast<int>(pool.codes.size()));
+                 static_cast<int>(accumulated.codes.size()));
     bool definitively_singular = false;
-    if (initialize_from_pool(points, codes, design, pool, model_matrix_fn,
+    if (initialize_from_pool(points, codes, design, accumulated, model,
                              fixed, diagnostics, definitively_singular)) {
-      diagnostics.initialization_mode = pool.capped ? "bounded_pool" : "exact_pool";
+      diagnostics.initialization_mode = accumulated.capped ? "bounded_pool" : "exact_pool";
       return;
     }
     if (definitively_singular) {
@@ -518,16 +791,20 @@ void ensure_feasible_full_rank_initialization(
   stop("skpr: Coordinate exchange could not construct a full-rank feasible initial design within the configured repair limits.");
 }
 
-double determinant_delta(const Eigen::VectorXd &old_row,
-                         const Eigen::VectorXd &new_row,
-                         const Eigen::MatrixXd &inverse) {
-  const double old_leverage = old_row.dot(inverse * old_row);
-  const double new_leverage = new_row.dot(inverse * new_row);
-  const double cross = new_row.dot(inverse * old_row);
-  return 1.0 + new_leverage - old_leverage +
-         cross * cross - new_leverage * old_leverage;
+// Objective scoring and R result conversion ---------------------------------
+// For M = X'X, replacing old_row by new_row gives
+//   M_new = M - old_row * old_row' + new_row * new_row'.
+// The rank-two determinant lemma gives det(M_new) / det(M) below. A ratio above
+// one predicts an improvement without factoring M_new for every candidate.
+double determinant_delta(double old_leverage,
+                         const Eigen::VectorXd &old_white,
+                         const Eigen::VectorXd &new_white) {
+  const double new_leverage = new_white.squaredNorm();
+  const double cross = new_white.dot(old_white);
+  return (1.0 - old_leverage) * (1.0 + new_leverage) + cross * cross;
 }
 
+// Keep level codes zero-based on return; the R decoder adds one for indexing.
 IntegerMatrix wrap_codes(const std::vector<std::vector<int>> &codes) {
   if (codes.empty())
     return IntegerMatrix(0, 0);
@@ -538,6 +815,8 @@ IntegerMatrix wrap_codes(const std::vector<std::vector<int>> &codes) {
   return result;
 }
 
+// Flatten one repeat's counters and final numerical state into the schema that
+// gen_design() later enriches with repeat status and selection information.
 List diagnostics_list(const SearchDiagnostics &diagnostics,
                       const InformationState &final_information,
                       const std::vector<double> &group_products,
@@ -556,7 +835,12 @@ List diagnostics_list(const SearchDiagnostics &diagnostics,
       _["proposals_pruned"] = static_cast<double>(diagnostics.partial_pruned),
       _["capped_groups"] = diagnostics.capped_groups,
       _["model_matrix_calls"] = diagnostics.model_matrix_calls,
+      _["model_evaluator"] = diagnostics.model_evaluator,
+      _["model_table_evaluations"] = diagnostics.model_table_evaluations,
+      _["model_table_bytes"] = diagnostics.model_table_bytes,
       _["information_recomputes"] = diagnostics.information_recomputes,
+      _["factor_updates"] = diagnostics.factor_updates,
+      _["numerical_fallbacks"] = diagnostics.numerical_fallbacks,
       _["stop_reason"] = diagnostics.stop_reason,
       _["group_raw_products"] = wrap(group_products),
       _["objective_history"] = wrap(diagnostics.objective_history),
@@ -564,11 +848,14 @@ List diagnostics_list(const SearchDiagnostics &diagnostics,
       _["final_logdet"] = final_information.logdet,
       _["logdet_agreement"] = agreement,
       _["final_rank"] = final_information.rank,
+      _["conditioning_basis"] = "column_equilibrated",
       _["reciprocal_condition"] = final_information.reciprocal_condition);
 }
 
 } // namespace
 
+// R-facing entry points ------------------------------------------------------
+// Expose the row-selection policy independently, returning one-based row indices.
 // [[Rcpp::export]]
 IntegerVector skpr_ce_select_rows_by_leverage(Eigen::MatrixXd design,
                                               Eigen::MatrixXd inverse,
@@ -582,15 +869,19 @@ IntegerVector skpr_ce_select_rows_by_leverage(Eigen::MatrixXd design,
   return result;
 }
 
+// Run one search repeat. R is responsible for constructing the initial points
+// and invoking this function again when multiple starts are requested.
 // [[Rcpp::export]]
 List genOptimalDesignCoordinateExchangeConstrained(
     Eigen::MatrixXd points, List factor_levels, Function modelmatrix_fn,
     List coordinate_groups, Nullable<List> constraints_ir = R_NilValue,
     double tolerance = 1e-4,
-    IntegerVector kexchange = IntegerVector::create(NA_INTEGER),
+    Nullable<IntegerVector> kexchange = R_NilValue,
     int augmentedrows = 0, int max_iter = 200, int recompute_every = 10,
     int repair_stuck_limit = 5, int repair_max_tries = 2000,
-    int coordinate_group_max_candidates = 10000) {
+    int coordinate_group_max_candidates = 10000,
+    Nullable<List> model_tables = R_NilValue) {
+  // 1. Validate controls, grids, groups, and the optional compiled constraints.
   RNGScope rng_scope;
   if (!points.allFinite() || points.rows() <= 0 || points.cols() <= 0)
     stop("skpr: coordinate-exchange points must be a finite non-empty matrix.");
@@ -619,6 +910,8 @@ List genOptimalDesignCoordinateExchangeConstrained(
     }
   }
 
+  // 2. Establish parallel point/code/model representations, then repair the
+  // starting design if necessary before factoring it to score exchanges.
   std::vector<std::vector<int>> codes(n, std::vector<int>(q));
   for (int row = 0; row < n; ++row) {
     for (int var = 0; var < q; ++var) {
@@ -629,13 +922,14 @@ List genOptimalDesignCoordinateExchangeConstrained(
   }
 
   SearchDiagnostics diagnostics;
-  Eigen::MatrixXd design = call_model_matrix(modelmatrix_fn, points, diagnostics);
+  const ModelEvaluator model(modelmatrix_fn, model_tables, levels, groups, diagnostics);
+  Eigen::MatrixXd design = model.evaluate(points, codes, diagnostics);
   const int p = design.cols();
   if (p <= 0 || n < p)
     stop("skpr: Too few runs for the coordinate-exchange model matrix.");
 
   ensure_feasible_full_rank_initialization(
-      points, codes, design, levels, modelmatrix_fn, constraints.get(), fixed,
+      points, codes, design, levels, model, constraints.get(), fixed,
       repair_stuck_limit, repair_max_tries, diagnostics);
 
   InformationState information = information_from_design(design);
@@ -644,9 +938,13 @@ List genOptimalDesignCoordinateExchangeConstrained(
     stop("skpr: Coordinate exchange initialization is numerically singular.");
   diagnostics.objective_history.push_back(information.logdet);
 
+  // 3. Resolve the mutable-row budget and record each group's unpruned size.
   int k_use = n - fixed;
-  if (kexchange.size() > 0 && kexchange[0] != NA_INTEGER)
-    k_use = kexchange[0];
+  if (kexchange.isNotNull()) {
+    IntegerVector requested(kexchange);
+    if (requested.size() > 0 && requested[0] != NA_INTEGER)
+      k_use = requested[0];
+  }
   if (k_use < 1)
     stop("skpr: kexchange must be at least 1.");
   k_use = std::min(k_use, n - fixed);
@@ -658,20 +956,27 @@ List genOptimalDesignCoordinateExchangeConstrained(
       group_products[group_index] *= levels[var].size();
   }
 
+  // 4. Sweep the selected rows and their coordinate groups in order. Leverage is
+  // recomputed at each sweep boundary; the selected row order remains fixed.
+  // Each group uses the current row and information state, including accepted
+  // changes from earlier groups in the same row visit.
   int accepted_since_recompute = 0;
   const double objective_epsilon = 1e-12;
   for (int iteration = 0; iteration < max_iter; ++iteration) {
     diagnostics.iterations = iteration + 1;
     const double sweep_start = information.logdet;
     bool accepted_in_sweep = false;
+    bool capped_in_sweep = false;
     const std::vector<int> selected =
-        select_rows_by_leverage(design, information.inverse, k_use, fixed);
+        select_rows(n, k_use, fixed, [&](int row) {
+          return whiten_row(design.row(row).transpose(), information).squaredNorm();
+        });
 
     for (int row : selected) {
-      checkUserInterrupt();
-      std::vector<Eigen::RowVectorXd> proposal_points;
-      std::vector<std::vector<int>> proposal_codes;
       for (const std::vector<int> &group : groups) {
+        checkUserInterrupt();
+        // Change only this group. All other factor values stay fixed at their
+        // latest accepted values, including changes made earlier in this row.
         bool movable = false;
         for (int var : group)
           movable = movable || levels[var].size() > 1;
@@ -686,71 +991,90 @@ List genOptimalDesignCoordinateExchangeConstrained(
         diagnostics.partial_nodes += generated.nodes;
         diagnostics.partial_pruned += generated.pruned;
         diagnostics.proposals_generated += generated.codes.size();
-        if (generated.capped)
+        if (generated.capped) {
           ++diagnostics.capped_groups;
-        for (int candidate = 0; candidate < generated.points.rows(); ++candidate) {
-          proposal_points.push_back(generated.points.row(candidate));
-          proposal_codes.push_back(generated.codes[candidate]);
+          capped_in_sweep = true;
         }
-      }
-      if (proposal_points.empty())
-        continue;
+        if (generated.codes.empty())
+          continue;
 
-      Eigen::MatrixXd proposal_matrix(proposal_points.size(), q);
-      for (int candidate = 0;
-           candidate < static_cast<int>(proposal_points.size()); ++candidate)
-        proposal_matrix.row(candidate) = proposal_points[candidate];
-      Eigen::MatrixXd proposal_design =
-          call_model_matrix(modelmatrix_fn, proposal_matrix, diagnostics);
-      if (proposal_design.cols() != p)
-        stop("skpr: modelmatrix_fn changed its number of columns.");
-      diagnostics.proposals_scored += proposal_design.rows();
+        // Look up this group's affected model columns (or use the R fallback).
+        // Recompute scores from the current information state;
+        // a prior group's accepted change invalidates both the old row and its score.
+        const Eigen::MatrixXd &proposal_matrix = generated.points;
+        const Eigen::VectorXd old_row = design.row(row).transpose();
+        Eigen::MatrixXd proposal_design =
+            model.evaluate(proposal_matrix, generated.codes, diagnostics,
+                           &old_row, static_cast<int>(&group - groups.data()));
+        if (proposal_design.cols() != p)
+          stop("skpr: modelmatrix_fn changed its number of columns.");
+        diagnostics.proposals_scored += proposal_design.rows();
 
-      const Eigen::VectorXd old_row = design.row(row).transpose();
-      double best_delta = 1.0;
-      int best = -1;
-      for (int candidate = 0; candidate < proposal_design.rows(); ++candidate) {
-        const Eigen::VectorXd new_row = proposal_design.row(candidate).transpose();
-        const double delta =
-            determinant_delta(old_row, new_row, information.inverse);
-        if (std::isfinite(delta) && delta > best_delta + objective_epsilon) {
-          best_delta = delta;
-          best = candidate;
+        const Eigen::VectorXd old_white = whiten_row(old_row, information);
+        const double old_leverage = old_white.squaredNorm();
+        double best_delta = 1.0;
+        int best = -1;
+        for (int candidate = 0; candidate < proposal_design.rows(); ++candidate) {
+          const Eigen::VectorXd new_row = proposal_design.row(candidate).transpose();
+          const double delta =
+              determinant_delta(old_leverage, old_white, whiten_row(new_row, information));
+          if (std::isfinite(delta) && delta > best_delta + objective_epsilon) {
+            best_delta = delta;
+            best = candidate;
+          }
         }
-      }
-      if (best < 0)
-        continue;
+        if (best < 0)
+          continue;
 
-      const Eigen::VectorXd new_row = proposal_design.row(best).transpose();
-      Eigen::MatrixXd trial_design = design;
-      trial_design.row(row) = proposal_design.row(best);
-      InformationState trial = information_from_design(trial_design);
-      ++diagnostics.information_recomputes;
-      if (!trial.valid ||
-          trial.logdet <= information.logdet + objective_epsilon)
-        continue;
+        // Apply the winning replacement through two O(p^2) factor updates. Check
+        // its log gain against the determinant ratio; an unsafe update triggers
+        // an exact rebuild before any point or model row is committed.
+        const Eigen::VectorXd new_row = proposal_design.row(best).transpose();
+        InformationState trial = information;
+        bool updated = replace_information_row(trial, old_row, new_row);
+        const double predicted_gain = std::log(best_delta);
+        if (!updated || std::fabs(trial.logdet - information.logdet - predicted_gain) >
+                            1e-8 * std::max(1.0, std::fabs(predicted_gain))) {
+          Eigen::MatrixXd trial_design = design;
+          trial_design.row(row) = new_row.transpose();
+          trial = information_from_design(trial_design);
+          ++diagnostics.information_recomputes;
+          ++diagnostics.numerical_fallbacks;
+          updated = false;
+        }
+        if (!trial.valid || trial.logdet <= information.logdet + objective_epsilon)
+          continue;
 
-      points.row(row) = proposal_matrix.row(best);
-      codes[row] = proposal_codes[best];
-      design.swap(trial_design);
-      information = std::move(trial);
-      ++diagnostics.accepted_moves;
-      ++accepted_since_recompute;
-      accepted_in_sweep = true;
-      diagnostics.objective_history.push_back(information.logdet);
+        points.row(row) = proposal_matrix.row(best);
+        codes[row] = generated.codes[best];
+        design.row(row) = new_row.transpose();
+        information = std::move(trial);
+        if (updated)
+          ++diagnostics.factor_updates;
+        ++diagnostics.accepted_moves;
+        accepted_since_recompute = updated ? accepted_since_recompute + 1 : 0;
+        accepted_in_sweep = true;
+        diagnostics.objective_history.push_back(information.logdet);
 
-      if (recompute_every > 0 && accepted_since_recompute >= recompute_every) {
-        information = information_from_design(design);
-        ++diagnostics.information_recomputes;
-        accepted_since_recompute = 0;
-        if (!information.valid)
-          stop("skpr: coordinate-exchange information recomputation became singular.");
-        diagnostics.objective_history.back() = information.logdet;
+        // Refresh the column scales and triangular factor at the requested
+        // interval; frequency zero leaves only fallback and final exact rebuilds.
+        if (recompute_every > 0 && accepted_since_recompute >= recompute_every) {
+          information = information_from_design(design);
+          ++diagnostics.information_recomputes;
+          accepted_since_recompute = 0;
+          if (!information.valid)
+            stop("skpr: coordinate-exchange information recomputation became singular.");
+          diagnostics.objective_history.back() = information.logdet;
+        }
       }
     }
 
+    // 5. Stop after a sweep with no accepted change, or a sufficiently small
+    // relative gain in det(X'X)^(1/p). A capped traversal may leave alternatives
+    // unexamined even when this sweep finds no improving move.
     if (!accepted_in_sweep) {
-      diagnostics.stop_reason = "no_improving_move";
+      diagnostics.stop_reason = capped_in_sweep ? "sampled_no_improvement" :
+                                                 "no_improving_move";
       break;
     }
     const double relative_gain =
@@ -763,6 +1087,13 @@ List genOptimalDesignCoordinateExchangeConstrained(
   if (max_iter == 0)
     diagnostics.stop_reason = "max_iter";
 
+  // 6. Re-evaluate the final points before comparing the cached and exact
+  // information states. A batch-dependent callback must not return a design
+  // whose model matrix or objective describes different runs.
+  Eigen::MatrixXd final_design = model.evaluate(points, codes, diagnostics);
+  if (!model_matrices_agree(design, final_design))
+    stop("skpr: modelmatrix_fn must use a fixed pointwise model; its rows depend on the evaluation batch.");
+  design.swap(final_design);
   const double maintained_logdet = information.logdet;
   InformationState final_information = information_from_design(design);
   ++diagnostics.information_recomputes;

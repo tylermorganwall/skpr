@@ -12,9 +12,9 @@ skpr_ce_make_modelmatrix_fn(
 )
 }
 \arguments{
-\item{model}{Default \code{NULL}. Model formula for model.matrix().}
+\item{model}{Model formula for model.matrix().}
 
-\item{factor_meta}{Default \code{NULL}. Named list of factor metadata. Each entry is a list:
+\item{factor_meta}{Named list of factor metadata. Each entry is a list:
 \itemize{
 \item kind: "discrete" or "numeric"
 \item levels: for discrete, the level labels (character) in code order 0..L-1
@@ -30,7 +30,8 @@ A function(points_mat) -> model matrix.
 \description{
 The returned function maps an (m x q) numeric matrix of factor values/codes to an
 (m x p) numeric model matrix via model.matrix(), using the same contrast mechanism
-as gen_design().
+as gen_design(). Formula calls must be supported pointwise base functions;
+scalar coefficients, terms, and contrast matrices are fixed at preparation.
 }
 \details{
 Discrete factors are represented as 0-based integer codes in the input matrix.

@@ -198,8 +198,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // genOptimalDesignCoordinateExchangeConstrained
-List genOptimalDesignCoordinateExchangeConstrained(Eigen::MatrixXd points, List factor_levels, Function modelmatrix_fn, List coordinate_groups, Nullable<List> constraints_ir, double tolerance, IntegerVector kexchange, int augmentedrows, int max_iter, int recompute_every, int repair_stuck_limit, int repair_max_tries, int coordinate_group_max_candidates);
-RcppExport SEXP _skpr_genOptimalDesignCoordinateExchangeConstrained(SEXP pointsSEXP, SEXP factor_levelsSEXP, SEXP modelmatrix_fnSEXP, SEXP coordinate_groupsSEXP, SEXP constraints_irSEXP, SEXP toleranceSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP, SEXP max_iterSEXP, SEXP recompute_everySEXP, SEXP repair_stuck_limitSEXP, SEXP repair_max_triesSEXP, SEXP coordinate_group_max_candidatesSEXP) {
+List genOptimalDesignCoordinateExchangeConstrained(Eigen::MatrixXd points, List factor_levels, Function modelmatrix_fn, List coordinate_groups, Nullable<List> constraints_ir, double tolerance, Nullable<IntegerVector> kexchange, int augmentedrows, int max_iter, int recompute_every, int repair_stuck_limit, int repair_max_tries, int coordinate_group_max_candidates, Nullable<List> model_tables);
+RcppExport SEXP _skpr_genOptimalDesignCoordinateExchangeConstrained(SEXP pointsSEXP, SEXP factor_levelsSEXP, SEXP modelmatrix_fnSEXP, SEXP coordinate_groupsSEXP, SEXP constraints_irSEXP, SEXP toleranceSEXP, SEXP kexchangeSEXP, SEXP augmentedrowsSEXP, SEXP max_iterSEXP, SEXP recompute_everySEXP, SEXP repair_stuck_limitSEXP, SEXP repair_max_triesSEXP, SEXP coordinate_group_max_candidatesSEXP, SEXP model_tablesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -209,14 +209,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type coordinate_groups(coordinate_groupsSEXP);
     Rcpp::traits::input_parameter< Nullable<List> >::type constraints_ir(constraints_irSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type kexchange(kexchangeSEXP);
+    Rcpp::traits::input_parameter< Nullable<IntegerVector> >::type kexchange(kexchangeSEXP);
     Rcpp::traits::input_parameter< int >::type augmentedrows(augmentedrowsSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< int >::type recompute_every(recompute_everySEXP);
     Rcpp::traits::input_parameter< int >::type repair_stuck_limit(repair_stuck_limitSEXP);
     Rcpp::traits::input_parameter< int >::type repair_max_tries(repair_max_triesSEXP);
     Rcpp::traits::input_parameter< int >::type coordinate_group_max_candidates(coordinate_group_max_candidatesSEXP);
-    rcpp_result_gen = Rcpp::wrap(genOptimalDesignCoordinateExchangeConstrained(points, factor_levels, modelmatrix_fn, coordinate_groups, constraints_ir, tolerance, kexchange, augmentedrows, max_iter, recompute_every, repair_stuck_limit, repair_max_tries, coordinate_group_max_candidates));
+    Rcpp::traits::input_parameter< Nullable<List> >::type model_tables(model_tablesSEXP);
+    rcpp_result_gen = Rcpp::wrap(genOptimalDesignCoordinateExchangeConstrained(points, factor_levels, modelmatrix_fn, coordinate_groups, constraints_ir, tolerance, kexchange, augmentedrows, max_iter, recompute_every, repair_stuck_limit, repair_max_tries, coordinate_group_max_candidates, model_tables));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -284,7 +285,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_skpr_GEfficiency", (DL_FUNC) &_skpr_GEfficiency, 2},
     {"_skpr_genOptimalDesign", (DL_FUNC) &_skpr_genOptimalDesign, 11},
     {"_skpr_skpr_ce_select_rows_by_leverage", (DL_FUNC) &_skpr_skpr_ce_select_rows_by_leverage, 4},
-    {"_skpr_genOptimalDesignCoordinateExchangeConstrained", (DL_FUNC) &_skpr_genOptimalDesignCoordinateExchangeConstrained, 13},
+    {"_skpr_genOptimalDesignCoordinateExchangeConstrained", (DL_FUNC) &_skpr_genOptimalDesignCoordinateExchangeConstrained, 14},
     {"_skpr_genSplitPlotOptimalDesign", (DL_FUNC) &_skpr_genSplitPlotOptimalDesign, 15},
     {"_skpr_genBlockedOptimalDesign", (DL_FUNC) &_skpr_genBlockedOptimalDesign, 12},
     {NULL, NULL, 0}

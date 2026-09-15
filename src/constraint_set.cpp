@@ -1,3 +1,17 @@
+// Validate and evaluate the constraint IR produced by R/constraints_compile.R.
+// The constructor copies the R arrays into the ConstraintSet storage declared
+// in constraint_set.h. Evaluation thereafter uses factor-level codes and the
+// stored numeric level values, independent of CE's search-scale point matrix.
+//
+// Data flow:
+//   R list -> field/type/offset validation -> owned predicate and tuple tables
+//   complete row codes -> evaluate OR-of-AND clauses and forbidden tables
+//                      -> allowed_row() returns feasibility
+//   row codes + assigned mask -> evaluate possible predicates and table coverage
+//                            -> can_complete() rejects impossible DFS branches
+// The partial check is conservative: TRUE permits further exploration and does
+// not promise that one common assignment satisfies every remaining predicate.
+
 #include "constraint_set.h"
 
 #include <algorithm>
@@ -11,6 +25,9 @@ using namespace Rcpp;
 
 namespace {
 
+// IR loading helpers ---------------------------------------------------------
+// Enforce the R/C++ schema at the boundary, including zero-based offset arrays
+// whose final entry must equal the length of their flattened payload.
 std::vector<int> as_int_vec(const IntegerVector &x) {
   return std::vector<int>(x.begin(), x.end());
 }
@@ -93,6 +110,9 @@ void validate_finite(const std::vector<double> &x, const char *name) {
 
 } // namespace
 
+// Constraint-set construction -------------------------------------------------
+// Read the supported schema version, copy typed arrays, then validate every
+// reference before any evaluation can use it to index native storage.
 ConstraintSet::ConstraintSet(const List &ir) {
   const char *required[] = {
       "version",          "q",          "comparison_tol", "factor_kind",
@@ -150,6 +170,8 @@ ConstraintSet::ConstraintSet(const List &ir) {
   forb_idx_ = as_int_vec(require_integer_vector(ir, "forb_idx"));
   forb_code_ = as_int_vec(require_integer_vector(ir, "forb_code"));
 
+  // Factor tables connect level codes to original numeric values. Increasing
+  // numeric tables support both ordered code comparisons and endpoint bounds.
   if (static_cast<int>(factor_kind_.size()) != q_ ||
       static_cast<int>(L_.size()) != q_) {
     stop("skpr: constraints_ir factor_kind/L lengths must equal q.");
@@ -176,6 +198,8 @@ ConstraintSet::ConstraintSet(const List &ir) {
     }
   }
 
+  // Clauses contain atom IDs; atom dispatch entries refer to type-specific
+  // payloads. Validate clause references before validating those payloads.
   validate_pointer(clause_ptr_, static_cast<int>(clause_atom_.size()),
                    "clause_ptr");
   if (atom_type_.size() != atom_payload_idx_.size()) {
@@ -187,6 +211,7 @@ ConstraintSet::ConstraintSet(const List &ir) {
     }
   }
 
+  // Single-factor comparisons and membership lists use exact level positions.
   if (cmp_var_.size() != cmp_op_.size() ||
       cmp_var_.size() != cmp_code_.size()) {
     stop("skpr: constraints_ir comparison arrays must have equal lengths.");
@@ -220,6 +245,8 @@ ConstraintSet::ConstraintSet(const List &ir) {
     }
   }
 
+  // Linear payloads may reference numeric factors only and store one coefficient
+  // per referenced factor, with a constant and a comparison right-hand side.
   if (lin_op_.size() != lin_rhs_.size() ||
       lin_op_.size() != lin_const_.size() ||
       lin_ptr_.size() != lin_op_.size() + 1 ||
@@ -245,6 +272,7 @@ ConstraintSet::ConstraintSet(const List &ir) {
     }
   }
 
+  // Forbidden atoms are variable-length factor/code tuples within DNF clauses.
   if (forb_ptr_.empty()) {
     stop("skpr: constraints_ir forb_ptr cannot be empty.");
   }
@@ -271,6 +299,7 @@ ConstraintSet::ConstraintSet(const List &ir) {
     }
   }
 
+  // Now that each payload family is valid, check the atom-to-payload dispatch.
   for (std::size_t atom = 0; atom < atom_type_.size(); ++atom) {
     const int type = atom_type_[atom];
     const int payload = atom_payload_idx_[atom];
@@ -291,6 +320,8 @@ ConstraintSet::ConstraintSet(const List &ir) {
     }
   }
 
+  // Separate forbidden tables apply to every clause. Deduplicate their rows so
+  // partial checks can count distinct forbidden completions correctly.
   SEXP tables_sexp = get_field(ir, "forbidden_tables");
   if (TYPEOF(tables_sexp) != VECSXP) {
     stop("skpr: constraints_ir forbidden_tables must be a list.");
@@ -340,6 +371,9 @@ ConstraintSet::ConstraintSet(const List &ir) {
   }
 }
 
+// Scalar and atom evaluation --------------------------------------------------
+// Resolve codes through the stored grid, and distinguish exact code comparisons
+// from numeric linear comparisons with scaled tolerance bands.
 double ConstraintSet::level_value(int var, int code) const {
   return level_value_[level_ptr_[var] + code];
 }
@@ -389,6 +423,8 @@ bool ConstraintSet::membership(int payload, int code) const {
                             in_code_.begin() + in_ptr_[payload + 1], code);
 }
 
+// Dispatch a complete predicate: code comparison, membership, linear relation,
+// or avoidance of one forbidden tuple. A forbidden atom is true on a mismatch.
 bool ConstraintSet::atom_true(int atom_id, const int *row_codes) const {
   const int type = atom_type_[atom_id];
   const int payload = atom_payload_idx_[atom_id];
@@ -416,6 +452,11 @@ bool ConstraintSet::atom_true(int atom_id, const int *row_codes) const {
   return false;
 }
 
+// Partial predicates ---------------------------------------------------------
+// Fixed coordinates use their supplied codes. Open single-factor predicates
+// check possible levels; linear predicates bound all open contributions using
+// grid endpoints and coefficient signs. Bounds can admit impossible discrete
+// combinations, which are checked again after more coordinates are assigned.
 bool ConstraintSet::atom_possible(int atom_id, const int *row_codes,
                                   const unsigned char *assigned) const {
   const int type = atom_type_[atom_id];
@@ -493,6 +534,8 @@ bool ConstraintSet::atom_possible(int atom_id, const int *row_codes,
   return false;
 }
 
+// Forbidden-table evaluation --------------------------------------------------
+// A complete point hits a table if all of a stored tuple's named factors match.
 bool ConstraintSet::forbidden_table_hit(const ForbidTable &table,
                                         const int *row_codes) const {
   for (const std::vector<int> &tuple : table.tuples) {
@@ -509,6 +552,11 @@ bool ConstraintSet::forbidden_table_hit(const ForbidTable &table,
   return false;
 }
 
+// A partial row can be rejected by a table only if every possible assignment of
+// its open table columns is forbidden. Count matching distinct suffixes against
+// the product of their level counts; stop early if the table is too small to
+// cover them. Other predicates may narrow this space further, so this is a
+// sufficient rejection check rather than a full constraint solver.
 bool ConstraintSet::forbidden_table_covers_completions(
     const ForbidTable &table, const int *row_codes,
     const unsigned char *assigned) const {
@@ -548,6 +596,9 @@ bool ConstraintSet::forbidden_table_covers_completions(
   return forbidden_suffixes.size() == combinations;
 }
 
+// Whole constraint-set evaluation --------------------------------------------
+// A complete row must satisfy every atom of at least one clause, then avoid
+// every separate forbidden table. An empty clause succeeds immediately.
 bool ConstraintSet::allowed_row(const int *row_codes) const {
   validate_codes(row_codes);
 
@@ -575,6 +626,9 @@ bool ConstraintSet::allowed_row(const int *row_codes) const {
   return true;
 }
 
+// DFS pruning uses the same OR-of-AND structure with atom_possible(). Atoms are
+// checked independently, so a surviving clause may still lack a joint solution;
+// only a FALSE result tells the generator it can discard the entire branch.
 bool ConstraintSet::can_complete(const int *row_codes,
                                  const unsigned char *assigned) const {
   for (int var = 0; var < q_; ++var) {

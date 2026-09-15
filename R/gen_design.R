@@ -1,3 +1,21 @@
+# Public design-generation orchestration for point exchange, coordinate exchange
+# (CE), and blocked/split-plot searches. This file validates user options, prepares
+# the factor/model representation, schedules search repeats, selects a result,
+# and attaches the design attributes used by evaluation and plotting functions.
+#
+# CE data flow through gen_design():
+#   candidate data + model + options -> normalized search grids and original grids
+#   grids + constraints_compile.R -> constraint IR in original units
+#   grids + coordinate_exchange_helpers.R -> model callback and coordinate groups
+#   random starts + fixed augmented rows -> one C++ CE invocation per repeat
+#   returned points/codes/model matrices -> repeat comparison and optional alias tie
+#   selected repeat -> original-unit run table + model matrix + CE diagnostics
+#
+# CE builds model matrices for proposal batches instead of the full candidate
+# set. Search-grid positions connect normalized model values to original-unit
+# constraints and output. The point-exchange and blocked branches retain their
+# candidate-index-based result handling; CE keeps its returned points separately.
+
 #'@title Generate optimal experimental designs
 #'
 #'@description Creates an experimental design given a model, desired number of runs, and a data frame of candidate
@@ -74,12 +92,19 @@
 #'the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 #'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 #'Coordinate exchange can be enabled with `search_method = "coordinate_exchange"` (default is `"fedorov"`). Coordinate exchange is experimental and currently supports
-#'only fully randomized, non-blocked, D-optimal designs. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`
-#'(accepted moves between exact information-matrix verification), `ce_repair_stuck_limit` (feasible-pool regenerations), `ce_repair_max_tries`
+#'only fully randomized, non-blocked, D-optimal designs with fixed pointwise formulas (base arithmetic and pointwise transforms).
+#'Batch-dependent transforms such as `mean()` and `scale()`, and arbitrary custom formula functions, are rejected. Additional coordinate exchange controls are `ce_max_iter`, `ce_recompute_every`
+#'(accepted factor updates between exact information-matrix verification; zero disables periodic rebuilds), `ce_repair_stuck_limit` (feasible-pool regenerations), `ce_repair_max_tries`
 #'(the feasible-generation budget), and `coordinate_group_max_candidates`. You can also pass `factor_levels` (named list) to override CE search/internal-scale level grids inferred from `candidateset`.
 #'For numeric factors, prefer `factor_levels_original` (named list) when supplying levels in the original units used in `candidateset`; skpr maps these to the normalized
 #'CE search scale internally and returns designs in original units.
 #'CE evaluates coordinate proposals without materializing the full candidate-set model matrix, so it is intended for large grids where point exchange is slow or memory-heavy; for small finite grids, compare D-efficiency against the default point-exchange search.
+#'`ce_model_evaluator` defaults to `"auto"`: R precomputes small model-value tables, and C++ looks up affected terms without model callbacks during search.
+#'Use `"tables"` to require precomputation or `"r"` to force the R evaluator. `ce_model_table_max_bytes` (default 33554432) limits total numeric table storage;
+#'`ce_model_table_max_rows` (default 65536) limits combinations in any one table. Auto mode falls back to R when preparation cannot meet these limits or preserve the model schema.
+#'Tables use the complete model's contrasts and column ordering. Interactions across groups are indexed by the other factors' current levels.
+#'Each completed table-based repeat is independently checked with R before selection. Diagnostics report `model_evaluator`, `model_matrix_calls` (native-search callbacks),
+#'`model_table_bytes`, `model_table_evaluations`, `model_preparation_seconds`, `model_preparation_calls`, `model_verification_calls`, and any `model_fallback_reason`.
 #'For coordinate exchange with disallowed combinations, explicit constraints must be provided in `constraints`, with optional fields
 #'`filter_expr` (an expression that evaluates to `TRUE` for allowed points) and/or `forbidden_tuples` (a data.frame or list of data.frames whose rows define forbidden value tuples).
 #'Removing rows from `candidateset` is not enough for CE to infer a constrained region; pass the equivalent explicit constraints.
@@ -88,8 +113,13 @@
 #'Constraint expressions support boolean operators (`!`, `&`, `&&`, `|`, `||`), comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`), membership via `%in%`,
 #'and linear constraints over numeric factors.
 #'Constrained coordinate exchange automatically groups factors coupled by the compiled constraint IR, so constraints such as `x + y == 0` can be explored with joint moves.
+#'Within each selected row, CE visits coordinate groups in order, holding all factors outside the current group fixed. Each improving move is committed before evaluating the next group.
+#'Model terms, including interactions, are recomputed for each proposed coordinate change; model interactions do not join factor groups.
 #'`advancedoptions$coordinate_groups` can be `NULL` (auto groups when constraints are present and singleton groups otherwise), `"auto"` to force IR-derived groups, or a list of character vectors for manual groups; omitted factors are appended as singleton groups.
-#'`advancedoptions$coordinate_group_max_candidates` limits feasible candidates scored for one coordinate-group proposal. Larger groups use a seeded bounded traversal and report this in diagnostics rather than failing.
+#'`advancedoptions$coordinate_group_max_candidates` limits feasible candidates scored for one coordinate-group proposal. Larger groups use bounded randomized descents and report this in diagnostics.
+#'Initialization retains feasible support across repair attempts and randomizes the selection of full-rank starts, including when the feasible grid is small.
+#'Diagnostics count `factor_updates`, exact `information_recomputes`, and `numerical_fallbacks`; `reciprocal_condition` describes the column-equilibrated information matrix.
+#'`sampled_no_improvement` indicates that a bounded neighborhood produced no accepted move. Final model rows are re-evaluated and checked before a design is returned.
 #'For coordinate exchange, `k` is the number of mutable, non-augmented rows considered for exchange. Augmented rows are fixed and excluded from CE row selection.
 #'@param timer Deprecated: Use `progress` instead.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
@@ -374,6 +404,8 @@ gen_design = function(
     advancedoptions = list()
   }
 
+  # Search selection and CE controls: enforce the supported design type before
+  # preparing data, and interpret k as the number of mutable rows per CE sweep.
   if (is.null(advancedoptions$search_method)) {
     advancedoptions$search_method = "fedorov"
   }
@@ -427,6 +459,9 @@ gen_design = function(
   } else {
     ce_constraints = list()
   }
+  # CE reconstructs combinations from factor grids, so removed candidate rows
+  # cannot specify its feasible region. The sparse-grid check below requires an
+  # explicit filter or forbidden table when combinations are missing.
   has_explicit_ce_constraints = (!is.null(ce_constraints$filter_expr) ||
     !is.null(ce_constraints$forbidden_tuples))
 
@@ -1299,6 +1334,11 @@ gen_design = function(
   if (!exists("augmentdesignmm", inherits = FALSE)) {
     augmentdesignmm = NULL
   }
+  # CE uses a one-row model probe here; its actual search model matrices are
+  # evaluated later by the callback. Point exchange needs every candidate row.
+  if (use_coordinate_exchange && !splitplot) {
+    model = skpr_ce_validate_model(model, names(candidateset))
+  }
   model_matrix_candidate_data = if (use_coordinate_exchange && !splitplot) {
     candidatesetnormalized[1, , drop = FALSE]
   } else {
@@ -1421,6 +1461,9 @@ gen_design = function(
     })
   }
 
+  # CE preparation -------------------------------------------------------------
+  # Keep search-scale and original-unit grids aligned by level position. The
+  # former feed model evaluation; the latter feed constraints and final decoding.
   ce_factor_meta = NULL
   ce_factor_levels = NULL
   ce_factor_levels_original = NULL
@@ -1445,6 +1488,8 @@ gen_design = function(
     ce_factor_levels_original = ce_constraint_space$factor_levels
     ce_constraint_factor_levels = ce_factor_levels_original
 
+    # Recover the affine normalization map from corresponding original and
+    # normalized values, including augmented runs that may extend the range.
     ce_map_orig = candidateset
     ce_map_norm = candidatesetnormalized
     if (!is.null(augmentdesign)) {
@@ -1475,6 +1520,8 @@ gen_design = function(
       }
     }
 
+    # Overrides can be supplied on either scale. Validate names and exclusivity,
+    # then update the matching grids and discrete metadata together.
     validate_ce_level_override = function(x, option_name) {
       if (!is.null(x)) {
         if (
@@ -1656,6 +1703,8 @@ gen_design = function(
       }
     }
 
+    # Capture the final model schema after overrides and encode fixed runs using
+    # that same schema. The engine receives positional, unnamed level lists.
     ce_modelmatrix_fn = skpr_ce_make_modelmatrix_fn(
       model = model,
       factor_meta = ce_factor_meta,
@@ -1663,6 +1712,25 @@ gen_design = function(
       drop_intercept = FALSE
     )
     ce_factor_levels_cpp = unname(ce_factor_levels)
+    ce_model_plan = skpr_ce_prepare_model_tables(
+      ce_modelmatrix_fn,
+      ce_factor_levels,
+      evaluator = if (is.null(advancedoptions$ce_model_evaluator)) {
+        "auto"
+      } else {
+        advancedoptions$ce_model_evaluator
+      },
+      max_bytes = if (is.null(advancedoptions$ce_model_table_max_bytes)) {
+        33554432
+      } else {
+        advancedoptions$ce_model_table_max_bytes
+      },
+      max_rows = if (is.null(advancedoptions$ce_model_table_max_rows)) {
+        65536
+      } else {
+        advancedoptions$ce_model_table_max_rows
+      }
+    )
 
     if (!is.null(augmentdesign)) {
       ce_augment_points = skpr_ce_encode_points(
@@ -1671,6 +1739,8 @@ gen_design = function(
       )
     }
 
+    # Compile constraints against original numeric values, retaining the same
+    # factor/level order as the normalized search grids sent to C++.
     if (has_explicit_ce_constraints) {
       ce_constraints_ir = compile_constraints(
         filter_expr = if (is.null(ce_constraints$filter_expr)) {
@@ -1686,6 +1756,8 @@ gen_design = function(
       ce_has_constraints = TRUE
     }
 
+    # Convert explicit groups or compiled dependency edges into the sets of
+    # coordinates the engine is allowed to change jointly within one run.
     ce_groups = skpr_ce_resolve_coordinate_groups(
       factor_names = names(ce_factor_meta),
       constraints_ir = if (ce_has_constraints) ce_constraints_ir else NULL,
@@ -1695,15 +1767,39 @@ gen_design = function(
     ce_coordinate_group_names = ce_groups$coordinate_group_names
   }
 
+  ce_repeat_config = if (use_coordinate_exchange) {
+    list(
+      trials = trials,
+      factor_levels = ce_factor_levels_cpp,
+      modelmatrix_fn = ce_modelmatrix_fn,
+      model_plan = ce_model_plan,
+      coordinate_groups = ce_coordinate_groups,
+      constraints_ir = ce_constraints_ir,
+      augment_points = ce_augment_points,
+      augmentedrows = as.integer(augmentedrows),
+      tolerance = tolerance,
+      kexchange = as.integer(kexchange),
+      controls = advancedoptions
+    )
+  } else {
+    NULL
+  }
+
   num_updates = min(c(repeats, 200))
   progressbarupdates = floor(seq(1, repeats, length.out = num_updates))
   if (!splitplot) {
     if (use_coordinate_exchange) {
+      # Recover model-column names using the final grids, including any newly
+      # declared discrete levels. This probe is separate from search evaluation.
       ce_probe_points = matrix(
         vapply(ce_factor_levels_cpp, function(lev) lev[[1]], numeric(1)),
         nrow = 1
       )
-      factors = colnames(ce_modelmatrix_fn(ce_probe_points))
+      factors = if (is.null(ce_model_plan$tables)) {
+        colnames(ce_modelmatrix_fn(ce_probe_points))
+      } else {
+        ce_model_plan$tables$columns
+      }
     } else {
       factors = colnames(candidatesetmm)
     }
@@ -1741,60 +1837,8 @@ gen_design = function(
           pb$tick()
         }
         if (use_coordinate_exchange && !blocking) {
-          if (i %in% advancedoptions$.ce_test_fail_repeats) {
-            stop(
-              "skpr: injected coordinate-exchange repeat failure for testing."
-            )
-          }
-          initial_points = matrix(
-            0,
-            nrow = trials,
-            ncol = length(ce_factor_levels_cpp),
-            dimnames = list(NULL, names(ce_factor_meta))
-          )
-          for (j in seq_along(ce_factor_levels_cpp)) {
-            lev = ce_factor_levels_cpp[[j]]
-            initial_points[, j] = sample(lev, trials, replace = TRUE)
-          }
-          if (!is.null(ce_augment_points)) {
-            initial_points[seq_len(augmentedrows), ] = ce_augment_points
-          }
-
-          ce_result = genOptimalDesignCoordinateExchangeConstrained(
-            points = initial_points,
-            factor_levels = ce_factor_levels_cpp,
-            modelmatrix_fn = ce_modelmatrix_fn,
-            coordinate_groups = ce_coordinate_groups,
-            constraints_ir = if (ce_has_constraints) {
-              ce_constraints_ir
-            } else {
-              NULL
-            },
-            tolerance = tolerance,
-            kexchange = as.integer(kexchange),
-            augmentedrows = as.integer(augmentedrows),
-            max_iter = as.integer(advancedoptions$ce_max_iter),
-            recompute_every = as.integer(advancedoptions$ce_recompute_every),
-            repair_stuck_limit = as.integer(
-              advancedoptions$ce_repair_stuck_limit
-            ),
-            repair_max_tries = as.integer(advancedoptions$ce_repair_max_tries),
-            coordinate_group_max_candidates = as.integer(
-              advancedoptions$coordinate_group_max_candidates
-            )
-          )
-          ce_criterion = DOptimalityLog(ce_result$model_matrix)
-          if (!is.finite(ce_criterion)) {
-            ce_criterion = NA_real_
-          }
-          genOutput[[i]] = list(
-            indices = seq_len(trials),
-            model_matrix = ce_result$model_matrix,
-            criterion = ce_criterion,
-            points = ce_result$points,
-            level_codes = ce_result$level_codes,
-            diagnostics = ce_result$diagnostics
-          )
+          # Both execution modes preserve a result or error for every repeat.
+          genOutput[[i]] = skpr_ce_run_repeat(i, ce_repeat_config)
         } else {
           randomindices = sample(
             nrow(candidatesetmm),
@@ -1849,6 +1893,7 @@ gen_design = function(
         prog = progressr::progressor(steps = repeats)
         foreach::foreach(
           i = iterations,
+          # Keep CE worker errors as repeat outcomes for the reporting below.
           .errorhandling = if (use_coordinate_exchange && !blocking) {
             "pass"
           } else {
@@ -1858,7 +1903,8 @@ gen_design = function(
             globals = c(
               "genOptimalDesign",
               "genBlockedOptimalDesign",
-              "genOptimalDesignCoordinateExchangeConstrained",
+              "skpr_ce_run_repeat",
+              "ce_repeat_config",
               "candidatesetmm",
               "trials",
               "initialreplace",
@@ -1866,14 +1912,6 @@ gen_design = function(
               "augmentedrows",
               "augmentdesignmm",
               "use_coordinate_exchange",
-              "ce_factor_levels_cpp",
-              "ce_factor_meta",
-              "ce_augment_points",
-              "ce_modelmatrix_fn",
-              "ce_coordinate_groups",
-              "ce_coordinate_group_names",
-              "ce_constraints_ir",
-              "ce_has_constraints",
               "advancedoptions",
               "progress",
               "is_shiny",
@@ -1908,63 +1946,8 @@ gen_design = function(
               }
             }
             if (use_coordinate_exchange && !blocking) {
-              if (i %in% advancedoptions$.ce_test_fail_repeats) {
-                stop(
-                  "skpr: injected coordinate-exchange repeat failure for testing."
-                )
-              }
-              initial_points = matrix(
-                0,
-                nrow = trials,
-                ncol = length(ce_factor_levels_cpp),
-                dimnames = list(NULL, names(ce_factor_meta))
-              )
-              for (j in seq_along(ce_factor_levels_cpp)) {
-                lev = ce_factor_levels_cpp[[j]]
-                initial_points[, j] = sample(lev, trials, replace = TRUE)
-              }
-              if (!is.null(ce_augment_points)) {
-                initial_points[seq_len(augmentedrows), ] = ce_augment_points
-              }
-              ce_result = genOptimalDesignCoordinateExchangeConstrained(
-                points = initial_points,
-                factor_levels = ce_factor_levels_cpp,
-                modelmatrix_fn = ce_modelmatrix_fn,
-                coordinate_groups = ce_coordinate_groups,
-                constraints_ir = if (ce_has_constraints) {
-                  ce_constraints_ir
-                } else {
-                  NULL
-                },
-                tolerance = tolerance,
-                kexchange = as.integer(kexchange),
-                augmentedrows = as.integer(augmentedrows),
-                max_iter = as.integer(advancedoptions$ce_max_iter),
-                recompute_every = as.integer(
-                  advancedoptions$ce_recompute_every
-                ),
-                repair_stuck_limit = as.integer(
-                  advancedoptions$ce_repair_stuck_limit
-                ),
-                repair_max_tries = as.integer(
-                  advancedoptions$ce_repair_max_tries
-                ),
-                coordinate_group_max_candidates = as.integer(
-                  advancedoptions$coordinate_group_max_candidates
-                )
-              )
-              ce_criterion = DOptimalityLog(ce_result$model_matrix)
-              if (!is.finite(ce_criterion)) {
-                ce_criterion = NA_real_
-              }
-              list(
-                indices = seq_len(trials),
-                model_matrix = ce_result$model_matrix,
-                criterion = ce_criterion,
-                points = ce_result$points,
-                level_codes = ce_result$level_codes,
-                diagnostics = ce_result$diagnostics
-              )
+              # The future backend supplies this repeat's RNG stream.
+              skpr_ce_run_repeat(i, ce_repeat_config)
             } else {
               randomindices = sample(
                 nrow(candidatesetmm),
@@ -2255,6 +2238,9 @@ gen_design = function(
       genOutput = run_search(seq_len(repeats), advancedoptions$GUI)
     }
   }
+  # CE result collection -------------------------------------------------------
+  # Report errors retained by either execution mode, then collect successful
+  # model matrices and keep a diagnostic entry for every returned repeat outcome.
   if (use_coordinate_exchange && !splitplot) {
     ce_error_idx = which(vapply(
       genOutput,
@@ -2338,6 +2324,8 @@ gen_design = function(
       rowindicies[designcounter] = list(genOutput[[i]][["indices"]])
       criteria[designcounter] = list(criterion_val)
       if (use_coordinate_exchange && !splitplot) {
+        # Keep both representations: normalized values for alias-model work,
+        # original values for the run table. Exact codes select original levels.
         ce_points_normalized[designcounter] = list(skpr_ce_decode_points(
           genOutput[[i]][["points"]],
           ce_factor_meta
@@ -2384,6 +2372,9 @@ gen_design = function(
     }
   }
 
+  # Shared repeat selection: maximize D and the other criteria in this branch,
+  # then optionally compare aliasing among ties. CE evaluates alias models from
+  # its decoded normalized points rather than looking up candidate row indices.
   if (
     optimality == "D" ||
       optimality == "T" ||
@@ -2580,6 +2571,8 @@ gen_design = function(
   } else {
     colnames(designmm) = blockedFactors
   }
+  # CE returns newly generated points, so assemble its run table directly from
+  # the selected decoded repeat before attaching the standard design attributes.
   if (use_coordinate_exchange && !splitplot) {
     design_normalized = ce_points_normalized[[best]]
     design = ce_points_original[[best]]
@@ -2652,7 +2645,12 @@ gen_design = function(
   } else {
     attr(design, "blocking") = FALSE
   }
-  attr(design, "D") = 100 * DOptimalityLog(designmm)
+  attr(design, "D") = 100 *
+    if (use_coordinate_exchange && !splitplot) {
+      criteria[[best]]
+    } else {
+      DOptimalityLog(designmm)
+    }
   attr(design, "A") = tryCatch(
     {
       AOptimality(designmm)
@@ -2667,6 +2665,8 @@ gen_design = function(
   attr(design, "variance.matrix") = V
   attr(design, "candidate_set") = og_candidate_set
   if (use_coordinate_exchange && !splitplot) {
+    # Preserve the original repeat index after unsuccessful results were filtered
+    # out of the design-selection lists, plus successful and all-repeat views.
     attr(design, "coordinate_exchange_diagnostics") = list(
       schema_version = 1L,
       selected_repeat = ce_repeat_diagnostics[[best]]$repeat_index,

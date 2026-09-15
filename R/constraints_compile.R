@@ -1,3 +1,27 @@
+# Coordinate-exchange constraints: compile R expressions into a numeric IR.
+# IR means intermediate representation: a versioned list of arrays understood
+# by src/constraint_set.* without evaluating an R expression for each proposal.
+# This file also validates that representation and extracts factor dependencies
+# for the coordinate grouping helpers in coordinate_exchange_helpers.R.
+#
+# Data flow:
+#   filter expression + factor metadata/levels
+#     -> parsed boolean tree with comparison, membership, and linear atoms
+#     -> negations pushed down to atoms -> OR of AND clauses (DNF)
+#     -> deduplicated atoms, typed payload arrays, and clause offsets
+#   forbidden tuple data frames -> tables of factor indices and level codes
+#   clauses + tables -> validated IR -> C++ ConstraintSet / R group resolution
+#
+# Factor indices, atom IDs, payload indices, and level codes in the IR are all
+# zero-based. Each *_ptr array contains offsets into a flattened payload:
+# payload entries from ptr[i] up to, but not including, ptr[i + 1] belong to i.
+# Direct comparisons and membership use exact level codes. Linear atoms use the
+# numeric level table (original user units in gen_design()) and a scaled tolerance.
+# At least one DNF clause must hold, and every forbidden tuple table must be
+# avoided. Zero clauses mean FALSE; a clause containing no atoms means TRUE.
+
+# Filter expression compilation ------------------------------------------------
+
 #' Compile a candidate-set filter expression to a C++ friendly IR
 #'
 #' Supported operators:
@@ -52,6 +76,9 @@ compile_filter_ir = function(
     stop("compile_filter_ir: factor_meta must have unique non-empty names.")
   }
 
+  # Establish the shared factor ordering and tables used by both expression
+  # lowering and C++ evaluation. Discrete label order is meaningful; increasing
+  # numeric levels also make level-code ordering comparisons meaningful.
   q = length(factor_meta)
   name_to_idx = setNames(seq_len(q) - 1L, factor_names)
 
@@ -108,6 +135,8 @@ compile_filter_ir = function(
   level_ptr = c(0L, cumsum(vapply(level_values, length, integer(1))))
   level_value = unname(unlist(level_values, use.names = FALSE))
 
+  # Operator numbers are shared with ConstraintSet. Negating a predicate and
+  # swapping its operands require different rewrites of an ordering comparison.
   op_code = c("==" = 1L, "!=" = 2L, "<" = 3L, "<=" = 4L, ">" = 5L, ">=" = 6L)
 
   invert_op = function(code) {
@@ -154,6 +183,8 @@ compile_filter_ir = function(
     stop("swap_op: invalid code.")
   }
 
+  # Recognize supported literal syntax directly instead of evaluating arbitrary
+  # calls or looking up symbols in the caller's environment.
   is_sym = function(x) is.symbol(x) && length(x) == 1L
   sym_name = function(x) as.character(x)
 
@@ -190,6 +221,8 @@ compile_filter_ir = function(
     }
     as.numeric(out)
   }
+  # Direct numeric predicates must refer to an actual grid level within the
+  # snapping tolerance. Once compiled, these comparisons operate on exact codes.
   snap_numeric_code = function(var_idx0, value) {
     num_value = num_scalar_value(value)
     if (is.null(num_value)) {
@@ -255,6 +288,9 @@ compile_filter_ir = function(
     snap_numeric_code(var_idx0, value)
   }
 
+  # Reduce a linear expression to a constant plus named coefficients. The
+  # supported multiplication syntax is a scalar times one variable; products
+  # of variables and general R calls are outside this constraint language.
   parse_lin = function(node) {
     if (is_num_scalar(node)) {
       return(list(constant = num_scalar_value(node), coef = numeric()))
@@ -324,6 +360,8 @@ compile_filter_ir = function(
     stop("compile_filter_ir: unsupported operator in linear expression: ", fn)
   }
 
+  # Atom constructors resolve factor names and constants and enforce each
+  # predicate's type rules before it enters the boolean expression tree.
   make_atom_cmp = function(var_nm, op_str, const_val) {
     var_idx0 = name_to_idx[[var_nm]]
     if (is.null(var_idx0)) {
@@ -411,6 +449,9 @@ compile_filter_ir = function(
     )
   }
 
+  # Parse the filter into a tree of AND/OR/NOT nodes and typed leaf predicates.
+  # Simple variable-to-constant comparisons take the code-based path; supported
+  # arithmetic comparisons become linear atoms with numeric coefficients.
   parse_expr = function(node) {
     if (isTRUE(node)) {
       return(list(type = "true"))
@@ -537,6 +578,9 @@ compile_filter_ir = function(
     stop("compile_filter_ir: unsupported operator: ", fn)
   }
 
+  # Negation normal form (NNF) moves NOT through boolean nodes using De Morgan's
+  # laws and negates the leaf operators. A negated conjunction of equalities is
+  # compacted into one forbidden-tuple atom before general DNF expansion.
   to_nnf = function(ast, neg = FALSE) {
     if (ast$type == "true") {
       return(if (neg) list(type = "false") else ast)
@@ -612,6 +656,9 @@ compile_filter_ir = function(
     stop("compile_filter_ir: internal error in NNF.")
   }
 
+  # Disjunctive normal form (DNF) expresses the tree as alternative clauses, each
+  # requiring all of its atoms. Distributing AND across OR can grow rapidly, so
+  # enforce max_clauses while constructing each intermediate clause collection.
   to_dnf = function(ast) {
     if (ast$type == "true") {
       return(list(list()))
@@ -662,6 +709,8 @@ compile_filter_ir = function(
     stop("compile_filter_ir: internal error in DNF.")
   }
 
+  # Stable keys let identical predicates share one payload even when expansion
+  # places them in multiple clauses. Clause arrays then reference atom IDs.
   atom_key = function(a) {
     if (a$type == "cmp") {
       return(paste0(
@@ -709,6 +758,7 @@ compile_filter_ir = function(
     stop("compile_filter_ir: unknown atom type.")
   }
 
+  # Execute the parsing/lowering stages before allocating the flattened IR.
   ast0 = parse_expr(filter_expr)
   nnf = to_nnf(ast0, neg = FALSE)
   clauses_atoms = to_dnf(nnf)
@@ -721,6 +771,9 @@ compile_filter_ir = function(
     )
   }
 
+  # Serialize each distinct atom into its type-specific payload arrays.
+  # Variable-length membership lists, linear terms, and forbidden tuples use
+  # offset arrays; membership codes are sorted for C++ binary search.
   atom_id_env = new.env(parent = emptyenv())
   atom_type = integer(0)
   atom_payload_idx = integer(0)
@@ -792,6 +845,8 @@ compile_filter_ir = function(
     id
   }
 
+  # Flatten clause membership last, interning atoms as they are encountered.
+  # Equal adjacent clause offsets intentionally represent an empty TRUE clause.
   clause_ptr = integer(1)
   clause_ptr[1] = 0L
   clause_atom = integer(0)
@@ -846,6 +901,11 @@ compile_filter_ir = function(
   validate_constraint_ir(ir)
   ir
 }
+
+# Forbidden tuple tables -------------------------------------------------------
+# Encode only the named columns in each table. A matching row forbids that tuple
+# regardless of values in other factors. Keeping tables separate avoids turning
+# a large list of forbidden combinations into a large boolean expression.
 
 #' Compile a forbidden tuples table
 #'
@@ -962,6 +1022,11 @@ compile_forbidden_tuples = function(
   list(idx = as.integer(idx0), codes = codes)
 }
 
+# Combined compiler entry point ------------------------------------------------
+# The expression and all supplied forbidden tables are conjoined: a row must
+# pass the expression and avoid a hit in every table. This is the entry point
+# gen_design() uses to prepare a complete constraint set for each CE search.
+
 #' Compile constraints (filter expression + forbidden tuples)
 #'
 #' @param filter_expr Default `TRUE`. Filter expression.
@@ -1017,6 +1082,10 @@ compile_constraints = function(
   ir
 }
 
+# IR validation ----------------------------------------------------------------
+# Check schema version, vector types, offset consistency, dispatch references,
+# and factor/code bounds before crossing into C++. ConstraintSet repeats these
+# structural checks because it can also receive an IR directly from an R caller.
 validate_constraint_ir = function(ir) {
   fail = function(message) {
     stop("validate_constraint_ir: ", message, call. = FALSE)
@@ -1290,6 +1359,10 @@ validate_constraint_ir = function(ir) {
   invisible(ir)
 }
 
+# Factor dependency extraction --------------------------------------------------
+# Convert zero-based payload offsets into R slices, then recover the factors
+# referenced by each atom. These helpers inspect the compiled representation so
+# grouping follows the predicates actually sent to C++.
 constraint_ir_get_range = function(ptr, u) {
   start = ptr[[u]] + 1L
   end = ptr[[u + 1L]]
@@ -1333,6 +1406,9 @@ constraint_ir_atom_supports = function(ir) {
   supports
 }
 
+# Return multi-factor edges for union/find grouping: one edge per atom support
+# or table, plus each clause's combined support when there are multiple clauses.
+# The caller merges overlapping edges; singleton factors need no explicit edge.
 constraint_ir_support_edges = function(ir) {
   if (is.null(ir)) {
     return(list())

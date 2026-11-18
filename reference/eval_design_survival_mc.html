@@ -60,7 +60,8 @@ using the <code>survival</code> package and <code>survreg</code> to fit the data
 <span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  <span class="va">...</span>,</span>
+<span>  control <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -147,6 +148,11 @@ NOTE: If you have installed BLAS libraries that include multicore support (e.g. 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Any additional arguments to be passed into the <code>survreg</code> function during fitting.</p></dd>
+
+
+<dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
+<dd><p>Default <code>NULL</code>. A <code><a href="https://rdrr.io/pkg/survival/man/survreg.control.html" class="external-link">survival::survreg.control()</a></code> object passed
+to <code><a href="https://rdrr.io/pkg/survival/man/survreg.html" class="external-link">survival::survreg()</a></code> during fitting.</p></dd>
 
 </dl></div>
     <div class="section level2">

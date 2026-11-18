@@ -31,7 +31,8 @@ eval_design_mc(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  ...
+  ...,
+  control = NULL
 )
 ```
 
@@ -198,6 +199,18 @@ eval_design_mc(
 - ...:
 
   Additional arguments.
+
+- control:
+
+  Default `NULL`. A fit control object passed to the fitting function.
+  Use [`stats::glm.control()`](https://rdrr.io/r/stats/glm.control.html)
+  for unblocked non-Gaussian models,
+  [`lme4::lmerControl()`](https://rdrr.io/pkg/lme4/man/lmerControl.html)
+  for blocked Gaussian models, and
+  [`lme4::glmerControl()`](https://rdrr.io/pkg/lme4/man/lmerControl.html)
+  for blocked non-Gaussian models. Unblocked Gaussian models are fit
+  with [`stats::lm()`](https://rdrr.io/r/stats/lm.html), which does not
+  accept a control object.
 
 ## Value
 

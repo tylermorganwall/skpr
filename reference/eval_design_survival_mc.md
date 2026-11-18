@@ -24,7 +24,8 @@ eval_design_survival_mc(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  ...
+  ...,
+  control = NULL
 )
 ```
 
@@ -128,6 +129,14 @@ eval_design_survival_mc(
 - ...:
 
   Any additional arguments to be passed into the `survreg` function
+  during fitting.
+
+- control:
+
+  Default `NULL`. A
+  [`survival::survreg.control()`](https://rdrr.io/pkg/survival/man/survreg.control.html)
+  object passed to
+  [`survival::survreg()`](https://rdrr.io/pkg/survival/man/survreg.html)
   during fitting.
 
 ## Value

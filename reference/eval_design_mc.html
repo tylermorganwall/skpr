@@ -72,7 +72,8 @@ Returns a data frame of parameter powers.</p>
 <span>  detailedoutput <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  advancedoptions <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  <span class="va">...</span>,</span>
+<span>  control <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -198,6 +199,14 @@ set the confidence level for power intervals, which are printed when <code>detai
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments.</p></dd>
+
+
+<dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
+<dd><p>Default <code>NULL</code>. A fit control object passed to the fitting
+function. Use <code><a href="https://rdrr.io/r/stats/glm.control.html" class="external-link">stats::glm.control()</a></code> for unblocked non-Gaussian models,
+<code><a href="https://rdrr.io/pkg/lme4/man/lmerControl.html" class="external-link">lme4::lmerControl()</a></code> for blocked Gaussian models, and
+<code><a href="https://rdrr.io/pkg/lme4/man/lmerControl.html" class="external-link">lme4::glmerControl()</a></code> for blocked non-Gaussian models. Unblocked Gaussian
+models are fit with <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">stats::lm()</a></code>, which does not accept a control object.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -26,7 +26,8 @@ eval_design_mc(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  ...
+  ...,
+  control = NULL
 )
 }
 \arguments{
@@ -105,6 +106,12 @@ If \code{advancedoptions$save_simulated_responses = TRUE}, the dataframe will ha
 set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}
 
 \item{...}{Additional arguments.}
+
+\item{control}{Default \code{NULL}. A fit control object passed to the fitting
+function. Use \code{stats::glm.control()} for unblocked non-Gaussian models,
+\code{lme4::lmerControl()} for blocked Gaussian models, and
+\code{lme4::glmerControl()} for blocked non-Gaussian models. Unblocked Gaussian
+models are fit with \code{stats::lm()}, which does not accept a control object.}
 }
 \value{
 A data frame consisting of the parameters and their powers, with supplementary information

@@ -154,7 +154,7 @@ gen_momentsmatrix_constrained = function(
       w[interp_ch$on_edge] = 0.5
     }
     # average subregion moment
-    Xsub_w = apply(Xsub, 2, \(x) x * sqrt(w))
+		Xsub_w = sweep(Xsub, 1L, sqrt(w), "*")
 
     M = crossprod(Xsub_w) / sum(w)
 
@@ -256,7 +256,7 @@ gen_momentsmatrix_constrained = function(
         w[interp_ch$on_edge] = 0.5
       }
       # average subregion moment
-      Xsub_w = apply(Xsub, 2, \(x) x * sqrt(w))
+			Xsub_w = sweep(Xsub, 1L, sqrt(w), "*")
 
       M_sub = crossprod(Xsub_w) / sum(w)
 

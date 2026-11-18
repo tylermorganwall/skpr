@@ -651,7 +651,7 @@ get_attribute(design)
 #> 
 #> $model
 #> ~x1 + x2
-#> <environment: 0x5c31b7b81238>
+#> <environment: 0x5889be1b0c78>
 #> 
 
 #A correlation color map can be produced by calling the plot_correlation command with the output

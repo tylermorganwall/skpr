@@ -20,7 +20,8 @@ eval_design_survival_mc(
   detailedoutput = FALSE,
   progress = TRUE,
   advancedoptions = NULL,
-  ...
+  ...,
+  control = NULL
 )
 }
 \arguments{
@@ -72,6 +73,9 @@ NOTE: If you have installed BLAS libraries that include multicore support (e.g. 
 \code{advancedoptions$ci_error_conf} will set the confidence level for power intervals, which are printed when \code{detailedoutput = TRUE}.}
 
 \item{...}{Any additional arguments to be passed into the \code{survreg} function during fitting.}
+
+\item{control}{Default \code{NULL}. A \code{survival::survreg.control()} object passed
+to \code{survival::survreg()} during fitting.}
 }
 \value{
 A data frame consisting of the parameters and their powers. The parameter estimates from the simulations are

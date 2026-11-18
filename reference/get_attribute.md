@@ -215,7 +215,7 @@ get_attribute(designcoffee)
 #> 
 #> $model
 #> ~cost + size + type
-#> <environment: 0x567a3fde61a8>
+#> <environment: 0x5c31be16bce8>
 #> 
 
 #Get just one attribute

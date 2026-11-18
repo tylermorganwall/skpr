@@ -51,7 +51,7 @@ skprGUI = function(
       "cores",
       default = getOption(
         "Ncpus",
-        default = max(c(1, future::availableCores() - 1))
+        default = parallelly::availableCores(omit = 1)
       )
     )
     if (skpr_system_setup_env$has_multicore_support && !multiuser) {

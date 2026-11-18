@@ -144,34 +144,34 @@ calculate_power_curves(trials=seq(10,60,by=5),
 
 #>              parameter            type     power trials effectsize random_seed
 #> 18         (Intercept)    effect.power 0.3297088     15          1         123
-#> 19           brew_temp    effect.power 0.3297088     15          1         123
+#> 19           brew_temp    effect.power 0.3248373     15          1         123
 #> 20            altitude    effect.power 0.3297088     15          1         123
 #> 21            bean_sun    effect.power 0.1599775     15          1         123
 #> 22  brew_temp:altitude    effect.power 0.3248373     15          1         123
 #> 23  brew_temp:bean_sun    effect.power 0.1615894     15          1         123
 #> 24   altitude:bean_sun    effect.power 0.1599775     15          1         123
 #> 25         (Intercept) parameter.power 0.3297088     15          1         123
-#> 26           brew_temp parameter.power 0.3297088     15          1         123
+#> 26           brew_temp parameter.power 0.3248373     15          1         123
 #> 27            altitude parameter.power 0.3297088     15          1         123
-#> 28           bean_sun1 parameter.power 0.1904301     15          1         123
-#> 29           bean_sun2 parameter.power 0.1884952     15          1         123
+#> 28           bean_sun1 parameter.power 0.1884952     15          1         123
+#> 29           bean_sun2 parameter.power 0.1904301     15          1         123
 #> 30  brew_temp:altitude parameter.power 0.3248373     15          1         123
-#> 31 brew_temp:bean_sun1 parameter.power 0.1904301     15          1         123
-#> 32 brew_temp:bean_sun2 parameter.power 0.1904301     15          1         123
+#> 31 brew_temp:bean_sun1 parameter.power 0.1910869     15          1         123
+#> 32 brew_temp:bean_sun2 parameter.power 0.1910869     15          1         123
 #> 33  altitude:bean_sun1 parameter.power 0.1884952     15          1         123
 #> 34  altitude:bean_sun2 parameter.power 0.1904301     15          1         123
 #> 35         (Intercept)    effect.power 0.4856389     20          1         123
 #> 36           brew_temp    effect.power 0.4856389     20          1         123
 #> 37            altitude    effect.power 0.4856389     20          1         123
-#> 38            bean_sun    effect.power 0.2447062     20          1         123
+#> 38            bean_sun    effect.power 0.2583789     20          1         123
 #> 39  brew_temp:altitude    effect.power 0.4856389     20          1         123
 #> 40  brew_temp:bean_sun    effect.power 0.2447062     20          1         123
-#> 41   altitude:bean_sun    effect.power 0.2583789     20          1         123
+#> 41   altitude:bean_sun    effect.power 0.2447062     20          1         123
 #> 42         (Intercept) parameter.power 0.4856389     20          1         123
 #> 43           brew_temp parameter.power 0.4856389     20          1         123
 #> 44            altitude parameter.power 0.4856389     20          1         123
-#> 45           bean_sun1 parameter.power 0.2615680     20          1         123
-#> 46           bean_sun2 parameter.power 0.2883561     20          1         123
+#> 45           bean_sun1 parameter.power 0.2808081     20          1         123
+#> 46           bean_sun2 parameter.power 0.2940421     20          1         123
 #> 47  brew_temp:altitude parameter.power 0.4856389     20          1         123
 #> Power curve generation captured the following warning/error messages:
 #> Function   | Type | N | Message
@@ -233,35 +233,35 @@ calculate_power_curves(trials=seq(50,150,by=10),
 }
 
 #>      parameter               type power trials effectsize_low effectsize_high
-#> 1  (Intercept)    effect.power.mc  0.84     50            0.6             0.9
-#> 2    brew_temp    effect.power.mc  0.57     50            0.6             0.9
-#> 3     altitude    effect.power.mc  0.72     50            0.6             0.9
-#> 4     bean_sun    effect.power.mc  0.21     50            0.6             0.9
-#> 5  (Intercept) parameter.power.mc  0.84     50            0.6             0.9
-#> 6    brew_temp parameter.power.mc  0.57     50            0.6             0.9
-#> 7     altitude parameter.power.mc  0.72     50            0.6             0.9
-#> 8    bean_sun1 parameter.power.mc  0.19     50            0.6             0.9
-#> 9    bean_sun2 parameter.power.mc  0.36     50            0.6             0.9
-#> 10 (Intercept)    effect.power.mc  0.93     60            0.6             0.9
-#> 11   brew_temp    effect.power.mc  0.74     60            0.6             0.9
-#> 12    altitude    effect.power.mc  0.73     60            0.6             0.9
+#> 1  (Intercept)    effect.power.mc  0.85     50            0.6             0.9
+#> 2    brew_temp    effect.power.mc  0.64     50            0.6             0.9
+#> 3     altitude    effect.power.mc  0.62     50            0.6             0.9
+#> 4     bean_sun    effect.power.mc  0.24     50            0.6             0.9
+#> 5  (Intercept) parameter.power.mc  0.85     50            0.6             0.9
+#> 6    brew_temp parameter.power.mc  0.64     50            0.6             0.9
+#> 7     altitude parameter.power.mc  0.62     50            0.6             0.9
+#> 8    bean_sun1 parameter.power.mc  0.23     50            0.6             0.9
+#> 9    bean_sun2 parameter.power.mc  0.34     50            0.6             0.9
+#> 10 (Intercept)    effect.power.mc  0.94     60            0.6             0.9
+#> 11   brew_temp    effect.power.mc  0.69     60            0.6             0.9
+#> 12    altitude    effect.power.mc  0.79     60            0.6             0.9
 #> 13    bean_sun    effect.power.mc  0.41     60            0.6             0.9
-#> 14 (Intercept) parameter.power.mc  0.93     60            0.6             0.9
-#> 15   brew_temp parameter.power.mc  0.74     60            0.6             0.9
-#> 16    altitude parameter.power.mc  0.73     60            0.6             0.9
-#> 17   bean_sun1 parameter.power.mc  0.36     60            0.6             0.9
-#> 18   bean_sun2 parameter.power.mc  0.42     60            0.6             0.9
-#> 19 (Intercept)    effect.power.mc  0.98     70            0.6             0.9
-#> 20   brew_temp    effect.power.mc  0.83     70            0.6             0.9
-#> 21    altitude    effect.power.mc  0.84     70            0.6             0.9
-#> 22    bean_sun    effect.power.mc  0.44     70            0.6             0.9
-#> 23 (Intercept) parameter.power.mc  0.98     70            0.6             0.9
-#> 24   brew_temp parameter.power.mc  0.83     70            0.6             0.9
-#> 25    altitude parameter.power.mc  0.84     70            0.6             0.9
-#> 26   bean_sun1 parameter.power.mc  0.41     70            0.6             0.9
-#> 27   bean_sun2 parameter.power.mc  0.54     70            0.6             0.9
-#> 28 (Intercept)    effect.power.mc  1.00     80            0.6             0.9
-#> 29   brew_temp    effect.power.mc  0.92     80            0.6             0.9
+#> 14 (Intercept) parameter.power.mc  0.94     60            0.6             0.9
+#> 15   brew_temp parameter.power.mc  0.69     60            0.6             0.9
+#> 16    altitude parameter.power.mc  0.79     60            0.6             0.9
+#> 17   bean_sun1 parameter.power.mc  0.34     60            0.6             0.9
+#> 18   bean_sun2 parameter.power.mc  0.52     60            0.6             0.9
+#> 19 (Intercept)    effect.power.mc  0.95     70            0.6             0.9
+#> 20   brew_temp    effect.power.mc  0.90     70            0.6             0.9
+#> 21    altitude    effect.power.mc  0.87     70            0.6             0.9
+#> 22    bean_sun    effect.power.mc  0.46     70            0.6             0.9
+#> 23 (Intercept) parameter.power.mc  0.95     70            0.6             0.9
+#> 24   brew_temp parameter.power.mc  0.90     70            0.6             0.9
+#> 25    altitude parameter.power.mc  0.87     70            0.6             0.9
+#> 26   bean_sun1 parameter.power.mc  0.44     70            0.6             0.9
+#> 27   bean_sun2 parameter.power.mc  0.55     70            0.6             0.9
+#> 28 (Intercept)    effect.power.mc  0.99     80            0.6             0.9
+#> 29   brew_temp    effect.power.mc  0.89     80            0.6             0.9
 #> 30    altitude    effect.power.mc  0.86     80            0.6             0.9
 #>    random_seed
 #> 1          123
@@ -309,36 +309,36 @@ calculate_power_curves(trials=seq(50,150,by=10),
 }
 
 #>      parameter               type power trials effectsize_low effectsize_high
-#> 1  (Intercept)    effect.power.mc  0.80     50            0.5             0.9
+#> 1  (Intercept)    effect.power.mc  0.71     50            0.5             0.9
 #> 2    brew_temp    effect.power.mc  0.78     50            0.5             0.9
-#> 3     altitude    effect.power.mc  0.81     50            0.5             0.9
-#> 4     bean_sun    effect.power.mc  0.35     50            0.5             0.9
-#> 5  (Intercept) parameter.power.mc  0.80     50            0.5             0.9
+#> 3     altitude    effect.power.mc  0.76     50            0.5             0.9
+#> 4     bean_sun    effect.power.mc  0.41     50            0.5             0.9
+#> 5  (Intercept) parameter.power.mc  0.71     50            0.5             0.9
 #> 6    brew_temp parameter.power.mc  0.78     50            0.5             0.9
-#> 7     altitude parameter.power.mc  0.81     50            0.5             0.9
-#> 8    bean_sun1 parameter.power.mc  0.37     50            0.5             0.9
-#> 9    bean_sun2 parameter.power.mc  0.47     50            0.5             0.9
-#> 10 (Intercept)    effect.power.mc  0.80     60            0.5             0.9
-#> 11   brew_temp    effect.power.mc  0.89     60            0.5             0.9
-#> 12    altitude    effect.power.mc  0.87     60            0.5             0.9
-#> 13    bean_sun    effect.power.mc  0.46     60            0.5             0.9
-#> 14 (Intercept) parameter.power.mc  0.80     60            0.5             0.9
-#> 15   brew_temp parameter.power.mc  0.89     60            0.5             0.9
-#> 16    altitude parameter.power.mc  0.87     60            0.5             0.9
-#> 17   bean_sun1 parameter.power.mc  0.54     60            0.5             0.9
-#> 18   bean_sun2 parameter.power.mc  0.51     60            0.5             0.9
-#> 19 (Intercept)    effect.power.mc  0.91     70            0.5             0.9
-#> 20   brew_temp    effect.power.mc  0.90     70            0.5             0.9
-#> 21    altitude    effect.power.mc  0.94     70            0.5             0.9
-#> 22    bean_sun    effect.power.mc  0.70     70            0.5             0.9
-#> 23 (Intercept) parameter.power.mc  0.91     70            0.5             0.9
-#> 24   brew_temp parameter.power.mc  0.90     70            0.5             0.9
-#> 25    altitude parameter.power.mc  0.94     70            0.5             0.9
-#> 26   bean_sun1 parameter.power.mc  0.62     70            0.5             0.9
-#> 27   bean_sun2 parameter.power.mc  0.74     70            0.5             0.9
-#> 28 (Intercept)    effect.power.mc  0.97     80            0.5             0.9
-#> 29   brew_temp    effect.power.mc  0.97     80            0.5             0.9
-#> 30    altitude    effect.power.mc  0.99     80            0.5             0.9
+#> 7     altitude parameter.power.mc  0.76     50            0.5             0.9
+#> 8    bean_sun1 parameter.power.mc  0.39     50            0.5             0.9
+#> 9    bean_sun2 parameter.power.mc  0.61     50            0.5             0.9
+#> 10 (Intercept)    effect.power.mc  0.90     60            0.5             0.9
+#> 11   brew_temp    effect.power.mc  0.88     60            0.5             0.9
+#> 12    altitude    effect.power.mc  0.90     60            0.5             0.9
+#> 13    bean_sun    effect.power.mc  0.56     60            0.5             0.9
+#> 14 (Intercept) parameter.power.mc  0.90     60            0.5             0.9
+#> 15   brew_temp parameter.power.mc  0.88     60            0.5             0.9
+#> 16    altitude parameter.power.mc  0.90     60            0.5             0.9
+#> 17   bean_sun1 parameter.power.mc  0.58     60            0.5             0.9
+#> 18   bean_sun2 parameter.power.mc  0.66     60            0.5             0.9
+#> 19 (Intercept)    effect.power.mc  0.95     70            0.5             0.9
+#> 20   brew_temp    effect.power.mc  0.96     70            0.5             0.9
+#> 21    altitude    effect.power.mc  0.93     70            0.5             0.9
+#> 22    bean_sun    effect.power.mc  0.59     70            0.5             0.9
+#> 23 (Intercept) parameter.power.mc  0.95     70            0.5             0.9
+#> 24   brew_temp parameter.power.mc  0.96     70            0.5             0.9
+#> 25    altitude parameter.power.mc  0.93     70            0.5             0.9
+#> 26   bean_sun1 parameter.power.mc  0.65     70            0.5             0.9
+#> 27   bean_sun2 parameter.power.mc  0.69     70            0.5             0.9
+#> 28 (Intercept)    effect.power.mc  0.95     80            0.5             0.9
+#> 29   brew_temp    effect.power.mc  0.96     80            0.5             0.9
+#> 30    altitude    effect.power.mc  0.96     80            0.5             0.9
 #>    random_seed
 #> 1          123
 #> 2          123

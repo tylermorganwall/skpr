@@ -206,8 +206,8 @@ eval_design_survival_mc(design = design, model = ~a, alpha = 0.05,
                         censorpoint = 5, censortype = "right")
 #> Warning: default or length 1 delta used with distribution == 'exponential'. This can lead to unrealistic effect sizes - make sure the generated anticipated coeffcients are appropriate.
 #>     parameter               type power
-#> 1 (Intercept) parameter.power.mc  0.91
-#> 2           a parameter.power.mc  0.89
+#> 1 (Intercept) parameter.power.mc  0.92
+#> 2           a parameter.power.mc  0.94
 #> ===========Evaluation Info============
 #> • Alpha = 0.05 • Trials = 15 • Blocked = FALSE 
 #> • Evaluating Model = ~a 
@@ -236,7 +236,7 @@ eval_design_survival_mc(design = design, model = ~a, alpha = 0.2, nsim = 100,
                         anticoef = c(0.184, 0.101), scale = 0.4)
 #>     parameter               type power
 #> 1 (Intercept) parameter.power.mc  0.51
-#> 2           a parameter.power.mc  0.40
+#> 2           a parameter.power.mc  0.36
 #> ===========Evaluation Info============
 #> • Alpha = 0.2 • Trials = 15 • Blocked = FALSE 
 #> • Evaluating Model = ~a 

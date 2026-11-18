@@ -329,17 +329,17 @@ if(skpr:::run_documentation()) {
 eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian")
 }
 #>      parameter               type power
-#> 1  (Intercept)    effect.power.mc  0.98
-#> 2         cost    effect.power.mc  0.99
-#> 3         type    effect.power.mc  0.92
-#> 4         size    effect.power.mc  0.84
-#> 5  (Intercept) parameter.power.mc  0.98
-#> 6         cost parameter.power.mc  0.99
-#> 7        type1 parameter.power.mc  0.62
-#> 8        type2 parameter.power.mc  0.62
-#> 9        type3 parameter.power.mc  0.69
-#> 10       size1 parameter.power.mc  0.80
-#> 11       size2 parameter.power.mc  0.82
+#> 1  (Intercept)    effect.power.mc  0.99
+#> 2         cost    effect.power.mc  1.00
+#> 3         type    effect.power.mc  0.89
+#> 4         size    effect.power.mc  0.91
+#> 5  (Intercept) parameter.power.mc  0.99
+#> 6         cost parameter.power.mc  1.00
+#> 7        type1 parameter.power.mc  0.64
+#> 8        type2 parameter.power.mc  0.64
+#> 9        type3 parameter.power.mc  0.63
+#> 10       size1 parameter.power.mc  0.82
+#> 11       size2 parameter.power.mc  0.84
 #> ============Evaluation Info============
 #> • Alpha = 0.05 • Trials = 21 • Blocked = FALSE 
 #> • Evaluating Model = ~cost + type + size 
@@ -355,29 +355,29 @@ eval_design_mc(designcoffee, nsim = 100, glmfamily = "gaussian",
               detailedoutput = TRUE, advancedoptions = list(ci_error_conf  = 0.8))
 }
 #>      parameter               type power anticoef alpha glmfamily trials nsim
-#> 1  (Intercept)    effect.power.mc  1.00       NA  0.05  gaussian     21  100
+#> 1  (Intercept)    effect.power.mc  0.99       NA  0.05  gaussian     21  100
 #> 2         cost    effect.power.mc  0.98       NA  0.05  gaussian     21  100
-#> 3         type    effect.power.mc  0.97       NA  0.05  gaussian     21  100
+#> 3         type    effect.power.mc  0.95       NA  0.05  gaussian     21  100
 #> 4         size    effect.power.mc  0.87       NA  0.05  gaussian     21  100
-#> 5  (Intercept) parameter.power.mc  1.00        1  0.05  gaussian     21  100
+#> 5  (Intercept) parameter.power.mc  0.99        1  0.05  gaussian     21  100
 #> 6         cost parameter.power.mc  0.98        1  0.05  gaussian     21  100
-#> 7        type1 parameter.power.mc  0.61        1  0.05  gaussian     21  100
-#> 8        type2 parameter.power.mc  0.74       -1  0.05  gaussian     21  100
-#> 9        type3 parameter.power.mc  0.72        1  0.05  gaussian     21  100
-#> 10       size1 parameter.power.mc  0.86        1  0.05  gaussian     21  100
-#> 11       size2 parameter.power.mc  0.84       -1  0.05  gaussian     21  100
+#> 7        type1 parameter.power.mc  0.77        1  0.05  gaussian     21  100
+#> 8        type2 parameter.power.mc  0.64       -1  0.05  gaussian     21  100
+#> 9        type3 parameter.power.mc  0.65        1  0.05  gaussian     21  100
+#> 10       size1 parameter.power.mc  0.85        1  0.05  gaussian     21  100
+#> 11       size2 parameter.power.mc  0.89       -1  0.05  gaussian     21  100
 #>    blocking error_adjusted_alpha power_lcb power_ucb
-#> 1     FALSE                 0.05 0.9772372 1.0000000
+#> 1     FALSE                 0.05 0.9616605 0.9989469
 #> 2     FALSE                 0.05 0.9476547 0.9946693
-#> 3     FALSE                 0.05 0.9344142 0.9889293
+#> 3     FALSE                 0.05 0.9092285 0.9754796
 #> 4     FALSE                 0.05 0.8161255 0.9120174
-#> 5     FALSE                 0.05 0.9772372 1.0000000
+#> 5     FALSE                 0.05 0.9616605 0.9989469
 #> 6     FALSE                 0.05 0.9476547 0.9946693
-#> 7     FALSE                 0.05 0.5412640 0.6753363
-#> 8     FALSE                 0.05 0.6754202 0.7970937
-#> 9     FALSE                 0.05 0.6544316 0.7787205
-#> 10    FALSE                 0.05 0.8049623 0.9035414
-#> 11    FALSE                 0.05 0.7828449 0.8863619
+#> 7     FALSE                 0.05 0.7071816 0.8243644
+#> 8     FALSE                 0.05 0.5717761 0.7038912
+#> 9     FALSE                 0.05 0.5820027 0.7133526
+#> 10    FALSE                 0.05 0.7938706 0.8949874
+#> 11    FALSE                 0.05 0.8386943 0.9287018
 #> =======================================================Evaluation Info========================================================
 #> • Alpha = 0.05 • Trials = 21 • Blocked = FALSE 
 #> • Evaluating Model = ~cost + type + size 
@@ -395,17 +395,17 @@ eval_design_mc(design = designcoffee, nsim = 100,
                        glmfamily = "gaussian", effectsize = 1)
 }
 #>      parameter               type power
-#> 1  (Intercept)    effect.power.mc  0.56
-#> 2         cost    effect.power.mc  0.56
-#> 3         type    effect.power.mc  0.33
-#> 4         size    effect.power.mc  0.32
-#> 5  (Intercept) parameter.power.mc  0.56
-#> 6         cost parameter.power.mc  0.56
-#> 7        type1 parameter.power.mc  0.23
+#> 1  (Intercept)    effect.power.mc  0.55
+#> 2         cost    effect.power.mc  0.55
+#> 3         type    effect.power.mc  0.28
+#> 4         size    effect.power.mc  0.21
+#> 5  (Intercept) parameter.power.mc  0.55
+#> 6         cost parameter.power.mc  0.55
+#> 7        type1 parameter.power.mc  0.17
 #> 8        type2 parameter.power.mc  0.24
-#> 9        type3 parameter.power.mc  0.18
-#> 10       size1 parameter.power.mc  0.36
-#> 11       size2 parameter.power.mc  0.32
+#> 9        type3 parameter.power.mc  0.24
+#> 10       size1 parameter.power.mc  0.32
+#> 11       size2 parameter.power.mc  0.26
 #> ============Evaluation Info============
 #> • Alpha = 0.05 • Trials = 21 • Blocked = FALSE 
 #> • Evaluating Model = ~cost + type + size 
@@ -420,14 +420,14 @@ eval_design_mc(design = designcoffee, model = ~cost + type, alpha = 0.05,
               nsim = 100, glmfamily = "gaussian")
 }
 #>     parameter               type power
-#> 1 (Intercept)    effect.power.mc  0.99
+#> 1 (Intercept)    effect.power.mc  0.98
 #> 2        cost    effect.power.mc  0.97
-#> 3        type    effect.power.mc  0.88
-#> 4 (Intercept) parameter.power.mc  0.99
+#> 3        type    effect.power.mc  0.92
+#> 4 (Intercept) parameter.power.mc  0.98
 #> 5        cost parameter.power.mc  0.97
-#> 6       type1 parameter.power.mc  0.74
-#> 7       type2 parameter.power.mc  0.66
-#> 8       type3 parameter.power.mc  0.57
+#> 6       type1 parameter.power.mc  0.71
+#> 7       type2 parameter.power.mc  0.67
+#> 8       type3 parameter.power.mc  0.61
 #> ===========Evaluation Info============
 #> • Alpha = 0.05 • Trials = 21 • Blocked = FALSE 
 #> • Evaluating Model = ~cost + type 
@@ -442,20 +442,20 @@ eval_design_mc(design = designcoffee, model = ~cost + type + size + cost * type,
 }
 #>      parameter               type power
 #> 1  (Intercept)    effect.power.mc  0.98
-#> 2         cost    effect.power.mc  0.98
-#> 3         type    effect.power.mc  0.93
-#> 4         size    effect.power.mc  0.88
-#> 5    cost:type    effect.power.mc  0.83
+#> 2         cost    effect.power.mc  0.99
+#> 3         type    effect.power.mc  0.86
+#> 4         size    effect.power.mc  0.87
+#> 5    cost:type    effect.power.mc  0.87
 #> 6  (Intercept) parameter.power.mc  0.98
-#> 7         cost parameter.power.mc  0.98
-#> 8        type1 parameter.power.mc  0.70
-#> 9        type2 parameter.power.mc  0.67
-#> 10       type3 parameter.power.mc  0.64
-#> 11       size1 parameter.power.mc  0.82
-#> 12       size2 parameter.power.mc  0.84
-#> 13  cost:type1 parameter.power.mc  0.63
-#> 14  cost:type2 parameter.power.mc  0.63
-#> 15  cost:type3 parameter.power.mc  0.58
+#> 7         cost parameter.power.mc  0.99
+#> 8        type1 parameter.power.mc  0.61
+#> 9        type2 parameter.power.mc  0.60
+#> 10       type3 parameter.power.mc  0.59
+#> 11       size1 parameter.power.mc  0.80
+#> 12       size2 parameter.power.mc  0.83
+#> 13  cost:type1 parameter.power.mc  0.62
+#> 14  cost:type2 parameter.power.mc  0.65
+#> 15  cost:type3 parameter.power.mc  0.64
 #> ============Evaluation Info============
 #> • Alpha = 0.05 • Trials = 21 • Blocked = FALSE 
 #> • Evaluating Model = ~cost + type + size + cost * type 
@@ -499,18 +499,18 @@ eval_design_mc(splitplotdesign, blocking = TRUE, nsim = 100,
                        glmfamily = "gaussian", varianceratios = c(1, 1, 1))
 }
 #>      parameter               type power
-#> 1        Store    effect.power.mc  0.38
-#> 2         Temp    effect.power.mc  0.82
+#> 1        Store    effect.power.mc  0.41
+#> 2         Temp    effect.power.mc  0.92
 #> 3         cost    effect.power.mc  1.00
 #> 4         type    effect.power.mc  1.00
 #> 5         size    effect.power.mc  1.00
-#> 6  (Intercept) parameter.power.mc  0.34
-#> 7       Store1 parameter.power.mc  0.38
-#> 8         Temp parameter.power.mc  0.82
+#> 6  (Intercept) parameter.power.mc  0.35
+#> 7       Store1 parameter.power.mc  0.41
+#> 8         Temp parameter.power.mc  0.92
 #> 9         cost parameter.power.mc  1.00
-#> 10       type1 parameter.power.mc  0.99
-#> 11       type2 parameter.power.mc  0.96
-#> 12       type3 parameter.power.mc  0.98
+#> 10       type1 parameter.power.mc  0.97
+#> 11       type2 parameter.power.mc  0.94
+#> 12       type3 parameter.power.mc  0.97
 #> 13       size1 parameter.power.mc  1.00
 #> 14       size2 parameter.power.mc  1.00
 #> ============Evaluation Info============
@@ -561,12 +561,12 @@ eval_design_mc(designpois, ~a + b, 0.05, nsim = 100, glmfamily = "poisson",
                anticoef = log(c(0.2, 2, 2)))
 }
 #>     parameter               type power
-#> 1 (Intercept)    effect.power.mc  0.95
-#> 2           a    effect.power.mc  0.80
-#> 3           b    effect.power.mc  0.82
-#> 4 (Intercept) parameter.power.mc  0.95
-#> 5           a parameter.power.mc  0.80
-#> 6           b parameter.power.mc  0.82
+#> 1 (Intercept)    effect.power.mc  0.98
+#> 2           a    effect.power.mc  0.85
+#> 3           b    effect.power.mc  0.85
+#> 4 (Intercept) parameter.power.mc  0.98
+#> 5           a parameter.power.mc  0.85
+#> 6           b parameter.power.mc  0.85
 #> ===========Evaluation Info============
 #> • Alpha = 0.05 • Trials = 70 • Blocked = FALSE 
 #> • Evaluating Model = ~a + b 

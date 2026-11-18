@@ -307,25 +307,25 @@ quad_candidates = expand.grid(a = c(1, 0, -1), b = c(-1, 0, 1), c = c("A", "B", 
 
 gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20)
 #>     a  b c
-#> 1   1  1 A
+#> 1   1 -1 B
 #> 2  -1 -1 B
 #> 3  -1 -1 C
 #> 4  -1  1 A
 #> 5  -1  1 B
 #> 6  -1 -1 A
-#> 7   1  1 B
-#> 8   0  1 B
-#> 9   1 -1 B
-#> 10  1  1 C
+#> 7   1 -1 A
+#> 8   0 -1 B
+#> 9   1  1 B
+#> 10  1 -1 C
 #> 11  1  1 A
 #> 12 -1  1 C
 #> 13  0  0 C
 #> 14 -1  1 A
-#> 15  1 -1 C
-#> 16  0 -1 B
+#> 15  1  1 C
+#> 16  0  1 B
 #> 17  1 -1 A
 #> 18 -1  0 B
-#> 19  1 -1 A
+#> 19  1  1 A
 #> 20  1  0 B
 
 #The optimality criterion can also be changed:
@@ -359,9 +359,9 @@ gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
 #> 2   1  1 C
 #> 3   1 -1 B
 #> 4   1 -1 A
-#> 5   1  0 C
+#> 5  -1  0 C
 #> 6   1 -1 C
-#> 7  -1  0 C
+#> 7   1  0 C
 #> 8  -1 -1 A
 #> 9  -1 -1 C
 #> 10 -1  1 A
@@ -371,7 +371,7 @@ gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
 #> 14  0  1 C
 #> 15  0  0 A
 #> 16  1  1 B
-#> 17  1  0 A
+#> 17  0  1 A
 #> 18  0 -1 C
 #> 19 -1  1 B
 #> 20 -1  1 C
@@ -383,27 +383,27 @@ gen_design(quad_candidates, ~a + b + I(a^2) + I(b^2) + a * b * c, 20,
 #Specify a single layer
 gen_design(quad_candidates, ~a + b + c, 21, blocksizes=3, add_blocking_column=TRUE)
 #>    Block1  a  b c
-#> 1       1  1 -1 C
+#> 1       1  1  1 A
 #> 2       1  1  1 B
-#> 3       1 -1  1 A
-#> 4       2  1  1 B
-#> 5       2  1  1 A
-#> 6       2 -1 -1 C
-#> 7       3 -1  1 C
-#> 8       3  1 -1 B
-#> 9       3  1 -1 A
-#> 10      4 -1  1 A
-#> 11      4  1 -1 C
-#> 12      4 -1 -1 B
-#> 13      5  1  1 C
-#> 14      5 -1  1 B
-#> 15      5  1 -1 A
-#> 16      6  1  1 B
-#> 17      6 -1  1 C
-#> 18      6 -1 -1 A
-#> 19      7 -1 -1 B
-#> 20      7  1  1 C
-#> 21      7  1  1 A
+#> 3       1 -1 -1 C
+#> 4       2 -1  1 B
+#> 5       2  1 -1 C
+#> 6       2 -1  1 A
+#> 7       3  1 -1 B
+#> 8       3 -1 -1 A
+#> 9       3  1  1 C
+#> 10      4  1  1 A
+#> 11      4  1  1 B
+#> 12      4 -1 -1 C
+#> 13      5 -1  1 C
+#> 14      5  1 -1 A
+#> 15      5 -1 -1 B
+#> 16      6 -1  1 A
+#> 17      6  1 -1 B
+#> 18      6  1  1 C
+#> 19      7  1 -1 A
+#> 20      7 -1  1 B
+#> 21      7  1  1 C
 
 #Manually specify the block sizes for a single layer, must add to `trials``
 gen_design(quad_candidates, ~a + b + c, 21, blocksizes=c(4,3,2,3,3,3,3),
@@ -435,26 +435,26 @@ gen_design(quad_candidates, ~a + b + c, 21, blocksizes=c(4,3,2,3,3,3,3),
 gen_design(quad_candidates, ~a + b + c, 21, blocksizes=list(7,3),
           add_blocking_column=TRUE)
 #>    Block1 Block2  a  b c
-#> 1       1      1 -1 -1 A
-#> 2       1      1  1 -1 C
-#> 3       1      1  1  1 B
-#> 4       1      2  1  1 B
-#> 5       1      2 -1  1 C
-#> 6       1      2 -1 -1 A
-#> 7       1      3  1  1 A
-#> 8       2      3  1 -1 C
-#> 9       2      3 -1  1 B
-#> 10      2      4  1 -1 B
-#> 11      2      4 -1  1 C
-#> 12      2      4  1  1 A
-#> 13      2      5 -1  1 A
-#> 14      2      5  1 -1 B
-#> 15      3      5 -1 -1 C
-#> 16      3      6  1  1 A
-#> 17      3      6 -1 -1 B
-#> 18      3      6  1  1 C
-#> 19      3      7 -1  1 B
-#> 20      3      7  1 -1 A
+#> 1       1      1  1  1 C
+#> 2       1      1 -1 -1 B
+#> 3       1      1  1 -1 A
+#> 4       1      2 -1  1 B
+#> 5       1      2  1 -1 A
+#> 6       1      2  1 -1 C
+#> 7       1      3 -1  1 C
+#> 8       2      3  1  1 A
+#> 9       2      3 -1 -1 B
+#> 10      2      4  1  1 B
+#> 11      2      4 -1 -1 A
+#> 12      2      4  1 -1 C
+#> 13      2      5  1  1 B
+#> 14      2      5 -1 -1 C
+#> 15      3      5  1 -1 A
+#> 16      3      6 -1 -1 C
+#> 17      3      6 -1  1 A
+#> 18      3      6  1 -1 B
+#> 19      3      7  1 -1 B
+#> 20      3      7 -1  1 A
 #> 21      3      7  1  1 C
 
 #Multiple layers of blocking, specified individually
@@ -602,7 +602,7 @@ augmented_design = gen_design(candidateset,
 
 get_optimality(augmented_design)
 #>     D  I   A            G  T  E    Alias
-#> 1 100 NA 100 Not Computed 64 16 58318.89
+#> 1 100 NA 100 Not Computed 64 16 125639.5
 
 #And design attributes can be accessed with the `get_attribute()` function:
 
@@ -611,11 +611,11 @@ get_attribute(design)
 #>       (Intercept) x1 x2
 #>  [1,]           1 -1  1
 #>  [2,]           1  1 -1
-#>  [3,]           1  1 -1
+#>  [3,]           1 -1  1
 #>  [4,]           1  1 -1
 #>  [5,]           1  1  1
-#>  [6,]           1 -1 -1
-#>  [7,]           1 -1  1
+#>  [6,]           1 -1  1
+#>  [7,]           1  1 -1
 #>  [8,]           1 -1 -1
 #>  [9,]           1 -1 -1
 #> [10,]           1  1  1
@@ -640,8 +640,8 @@ get_attribute(design)
 #> 
 #> $alias.matrix
 #>             x1 x2      x1:x2
-#> (Intercept)  0  0  0.1111111
-#> x1           1  0 -0.1111111
+#> (Intercept)  0  0 -0.1111111
+#> x1           1  0  0.1111111
 #> x2           0  1  0.1111111
 #> 
 #> $correlation.matrix
@@ -651,7 +651,7 @@ get_attribute(design)
 #> 
 #> $model
 #> ~x1 + x2
-#> <environment: 0x5624d4cdd488>
+#> <environment: 0x5d432c8dbef8>
 #> 
 
 #A correlation color map can be produced by calling the plot_correlation command with the output

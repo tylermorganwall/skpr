@@ -112,8 +112,6 @@ plot_correlations = function(
     } else {
       model = model1
     }
-  } else {
-    model1 = model
   }
   presetcontrasts = list()
   contrast_info = generate_contrast_list(
@@ -129,7 +127,7 @@ plot_correlations = function(
   #Main effects model
   mm_main = model.matrix(~., design, contrasts.arg = contrastslist_cormat)
   #All interactions included
-  mm = model.matrix(model1, design, contrasts.arg = contrastslist_cormat)
+  mm = model.matrix(model, design, contrasts.arg = contrastslist_cormat)
 
   X = mm_main[, -1, drop = FALSE]
   int_nms = setdiff(colnames(mm), colnames(mm_main)) # just the interactions

@@ -15,9 +15,8 @@ double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::Matrix
 }
 
 
-double calculateGOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& currentDesign) {
-  Eigen::MatrixXd results = currentDesign*currentV*currentDesign.transpose();
-  return(results.diagonal().maxCoeff());
+double calculateGOptimality(const Eigen::MatrixXd& inverseInformation, const Eigen::MatrixXd& predictionPoints) {
+  return((predictionPoints * inverseInformation).cwiseProduct(predictionPoints).rowwise().sum().maxCoeff());
 }
 
 double calculateTOptimality(const Eigen::MatrixXd& currentDesign) {

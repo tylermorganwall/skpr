@@ -26,7 +26,8 @@ gen_design(
   add_blocking_columns = FALSE,
   randomized = TRUE,
   advancedoptions = NULL,
-  timer = NULL
+  timer = NULL,
+  covariates = NULL
 )
 }
 \arguments{
@@ -41,7 +42,7 @@ If a factor is continuous, its column should be type \code{numeric}. If a factor
 
 \item{model}{The statistical model used to generate the test design.}
 
-\item{trials}{The number of runs in the design.}
+\item{trials}{The number of runs in the design. Can be omitted when \code{covariates} is supplied.}
 
 \item{splitplotdesign}{If \code{NULL}, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
 this argument specifies the design for all of the factors harder to change than the current set of factors.
@@ -90,11 +91,14 @@ A \code{k} of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory
 \item{moment_sample_density}{Default \code{10}. The density of points to sample when calculating the moment matrix to
 compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.}
 
-\item{high_resolution_candidate_set}{Default \code{NA}. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
-cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
-a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
-factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
-To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.}
+\item{high_resolution_candidate_set}{Default \code{NA}. A data frame of prediction points
+in the original factor units for I-optimality. For free and fixed-covariate
+searches, a complete grid gives equal weight to each supplied row. Repeating
+rows increases their weight. Include all modeled treatment and covariate columns
+to specify their joint distribution. The search still assigns treatments from
+\code{candidateset}. By default, ordinary searches use closed-form moments when
+available and otherwise integrate over the convex hull for each combination of
+categorical levels. A supplied grid can describe a nonconvex prediction region.}
 
 \item{parallel}{Default \code{FALSE}. If \code{TRUE}, the optimal design search will use all but one of the available cores.
 This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting \code{options("cores")} to the desired number (e.g. \code{options("cores" = parallel::detectCores())}).
@@ -111,14 +115,38 @@ the randomized design will be re-ordered from left to right.}
 \item{advancedoptions}{Default \code{NULL}. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 are \code{design_search_tolerance} (the smallest fractional increase below which the design search terminates), \code{alias_tie_power} (the degree of the aliasing
 matrix when calculating optimality tie-breakers), \code{alias_tie_tolerance} (the smallest absolute difference in the optimality criterion where designs are
-considered equal before considering the aliasing structure),  \verb{alias_compare`` (which if set to FALSE turns off alias tie breaking completely), }aliasmodel\verb{(provided if the user does not want to calculate Alias-optimality using all}aliaspower\verb{interaction terms), and}progressBarUpdater`` (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
-\code{g_efficiency_method}, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
-"optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
-and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
-the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
-or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.}
+considered equal before considering the aliasing structure), \code{alias_compare} (which if set to FALSE turns off alias tie breaking completely),
+\code{aliasmodel} (provided if the user does not want to calculate Alias-optimality using all \code{aliaspower} interaction terms),
+and \code{progressBarUpdater} (a function called in non-parallel optimal searches that can be used to update an external progress bar).
+For independent runs, G-optimal exchange minimizes the largest prediction variance over the supplied candidates.
+With fixed covariates, the prediction region pairs each observed covariate profile with every treatment candidate.
+By default a G-optimal design reports G-efficiency on this same region.
+\code{g_efficiency_method} controls the reported diagnostic and accepts "random", "optim", or "custom".
+The companion option \code{g_efficiency_samples} specifies
+the number of random samples  (default 1000 if \code{g_efficiency_method = "random"}), attempts at simulated annealing (default 1 if \code{g_efficiency_method = "optim"}),
+or a data.frame defining the exact points of the design space if \code{g_efficiency_method = "custom"}.}
 
 \item{timer}{Deprecated: Use \code{progress} instead.}
+
+\item{covariates}{Default \code{NULL}. A data frame of fixed numeric or categorical covariates,
+with one row per trial in run order. Put controllable factors in \code{candidateset} and give
+the two data frames distinct column names. The search chooses a treatment for each row.
+Use the right-hand side of the model you plan to fit. For example,
+\code{~ treatment} scores treatment alone, and \code{~ treatment + row} also adjusts
+for row. A dot includes columns from both data frames. All fixed columns are
+returned in run order, including identifiers and other fields omitted from the model.
+The search uses the requested factor contrasts. Numeric predictors in formula
+transformations retain their original units. Models without an intercept or with
+omitted lower-order interaction terms also use the original numeric units,
+since centering can change the fitted model in those cases.
+A treatment transformation must give the same values on the candidate grid
+and the assigned runs. For example, use \code{I(dose^2)} for a quadratic term.
+Both settings of \code{randomized} preserve the covariate rows. This option applies to
+unblocked designs without augmentation. For I-optimality, the default prediction
+region crosses the observed covariate rows with the treatment candidates.
+A treatment-only \code{high_resolution_candidate_set} replaces the treatment grid
+in this cross. A complete prediction grid specifies the covariate weights as well.
+Both searches zero off-diagonal moments involving categorical effects or their interactions.}
 }
 \value{
 A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
@@ -143,6 +171,12 @@ design = gen_design(candidateset = basic_candidates, model = ~x1 + x2, trials = 
 
 #We can also use the dot formula to automatically use all of the terms in the model:
 design = gen_design(candidateset = basic_candidates, model = ~., trials = 11)
+
+#Assign treatments to eight wells, accounting for plate row and column.
+wells = expand.grid(row = factor(c("A", "B")), column = 1:4)
+plate = gen_design(data.frame(treatment = c(-1, 1)), ~treatment + row + column,
+                  covariates = wells)
+xtabs(~row + treatment, plate)
 
 #Here we add categorical factors, specified by using "as.factor" in expand.grid:
 categorical_candidates = expand.grid(a = c(-1, 1),

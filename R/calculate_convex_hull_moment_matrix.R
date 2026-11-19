@@ -77,33 +77,86 @@ interpolate_convex_hull = function(
   ))
 }
 
-#' @title Approximate continuous moment matrix over a numeric bounding box
+#' Identify model columns containing categorical effects
 #'
-#' @description Treats the min–max range of each numeric column as a bounding box
-#' and samples points uniformly to approximate the integral of the outer product of
-#' the model terms, weighted by whether the point
-#' is on the edge.
+#' Uses the fitted term assignments to identify both main effects and
+#' interactions in the model matrix supplied to the design search.
+#' @param model Expanded model terms.
+#' @param x Model matrix constructed from those terms.
+#' @return Names of model columns involving at least one categorical factor.
+#' @keywords internal
+#' @noRd
+categorical_model_columns = function(model, x) {
+  factors = attr(terms(model), "factors")
+  categorical = rownames(factors) %in% names(attr(x, "contrasts"))
+  if (!any(categorical)) return(character())
+  included = which(colSums(factors[categorical, , drop = FALSE]) > 0L)
+  return(colnames(x)[attr(x, "assign") %in% included])
+}
+
+#' Apply skpr's categorical convention to region moments
 #'
-#' @param candidate_set Candidate set
-#' @param formula Default `~ .`. Model formula specifying the terms.
+#' The I-optimal exchange uses diagonal moments for categorical effects and
+#' their interactions. Apply this convention after integration over the region.
+#' @param moment Named matrix of integrated model-column products.
+#' @param columns Names of the categorical model columns.
+#' @return The moment matrix in its input column order.
+#' @keywords internal
+#' @noRd
+zero_categorical_moments = function(moment, columns) {
+  if (length(columns)) {
+    diagonal = diag(moment)
+    moment[columns, ] = 0
+    moment[, columns] = 0
+    diag(moment) = diagonal
+  }
+  return(moment)
+}
+
+#' @title Calculate the prediction-region moments for an I-optimal search
+#'
+#' @description Builds the I-optimality moment matrix from the supplied prediction
+#' rows or from numerical integration over the feasible region at each factor level.
+#' Factor-related off-diagonal moments are zero in both cases.
+#'
+#' @param candidate_set Prediction points on the same numeric scale as the search.
+#' @param formula Default `~.`. Model formula specifying the terms.
 #' @param n_samples_per_dimension Default `10`. Number of samples to take per dimension when interpolating inside
 #' the convex hull.
+#' @param user_provided_high_res_candidateset Default `FALSE`. Use equal weight
+#'   per supplied row instead of interpolating the convex hull.
+#' @param contrastslist Default `NULL`. Named factor contrasts from the search.
+#'   The default uses simplex contrasts.
 #'
 #' @keywords internal
-#' @return A matrix of size `p x p` (where `p` is the number of columns in the model matrix),
-#'   approximating the continuous moment matrix.
+#' @return A square moment matrix in model-column order.
 #'
 gen_momentsmatrix_constrained = function(
   candidate_set,
   formula = ~.,
   n_samples_per_dimension = 10,
-  user_provided_high_res_candidateset = FALSE
+  user_provided_high_res_candidateset = FALSE,
+  contrastslist = NULL
 ) {
   # Identify numeric columns (continuous factors)
   is_numeric_col = vapply(candidate_set, is.numeric, logical(1))
   numeric_cols = names(candidate_set)[is_numeric_col]
   factor_cols = names(candidate_set)[!is_numeric_col]
+  formula = terms(formula, data = candidate_set)
+  candidate_set[factor_cols] = lapply(candidate_set[factor_cols], as.factor)
+  if (is.null(contrastslist) && length(factor_cols)) {
+    contrastslist = setNames(rep(list(contr.simplex), length(factor_cols)), factor_cols)
+  }
+  contrastslist = contrastslist[intersect(names(contrastslist), all.vars(formula))]
 
+  if (user_provided_high_res_candidateset) {
+    points = model.matrix(formula, candidate_set, contrasts.arg = contrastslist)
+    if (!nrow(points) || nrow(points) != nrow(candidate_set) || any(!is.finite(points))) {
+      stop("skpr: The prediction grid must contain complete, finite model rows.")
+    }
+    return(zero_categorical_moments(crossprod(points) / nrow(points),
+                                    categorical_model_columns(formula, points)))
+  }
   if (length(numeric_cols) == 0) {
     stop(
       "No numeric columns found in data. Cannot compute continuous bounding box."
@@ -115,32 +168,27 @@ gen_momentsmatrix_constrained = function(
   # Simple if all numeric: just integrate over the region.
   if (length(factor_cols) == 0) {
     sub_candidate_set = as.matrix(candidate_set)
-    if (user_provided_high_res_candidateset) {
-      mm_candidate_set = sub_candidate_set
-      vol = nrow(mm_candidate_set)
+    if (ncol(sub_candidate_set) == 1) {
+      mm_candidate_set = matrix(
+        seq(
+          min(sub_candidate_set),
+          max(sub_candidate_set),
+          length.out = n_samples_per_dimension
+        ),
+        ncol = 1
+      )
+      interp_ch = list()
+      interp_ch$on_edge = rep(FALSE, nrow(mm_candidate_set))
+      vol = max(sub_candidate_set) - min(sub_candidate_set)
     } else {
-      if (ncol(sub_candidate_set) == 1) {
-        mm_candidate_set = matrix(
-          seq(
-            min(sub_candidate_set),
-            max(sub_candidate_set),
-            length.out = n_samples_per_dimension
-          ),
-          ncol = 1
-        )
-        interp_ch = list()
-        interp_ch$on_edge = rep(FALSE, nrow(mm_candidate_set))
-        vol = max(sub_candidate_set) - min(sub_candidate_set)
-      } else {
-        ch = convhull_halfspace(sub_candidate_set)
-        vol = ch$volume
-        interp_ch = interpolate_convex_hull(
-          as.matrix(sub_candidate_set),
-          ch,
-          n_samples_per_dimension = n_samples_per_dimension
-        )
-        mm_candidate_set = interp_ch$data
-      }
+      ch = convhull_halfspace(sub_candidate_set)
+      vol = ch$volume
+      interp_ch = interpolate_convex_hull(
+        as.matrix(sub_candidate_set),
+        ch,
+        n_samples_per_dimension = n_samples_per_dimension
+      )
+      mm_candidate_set = interp_ch$data
     }
 
     colnames(mm_candidate_set) = numeric_cols
@@ -150,11 +198,9 @@ gen_momentsmatrix_constrained = function(
     Xsub = model.matrix(formula, data = interp_df)
 
     w = rep(1, nrow(Xsub))
-    if(!user_provided_high_res_candidateset) {
-      w[interp_ch$on_edge] = 0.5
-    }
+    w[interp_ch$on_edge] = 0.5
     # average subregion moment
-		Xsub_w = sweep(Xsub, 1L, sqrt(w), "*")
+    Xsub_w = sweep(Xsub, 1L, sqrt(w), "*")
 
     M = crossprod(Xsub_w) / sum(w)
 
@@ -170,23 +216,6 @@ gen_momentsmatrix_constrained = function(
     # factor level combination, weigh it by the total number of points, and sum it. That
     # will give us the average prediction variance for the constrained region.
     unique_combos = unique(candidate_set[, factor_cols, drop = FALSE])
-
-    named_contrast = function() {
-      skpr::contr.simplex
-    }
-    skpr::contr.simplex
-
-    get_contrasts_from_candset = function(candset) {
-      csn = colnames(candset)[!unlist(lapply(candset, is.numeric))]
-      contrasts_return = vector(mode = "list", length = length(csn))
-      for(i in seq_along(csn)) {
-        single_contrast = contr.simplex(unique(candset[[ csn[i] ]]))
-        colnames(single_contrast) = paste0("_skpr_FACTOR_",seq_len(ncol(single_contrast)))
-        contrasts_return[[i]] = single_contrast
-      }
-      names(contrasts_return) = csn
-      return(contrasts_return)
-    }
 
     # We'll accumulate a weighted sum of sub-matrices
     total_weight = 0
@@ -205,35 +234,30 @@ gen_momentsmatrix_constrained = function(
       if (nrow(sub_candidate_set) == 0) {
         next
       }
-      if (user_provided_high_res_candidateset) {
-        mm_candidate_set = sub_candidate_set
-        vol = nrow(mm_candidate_set)
+      if (ncol(sub_candidate_set) == 1) {
+        mm_candidate_set = matrix(
+          seq(
+            min(sub_candidate_set),
+            max(sub_candidate_set),
+            length.out = n_samples_per_dimension
+          ),
+          ncol = 1
+        )
+        interp_ch = list()
+        interp_ch$on_edge = rep(FALSE, nrow(mm_candidate_set))
+        vol = max(sub_candidate_set) - min(sub_candidate_set)
       } else {
-        if (ncol(sub_candidate_set) == 1) {
-          mm_candidate_set = matrix(
-            seq(
-              min(sub_candidate_set),
-              max(sub_candidate_set),
-              length.out = n_samples_per_dimension
-            ),
-            ncol = 1
-          )
-          interp_ch = list()
-          interp_ch$on_edge = rep(FALSE, nrow(mm_candidate_set))
-          vol = max(sub_candidate_set) - min(sub_candidate_set)
-        } else {
-          ch = convhull_halfspace(sub_candidate_set)
-          if (ch$volume <= 0) {
-            next
-          }
-          vol = ch$volume
-          interp_ch = interpolate_convex_hull(
-            as.matrix(sub_candidate_set),
-            ch,
-            n_samples_per_dimension = n_samples_per_dimension
-          )
-          mm_candidate_set = interp_ch$data
+        ch = convhull_halfspace(sub_candidate_set)
+        if (ch$volume <= 0) {
+          next
         }
+        vol = ch$volume
+        interp_ch = interpolate_convex_hull(
+          as.matrix(sub_candidate_set),
+          ch,
+          n_samples_per_dimension = n_samples_per_dimension
+        )
+        mm_candidate_set = interp_ch$data
       }
 
       colnames(mm_candidate_set) = numeric_cols
@@ -248,15 +272,13 @@ gen_momentsmatrix_constrained = function(
       Xsub = model.matrix(
         formula,
         data = interp_df,
-        contrasts.arg = get_contrasts_from_candset(candidate_set)
+        contrasts.arg = contrastslist
       )
 
       w = rep(1, nrow(Xsub))
-      if(!user_provided_high_res_candidateset) {
-        w[interp_ch$on_edge] = 0.5
-      }
+      w[interp_ch$on_edge] = 0.5
       # average subregion moment
-			Xsub_w = sweep(Xsub, 1L, sqrt(w), "*")
+      Xsub_w = sweep(Xsub, 1L, sqrt(w), "*")
 
       M_sub = crossprod(Xsub_w) / sum(w)
 
@@ -274,24 +296,6 @@ gen_momentsmatrix_constrained = function(
     if (colnames(M)[1] == "(Intercept)") {
       M = M / M[1, 1]
     }
-    #Now scan for categorical factors and set off-diagonals to zero
-    is_factor_term = grepl("_skpr_FACTOR_", colnames(model.matrix(
-      formula,
-      data = candidate_set,
-      contrasts.arg = get_contrasts_from_candset(candidate_set)
-    )))
-    colnames(M) = gsub("_skpr_FACTOR_",replacement = "",x = colnames(M))
-    rownames(M) = gsub("_skpr_FACTOR_",replacement = "",x = rownames(M))
-
-    for(col in seq_len(ncol(M))) {
-      for(row in seq_len(nrow(M))) {
-        if(col != row) {
-          if(is_factor_term[row] || is_factor_term[col]) {
-            M[row,col] = 0
-          }
-        }
-      }
-    }
-    return(M)
+    return(zero_categorical_moments(M, categorical_model_columns(formula, Xsub)))
   }
 }

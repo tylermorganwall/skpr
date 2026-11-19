@@ -22,6 +22,9 @@ calculate_gefficiency = function(
   model = attr(design, "generating_model")
   variables = all.vars(model)
   designmm = attr(design, "model_matrix")
+  if (calculation_type == "custom" && !is.null(design_space_mm)) {
+    return(GEfficiency(designmm, design_space_mm))
+  }
   modelentries = names(calculate_level_vector(
     run_matrix,
     model,
@@ -109,8 +112,5 @@ calculate_gefficiency = function(
       )$value
     }
     return(100 * ncol(designmm) / (nrow(designmm) * max(unlist(vals))))
-  }
-  if (calculation_type == "custom" && !is.null(design_space_mm)) {
-    return(GEfficiency(designmm, design_space_mm))
   }
 }

@@ -1,6 +1,6 @@
 // [[Rcpp::depends(RcppEigen)]]
 
-#include <RcppEigen.h>
+#include "optimalityfunctions.h"
 using namespace Rcpp;
 
 // [[Rcpp::export]]
@@ -37,6 +37,5 @@ Eigen::MatrixXd getPseudoInverse(const Eigen::MatrixXd& currentDesign) {
 // [[Rcpp::export]]
 double GEfficiency(const Eigen::MatrixXd& currentDesign, const Eigen::MatrixXd& candset) {
   Eigen::MatrixXd V = (currentDesign.transpose()*currentDesign).partialPivLu().inverse();
-  Eigen::MatrixXd results = candset*V*candset.transpose();
-  return(100*((double)currentDesign.cols()/(double)currentDesign.rows())*1/results.diagonal().maxCoeff());
+  return(100.0 * currentDesign.cols() / (currentDesign.rows() * calculateGOptimality(V, candset)));
 }

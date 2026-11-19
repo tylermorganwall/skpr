@@ -4,10 +4,12 @@
 \alias{aliasmodel}
 \title{Alias terms}
 \usage{
-aliasmodel(formula, power)
+aliasmodel(formula, power, variables = all.vars(formula))
 }
 \arguments{
 \item{formula}{The formula to be expanded}
+
+\item{variables}{Default \code{all.vars(formula)}. Design variables eligible for alias terms.}
 }
 \value{
 Returns aliased model terms from formula

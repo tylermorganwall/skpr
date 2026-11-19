@@ -132,6 +132,8 @@ Evaluates the power of a design with Monte Carlo simulation. Data is simulated a
 with a generalized linear model, and the fraction of simulations in which a parameter
 is significant (its p-value, according to the fit function used, is less than the specified \code{alpha})
 is the estimate of power for that parameter.
+An unavailable effect p-value is stored as \code{NA} in the \code{effect_pvals} attribute.
+It contributes no rejection to effect power, whose denominator is \code{nsim}.
 
 First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
 Each block gets a single sample of Gaussian random noise, with a variance as specified in

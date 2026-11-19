@@ -115,8 +115,12 @@ effectpowermc = function(
           output$effectnames = rownames(anovafit2)
           output$effect_pvals = rep(1, length(output$effectnames))
         } else {
-          output$effectnames = rownames(coef(summary(fit)))
-          output$effect_pvals = rep(NA, length(output$effectnames))
+          fixed_terms = terms(fit)
+          output$effectnames = attr(fixed_terms, "term.labels")
+          if (type %in% c("III", "3") && attr(fixed_terms, "intercept") == 1L) {
+            output$effectnames = c("(Intercept)", output$effectnames)
+          }
+          output$effect_pvals = rep(NA_real_, length(output$effectnames))
         }
         return(e)
       }

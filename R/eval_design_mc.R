@@ -74,6 +74,8 @@
 #' with a generalized linear model, and the fraction of simulations in which a parameter
 #' is significant (its p-value, according to the fit function used, is less than the specified \code{alpha})
 #' is the estimate of power for that parameter.
+#' An unavailable effect p-value is stored as `NA` in the `effect_pvals` attribute.
+#' It contributes no rejection to effect power, whose denominator is `nsim`.
 #'
 #'First, if \code{blocking = TURE}, the random noise from blocking is generated with \code{rnorm}.
 #'Each block gets a single sample of Gaussian random noise, with a variance as specified in
@@ -412,6 +414,10 @@ eval_design_mc = function(
       control = control,
       ...
     )
+    if (calceffect) {
+      null_effect_pvals = attr(nullresults, "effect_pvals")
+      null_effect_pvals[is.na(null_effect_pvals)] = 1
+    }
     if (attr(terms.formula(model, data = design), "intercept") == 1) {
       alpha_parameter = c(
         alpha,
@@ -423,7 +429,7 @@ eval_design_mc = function(
           alpha_effect = c(
             alpha,
             apply(
-              attr(nullresults, "effect_pvals"),
+              null_effect_pvals,
               2,
               quantile,
               probs = alpha
@@ -431,7 +437,7 @@ eval_design_mc = function(
           )
         } else {
           alpha_effect = apply(
-            attr(nullresults, "effect_pvals"),
+            null_effect_pvals,
             2,
             quantile,
             probs = alpha
@@ -449,7 +455,7 @@ eval_design_mc = function(
       alpha_parameter[alpha_parameter > alpha] = alpha
       if (calceffect) {
         alpha_effect = apply(
-          attr(nullresults, "effect_pvals"),
+          null_effect_pvals,
           2,
           quantile,
           probs = alpha
@@ -766,7 +772,6 @@ eval_design_mc = function(
       )
     }
     power_values = rep(0, ncol(model_matrix))
-    effect_power_values = c()
     for (j in seq_len(nsim)) {
       if (advancedoptions$GUI && !is.null(progressBarUpdater)) {
         #This code is to slow down the number of updates in the Shiny app--if there
@@ -976,12 +981,6 @@ eval_design_mc = function(
         pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
         stopifnot(all(names(pvals) == parameter_names))
         pvallist[[j]] = pvals
-        if (length(effect_power_values) == 0 && calceffect && !fiterror) {
-          effect_power_values = c(
-            effect_power_values,
-            rep(0, length(effect_pvals))
-          )
-        }
         stderrlist[[j]] = suppressWarnings(coef(summary(fit))[, 2])
         if (!blocking) {
           iterlist[[j]] = fit$iter
@@ -990,10 +989,6 @@ eval_design_mc = function(
         }
         if (calceffect && !fiterror) {
           effectpvallist[[j]] = effect_pvals
-          effect_pvals[is.na(effect_pvals)] = 1
-          effect_power_values[
-            effect_pvals < alpha_effect
-          ] = effect_power_values[effect_pvals < alpha_effect] + 1
         }
         if (any(is.na(pvals))) {
           pvals[is.na(pvals)] = 1
@@ -1021,23 +1016,9 @@ eval_design_mc = function(
     }
     #We are going to output a tidy data.frame with the results.
     attr(power_values, "pvals") = do.call(rbind, pvallist)
-    if (calceffect) {
-      attr(power_values, "effect_pvals") = do.call(rbind, effectpvallist)
-    }
     attr(power_values, "stderrors") = do.call(rbind, stderrlist)
     attr(power_values, "fisheriterations") = do.call(rbind, iterlist)
     power_values = power_values / nsim
-    if (calceffect) {
-      effect_power_values = effect_power_values / nsim
-      if (length(effectpvallist) > 1) {
-        if (!isTRUE(do.call("all.equal", lapply(effectpvallist, names)))) {
-          stop(
-            "effect p-value names shifted during computation, results are not valid: contact the developer"
-          )
-        }
-      }
-      names(effect_power_values) = names(effectpvallist[[1]])
-    }
   } else {
     if (!progress) {
       progressbarupdates = c()
@@ -1088,7 +1069,6 @@ eval_design_mc = function(
             "parameter_names",
             "progressbarupdates",
             "alpha_parameter",
-            "alpha_effect",
             "prog",
             "nsim",
             "num_updates",
@@ -1174,7 +1154,7 @@ eval_design_mc = function(
               }
             }
             if (!fiterror) {
-              estimates = coef(summary(fit))[, 1]
+              estimates = suppressWarnings(coef(summary(fit))[, 1])
             }
           } else {
             if (glmfamilyname == "gaussian") {
@@ -1271,17 +1251,12 @@ eval_design_mc = function(
               }
             }
             #determine whether beta[i] is significant. If so, increment nsignificant
-            pvals = extractPvalues(fit, glmfamily = glmfamilyname)
+            pvals = suppressWarnings(extractPvalues(fit, glmfamily = glmfamilyname))
             #reorder since firth correction can change the ordering
             pvals = pvals[order(factor(names(pvals), levels = parameter_names))]
             stopifnot(all(names(pvals) == parameter_names))
             power_values = rep(0, length(pvals))
-            if (calceffect) {
-              effect_power_values = rep(0, length(effect_pvals))
-              names(effect_power_values) = names(effect_pvals)
-              effect_power_values[effect_pvals < alpha_effect] = 1
-            }
-            stderrval = coef(summary(fit))[, 2]
+            stderrval = suppressWarnings(coef(summary(fit))[, 2])
             if (any(is.na(pvals))) {
               pvals[is.na(pvals)] = 1
               if (!issued_non_convergence_warning) {
@@ -1301,7 +1276,6 @@ eval_design_mc = function(
             if (calceffect) {
               list(
                 "parameterpower" = power_values,
-                "effectpower" = effect_power_values,
                 "estimates" = estimates,
                 "pvals" = c(pvals),
                 "effectpvals" = effect_pvals,
@@ -1329,16 +1303,7 @@ eval_design_mc = function(
     ) /
       nsim
     if (calceffect) {
-      effect_power_values = apply(
-        do.call(rbind, power_estimates[, "effectpower"]),
-        2,
-        sum
-      ) /
-        nsim
-      attr(power_values, "effect_pvals") = do.call(
-        rbind,
-        power_estimates[, "effectpvals"]
-      )
+      effectpvallist = power_estimates[, "effectpvals"]
     }
     estimates = do.call(rbind, power_estimates[, "estimates"])
     attr(power_values, "pvals") = do.call(rbind, power_estimates[, "pvals"])
@@ -1353,6 +1318,14 @@ eval_design_mc = function(
   }
   #output the results (tidy data format)
   if (calceffect) {
+    effect_names = names(effectpvallist[[1L]])
+    if (!all(vapply(effectpvallist, function(p) identical(names(p), effect_names), logical(1)))) {
+      stop("skpr: Effect p-value names differ between simulations.")
+    }
+    effect_pvals = do.call(rbind, effectpvallist)
+    attr(power_values, "effect_pvals") = effect_pvals
+    significant = sweep(effect_pvals, 2L, alpha_effect, FUN = "<")
+    effect_power_values = colSums(significant, na.rm = TRUE) / nsim
     results = data.frame(
       parameter = c(names(effect_power_values), parameter_names),
       type = c(

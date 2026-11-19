@@ -13,7 +13,7 @@
 #'present in the candidate set and the split plot design. Those points are then excluded from the search.
 #'If a factor is continuous, its column should be type \code{numeric}. If a factor is categorical, its column should be type \code{factor} or \code{character}.
 #'@param model The statistical model used to generate the test design.
-#'@param trials The number of runs in the design.
+#'@param trials The number of runs in the design. Can be omitted when `covariates` is supplied.
 #'@param splitplotdesign If `NULL`, a fully randomized design is generated. If not NULL, a split-plot design is generated, and
 #'this argument specifies the design for all of the factors harder to change than the current set of factors.
 #'Each row corresponds to a block in which the harder to change factors will be held
@@ -49,11 +49,14 @@
 #' A `k` of 1 is a form of Wynn's algorithm \emph{Wynn. "Results in the Theory and Construction of D-Optimum Experimental Designs," Journal of the Royal Statistical Society, Ser. B,vol. 34, 1972, pp. 133-14}.
 #'@param moment_sample_density Default `10`. The density of points to sample when calculating the moment matrix to
 #' compute I-optimality if there are disallowed combinations. Otherwise, the closed-form moment matrix can be calculated.
-#'@param high_resolution_candidate_set Default `NA`. If you have continuous numeric terms and disallowed combinations, the closed-form I-optimality value
-#' cannot be calculated and must be approximated by numeric integration. This requires sampling the allowed space densely, but most candidate sets will provide
-#' a sparse sampling of allowable points. To work around this, skpr will generate a convex hull of the numeric terms for each unique combination of categorical
-#' factors to generate a dense sampling of the space and cache that value internally, but this is a slow calculation and does not support non-convex candidate sets.
-#' To speed up moment matrix calculation,  pass a higher resolution version of your candidate set here with the disallowed combinations already applied.
+#' @param high_resolution_candidate_set Default `NA`. A data frame of prediction points
+#' in the original factor units for I-optimality. For free and fixed-covariate
+#' searches, a complete grid gives equal weight to each supplied row. Repeating
+#' rows increases their weight. Include all modeled treatment and covariate columns
+#' to specify their joint distribution. The search still assigns treatments from
+#' `candidateset`. By default, ordinary searches use closed-form moments when
+#' available and otherwise integrate over the convex hull for each combination of
+#' categorical levels. A supplied grid can describe a nonconvex prediction region.
 #'@param parallel Default `FALSE`. If `TRUE`, the optimal design search will use all but one of the available cores.
 #' This can lead to a substantial speed-up in the search for complex designs. If the user wants to set the number of cores manually, they can do this by setting `options("cores")` to the desired number (e.g. `options("cores" = parallel::detectCores())`).
 #' NOTE: If you have installed BLAS libraries that include multicore support (e.g. Intel MKL that comes with Microsoft R Open), turning on parallel could result in reduced performance.
@@ -65,15 +68,36 @@
 #'@param advancedoptions Default `NULL`. An named list for advanced users who want to adjust the optimal design algorithm parameters. Advanced option names
 #'are `design_search_tolerance` (the smallest fractional increase below which the design search terminates), `alias_tie_power` (the degree of the aliasing
 #'matrix when calculating optimality tie-breakers), `alias_tie_tolerance` (the smallest absolute difference in the optimality criterion where designs are
-#'considered equal before considering the aliasing structure),  `alias_compare`` (which if set to FALSE turns off alias tie breaking completely),
+#'considered equal before considering the aliasing structure), `alias_compare` (which if set to FALSE turns off alias tie breaking completely),
 #'`aliasmodel` (provided if the user does not want to calculate Alias-optimality using all `aliaspower` interaction terms),
-#'and `progressBarUpdater`` (a function called in non-parallel optimal searches that can be used to update an external progress bar). Finally, there's
-#'`g_efficiency_method`, which sets the method used to calculate G-efficiency (default is "random" for a random Monte Carlo sampling of the design space,
-#'"optim" for to use simulated annealing, or "custom" to explicitly define the points in the design space, which is the fastest method
-#'and the only way to calculate prediction variance with disallowed combinations). With this, there's also `g_efficiency_samples`, which specifies
+#'and `progressBarUpdater` (a function called in non-parallel optimal searches that can be used to update an external progress bar).
+#'For independent runs, G-optimal exchange minimizes the largest prediction variance over the supplied candidates.
+#'With fixed covariates, the prediction region pairs each observed covariate profile with every treatment candidate.
+#'By default a G-optimal design reports G-efficiency on this same region.
+#'`g_efficiency_method` controls the reported diagnostic and accepts "random", "optim", or "custom".
+#'The companion option `g_efficiency_samples` specifies
 #'the number of random samples  (default 1000 if `g_efficiency_method = "random"`), attempts at simulated annealing (default 1 if `g_efficiency_method = "optim"`),
 #'or a data.frame defining the exact points of the design space if `g_efficiency_method = "custom"`.
 #'@param timer Deprecated: Use `progress` instead.
+#' @param covariates Default `NULL`. A data frame of fixed numeric or categorical covariates,
+#' with one row per trial in run order. Put controllable factors in `candidateset` and give
+#' the two data frames distinct column names. The search chooses a treatment for each row.
+#' Use the right-hand side of the model you plan to fit. For example,
+#' `~ treatment` scores treatment alone, and `~ treatment + row` also adjusts
+#' for row. A dot includes columns from both data frames. All fixed columns are
+#' returned in run order, including identifiers and other fields omitted from the model.
+#' The search uses the requested factor contrasts. Numeric predictors in formula
+#' transformations retain their original units. Models without an intercept or with
+#' omitted lower-order interaction terms also use the original numeric units,
+#' since centering can change the fitted model in those cases.
+#' A treatment transformation must give the same values on the candidate grid
+#' and the assigned runs. For example, use `I(dose^2)` for a quadratic term.
+#' Both settings of `randomized` preserve the covariate rows. This option applies to
+#' unblocked designs without augmentation. For I-optimality, the default prediction
+#' region crosses the observed covariate rows with the treatment candidates.
+#' A treatment-only `high_resolution_candidate_set` replaces the treatment grid
+#' in this cross. A complete prediction grid specifies the covariate weights as well.
+#' Both searches zero off-diagonal moments involving categorical effects or their interactions.
 #'@return A data frame containing the run matrix for the optimal design. The returned data frame contains supplementary
 #'information in its attributes, which can be accessed with the [`get_attribute()`][skpr::get_attribute] and [`get_optimality()`][skpr::get_optimality] functions.
 #'@import doRNG future
@@ -90,6 +114,12 @@
 #'
 #'#We can also use the dot formula to automatically use all of the terms in the model:
 #'design = gen_design(candidateset = basic_candidates, model = ~., trials = 11)
+#'
+#'#Assign treatments to eight wells, accounting for plate row and column.
+#'wells = expand.grid(row = factor(c("A", "B")), column = 1:4)
+#'plate = gen_design(data.frame(treatment = c(-1, 1)), ~treatment + row + column,
+#'                   covariates = wells)
+#'xtabs(~row + treatment, plate)
 #'
 #'#Here we add categorical factors, specified by using "as.factor" in expand.grid:
 #'categorical_candidates = expand.grid(a = c(-1, 1),
@@ -314,8 +344,28 @@ gen_design = function(
   add_blocking_columns = FALSE,
   randomized = TRUE,
   advancedoptions = NULL,
-  timer = NULL
+  timer = NULL,
+  covariates = NULL
 ) {
+  has_covariates = !is.null(covariates)
+  if (has_covariates) {
+    if (!is.data.frame(covariates) || !ncol(covariates) || !nrow(covariates)) {
+      stop("skpr: `covariates` must be a nonempty data frame with one row per trial.")
+    }
+    covariates = as.data.frame(covariates)
+    if (missing(trials)) trials = nrow(covariates)
+    if (nrow(covariates) != trials) {
+      stop("skpr: `covariates` must have one row per trial.")
+    }
+    if (anyNA(names(covariates)) || any(!nzchar(names(covariates))) ||
+        anyDuplicated(names(covariates)) || any(names(covariates) %in% names(candidateset))) {
+      stop("skpr: Covariate names must be unique and distinct from treatment candidate names.")
+    }
+    if (!is.null(splitplotdesign) || !is.null(blocksizes) ||
+        !is.null(custom_v) || !is.null(augmentdesign)) {
+      stop("skpr: `covariates` requires an unblocked, unaugmented design.")
+    }
+  }
   if (!is.null(timer)) {
     warning("Use of `timer` argument deprecated: use `progress` instead.")
     progress = timer
@@ -333,6 +383,7 @@ gen_design = function(
   } else {
     optimality = optimality_uc
   }
+  report_search_g = optimality == "G" && is.null(advancedoptions$g_efficiency_method)
 
   if (is.na(k)) {
     kexchange = trials
@@ -389,27 +440,28 @@ gen_design = function(
           warning(
             "no data.frame passed to advancedoptions$g_efficiency_samples, ignoring and using random sampling"
           )
-          advancedoptions$g_efficiency_method == "random"
+          advancedoptions$g_efficiency_method = "random"
           advancedoptions$g_efficiency_samples = 10000
-        }
-        contrastslisttemp = list()
-        for (x in names(advancedoptions$g_efficiency_samples[
-          lapply(advancedoptions$g_efficiency_samples, class) %in%
-            c("factor", "character")
-        ])) {
-          contrastslisttemp[[x]] = contrasts
-        }
-        if (length(contrastslisttemp) == 0) {
-          advancedoptions$g_efficiency_samples = model.matrix(
-            model,
-            normalize_design(advancedoptions$g_efficiency_samples)
-          )
-        } else {
-          advancedoptions$g_efficiency_samples = suppressWarnings(model.matrix(
-            model,
-            normalize_design(advancedoptions$g_efficiency_samples),
-            contrasts.arg = contrastslisttemp
-          ))
+        } else if (!has_covariates) {
+          contrastslisttemp = list()
+          for (x in names(advancedoptions$g_efficiency_samples[
+            lapply(advancedoptions$g_efficiency_samples, class) %in%
+              c("factor", "character")
+          ])) {
+            contrastslisttemp[[x]] = contrasts
+          }
+          if (length(contrastslisttemp) == 0) {
+            advancedoptions$g_efficiency_samples = model.matrix(
+              model,
+              normalize_design(advancedoptions$g_efficiency_samples)
+            )
+          } else {
+            advancedoptions$g_efficiency_samples = suppressWarnings(model.matrix(
+              model,
+              normalize_design(advancedoptions$g_efficiency_samples),
+              contrasts.arg = contrastslisttemp
+            ))
+          }
         }
       } else {
         warning(
@@ -476,7 +528,33 @@ gen_design = function(
     }
   }
 
-  model = convert_model_dots(candidateset, model, splitplotdesign)
+  if (has_covariates) {
+    model_data = cbind(covariates[1L, , drop = FALSE], candidateset[1L, , drop = FALSE])
+    generating_model = formula(terms(model, data = model_data))
+    model = covariate_design_terms(generating_model, model_data)
+    design_variables = intersect(all.vars(model), names(model_data))
+    if (!any(design_variables %in% names(candidateset))) {
+      stop("skpr: The model must include at least one controllable treatment factor.")
+    }
+    if (!is.null(amodel)) amodel = covariate_design_terms(amodel, model_data)
+    search_variables = union(all.vars(model), all.vars(amodel))
+    modeled_covariates = covariates[intersect(names(covariates), search_variables)]
+    for (name in names(modeled_covariates)) {
+      values = modeled_covariates[[name]]
+      if (!(is.numeric(values) || is.factor(values) || is.character(values) || is.logical(values)) ||
+          !is.null(dim(values)) || anyNA(values) ||
+          (is.numeric(values) && any(!is.finite(values)))) {
+        stop("skpr: Covariate `", name, "` must contain finite numeric or nonmissing categorical values.")
+      }
+      if (length(unique(values)) < 2L) {
+        stop("skpr: Covariate `", name, "` contains only a single value.")
+      }
+    }
+    covariate_reference = c(as.list(candidateset), as.list(covariates))
+  } else {
+    model = convert_model_dots(candidateset, model, splitplotdesign)
+    model = rearrange_formula_by_order(model, data = candidateset)
+  }
 
   #---- Convert all character vectors to factors in candidate set ----#
 
@@ -485,9 +563,6 @@ gen_design = function(
       candidateset[, i] = as.factor(candidateset[, i])
     }
   }
-
-  #----- Rearrange formula terms by order -----#
-  model = rearrange_formula_by_order(model, data = candidateset)
 
   if (is.null(contrasts)) {
     contrasts = function(n) contr.simplex(n, size = sqrt(n - 1))
@@ -700,9 +775,16 @@ gen_design = function(
     }
   }
   # This needs to be passed to get_moment_matrix after being normalized
-  fullcandidateset = unique(reduceRunMatrix(candidateset, model))
+  if (has_covariates) {
+    treatment_names = intersect(names(candidateset), all.vars(model))
+    fullcandidateset = unique(candidateset[treatment_names])
+  } else {
+    fullcandidateset = unique(reduceRunMatrix(candidateset, model))
+  }
 
-  if (is.null(splitplotdesign)) {
+  if (has_covariates) {
+    candidateset = fullcandidateset
+  } else if (is.null(splitplotdesign)) {
     candidateset = unique(reduceRunMatrix(candidateset, model, FALSE))
   } else {
     candidateset = unique(reduceRunMatrix(
@@ -717,6 +799,18 @@ gen_design = function(
     contrasts
   )
   contrastslist_cormat = contrast_info$contrastslist_cormat
+  if (has_covariates) {
+    contrastslist = contrast_info$contrastslist
+    alias_contrasts = contrastslist
+    factor_names = names(modeled_covariates)[!vapply(modeled_covariates, is.numeric, logical(1))]
+    for (name in factor_names) {
+      alias_contrasts[[name]] = contrasts
+      if (name %in% all.vars(model)) {
+        contrastslist[[name]] = contrasts
+        contrastslist_cormat[[name]] = contr.simplex
+      }
+    }
+  }
 
   #------Ensure the candidate set has no single-valued columns------#
   if (nrow(candidateset) == 0) {
@@ -1151,7 +1245,16 @@ gen_design = function(
 
   genOutput = vector(mode = "list", length = repeats)
 
-  if (length(contrastslist) == 0) {
+  if (has_covariates) {
+    parts = covariate_model(model, candidateset, covariates, contrastslist)
+    candidatesetmm = parts$candidates
+    if (trials < length(parts$columns)) {
+      stop("skpr: Too few runs for the specified treatment and covariate model.")
+    }
+    if (ncol(parts$fixed) && qr(parts$fixed)$rank < ncol(parts$fixed)) {
+      stop("skpr: The fixed covariate terms are linearly dependent.")
+    }
+  } else if (length(contrastslist) == 0) {
     if (is.null(splitplotdesign)) {
       candidatesetmm = model.matrix(model, candidatesetnormalized)
       if (!is.null(augmentdesign)) {
@@ -1183,7 +1286,7 @@ gen_design = function(
     }
   }
 
-  if (!splitplot) {
+  if (!splitplot && !has_covariates) {
     if (det(t(candidatesetmm) %*% candidatesetmm) < 1e-8) {
       is_singular = function() {
         tryCatch(
@@ -1233,7 +1336,9 @@ gen_design = function(
   }
 
   if (is.null(amodel)) {
-    if (is.null(splitplotdesign)) {
+    if (has_covariates) {
+      amodel = aliasmodel(model, aliaspower, design_variables)
+    } else if (is.null(splitplotdesign)) {
       amodel = aliasmodel(model, aliaspower)
     } else {
       amodel = aliasmodel(modelnowholeformula, aliaspower)
@@ -1250,7 +1355,20 @@ gen_design = function(
       collapse = ""
     ))
   }
-  if (length(contrastslist) == 0) {
+  if (has_covariates) {
+    tie_model = amodel
+    if (!is.null(advancedoptions$alias_tie_power)) {
+      tie_model = aliasmodel(model, advancedoptions$alias_tie_power, design_variables)
+    }
+    alias_parts = if (optimality == "ALIAS") {
+      covariate_model(amodel, candidateset, covariates, alias_contrasts)
+    } else {
+      # Only the alias criterion scores a second model during exchanges.
+      list(fixed = matrix(numeric(), trials, 0L), offsets = integer(trials),
+           candidates = matrix(numeric(), nrow(candidateset), 0L))
+    }
+    aliasmm = alias_parts$candidates
+  } else if (length(contrastslist) == 0) {
     aliasmm = model.matrix(amodel, candidatesetnormalized)
   } else {
     suppressWarnings({
@@ -1264,22 +1382,50 @@ gen_design = function(
 
   num_updates = min(c(repeats, 200))
   progressbarupdates = floor(seq(1, repeats, length.out = num_updates))
-  if (!splitplot) {
-    factors = colnames(candidatesetmm)
-    classvector = sapply(candidateset, inherits, c("factor", "character"))
-
-    if (optimality == "I") {
+  moment_matrix = matrix(numeric(), 0L, 0L)
+  if (!splitplot && optimality == "I") {
+    grid = high_resolution_candidate_set
+    fixed_names = intersect(names(covariates), all.vars(model))
+    joint_grid = is.data.frame(grid) && (!length(fixed_names) || any(fixed_names %in% names(grid)))
+    if (joint_grid) {
+      if (has_covariates) {
+        reference = covariate_reference
+        prediction_model = parts$prediction_model
+      } else {
+        reference = rbind(candidateset, augmentdesign)
+        prediction_model = terms(model.frame(model, candidatesetnormalized))
+      }
+      variables = intersect(names(reference), all.vars(model))
+      missing_columns = setdiff(variables, names(grid))
+      if (length(missing_columns)) {
+        stop("skpr: Missing modeled columns in the joint prediction grid: ",
+             paste(missing_columns, collapse = ", "), ".")
+      }
+      grid = normalize_prediction_points(grid[variables], reference, if (has_covariates) model else NULL)
+      moment_matrix = gen_momentsmatrix_constrained(
+        grid, prediction_model, user_provided_high_res_candidateset = TRUE,
+        contrastslist = contrastslist
+      )
+    } else if (has_covariates) {
+      integration = parts
+      if (is.data.frame(grid)) {
+        integration = covariate_model(parts$prediction_model, grid, covariates,
+                                      contrastslist, reference = candidateset)
+      }
+      moment_matrix = covariate_moments(integration)
+    } else {
       moment_matrix = get_moment_matrix(
         candidate_set_normalized = fullcandidatesetnorm,
-        factors = factors,
-        classvector = classvector,
+        factors = colnames(candidatesetmm),
+        classvector = sapply(candidateset, inherits, c("factor", "character")),
         model = model,
         moment_sample_density = moment_sample_density,
-        high_resolution_candidate_set = high_resolution_candidate_set,
+        high_resolution_candidate_set = high_resolution_candidate_set
       )
-    } else {
-      moment_matrix = matrix(0, nrow = 0, ncol = 0)
     }
+  }
+  if (!splitplot && !has_covariates) {
+    factors = colnames(candidatesetmm)
     if (!parallel) {
       if (!is.null(getOption("skpr_progress"))) {
         progress = getOption("skpr_progress")
@@ -1437,7 +1583,40 @@ gen_design = function(
       }
       genOutput = run_search(seq_len(repeats), advancedoptions$GUI)
     }
-  } else {
+  }
+
+  covariate_rows = NULL
+  if (has_covariates) {
+    blockedmodelmatrix = parts$fixed
+    blockedFactors = c(colnames(blockedmodelmatrix), colnames(candidatesetmm))
+    factors = parts$columns
+    covariate_rows = list(
+      candidate_count = nrow(candidateset),
+      offsets = parts$offsets,
+      alias_offsets = alias_parts$offsets,
+      fixed_alias = alias_parts$fixed
+    )
+    if (optimality == "G") {
+      # Each distinct fixed profile pairs with every legal treatment candidate.
+      profiles = which(!duplicated(cbind(parts$fixed, parts$offsets)))
+      runs = rep(profiles, each = parts$count)
+      points = parts$offsets[runs] + rep(seq_len(parts$count), times = length(profiles))
+      covariate_rows$prediction_points = cbind(parts$fixed[runs, , drop = FALSE],
+                                              parts$candidates[points, , drop = FALSE])
+    }
+    if (optimality == "CUSTOM") {
+      covariate_rows$custom = covariate_custom_criterion(
+        get("customOpt", envir = .GlobalEnv), match(factors, blockedFactors)
+      )
+    }
+    interactionlist = list()
+    anydisallowed = FALSE
+    disallowedcomb = matrix(numeric(), 0L, 0L)
+    blocked_moment_matrix = moment_matrix
+    if (optimality == "I") {
+      blocked_moment_matrix = moment_matrix[blockedFactors, blockedFactors, drop = FALSE]
+    }
+  } else if (splitplot) {
     #Set up split-plot inputs
     blockedContrastsList = list()
     for (x in names(splitPlotReplicateDesign[
@@ -1555,8 +1734,26 @@ gen_design = function(
       anydisallowed = FALSE
       disallowedcomb = matrix()
     }
+    candidatesetmm = candidatesetmm[, -1, drop = FALSE]
+    aliasmm = aliasmm[, -1, drop = FALSE]
+  }
 
-    #Finished setting up split-plot inputs
+  if (has_covariates || splitplot) {
+    fixed_inputs = list(
+      candidatelist = candidatesetmm,
+      blockeddesign = blockedmodelmatrix,
+      condition = optimality,
+      momentsmatrix = blocked_moment_matrix,
+      blockedVar = V,
+      aliascandidatelist = aliasmm,
+      minDopt = minDopt,
+      interactions = interactionlist,
+      disallowed = disallowedcomb,
+      anydisallowed = anydisallowed,
+      tolerance = tolerance,
+      kexchange = kexchange,
+      covariateRows = covariate_rows
+    )
     if (!parallel) {
       if (progress) {
         pb = progress::progress_bar$new(
@@ -1573,28 +1770,7 @@ gen_design = function(
         if (progress && !advancedoptions$GUI) {
           pb$tick()
         }
-        randomindices = sample(
-          nrow(candidateset),
-          trials,
-          replace = initialreplace
-        )
-        genOutput[[i]] = genSplitPlotOptimalDesign(
-          initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
-          candidatelist = candidatesetmm[, -1, drop = FALSE],
-          blockeddesign = blockedmodelmatrix,
-          condition = optimality,
-          momentsmatrix = blocked_moment_matrix,
-          initialRows = randomindices,
-          blockedVar = V,
-          aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
-          aliascandidatelist = aliasmm[, -1, drop = FALSE],
-          minDopt = minDopt,
-          interactions = interactionlist,
-          disallowed = disallowedcomb,
-          anydisallowed = anydisallowed,
-          tolerance = tolerance,
-          kexchange = kexchange
-        )
+        genOutput[[i]] = search_fixed_columns(fixed_inputs)
       }
     } else {
       if (!getOption("skpr_progress", TRUE)) {
@@ -1610,33 +1786,7 @@ gen_design = function(
           i = iterations,
           .errorhandling = "remove",
           .options.future = list(
-            globals = c(
-              "genSplitPlotOptimalDesign",
-              "candidatesetmm",
-              "trials",
-              "candidateset",
-              "initialreplace",
-              "blocked_moment_matrix",
-              "interactionlist",
-              "disallowedcomb",
-              "anydisallowed",
-              "progress",
-              "is_shiny",
-              "progressbarupdates",
-              "repeats",
-              "num_updates",
-              "initialdesign",
-              "optimality",
-              "moment_matrix",
-              "aliasmm",
-              "blockedmodelmatrix",
-              "minDopt",
-              "tolerance",
-              "kexchange",
-              "V",
-              "prog",
-              "nc"
-            ),
+            globals = TRUE,
             seed = TRUE
           )
         ) %dofuture%
@@ -1652,28 +1802,7 @@ gen_design = function(
                 prog(amount = repeats / num_updates)
               }
             }
-            randomindices = sample(
-              nrow(candidateset),
-              trials,
-              replace = initialreplace
-            )
-            genSplitPlotOptimalDesign(
-              initialdesign = candidatesetmm[randomindices, -1, drop = FALSE],
-              candidatelist = candidatesetmm[, -1, drop = FALSE],
-              blockeddesign = blockedmodelmatrix,
-              condition = optimality,
-              momentsmatrix = blocked_moment_matrix,
-              initialRows = randomindices,
-              blockedVar = V,
-              aliasdesign = aliasmm[randomindices, -1, drop = FALSE],
-              aliascandidatelist = aliasmm[, -1, drop = FALSE],
-              minDopt = minDopt,
-              interactions = interactionlist,
-              disallowed = disallowedcomb,
-              anydisallowed = anydisallowed,
-              tolerance = tolerance,
-              kexchange = kexchange
-            )
+            search_fixed_columns(fixed_inputs)
           }
       }
       genOutput = run_search(seq_len(repeats), advancedoptions$GUI)
@@ -1693,17 +1822,15 @@ gen_design = function(
     }
   }
 
+  if (has_covariates && optimality == "D") {
+    criteria = lapply(designs, DOptimalityLog)
+  }
   if (length(designs) == 0) {
     stop(paste0(
       "skpr: For a design with ",
       trials,
       " trials and ",
-      ncol(candidatesetmm) +
-        ifelse(
-          splitplot,
-          ncol(blockedmodelmatrix) - 1 + length(interactionlist),
-          0
-        ),
+      if (splitplot || has_covariates) length(blockedFactors) else ncol(candidatesetmm),
       " parameters, skpr was not able to find non-singular design within given number of repeats. ",
       "Increase repeats argument and try again. If still no designs are found, reduce the number ",
       "of model parameters or increase the number of trials. This failure to find a design could ",
@@ -1746,7 +1873,7 @@ gen_design = function(
 
     if (
       length(bestvec) > 1 &&
-        ncol(candidateset) > 1 &&
+        (ncol(candidateset) > 1 || has_covariates) &&
         advancedoptions$alias_compare
     ) {
       aliasvalues = list()
@@ -1756,7 +1883,11 @@ gen_design = function(
         if (!is.null(augmentdesign)) {
           rowindextemp[seq_len(nrow(augmentdesign))] = 1
         }
-        if (!is.null(splitplotdesign)) {
+        if (has_covariates) {
+          assignments = cbind(modeled_covariates, candidateset[rowindextemp, , drop = FALSE])
+          aliasmatrix = covariate_assignment_matrix(tie_model, assignments, covariate_reference, alias_contrasts)
+          aliasmatrix = aliasmatrix[, attr(aliasmatrix, "assign") != 0L, drop = FALSE]
+        } else if (!is.null(splitplotdesign)) {
           if (is.null(advancedoptions$alias_tie_power)) {
             amodel2 = aliasmodel(model, 2)
           } else {
@@ -1767,7 +1898,7 @@ gen_design = function(
               amodel2,
               cbind(
                 splitPlotReplicateDesign,
-                constructRunMatrix(rowindextemp, candidatesetnormalized)
+                candidatesetnormalized[rowindextemp, , drop = FALSE]
               ),
               contrasts.arg = fullcontrastlist
             )[, -1, drop = FALSE]
@@ -1834,7 +1965,7 @@ gen_design = function(
     }
     if (
       length(bestvec) > 1 &&
-        ncol(candidateset) > 1 &&
+        (ncol(candidateset) > 1 || has_covariates) &&
         advancedoptions$alias_compare
     ) {
       aliasvalues = list()
@@ -1844,7 +1975,11 @@ gen_design = function(
         if (!is.null(augmentdesign)) {
           rowindextemp[seq_len(nrow(augmentdesign))] = 1
         }
-        if (!is.null(splitplotdesign)) {
+        if (has_covariates) {
+          assignments = cbind(modeled_covariates, candidateset[rowindextemp, , drop = FALSE])
+          aliasmatrix = covariate_assignment_matrix(tie_model, assignments, covariate_reference, alias_contrasts)
+          aliasmatrix = aliasmatrix[, attr(aliasmatrix, "assign") != 0L, drop = FALSE]
+        } else if (!is.null(splitplotdesign)) {
           if (is.null(advancedoptions$alias_tie_power)) {
             amodel2 = aliasmodel(model, 2)
           } else {
@@ -1855,7 +1990,7 @@ gen_design = function(
               amodel2,
               cbind(
                 splitPlotReplicateDesign,
-                constructRunMatrix(rowindextemp, candidatesetnormalized)
+                candidatesetnormalized[rowindextemp, , drop = FALSE]
               ),
               contrasts.arg = fullcontrastlist
             )[, -1, drop = FALSE]
@@ -1897,7 +2032,12 @@ gen_design = function(
     rowindex[seq_len(nrow(augmentdesign))] = 1
   }
 
-  if (!splitplot) {
+  if (has_covariates) {
+    colnames(designmm) = blockedFactors
+    designmm = designmm[, factors, drop = FALSE]
+    rownames(designmm) = rownames(covariates)
+    if (optimality == "I") moment_matrix = moment_matrix[factors, factors, drop = FALSE]
+  } else if (!splitplot) {
     colnames(designmm) = factors
   } else {
     colnames(designmm) = blockedFactors
@@ -1914,7 +2054,20 @@ gen_design = function(
     augment = augmentdesign
   )
 
-  if (splitplot) {
+  if (has_covariates) {
+    design = cbind(covariates, design)
+    fitted_matrix = covariate_assignment_matrix(model, design, covariate_reference, contrastslist)
+    if (!identical(colnames(designmm), colnames(fitted_matrix)) ||
+        !isTRUE(all.equal(as.vector(designmm), as.vector(fitted_matrix)))) {
+      stop("skpr: A model term changes when evaluated on the assigned runs. ",
+           "Use a fixed treatment transformation, such as I(dose^2) or poly(dose, 2, raw = TRUE).")
+    }
+    designmm = fitted_matrix
+    attr(design, "covariates") = covariates
+    if (optimality == "I" && is.data.frame(high_resolution_candidate_set)) {
+      attr(design, "covariate_grid") = high_resolution_candidate_set
+    }
+  } else if (splitplot) {
     design = cbind(splitPlotReplicateDesign, design)
   }
 
@@ -1979,7 +2132,7 @@ gen_design = function(
     }
   )
   attr(design, "model_matrix") = designmm
-  attr(design, "generating_model") = model
+  attr(design, "generating_model") = if (has_covariates) generating_model else model
   attr(design, "generating.criterion") = optimality
   attr(design, "generating.contrast") = contrasts
   attr(design, "contrastslist") = contrastslist
@@ -1996,6 +2149,8 @@ gen_design = function(
         ]
         attr(design, "splitcolumns") = blockcolnames
       }
+    } else if (has_covariates) {
+      attr(design, "row.names") = attr(covariates, "row.names")
     } else {
       rownames(design) = seq_len(nrow(design))
     }
@@ -2082,13 +2237,16 @@ gen_design = function(
         rownames(correlation.matrix) = colnames(designmm)[-1]
         attr(design, "correlation.matrix") = round(correlation.matrix, 8)
         if (amodel != model) {
-          aliasmatrix = suppressWarnings({
-            model.matrix(
+          if (has_covariates) {
+            aliasmatrix = covariate_assignment_matrix(amodel, design, covariate_reference, alias_contrasts)
+            aliasmatrix = aliasmatrix[, attr(aliasmatrix, "assign") != 0L, drop = FALSE]
+          } else {
+            aliasmatrix = suppressWarnings(model.matrix(
               aliasmodel(model, aliaspower),
               design_normalized,
               contrasts.arg = contrastslist
-            )[, -1]
-          })
+            )[, -1])
+          }
           A = solve(t(designmm) %*% designmm) %*% t(designmm) %*% aliasmatrix
           attr(design, "alias.matrix") = A
           attr(design, "trA") = sum(diag(t(A) %*% A))
@@ -2110,10 +2268,29 @@ gen_design = function(
   if (!splitplot && !blocking) {
     tryCatch(
       {
-        if (
+        if (report_search_g) {
+          attr(design, "G") = 100 * ncol(designmm) / (trials * criteria[[best]])
+        } else if (
           advancedoptions$g_efficiency_method == "none" && optimality != "G"
         ) {
           attr(design, "G") = "Not Computed"
+        } else if (has_covariates) {
+          inverse_information = chol2inv(chol(crossprod(designmm)))
+          dimnames(inverse_information) = list(factors, factors)
+          if (advancedoptions$g_efficiency_method == "custom") {
+            samples = covariate_assignment_matrix(model, advancedoptions$g_efficiency_samples,
+                                                  covariate_reference, contrastslist)
+            worst = max(rowSums((samples %*% inverse_information) * samples))
+          } else {
+            treatment_rows = seq_len(parts$count)
+            worst_by_run = vapply(seq_len(trials), function(run) {
+              return(max(covariate_prediction_variance(
+                parts, inverse_information, rep.int(run, parts$count), treatment_rows
+              )))
+            }, numeric(1))
+            worst = max(worst_by_run)
+          }
+          attr(design, "G") = 100 * ncol(designmm) / (trials * worst)
         } else if (advancedoptions$g_efficiency_method != "custom") {
           attr(design, "G") = calculate_gefficiency(
             design,
@@ -2211,7 +2388,9 @@ gen_design = function(
   }
 
   #Re-order factors so levels with the lowest number of factors come first
-  for (i in seq_len(length(design))) {
+  # A covariate design retains the coding used to score each assignment.
+  reorder_factors = if (has_covariates) integer(0) else seq_along(design)
+  for (i in reorder_factors) {
     if (!is.numeric(design[[i]])) {
       if (inherits(design[[i]], "factor")) {
         design[i] = factor(
@@ -2300,7 +2479,7 @@ gen_design = function(
     }
   }
   #Add block cols for augmented designs
-  if (!randomized) {
+  if (!randomized && !has_covariates) {
     if (is.null(augmentdesign)) {
       allattr = attributes(design)
       design_order = do.call(order, design)
@@ -2339,11 +2518,11 @@ gen_design = function(
   } else {
     attr(design, "augmented") = FALSE
   }
-  modelmatrix_cor = model.matrix(
-    model,
-    design,
-    contrasts.arg = contrastslist_cormat
-  )
+  modelmatrix_cor = if (has_covariates) {
+    covariate_assignment_matrix(model, design, covariate_reference, contrastslist_cormat)
+  } else {
+    model.matrix(model, design, contrasts.arg = contrastslist_cormat)
+  }
   attr(design, "model_matrix_cor") = modelmatrix_cor
   return(design)
 }

@@ -2,31 +2,36 @@
 % Please edit documentation in R/calculate_convex_hull_moment_matrix.R
 \name{gen_momentsmatrix_constrained}
 \alias{gen_momentsmatrix_constrained}
-\title{Approximate continuous moment matrix over a numeric bounding box}
+\title{Calculate the prediction-region moments for an I-optimal search}
 \usage{
 gen_momentsmatrix_constrained(
   candidate_set,
   formula = ~.,
   n_samples_per_dimension = 10,
-  user_provided_high_res_candidateset = FALSE
+  user_provided_high_res_candidateset = FALSE,
+  contrastslist = NULL
 )
 }
 \arguments{
-\item{candidate_set}{Candidate set}
+\item{candidate_set}{Prediction points on the same numeric scale as the search.}
 
-\item{formula}{Default \code{~ .}. Model formula specifying the terms.}
+\item{formula}{Default \code{~.}. Model formula specifying the terms.}
 
 \item{n_samples_per_dimension}{Default \code{10}. Number of samples to take per dimension when interpolating inside
 the convex hull.}
+
+\item{user_provided_high_res_candidateset}{Default \code{FALSE}. Use equal weight
+per supplied row instead of interpolating the convex hull.}
+
+\item{contrastslist}{Default \code{NULL}. Named factor contrasts from the search.
+The default uses simplex contrasts.}
 }
 \value{
-A matrix of size \verb{p x p} (where \code{p} is the number of columns in the model matrix),
-approximating the continuous moment matrix.
+A square moment matrix in model-column order.
 }
 \description{
-Treats the min–max range of each numeric column as a bounding box
-and samples points uniformly to approximate the integral of the outer product of
-the model terms, weighted by whether the point
-is on the edge.
+Builds the I-optimality moment matrix from the supplied prediction
+rows or from numerical integration over the feasible region at each factor level.
+Factor-related off-diagonal moments are zero in both cases.
 }
 \keyword{internal}

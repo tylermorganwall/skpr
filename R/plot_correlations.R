@@ -156,11 +156,11 @@ plot_correlations = function(
   labels = colnames(cormat)
   plot_df = expand.grid(
     x = labels,
-    y = labels,
+    y = rev(labels),
     KEEP.OUT.ATTRS = FALSE,
     stringsAsFactors = FALSE
   )
-  plot_df$value = as.vector(cormat[labels, labels, drop = FALSE])
+  plot_df$value = as.vector(cormat[labels, rev(labels), drop = FALSE])
   plot_obj = ggplot2::ggplot(
     plot_df,
     ggplot2::aes(

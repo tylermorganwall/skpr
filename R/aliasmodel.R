@@ -3,12 +3,13 @@
 #'@description Creates alias terms for Alias-optimal designs
 #'
 #'@param formula The formula to be expanded
+#' @param variables Default `all.vars(formula)`. Design variables eligible for alias terms.
 #'@keywords internal
 #'@import utils
 #'@return Returns aliased model terms from formula
-aliasmodel = function(formula, power) {
+aliasmodel = function(formula, power, variables = all.vars(formula)) {
   existingterms = paste0("`", attr(terms(formula), "term.labels"), "`")
-  variables = paste0("`", all.vars(formula), "`")
+  variables = paste0("`", variables, "`")
 
   if (power < 2) {
     stop("skpr: Aliased terms must be greater than linear")

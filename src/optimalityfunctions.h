@@ -7,7 +7,7 @@ double calculateDOptimalityLog(const Eigen::MatrixXd& currentDesign);
 
 double calculateIOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& momentsMatrix);
 
-double calculateGOptimality(const Eigen::MatrixXd& currentV, const Eigen::MatrixXd& currentDesign);
+double calculateGOptimality(const Eigen::MatrixXd& inverseInformation, const Eigen::MatrixXd& predictionPoints);
 
 double calculateTOptimality(const Eigen::MatrixXd& currentDesign);
 

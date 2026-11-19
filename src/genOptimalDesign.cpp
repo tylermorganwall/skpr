@@ -386,7 +386,7 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
     newOptimum = bestA;
   }
   else if(condition == "G") {
-    del = calculateGOptimality(V, initialdesign);
+    del = calculateGOptimality(V, candidatelist);
     newOptimum = del;
     priorOptimum = del * 2;
     while((newOptimum - priorOptimum)/priorOptimum < -minDelta) {
@@ -407,7 +407,7 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
                 identitymat, f1, f2, f2vinv);
               initialdesign.row(row) = candidatelist.row(candidateIndex);
               if(!isSingular(initialdesign)) {
-                candidateScore = calculateGOptimality(updatedV, initialdesign);
+                candidateScore = calculateGOptimality(updatedV, candidatelist);
                 success = true;
               }
             } catch (std::runtime_error&) {
@@ -432,7 +432,7 @@ Rcpp::List genOptimalDesign(Eigen::MatrixXd initialdesign, const Eigen::MatrixXd
           candidateRow[row] = initialRows[row];
         }
       }
-      newOptimum = calculateGOptimality(V, initialdesign);
+      newOptimum = calculateGOptimality(V, candidatelist);
       del = newOptimum;
     }
   }
